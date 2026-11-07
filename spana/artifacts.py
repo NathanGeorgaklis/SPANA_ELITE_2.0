@@ -1,12 +1,15 @@
 """Versioned, validated JSON artifacts passed between layers.
 
   spana.detections 1.1.0 : per-frame person detections (Pass: detection)
-  spana.tracks     1.1.0 : per-frame multi-player tracks (Pass: tracking), consumes a detections artifact
+  spana.tracks     2.0.0 : per-frame multi-player tracks (Pass: tracking), consumes a detections artifact
 
 Change log:
   1.1.0 detections: + top-level detection_config (tracking refuses detections made under another config).
   1.1.0 tracks: + per-track gaps_bridged / last_gap_s; stricter validation (state/source, boxes, camera,
         time, epoch, ended ids). 1.0.0 documents are not accepted.
+  2.0.0 tracks: states ACTIVE/OCCLUDED/LOST (TERMINATED via `ended`), + confirmed, confidence, age_frames,
+        missed_frames, occluder, recoveries (replaces gaps_bridged), possible_predecessors; + top-level
+        `tracklets` summary. Not backward compatible (state vocabulary changed).
 
 Any change to keys, types, units or meaning increments the version. Writers are atomic and never overwrite.
 """
@@ -21,10 +24,10 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence
 
 from .config import OutputConfig
-from .records import CameraStatus, Detection, EndReason, FrameTracks, PositionSource, TrackState
+from .records import CameraStatus, Detection, EndReason, FrameTracks, PositionSource, TrackletSummary, TrackState
 
 DETECTIONS_SCHEMA = ("spana.detections", "1.1.0")
-TRACKS_SCHEMA = ("spana.tracks", "1.1.0")
+TRACKS_SCHEMA = ("spana.tracks", "2.0.0")
 
 
 class ArtifactError(ValueError):
@@ -115,29 +118,40 @@ def tracks_frame(ft: FrameTracks, oc: OutputConfig) -> dict:
         "camera": {"status": cam.status.value, "affine": [list(r) for r in cam.affine], "inliers": cam.inliers,
                    "hist_distance": None if cam.hist_distance is None else round(cam.hist_distance, 6)},
         "tracks": [{
-            "track_id": o.track_id, "state": o.state.value, "source": o.source.value,
+            "track_id": o.track_id, "state": o.state.value, "confirmed": o.confirmed, "source": o.source.value,
             "box": [round(v, oc.box_decimals) for v in o.box], "detection_index": o.detection_index,
             "detection_score": None if o.detection_score is None else round(o.detection_score, oc.score_decimals),
-            "contested": o.contested, "time_since_observed_s": o.time_since_observed_s,
-            "observed_frames": o.observed_frames, "epoch": o.epoch,
+            "confidence": round(o.confidence, oc.score_decimals), "contested": o.contested,
+            "age_frames": o.age_frames, "missed_frames": o.missed_frames,
+            "time_since_observed_s": o.time_since_observed_s, "observed_frames": o.observed_frames,
+            "epoch": o.epoch, "occluder": o.occluder,
             "max_overlap_iou": round(o.max_overlap_iou, oc.score_decimals), "overlap_with": o.overlap_with,
-            "gaps_bridged": o.gaps_bridged, "last_gap_s": o.last_gap_s,
+            "recoveries": o.recoveries, "last_gap_s": o.last_gap_s,
+            "possible_predecessors": list(o.possible_predecessors),
         } for o in ft.tracks],
         "ended": [[tid, r.value] for tid, r in ft.ended],
     }
 
 
-_TRACK_KEYS = ("track_id", "state", "source", "box", "detection_index", "detection_score", "contested",
-               "time_since_observed_s", "observed_frames", "epoch", "max_overlap_iou", "overlap_with", "gaps_bridged",
-               "last_gap_s")
+def tracklet_rows(summaries: Iterable[TrackletSummary]) -> List[dict]:
+    return [{**s.__dict__, "possible_predecessors": list(s.possible_predecessors)} for s in summaries]
+
+
+_TRACK_KEYS = ("track_id", "state", "confirmed", "source", "box", "detection_index", "detection_score",
+               "confidence", "contested", "age_frames", "missed_frames", "time_since_observed_s",
+               "observed_frames", "epoch", "occluder", "max_overlap_iou", "overlap_with", "recoveries",
+               "last_gap_s", "possible_predecessors")
+_TRACKLET_KEYS = ("track_id", "epoch", "first_frame", "last_frame", "last_observed_frame", "observed_frames",
+                  "confirmed", "end_reason", "recoveries", "possible_predecessors")
 _CAMERA_KEYS = ("status", "affine", "inliers", "hist_distance")
-_SOURCES_FOR_STATE = {TrackState.TENTATIVE.value: {PositionSource.OBSERVED.value},
-                      TrackState.CONFIRMED.value: {PositionSource.OBSERVED.value},
+_SOURCES_FOR_STATE = {TrackState.ACTIVE.value: {PositionSource.OBSERVED.value},
+                      TrackState.OCCLUDED.value: {PositionSource.PREDICTED.value, PositionSource.HELD.value},
                       TrackState.LOST.value: {PositionSource.PREDICTED.value, PositionSource.HELD.value}}
 
 
 def validate_tracks(doc: Any) -> None:
-    _header(doc, TRACKS_SCHEMA, ("schema", "schema_version", "provenance", "video", "detections_sha256", "frames"))
+    _header(doc, TRACKS_SCHEMA, ("schema", "schema_version", "provenance", "video", "detections_sha256", "frames",
+                                 "tracklets"))
     if not doc["frames"]:
         raise ArtifactError("tracks artifact has no frames")
     cams = {s.value for s in CameraStatus}
@@ -192,9 +206,21 @@ def validate_tracks(doc: Any) -> None:
                 raise ArtifactError(f"{where}: {tid} time_since_observed_s disagrees with source")
             if (tr["overlap_with"] is None) != (tr["max_overlap_iou"] == 0) or tr["overlap_with"] == tid:
                 raise ArtifactError(f"{where}: {tid} overlap fields disagree")
-            if not (isinstance(tr["gaps_bridged"], int) and tr["gaps_bridged"] >= 0 and _num(tr["last_gap_s"])
-                    and (tr["gaps_bridged"] == 0) == (tr["last_gap_s"] == 0)):
-                raise ArtifactError(f"{where}: {tid} bad gap fields")
+            if not (isinstance(tr["recoveries"], int) and tr["recoveries"] >= 0 and _num(tr["last_gap_s"])
+                    and (tr["recoveries"] == 0) == (tr["last_gap_s"] == 0)):
+                raise ArtifactError(f"{where}: {tid} bad recovery fields")
+            if not (isinstance(tr["confirmed"], bool) and _num(tr["confidence"]) and 0 <= tr["confidence"] <= 1):
+                raise ArtifactError(f"{where}: {tid} bad confirmed/confidence")
+            if not (isinstance(tr["age_frames"], int) and isinstance(tr["missed_frames"], int)
+                    and 0 <= tr["missed_frames"] <= tr["age_frames"] and (tr["missed_frames"] == 0) == observed):
+                raise ArtifactError(f"{where}: {tid} bad age/missed frames")
+            if (tr["occluder"] is not None) != (tr["state"] == TrackState.OCCLUDED.value) or tr["occluder"] == tid:
+                raise ArtifactError(f"{where}: {tid} occluder disagrees with state")
+            if not (isinstance(tr["possible_predecessors"], list)
+                    and all(isinstance(x, str) and x != tid for x in tr["possible_predecessors"])):
+                raise ArtifactError(f"{where}: {tid} bad possible_predecessors")
+            if not tr["confirmed"] and tr["state"] != TrackState.ACTIVE.value:
+                raise ArtifactError(f"{where}: {tid} unconfirmed track must be ACTIVE")
             ep = tr["epoch"]
             if not isinstance(ep, int) or ep < prev_epoch or seen.get(tid, ep) != ep:
                 raise ArtifactError(f"{where}: {tid} epoch inconsistent")
@@ -204,6 +230,21 @@ def validate_tracks(doc: Any) -> None:
         if ids & ended_ids:
             raise ArtifactError(f"{where}: an ended track id reappears {sorted(ids & ended_ids)}")
         live_prev = ids
+    rows = doc["tracklets"]
+    if not isinstance(rows, list):
+        raise ArtifactError("tracklets must be a list")
+    tids = set()
+    for r in rows:
+        _keys(r, _TRACKLET_KEYS, "tracklet")
+        if r["track_id"] in tids or r["track_id"] not in seen:
+            raise ArtifactError(f"tracklet {r['track_id']!r} duplicated or never emitted")
+        tids.add(r["track_id"])
+        if r["end_reason"] is not None and r["end_reason"] not in reasons:
+            raise ArtifactError(f"tracklet {r['track_id']}: bad end_reason")
+        if (r["end_reason"] is None) != (r["track_id"] in live_prev):
+            raise ArtifactError(f"tracklet {r['track_id']}: end_reason disagrees with the last frame")
+    if tids != set(seen):
+        raise ArtifactError("tracklets do not cover every emitted track")
 
 
 # ----------------------------------------------------------------------------- helpers

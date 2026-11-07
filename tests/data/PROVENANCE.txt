@@ -1,0 +1,1 @@
+tests/data/yolox_demo_dog.jpg: from Megvii-BaseDetection/YOLOX@6ddff4824372906469a7fae2dc3206c7aa4bbaee assets/dog.jpg (Apache-2.0); sha256 5a9522051c3cec2bbd2f6323fccba32e8fbf3ddcc2b3e2fd46b04c720bc6f866

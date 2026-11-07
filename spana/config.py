@@ -19,7 +19,7 @@ from typing import Any, Mapping, Type, TypeVar, get_type_hints
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "1.0.0"
+CONFIG_SCHEMA_VERSION = "2.0.0"
 
 
 class ConfigError(ValueError):
@@ -32,8 +32,17 @@ class DetectionConfig:
     score_high: float         # detections at/above this may start tracks and match in stage 1
     nms_iou: float            # class-wise NMS IoU
     min_box_height_frac: float  # min box height as a fraction of frame height
+    tiling_enabled: bool        # add overlapping high-resolution tiles to the full-frame pass
+    tile_size_frac: float       # tile side as a fraction of frame height
+    tile_overlap_frac: float    # overlap between neighbouring tiles, fraction of the tile side
+    tile_edge_margin_frac: float  # tile boxes this close to an internal tile edge are truncated -> dropped
 
     def validate(self) -> None:
+        _pos("detection.tile_size_frac", self.tile_size_frac)
+        _unit("detection.tile_overlap_frac", self.tile_overlap_frac)
+        _unit("detection.tile_edge_margin_frac", self.tile_edge_margin_frac)
+        if self.tile_overlap_frac >= 1.0 or self.tile_edge_margin_frac >= self.tile_overlap_frac:
+            raise ConfigError("detection: need tile_edge_margin_frac < tile_overlap_frac < 1")
         _unit("detection.score_low", self.score_low)
         _unit("detection.score_high", self.score_high)
         _unit("detection.nms_iou", self.nms_iou)
@@ -80,33 +89,67 @@ class KalmanConfig:
 
 @dataclass(frozen=True)
 class TrackingConfig:
-    low_score_min_iou: float       # stage-2 (low-score detections) minimum IoU
+    low_score_min_iou: float       # S2 (low-score detections) minimum IoU with the predicted box
     gate_base_h: float             # centre gate radius at zero elapsed time, body heights
     max_speed_h_per_s: float       # plausible max player speed (gate growth), body heights / s
-    gate_max_h: float              # absolute cap on the gate radius
+    gate_max_h: float              # absolute cap on the gate radius; also the distance-cost scale
     max_height_ratio: float        # det/pred height ratio must lie in [1/r, r]
-    iou_weight: float              # cost = iou_weight*(1-IoU) + (1-iou_weight)*dist/gate
+    iou_weight: float              # cost = iou_weight*(1-IoU) + (1-iou_weight)*dist_h/gate_max_h
     contest_margin: float          # a rival within this cost margin marks the match CONTESTED
-    confirm_s: float               # observed span required to confirm a tentative track
-    rematch_max_s: float           # a LOST track may be re-matched by motion (exclusively) only within this gap
+    confirm_s: float               # observed span required to confirm a new (uncertain) track
+    rematch_max_s: float           # LOST track: longest gap bridged by motion (exclusive pairs only)
+    occlusion_min_ioa: float       # unobserved track is OCCLUDED when this share of its box is covered by an
+                                   #   observed track's box
+    occlusion_max_s: float         # longest OCCLUDED gap that may be recovered (appearance-distinct only)
+    max_accel_h_per_s2: float      # long-gap recovery: plausible change of velocity while hidden, body heights/s^2
     predict_max_s: float           # after this unobserved time position is HELD (velocity frozen)
-    lost_max_s: float              # LOST track removed after this unobserved time
-    duplicate_iou: float           # unmatched high det overlapping a matched track above this does not spawn
+    lost_max_s: float              # unobserved track TERMINATED after this time
+    duplicate_iou: float           # unmatched det overlapping an observed box above this IoU does not spawn
+    duplicate_ioa: float           # ... or lying inside an observed box by this share of its own area
+    confidence_window_s: float     # window of the track confidence (see tracker docstring)
+    history_s: float               # per-track history kept in memory (API), seconds
 
     def validate(self) -> None:
-        for n in ("low_score_min_iou", "iou_weight", "contest_margin", "duplicate_iou"):
+        for n in ("low_score_min_iou", "iou_weight", "contest_margin", "duplicate_iou", "duplicate_ioa",
+                  "occlusion_min_ioa"):
             _unit(f"tracking.{n}", getattr(self, n))
         for n in ("gate_base_h", "max_speed_h_per_s", "gate_max_h", "confirm_s", "rematch_max_s",
-                  "predict_max_s", "lost_max_s"):
+                  "occlusion_max_s", "max_accel_h_per_s2", "predict_max_s", "lost_max_s", "confidence_window_s", "history_s"):
             _pos(f"tracking.{n}", getattr(self, n))
         if self.max_height_ratio < 1.0:
             raise ConfigError("tracking.max_height_ratio must be >= 1")
         if self.gate_base_h > self.gate_max_h:
             raise ConfigError("tracking.gate_base_h must be <= tracking.gate_max_h")
-        if self.rematch_max_s > self.predict_max_s:
-            raise ConfigError("tracking.rematch_max_s must be <= tracking.predict_max_s")
+        if not self.rematch_max_s <= self.occlusion_max_s <= self.lost_max_s:
+            raise ConfigError("tracking: need rematch_max_s <= occlusion_max_s <= lost_max_s")
         if self.predict_max_s > self.lost_max_s:
             raise ConfigError("tracking.predict_max_s must be <= tracking.lost_max_s")
+
+
+@dataclass(frozen=True)
+class AppearanceConfig:
+    enabled: bool
+    min_crop_height_px: int        # absolute floor: a colour histogram needs pixels (documented exception)
+    torso_top_frac: float          # torso band, fractions of the box height from the top
+    torso_bottom_frac: float
+    torso_width_frac: float        # central share of the box width
+    hue_bins: int
+    sat_bins: int
+    tau_s: float                   # time constant of the track's appearance running average
+    clean_max_iou: float           # appearance is updated only when the box overlaps no other track above this
+    min_similarity: float          # recovery after occlusion needs at least this similarity to the track
+    min_margin: float              # ... and must beat every other track's similarity by this margin
+
+    def validate(self) -> None:
+        _pos_int("appearance.min_crop_height_px", self.min_crop_height_px)
+        for n in ("torso_top_frac", "torso_bottom_frac", "torso_width_frac", "clean_max_iou", "min_similarity",
+                  "min_margin"):
+            _unit(f"appearance.{n}", getattr(self, n))
+        if self.torso_top_frac >= self.torso_bottom_frac:
+            raise ConfigError("appearance.torso_top_frac must be < torso_bottom_frac")
+        _pos_int("appearance.hue_bins", self.hue_bins)
+        _pos_int("appearance.sat_bins", self.sat_bins)
+        _pos("appearance.tau_s", self.tau_s)
 
 
 @dataclass(frozen=True)
@@ -126,6 +169,7 @@ class SpanaConfig:
     camera: CameraConfig
     kalman: KalmanConfig
     tracking: TrackingConfig
+    appearance: AppearanceConfig
     output: OutputConfig
 
     def validate(self) -> None:
@@ -170,6 +214,10 @@ def _build(cls: Type[T], data: Any, where: str) -> T:
         elif t is int:
             if isinstance(v, bool) or not isinstance(v, int):
                 raise ConfigError(f"{path}: expected an integer")
+            kwargs[n] = v
+        elif t is bool:
+            if not isinstance(v, bool):
+                raise ConfigError(f"{path}: expected true/false")
             kwargs[n] = v
         elif t is str:
             if not isinstance(v, str):

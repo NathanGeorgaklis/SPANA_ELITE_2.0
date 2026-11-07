@@ -1,0 +1,17 @@
+{
+  "name": "YOLOX-s (COCO, 80 classes)",
+  "source": "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_s.onnx",
+  "version": "0.1.1rc0",
+  "sha256": "c5c2d13e59ae883e6af3b45daea64af4833a4951c92d116ec270d9ddbe998063",
+  "licence": "Apache-2.0 (Megvii-BaseDetection/YOLOX); COCO-trained weights",
+  "weights_path": "yolox_s.onnx",
+  "input_size": 640,
+  "color_order": "BGR",
+  "scale_to_unit": false,
+  "pad_value": 114,
+  "letterbox_anchor": "top_left",
+  "output_format": "yolox_grid_obj_cls",
+  "output_layout": "channels_last",
+  "strides": [8, 16, 32],
+  "person_class_id": 0
+}

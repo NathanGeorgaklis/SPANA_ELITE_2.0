@@ -16,10 +16,10 @@ class CameraStatus(str, Enum):
 
 
 class TrackState(str, Enum):
-    TENTATIVE = "TENTATIVE"
-    CONFIRMED = "CONFIRMED"
-    LOST = "LOST"
-    REMOVED = "REMOVED"
+    ACTIVE = "ACTIVE"          # observed on this frame
+    OCCLUDED = "OCCLUDED"      # unobserved and covered by another observed player's box
+    LOST = "LOST"              # unobserved, not explained by an occluder
+    TERMINATED = "TERMINATED"  # ended on this frame (reported in FrameTracks.ended, never emitted as live)
 
 
 class PositionSource(str, Enum):
@@ -29,7 +29,7 @@ class PositionSource(str, Enum):
 
 
 class EndReason(str, Enum):
-    TENTATIVE_EXPIRED = "TENTATIVE_EXPIRED"
+    UNCONFIRMED_MISSED = "UNCONFIRMED_MISSED"   # an unconfirmed (uncertain) track missed a frame
     LOST_EXPIRED = "LOST_EXPIRED"
     CAMERA_CUT = "CAMERA_CUT"
     CAMERA_MOTION_UNKNOWN = "CAMERA_MOTION_UNKNOWN"
@@ -67,21 +67,51 @@ class CameraObservation:
 
 @dataclass(frozen=True)
 class TrackObservation:
-    """One track on one frame, as emitted by the multi-player tracker."""
+    """One live track on one frame, as emitted by the multi-player tracker."""
     track_id: str
+    state: TrackState
+    confirmed: bool                  # False = new uncertain track (observed span < confirm_s)
+    source: PositionSource
+    box: Tuple[float, float, float, float]
+    detection_index: Optional[int]   # index into the frame's detection list when ACTIVE
+    detection_score: Optional[float]
+    confidence: float                # track confidence, see tracker docstring (uncalibrated, not a probability)
+    contested: bool                  # another candidate was within contest_margin for this association
+    age_frames: int                  # frames since the track was created
+    missed_frames: int               # consecutive frames unobserved (0 when ACTIVE)
+    time_since_observed_s: float
+    observed_frames: int
+    epoch: int                       # continuity epoch (increments at every cut or unknown camera motion)
+    occluder: Optional[str]          # covering track when OCCLUDED
+    max_overlap_iou: float           # largest IoU with any other live track's box on this frame
+    overlap_with: Optional[str]
+    recoveries: int                  # gaps bridged after LOST/OCCLUDED (motion-exclusive or appearance-distinct)
+    last_gap_s: float                # duration of the most recent bridged gap (0 if none)
+    possible_predecessors: Tuple[str, ...]  # unobserved tracks this one may continue (recovery was refused)
+
+
+@dataclass(frozen=True)
+class HistoryEntry:
+    frame_index: int
+    time_s: float
     state: TrackState
     source: PositionSource
     box: Tuple[float, float, float, float]
-    detection_index: Optional[int]   # index into the frame's detection list when OBSERVED
     detection_score: Optional[float]
-    contested: bool                  # another track was a near-equal candidate for this detection
-    time_since_observed_s: float
-    observed_frames: int             # number of OBSERVED frames so far
-    epoch: int                       # continuity epoch (increments at every cut or unknown camera motion)
-    max_overlap_iou: float           # largest IoU with any other live track's box on this frame
-    overlap_with: Optional[str]      # that track's id (None when max_overlap_iou == 0)
-    gaps_bridged: int                # unobserved gaps this track bridged by motion re-match (S4)
-    last_gap_s: float                # duration of the most recent bridged gap (0 if none)
+
+
+@dataclass(frozen=True)
+class TrackletSummary:
+    track_id: str
+    epoch: int
+    first_frame: int
+    last_frame: int                  # last frame the track was live
+    last_observed_frame: int
+    observed_frames: int
+    confirmed: bool
+    end_reason: Optional[str]        # None if still live at the end of the run
+    recoveries: int
+    possible_predecessors: Tuple[str, ...]
 
 
 @dataclass

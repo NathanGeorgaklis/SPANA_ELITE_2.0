@@ -30,6 +30,7 @@ class Player:
     aspect: float = 0.4
     visible: Callable[[float], bool] = lambda t: True
     score: Callable[[float], float] = lambda t: 0.9
+    appearance: Optional[np.ndarray] = None   # torso descriptor (normalised histogram); None = unknown
 
     def box_at(self, t: float) -> np.ndarray:
         cx = self.start[0] + self.velocity[0] * t
@@ -38,10 +39,21 @@ class Player:
         return np.array([cx - w / 2, cy - self.height / 2, cx + w / 2, cy + self.height / 2])
 
 
+def kit(index: int, bins: int = 128, spread: int = 6, seed: int = 0) -> np.ndarray:
+    """A generic synthetic descriptor: a smooth bump at a bin position. Same index = same-looking players."""
+    x = np.arange(bins)
+    v = np.exp(-0.5 * ((x - (index * 37) % bins) / spread) ** 2) + 1e-3
+    if seed:
+        v = v * (1 + 0.05 * np.random.default_rng(seed).standard_normal(bins)).clip(0.5)
+    return v / v.sum()
+
+
 @dataclass
 class RunResult:
     frames: list
     gt_of_detection: List[List[Optional[str]]]          # per frame: detection index -> gid
+    gt_boxes: List[Dict[str, np.ndarray]] = field(default_factory=list)  # per frame: visible gid -> box
+    tracker: Optional[MultiPlayerTracker] = None
     track_gids: Dict[str, Set[str]] = field(default_factory=dict)   # track_id -> gids it was OBSERVED on
     gid_tracks: Dict[str, List[str]] = field(default_factory=dict)  # gid -> ordered distinct track ids
 
@@ -54,33 +66,39 @@ class RunResult:
 def run(players: Sequence[Player], *, fps: float, duration_s: float, frame_w: int = 1920, frame_h: int = 1080,
         camera: Optional[Callable[[int], CameraObservation]] = None,
         world_to_image: Optional[Callable[[int, np.ndarray], np.ndarray]] = None,
-        config: Optional[SpanaConfig] = None, extra: Optional[Callable[[int, float], List[Detection]]] = None
-        ) -> RunResult:
+        config: Optional[SpanaConfig] = None, extra: Optional[Callable[[int, float], List[Detection]]] = None,
+        use_appearance: bool = True) -> RunResult:
     c = config or cfg()
     trk = MultiPlayerTracker(c, frame_w, frame_h)
     n = int(round(duration_s * fps))
-    res = RunResult([], [])
+    res = RunResult([], [], tracker=trk)
     for i in range(n):
         t = i / fps
         dets: List[Detection] = []
         gids: List[Optional[str]] = []
+        app: List[Optional[np.ndarray]] = []
+        gtb: Dict[str, np.ndarray] = {}
         for p in players:
-            if not p.visible(t):
-                continue
             b = p.box_at(t)
             if world_to_image is not None:
                 b = world_to_image(i, b)
+            if not p.visible(t):
+                continue
+            gtb[p.gid] = b
             dets.append(Detection(tuple(float(v) for v in b), float(p.score(t)), 0))
             gids.append(p.gid)
+            app.append(p.appearance if use_appearance else None)
         if extra is not None:
             for d in extra(i, t):
                 dets.append(d)
                 gids.append(None)
+                app.append(None)
         cam = camera(i) if camera else (CameraObservation.identity(CameraStatus.FIRST) if i == 0
                                         else CameraObservation.identity(CameraStatus.OK, inliers=100))
-        ft = trk.update(i, t, dets, cam)
+        ft = trk.update(i, t, dets, cam, app)
         res.frames.append(ft)
         res.gt_of_detection.append(gids)
+        res.gt_boxes.append(gtb)
         for o in ft.tracks:
             if o.detection_index is not None and gids[o.detection_index] is not None:
                 g = gids[o.detection_index]

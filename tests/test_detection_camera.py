@@ -1,6 +1,7 @@
 """Detection pre/post-processing, pinned ONNX backend, and camera motion / cut estimation."""
 from __future__ import annotations
 
+import dataclasses
 import json
 import tempfile
 import unittest
@@ -12,6 +13,7 @@ import numpy as np
 from spana.config import load_config
 from spana.detection.onnx_backend import ModelRecord, ModelRecordError, OnnxPersonDetector
 from spana.detection.postprocess import filter_detections, letterbox, nms
+from spana.detection.tiling import detect_tiled, tile_grid
 from spana.records import CameraStatus
 from spana.tracking.camera import CameraMotionEstimator
 from spana.video import sha256_file
@@ -41,8 +43,9 @@ def constant_onnx(path: Path, output: np.ndarray, input_size: int) -> None:
 def write_record(td: Path, weights: Path, **over) -> Path:
     rec = {"name": "test-constant", "source": "unit test", "version": "0", "sha256": sha256_file(weights),
            "licence": "test-only", "weights_path": weights.name, "input_size": 64, "color_order": "RGB",
-           "scale_to_unit": True, "pad_value": 114, "output_format": "cxcywh_class_scores",
-           "output_layout": "channels_first", "person_class_id": 0}
+           "scale_to_unit": True, "pad_value": 114, "letterbox_anchor": "center",
+           "output_format": "cxcywh_class_scores", "output_layout": "channels_first", "strides": [],
+           "person_class_id": 0}
     rec.update(over)
     p = td / "record.json"
     p.write_text(json.dumps(rec))
@@ -79,7 +82,8 @@ class OnnxBackend(unittest.TestCase):
         constant_onnx(self.weights, out, 64)
 
     def test_decodes_into_source_pixels(self):
-        det = OnnxPersonDetector(ModelRecord.load(write_record(self.td, self.weights)), CFG.detection)
+        cfg = dataclasses.replace(CFG.detection, tiling_enabled=False)
+        det = OnnxPersonDetector(ModelRecord.load(write_record(self.td, self.weights)), cfg)
         frame = np.zeros((360, 640, 3), np.uint8)    # scale 0.1, pad_y 14: y = (22 - 14) / 0.1 = 80, (42 - 14) / 0.1 = 280
         ds = det.detect(frame)
         self.assertEqual(len(ds), 1)
@@ -88,7 +92,8 @@ class OnnxBackend(unittest.TestCase):
 
     def test_record_fails_closed(self):
         bad = [dict(sha256="0" * 64), dict(licence=" "), dict(output_layout="guess"), dict(output_format="x"),
-               dict(weights_path="missing.onnx")]
+               dict(weights_path="missing.onnx"), dict(letterbox_anchor="middle"), dict(strides=[8]),
+               dict(output_format="yolox_grid_obj_cls"), dict(output_format="yolox_grid_obj_cls", strides=[7])]
         for over in bad:
             with self.assertRaises(ModelRecordError, msg=str(over)):
                 ModelRecord.load(write_record(self.td, self.weights, **over))
@@ -96,6 +101,77 @@ class OnnxBackend(unittest.TestCase):
         d = json.loads(p.read_text()); del d["licence"]; p.write_text(json.dumps(d))
         with self.assertRaises(ModelRecordError):
             ModelRecord.load(p)
+
+
+class Tiling(unittest.TestCase):
+    """A fake backend that, like a fixed-input detector, misses bodies smaller than MIN_PX after resizing and
+    returns bodies cut by the crop edge as truncated boxes."""
+    MIN_PX = 12.0
+    INPUT = 640
+
+    @classmethod
+    def _fake(cls, people, origin):
+        ox, oy = origin
+
+        def infer(img):
+            h, w = img.shape[:2]
+            scale = cls.INPUT / max(h, w)
+            out = []
+            for b in people:
+                x1, y1 = max(0, b[0] - ox), max(0, b[1] - oy)
+                x2, y2 = min(w, b[2] - ox), min(h, b[3] - oy)
+                if x2 > x1 and y2 > y1 and (y2 - y1) * scale >= cls.MIN_PX:
+                    out.append([x1, y1, x2, y2])
+            return np.array(out, float).reshape(-1, 4), np.full(len(out), 0.9)
+        return infer
+
+    def test_small_players_found_only_with_tiles_and_no_duplicates(self):
+        w, h = 1920, 1080
+        small = [[100 + 150 * k, 300, 110 + 150 * k, 325] for k in range(10)]   # 25 px tall: ~8 px at full frame
+        people = small + [[900, 500, 960, 700]]
+        frame = np.zeros((h, w, 3), np.uint8)
+        origins = [(x, y) for x, y, _ in tile_grid(w, h, CFG.detection)]
+
+        def infer(img):   # first call is the full frame, then the tiles in tile_grid order
+            return self._fake(people, (0, 0) if img.shape[:2] == (h, w) else origins.pop(0))(img)
+
+        off = dataclasses.replace(CFG.detection, tiling_enabled=False)
+        self.assertEqual(len(detect_tiled(self._fake(people, (0, 0)), frame, off, 0)), 1)
+        found = detect_tiled(infer, frame, CFG.detection, 0)
+        self.assertEqual(origins, [])
+        self.assertEqual(sorted(tuple(round(v) for v in d.box) for d in found), sorted(tuple(p) for p in people))
+
+    def test_grid_covers_frame_and_is_resolution_independent(self):
+        for w, h in ((640, 360), (1280, 720), (1920, 1080), (3840, 2160)):
+            g = tile_grid(w, h, CFG.detection)
+            self.assertEqual(len(g), len(tile_grid(1920, 1080, CFG.detection)))
+            cover = np.zeros((h, w), bool)
+            for x, y, side in g:
+                cover[y:y + side, x:x + side] = True
+            self.assertTrue(cover.all())
+
+
+class RealYolox(unittest.TestCase):
+    """Decoding check of the pinned YOLOX-s on its own demo image (skipped if weights/image are absent)."""
+    RECORD = Path("models/yolox_s.json")
+    IMAGE = Path("tests/data/yolox_demo_dog.jpg")
+
+    def test_demo_image(self):
+        weights = self.RECORD.parent / json.loads(self.RECORD.read_text())["weights_path"]
+        if not weights.exists() or not self.IMAGE.exists():
+            self.skipTest("YOLOX weights or demo image not present (run tools/fetch_model.py)")
+        from spana.detection.onnx_backend import decode_yolox
+        rec = ModelRecord.load(self.RECORD)
+        det = OnnxPersonDetector(rec, CFG.detection)
+        img = cv2.imread(str(self.IMAGE))
+        lb_img, lb = letterbox(img, rec.input_size, rec.pad_value, rec.letterbox_anchor)
+        raw = det._sess.run(None, {det._input: np.ascontiguousarray(lb_img.astype(np.float32).transpose(2, 0, 1)[None])})[0]
+        boxes, scores, classes = decode_yolox(raw, rec.output_layout, rec.input_size, rec.strides)
+        k = scores > 0.5
+        keep = nms(lb.to_source(boxes[k]), scores[k], 0.45)
+        found = sorted(int(classes[k][i]) for i in keep)
+        self.assertEqual(found, [1, 7, 16])   # bicycle, truck, dog: YOLOX's published demo result
+        self.assertEqual(det.detect(img), []) # no person in this image
 
 
 def _texture(h=540, w=960, seed=0):

@@ -15,8 +15,10 @@ from pathlib import Path
 from typing import List, Optional
 
 from .artifacts import (DETECTIONS_SCHEMA, TRACKS_SCHEMA, ArtifactError, detection_frame, detections_from_frame,
-                        read_json, refuse_existing, sha256_doc, tracks_frame, validate_detections, validate_tracks,
+                        read_json, refuse_existing, sha256_doc, tracklet_rows, tracks_frame, validate_detections,
+                        validate_tracks,
                         write_json_atomic, write_jsonl_atomic)
+from .appearance import describe
 from .config import load_config
 from .provenance import build_provenance
 from .tracking.camera import CameraMotionEstimator
@@ -70,7 +72,8 @@ def cmd_track(a: argparse.Namespace) -> int:
         if i not in det_frames:
             raise ArtifactError(f"frame {i} missing from the detections artifact")
         dets = detections_from_frame(det_frames[i])
-        ft = trk.update(i, t, dets, cam.observe(img, [d.box for d in dets]))
+        boxes = [d.box for d in dets]
+        ft = trk.update(i, t, dets, cam.observe(img, boxes), describe(img, boxes, cfg.appearance))
         frames.append(tracks_frame(ft, cfg.output))
         log.extend({"frame": i, **d} for d in ft.decisions)
     if not frames or frames[-1]["frame"] != last:
@@ -80,6 +83,7 @@ def cmd_track(a: argparse.Namespace) -> int:
         "provenance": build_provenance(config_sha256=cfg.sha256(), argv=sys.argv,
                                        inputs={"video": video.meta.sha256, "detections": sha256_doc(ddoc)}),
         "video": video.meta.to_dict(), "detections_sha256": sha256_doc(ddoc), "frames": frames,
+        "tracklets": tracklet_rows(trk.summaries()),
     }
     validate_tracks(doc)
     print(write_jsonl_atomic(decisions_path, log))   # log first: a tracks file never exists without its log

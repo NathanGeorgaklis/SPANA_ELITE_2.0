@@ -10,7 +10,8 @@ from pathlib import Path
 import numpy as np
 import yaml
 
-from spana.artifacts import ArtifactError, tracks_frame, validate_tracks, write_json_atomic, TRACKS_SCHEMA
+from spana.artifacts import (TRACKS_SCHEMA, ArtifactError, tracklet_rows, tracks_frame, validate_tracks,
+                             write_json_atomic)
 from spana.config import ConfigError, config_from_dict, frames_for, load_config
 from spana.geometry import iou_matrix
 from spana.tracking.kalman import BoxKalman
@@ -33,6 +34,10 @@ class ConfigTests(unittest.TestCase):
         d = _raw(); d["detection"]["score_high"] = True; cases.append(d)
         d = _raw(); d["detection"]["score_low"] = 0.9; cases.append(d)       # low > high
         d = _raw(); d["tracking"]["predict_max_s"] = 9.0; cases.append(d)    # predict > lost
+        d = _raw(); d["tracking"]["occlusion_max_s"] = 0.05; cases.append(d) # occlusion < rematch
+        d = _raw(); d["detection"]["tiling_enabled"] = 1; cases.append(d)    # int is not a bool
+        d = _raw(); d["detection"]["tile_edge_margin_frac"] = 0.5; cases.append(d)  # margin >= overlap
+        d = _raw(); d["appearance"]["torso_top_frac"] = 0.9; cases.append(d)
         d = _raw(); d["schema_version"] = "0.0.1"; cases.append(d)
         d = _raw(); d["camera"]["max_features"] = 1.5; cases.append(d)
         d = _raw(); d["kalman"]["pos_std_h"] = float("nan"); cases.append(d)
@@ -70,11 +75,12 @@ class GeometryKalman(unittest.TestCase):
 
 class ArtifactTests(unittest.TestCase):
     def _doc(self):
-        res = run([Player("A", (300, 500), (100, 0)), Player("B", (330, 500), (0, 0))], fps=30, duration_s=1)
-        assert len(res.frames) > 1
+        res = run([Player("A", (300, 500), (100, 0)), Player("B", (330, 500), (0, 0), visible=lambda t: t < 0.6),
+                   Player("C", (900, 500), (0, 0))], fps=30, duration_s=1)
         oc = load_config(CONFIG_PATH).output
         return {"schema": TRACKS_SCHEMA[0], "schema_version": TRACKS_SCHEMA[1], "provenance": {}, "video": {},
-                "detections_sha256": "0" * 64, "frames": [tracks_frame(ft, oc) for ft in res.frames]}
+                "detections_sha256": "0" * 64, "frames": [tracks_frame(ft, oc) for ft in res.frames],
+                "tracklets": tracklet_rows(res.tracker.summaries())}
 
     def test_tracker_output_validates_and_is_json(self):
         doc = self._doc()
@@ -94,11 +100,18 @@ class ArtifactTests(unittest.TestCase):
             lambda d: d["frames"].reverse(),
             lambda d: d["frames"][idx]["camera"].update(status="MAYBE"),
             lambda d: d["frames"][idx]["tracks"][0].update(overlap_with=None, max_overlap_iou=0.5),
-            lambda d: d["frames"][idx]["tracks"][0].update(state="CONFIRMED", source="PREDICTED"),
+            lambda d: d["frames"][idx]["tracks"][0].update(state="ACTIVE", source="PREDICTED"),
+            lambda d: d["frames"][idx]["tracks"][0].update(state="TERMINATED"),
+            lambda d: d["frames"][idx]["tracks"][0].update(occluder="T000009"),
+            lambda d: d["frames"][idx]["tracks"][0].update(missed_frames=3),
+            lambda d: d["frames"][idx]["tracks"][0].update(confidence=1.5),
+            lambda d: d["frames"][idx]["tracks"][0].update(confirmed="yes"),
+            lambda d: d["tracklets"].pop(),
+            lambda d: d["tracklets"][0].update(end_reason="NOPE"),
             lambda d: d["frames"][idx]["tracks"][0].update(box=[10, 10, 5, 20]),
             lambda d: d["frames"][idx]["tracks"][0].update(box=["a", 1, 2, 3]),
             lambda d: d["frames"][idx]["tracks"][0].update(detection_index=-1),
-            lambda d: d["frames"][idx]["tracks"][0].update(gaps_bridged=1, last_gap_s=0.0),
+            lambda d: d["frames"][idx]["tracks"][0].update(recoveries=1, last_gap_s=0.0),
             lambda d: d["frames"][idx]["tracks"][0].update(epoch=-1),
             lambda d: d["frames"][idx]["camera"].update(affine=[[1, 0]]),
             lambda d: d["frames"][idx]["camera"].pop("inliers"),

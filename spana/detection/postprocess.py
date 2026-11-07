@@ -25,14 +25,17 @@ class Letterbox:
         return b
 
 
-def letterbox(frame_bgr: np.ndarray, size: int, pad_value: int) -> Tuple[np.ndarray, Letterbox]:
-    """Resize keeping aspect ratio into a size x size canvas, centred."""
+def letterbox(frame_bgr: np.ndarray, size: int, pad_value: int, anchor: str = "center"
+              ) -> Tuple[np.ndarray, Letterbox]:
+    """Resize keeping aspect ratio into a size x size canvas, placed at the centre or the top-left."""
+    if anchor not in ("center", "top_left"):
+        raise ValueError(f"unknown letterbox anchor {anchor!r}")
     h, w = frame_bgr.shape[:2]
     s = min(size / w, size / h)
-    nw, nh = int(round(w * s)), int(round(h * s))
+    nw, nh = max(1, int(w * s)), max(1, int(h * s))
     resized = cv2.resize(frame_bgr, (nw, nh), interpolation=cv2.INTER_LINEAR)
     canvas = np.full((size, size, 3), pad_value, dtype=np.uint8)
-    px, py = (size - nw) // 2, (size - nh) // 2
+    px, py = ((size - nw) // 2, (size - nh) // 2) if anchor == "center" else (0, 0)
     canvas[py:py + nh, px:px + nw] = resized
     return canvas, Letterbox(s, float(px), float(py))
 

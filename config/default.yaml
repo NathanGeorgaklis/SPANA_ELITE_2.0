@@ -1,13 +1,17 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "1.0.0"
+schema_version: "2.0.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
   score_high: 0.50         # may start a track / match in stage 1
   nms_iou: 0.60
   min_box_height_frac: 0.015   # ~16 px at 1080p; smaller boxes carry no usable evidence
+  tiling_enabled: true
+  tile_size_frac: 0.60         # 648 px tiles at 1080p -> distant players seen at ~1x instead of ~0.33x
+  tile_overlap_frac: 0.25      # bodies up to ~0.15 frame heights are fully inside some tile
+  tile_edge_margin_frac: 0.01
 
 camera:
   analysis_width_px: 480   # compute-only downscale; results are mapped back to source pixels
@@ -28,16 +32,35 @@ kalman:
 tracking:
   low_score_min_iou: 0.40
   gate_base_h: 0.35
-  max_speed_h_per_s: 5.0     # ~9 m/s sprint for a 1.8 m player
+  max_speed_h_per_s: 5.0       # ~9 m/s sprint for a 1.8 m player
   gate_max_h: 2.0
   max_height_ratio: 1.5
   iou_weight: 0.5
   contest_margin: 0.10
   confirm_s: 0.10
-  rematch_max_s: 0.20         # longest gap bridged by motion alone (exclusive pairs only)
+  rematch_max_s: 0.20          # longest gap bridged by motion alone (exclusive pairs only)
+  occlusion_min_ioa: 0.30
+  occlusion_max_s: 1.00        # longest occlusion recovered, and only with distinct appearance
+  max_accel_h_per_s2: 2.0      # ~3.6 m/s^2 for a 1.8 m player: a hidden player keeps (roughly) his velocity
   predict_max_s: 0.50
   lost_max_s: 2.00
   duplicate_iou: 0.70
+  duplicate_ioa: 0.85
+  confidence_window_s: 1.00
+  history_s: 5.00
+
+appearance:
+  enabled: true
+  min_crop_height_px: 24       # below this a torso band has too few pixels for a colour histogram
+  torso_top_frac: 0.15
+  torso_bottom_frac: 0.50
+  torso_width_frac: 0.60
+  hue_bins: 16
+  sat_bins: 8
+  tau_s: 1.0
+  clean_max_iou: 0.05
+  min_similarity: 0.70
+  min_margin: 0.10
 
 output:
   box_decimals: 1
