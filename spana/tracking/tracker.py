@@ -18,7 +18,8 @@ Per frame:
        S2 low-score detections   <-> remaining tracks observed on the previous frame (IoU only, strict):
                                      continuation through weak frames, never a recovery or a spawn
        S3 remaining high-score   <-> unconfirmed tracks observed on the previous frame
-       Hidden-rival check: a continuing match is refused when an unobserved confirmed track (any gap) explains the
+       Hidden-rival check: a continuing match is refused when an unobserved confirmed track (gap <= occlusion_max_s,
+          and whose own motion can reach the detection) explains the
           detection better by more than contest_margin (the continuing player may have dropped while the hidden
           one re-emerged), or equally well (within the margin) unless appearance favours the continuing track by
           min_margin: two same-looking players at the same place cannot be told apart. Kept matches within the
@@ -256,15 +257,20 @@ class MultiPlayerTracker:
         """A continuing track's match is refused when a recoverable hidden track explains the detection better
         (by more than contest_margin): the continuing player may have dropped while the hidden one re-emerged.
         Within the margin the match stands but is CONTESTED. A refused high-score detection goes to S4."""
-        # Rivals are ALL unobserved confirmed tracks (not only recoverable ones): being a rival can only refuse.
+        # Rivals: unobserved confirmed tracks within occlusion_max_s (wider than the recovery window: being a rival
+        # can only refuse). Per detection, a rival must also fit the detection with its OWN motion (acceleration
+        # bound): real DEV finding, stale predictions left in a crowd otherwise refused live continuations and the
+        # resulting new lost tracks refused more (a fragmentation cascade).
         hidden = [k for k, t in enumerate(self._tracks)
-                  if k not in matched and not t.observed_last_frame and t.confirmed]
+                  if k not in matched and not t.observed_last_frame and t.confirmed
+                  and time_s - t.last_observed_t <= self.tc.occlusion_max_s + _EPS]
         if not matched:
             return rem_high
         refused: List[int] = []
         for k, (i, contested) in list(matched.items()):
             # The ambiguity with a track's own recorded possible predecessors was settled when it was spawned.
-            rivals = [j for j in hidden if self._tracks[j].track_id not in self._tracks[k].predecessors]
+            rivals = [j for j in hidden if self._tracks[j].track_id not in self._tracks[k].predecessors
+                      and self._motion_consistent(self._tracks[j], dets[i], time_s - self._tracks[j].last_observed_t)]
             if not rivals:
                 continue
             own = self._cost_matrix([k], [i], dets, time_s, False, desc)[0][0, 0]

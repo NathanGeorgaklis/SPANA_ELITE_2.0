@@ -71,6 +71,15 @@ class PostProcess(unittest.TestCase):
         self.assertEqual([d.box for d in out], [(0.0, 0.0, 10.0, 100.0)])
 
 
+class AppearanceEvidence(unittest.TestCase):
+    def test_overlapping_detection_has_unknown_descriptor(self):
+        from spana.appearance import describe
+        img = _texture(540, 960, seed=2)
+        boxes = [(100, 100, 140, 200), (125, 105, 165, 205), (400, 100, 440, 200)]
+        d = describe(img, boxes, CFG.appearance)
+        self.assertIsNone(d[0]); self.assertIsNone(d[1]); self.assertIsNotNone(d[2])
+
+
 class UnionBoxes(unittest.TestCase):
     """Regression for the real DEV finding: a two-player union box survives NMS next to the players' own boxes."""
     def _run(self, boxes, scores):

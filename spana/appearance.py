@@ -12,6 +12,7 @@ import cv2
 import numpy as np
 
 from .config import AppearanceConfig
+from .geometry import iou_matrix
 
 
 def torso_descriptor(frame_bgr: np.ndarray, box: Sequence[float], cfg: AppearanceConfig) -> Optional[np.ndarray]:
@@ -35,7 +36,15 @@ def torso_descriptor(frame_bgr: np.ndarray, box: Sequence[float], cfg: Appearanc
 
 def describe(frame_bgr: np.ndarray, boxes: Sequence[Sequence[float]], cfg: AppearanceConfig
              ) -> List[Optional[np.ndarray]]:
-    return [torso_descriptor(frame_bgr, b, cfg) if cfg.enabled else None for b in boxes]
+    """Descriptor per box; None (UNKNOWN) when disabled, too small, or when the box overlaps another detection by
+    more than clean_max_iou: such a crop mixes players and is not evidence about either (real DEV finding: in a
+    crowded set piece most appearance vetoes of true continuations came from contaminated crops)."""
+    if not cfg.enabled or not len(boxes):
+        return [None] * len(boxes)
+    ious = iou_matrix(np.asarray(boxes, dtype=float), np.asarray(boxes, dtype=float))
+    np.fill_diagonal(ious, 0.0)
+    return [None if ious[k].max() > cfg.clean_max_iou else torso_descriptor(frame_bgr, b, cfg)
+            for k, b in enumerate(boxes)]
 
 
 def similarity(a: Optional[np.ndarray], b: Optional[np.ndarray]) -> Optional[float]:

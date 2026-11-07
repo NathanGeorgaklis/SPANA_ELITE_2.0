@@ -1,0 +1,7 @@
+same-player sim   n=1335 p1 0.745 p5 0.832 p50 0.935 p95 0.982 p99 0.989
+same-player m2    n=1335 p1 0.001 p5 0.005 p50 0.095 p95 0.880 p99 2.111
+same-player ratio n=1335 p1 0.898 p5 0.955 p50 1.011 p95 1.078 p99 1.132
+same-player dh    n=1335 p1 0.002 p5 0.005 p50 0.022 p95 0.068 p99 0.105
+diff-player sim   n=2319 p5 0.004 p50 0.350 p95 0.923 p99 0.953
+share same-player sim < min_similarity(0.70): 0.004
+share same-player m2 > gate_chi2(9.21): 0.001

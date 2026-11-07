@@ -1,0 +1,5 @@
+F01b frames 391 camera {'FIRST': 1, 'OK': 390}
+ tracklets 333 confirmed 179 ends {'LEFT_FRAME': 31, 'LOST_EXPIRED': 99, None: 61, 'UNCONFIRMED_MISSED': 142}
+ observed confirmed per frame: median 21 min 0 max 40
+ decisions {'spawn:None': 333, 'spawn_refused:INSIDE_OBSERVED_BOX': 267, 'recovery_refused:AMBIGUOUS_DETECTIONS': 716, 'recovery_refused:CONTESTED_NEIGHBOUR': 298, 'recovery:None': 15, 'recovery_refused:LOW_SCORE': 512, 'recovery_refused:NO_UNEXPLAINED_DETECTION': 685, 'end:UNCONFIRMED_MISSED': 142, 'recovery_refused:RIVAL_TRACK': 227, 'match_refused:AMBIGUOUS_WITH_HIDDEN_TRACK': 31, 'match_refused:HIDDEN_TRACK_EXPLAINS_BETTER': 18, 'end:LOST_EXPIRED': 99, 'end:LEFT_FRAME': 31, 'recovery_refused:APPEARANCE_UNKNOWN': 3, 'recovery_refused:INCONSISTENT_WITH_MOTION': 1}
+ losses: {'taken_by_neighbour': 30, 'taken_by_duplicate(iou>0.5)': 23, 'nothing_near': 62, 'taken_by_new_track': 39} total 154
