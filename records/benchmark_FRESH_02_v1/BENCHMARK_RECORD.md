@@ -37,3 +37,29 @@ wrong recoveries 0. With the box-convention artefact removed, **fragmentation is
 Of 68 track changes: 31 are the old track going unobserved with no decision logged (the tracker writes no
 record when a continuing track simply gets no match); 9 LOW_SCORE recovery refusals; 9 NO_UNEXPLAINED_DETECTION;
 9 AMBIGUOUS_WITH_HIDDEN_TRACK; 6 RIVAL_TRACK; others 4.
+
+## Round 2 (2026-11-08): frozen rule NESTED_V1 + unmatched-track logging
+- Rule `NESTED_V1` frozen in `aa59da5` before re-scoring (records/MATCHING_RULE_NESTED_V1.md).
+- Logging of every unmatched existing track added in `7a12e4c`. Tracker behaviour proven identical: synthetic
+  QA catalogue tracks sha256 equal to `aa59da5`; FRESH_02 frames and tracklets identical.
+
+| metric (NESTED_V1) | value |
+|---|---|
+| detection recall | **0.971** (visible 0.977, occluded 0.741) |
+| missed players | 30 / 1018 |
+| duplicate detections | 123 |
+| ID switches | 67 |
+| identity transfers | 8 (3 unflagged) |
+| fragments | **59** across 18 people |
+| wrong recoveries | 0 |
+
+Fragmentation causes (tools/dev/fragmentation_causes.py: first logged loss of the old track for each of the 67
+player track changes): 23 old track still observed (the player moves to a newer track), 22 TAKEN_BY_OTHER
+(passing detection taken by another track), 8 AMBIGUOUS_WITH_HIDDEN_TRACK refusals, 9 gate failures
+(Mahalanobis / height / appearance / low score), 5 other.
+Competing tracks: 23 / 31 traceable were born overlapping the old track while it was observed. At those births,
+15 involve 2 labelled people in contact and 1 involves 3 (`fragmentation_competing_track_births.jpg`: players
+in contact and player + referee). On labelled frames the detector output 115 boxes spanning ≥ 2 labelled
+people (92 with score ≥ 0.5), against 150 labelled contact pairs.
+First failing layer: detection output in contact situations (two-person boxes the union rule cannot remove,
+because only one member has its own box).
