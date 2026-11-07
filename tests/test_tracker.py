@@ -359,6 +359,33 @@ class RealFootageRegressions(unittest.TestCase):
         self.assertEqual(len(suppress_unions(boxes, scores, cfgd, [0, 1, 2])), 2)
 
 
+class UnmatchedLogging(unittest.TestCase):
+    """Every existing track left without a detection gets exactly one read-only 'unmatched' record."""
+
+    def test_one_record_per_unmatched_track_with_reason(self):
+        a = Player("A", (700, 500), (0, 0), height=90, appearance=kit(0))
+        b = Player("B", (500, 495), (200, 0), appearance=kit(1), visible=lambda t: not (0.9 <= t < 1.3))
+        res = run([a, b], fps=25, duration_s=2)
+        for ft in res.frames:
+            unmatched = {o.track_id for o in ft.tracks if o.detection_index is None}
+            logged = [d for d in ft.decisions if d["kind"] == "unmatched"]
+            ended = {tid for tid, _ in ft.ended}
+            self.assertEqual({d["track_id"] for d in logged} - ended, unmatched)
+            self.assertEqual(len(logged), len({d["track_id"] for d in logged}))
+            for d in logged:
+                self.assertTrue(d["reason"])
+                for c in d["candidates"]:
+                    for key in ("centre_ok", "mahalanobis_ok", "height_ok", "appearance_veto", "motion_consistent",
+                                "taken_by", "failed"):
+                        self.assertIn(key, c)
+
+    def test_reasons_cover_no_detection_and_taken(self):
+        b = Player("B", (800, 500), (0, 0), visible=lambda t: t < 1.0)
+        res = run([b], fps=25, duration_s=1.2)
+        reasons = {d["reason"] for ft in res.frames for d in ft.decisions if d["kind"] == "unmatched"}
+        self.assertIn("NO_DETECTION_NEARBY", reasons)
+
+
 class TrackFields(unittest.TestCase):
     def test_states_and_fields_through_a_lifecycle(self):
         c = cfg()

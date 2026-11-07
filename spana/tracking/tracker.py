@@ -157,6 +157,7 @@ class MultiPlayerTracker:
                                False, desc)
         rem_high = self._refuse_hidden_rivals(rem_high, dets, desc, time_s, matched, out)
         rem_high = self._recover(rem_high, dets, desc, time_s, matched, out)   # low scores never recover/spawn
+        self._log_unmatched(dets, desc, time_s, matched, out)                    # read-only diagnostics
 
         self._apply_matches(matched, dets, desc, frame_index, time_s)
         self._lifecycle(matched, dets, frame_index, time_s, out)
@@ -363,6 +364,80 @@ class MultiPlayerTracker:
         ph = t.kf.height
         dh = float(np.hypot(*(box_to_cxcywh(d.as_array())[:2] - t.kf.x[:2]))) / ph
         return dh <= self.tc.gate_base_h + 0.5 * self.tc.max_accel_h_per_s2 * gap * gap
+
+    # ----------------------------------------------------------- diagnostics
+    LOG_CANDIDATES = 3   # nearest detections reported per unmatched track (log size bound, not a decision value)
+
+    def _gate_report(self, t: _Track, d: Detection, desc_i: Optional[np.ndarray], time_s: float) -> dict:
+        """Every association check for one (track, detection) pair, evaluated read-only."""
+        ph, pc = t.kf.height, t.kf.x[:2]
+        dc = box_to_cxcywh(d.as_array())[:2]
+        dh = float(np.hypot(*(dc - pc))) / ph
+        radius = self._gate_radius_h(t, time_s)
+        m2 = t.kf.position_mahalanobis2(dc)
+        ratio = max(d.height, 1.0) / ph
+        iou = float(iou_matrix(t.box()[None], d.as_array()[None])[0, 0])
+        sim = similarity(desc_i, t.appearance)
+        high = d.score >= self.cfg.detection.score_high
+        r = {"score": round(d.score, 4), "dist_h": round(dh, 4), "gate_radius_h": round(radius, 4),
+             "centre_ok": dh <= radius, "mahalanobis2": round(m2, 3), "mahalanobis_ok": m2 <= self.tc.gate_chi2,
+             "height_ratio": round(ratio, 3),
+             "height_ok": 1.0 / self.tc.max_height_ratio <= ratio <= self.tc.max_height_ratio,
+             "iou": round(iou, 4), "low_score": not high,
+             "low_score_iou_ok": (not high) and iou >= self.tc.low_score_min_iou,
+             "appearance_similarity": None if sim is None else round(sim, 4),
+             "appearance_veto": sim is not None and sim < self.ac.min_similarity,
+             "motion_consistent": self._motion_consistent(t, d, time_s - t.last_observed_t)}
+        failed = [k for k in ("centre_ok", "mahalanobis_ok", "height_ok") if high and not r[k]]
+        if not high and not r["low_score_iou_ok"]:
+            failed.append("low_score_iou_ok")
+        if r["appearance_veto"]:
+            failed.append("appearance_veto")
+        r["failed"] = failed
+        return r
+
+    def _log_unmatched(self, dets: Sequence[Detection], desc: Sequence[Optional[np.ndarray]], time_s: float,
+                       matched: Dict[int, Tuple[int, bool]], out: FrameTracks) -> None:
+        """One 'unmatched' decision per existing track left without a detection on this frame (read-only)."""
+        owner = {i: (self._tracks[k].track_id, c) for k, (i, c) in matched.items()}
+        refusals: Dict[str, dict] = {}
+        for d in out.decisions:
+            if d["kind"] in ("match_refused", "recovery_refused") and "track_id" in d:
+                refusals.setdefault(d["track_id"], d)
+        for k, t in enumerate(self._tracks):
+            if k in matched:
+                continue
+            gap = time_s - t.last_observed_t
+            stage = "continuing" if t.observed_last_frame else \
+                "recoverable" if self._recoverable(t, time_s) else "not_eligible"
+            ph, pc = t.kf.height, t.kf.x[:2]
+            near = sorted((float(np.hypot(*(box_to_cxcywh(d.as_array())[:2] - pc))) / ph, i)
+                          for i, d in enumerate(dets))
+            near = [(dist, i) for dist, i in near if dist <= self.tc.gate_max_h][: self.LOG_CANDIDATES]
+            cands = []
+            for _, i in near:
+                rep = self._gate_report(t, dets[i], desc[i], time_s)
+                rep["detection"] = i
+                rep["taken_by"] = owner[i][0] if i in owner else None
+                rep["taken_contested"] = owner[i][1] if i in owner else None
+                cands.append(rep)
+            passing = [c for c in cands if not c["failed"]]
+            if t.track_id in refusals:
+                ref = refusals[t.track_id]
+                reason = f"REFUSED:{ref['kind']}:{ref.get('reason')}"
+            elif not cands:
+                reason = "NO_DETECTION_NEARBY"
+            elif stage == "not_eligible":
+                reason = "NOT_ELIGIBLE_GAP"
+            elif passing and all(c["taken_by"] for c in passing):
+                reason = "TAKEN_BY_OTHER"
+            elif passing:
+                reason = "PASSING_CANDIDATE_UNUSED" if stage == "continuing" else "NO_RECOVERY_ATTEMPT"
+            else:
+                reason = "GATE_FAILED:" + "+".join(cands[0]["failed"])
+            out.decisions.append({"kind": "unmatched", "track_id": t.track_id, "confirmed": t.confirmed,
+                                  "prior_state": t.state.value, "stage": stage, "gap_s": round(gap, 6),
+                                  "reason": reason, "candidates": cands})
 
     # ------------------------------------------------------------- lifecycle
     def _clean(self, i: int, dets: Sequence[Detection], matched: Dict[int, Tuple[int, bool]]) -> bool:
