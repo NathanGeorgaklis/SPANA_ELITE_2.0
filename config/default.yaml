@@ -1,0 +1,43 @@
+# SPANA default configuration.
+# CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
+# Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
+schema_version: "1.0.0"
+
+detection:
+  score_low: 0.10          # keep weak boxes for stage-2 association only
+  score_high: 0.50         # may start a track / match in stage 1
+  nms_iou: 0.60
+  min_box_height_frac: 0.015   # ~16 px at 1080p; smaller boxes carry no usable evidence
+
+camera:
+  analysis_width_px: 480   # compute-only downscale; results are mapped back to source pixels
+  max_features: 600
+  feature_quality: 0.01
+  feature_min_distance_frac: 0.015   # ~7 px at 480 px analysis width
+  min_inliers: 25
+  ransac_reproj_frac: 0.006   # ~3.6 px on a 480x270 analysis frame
+  cut_hist_distance: 0.55
+  max_scale_change: 0.15      # >~16 % zoom between consecutive frames is implausible -> UNKNOWN
+
+kalman:
+  pos_std_h: 0.05
+  vel_std_h_per_s: 2.0
+  init_vel_std_h_per_s: 3.0
+
+tracking:
+  low_score_min_iou: 0.40
+  gate_base_h: 0.35
+  max_speed_h_per_s: 5.0     # ~9 m/s sprint for a 1.8 m player
+  gate_max_h: 2.0
+  max_height_ratio: 1.5
+  iou_weight: 0.5
+  contest_margin: 0.10
+  confirm_s: 0.10
+  tentative_max_miss_s: 0.10
+  predict_max_s: 0.50
+  lost_max_s: 2.00
+  duplicate_iou: 0.70
+
+output:
+  box_decimals: 1
+  score_decimals: 4

@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.tmp
+# footage, weights and run outputs never go in Git
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.onnx
+*.pt
+runs/
