@@ -65,18 +65,28 @@ class VideoSource:
         self.meta = VideoMeta(str(p), digest, fps, w, h, n, "index_over_fps")
 
     def frames(self, start: int = 0, stop: Optional[int] = None) -> Iterator[Tuple[int, float, np.ndarray]]:
+        """Frames [start, stop). Decodes sequentially from frame 0 (container seeks can land on keyframes and
+        mislabel indices). Raises VideoError if the container timestamps drift from index/fps by more than half
+        a frame (variable frame rate), because frame times would then be wrong."""
+        if start < 0:
+            raise VideoError(f"invalid start {start}")
         cap = cv2.VideoCapture(self.meta.path)
+        half = 0.5 / self.meta.fps
         try:
-            if start:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, start)
-            idx = start
+            idx = 0
             while stop is None or idx < stop:
                 ok, frame = cap.read()
                 if not ok:
                     break
+                pos_ms = cap.get(cv2.CAP_PROP_POS_MSEC)
+                t = idx / self.meta.fps
+                if pos_ms > 0 and abs(pos_ms / 1000.0 - t) > half:
+                    raise VideoError(f"frame {idx}: container time {pos_ms / 1000.0:.4f}s != index/fps {t:.4f}s "
+                                     "(variable frame rate is not supported)")
                 if frame.shape[1] != self.meta.width or frame.shape[0] != self.meta.height:
                     raise VideoError(f"frame {idx} size {frame.shape[1]}x{frame.shape[0]} differs from metadata")
-                yield idx, idx / self.meta.fps, frame
+                if idx >= start:
+                    yield idx, t, frame
                 idx += 1
         finally:
             cap.release()

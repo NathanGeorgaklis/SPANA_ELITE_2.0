@@ -51,7 +51,8 @@ class CameraConfig:
     min_inliers: int
     ransac_reproj_frac: float     # RANSAC threshold as a fraction of the analysis-frame diagonal
     cut_hist_distance: float      # Bhattacharyya distance on HSV histograms above which a frame is a cut
-    max_scale_change: float       # |log(scale)| above which an estimate is rejected as implausible
+    max_log_scale_rate_per_s: float  # plausible zoom speed, |log(scale)| per second
+    scale_noise_log: float           # per-estimate |log(scale)| noise allowance on top of the rate
 
     def validate(self) -> None:
         _pos_int("camera.analysis_width_px", self.analysis_width_px)
@@ -61,7 +62,8 @@ class CameraConfig:
         _pos_int("camera.min_inliers", self.min_inliers)
         _pos("camera.ransac_reproj_frac", self.ransac_reproj_frac)
         _unit("camera.cut_hist_distance", self.cut_hist_distance)
-        _pos("camera.max_scale_change", self.max_scale_change)
+        _pos("camera.max_log_scale_rate_per_s", self.max_log_scale_rate_per_s)
+        _pos("camera.scale_noise_log", self.scale_noise_log)
 
 
 @dataclass(frozen=True)
@@ -86,7 +88,7 @@ class TrackingConfig:
     iou_weight: float              # cost = iou_weight*(1-IoU) + (1-iou_weight)*dist/gate
     contest_margin: float          # a rival within this cost margin marks the match CONTESTED
     confirm_s: float               # observed span required to confirm a tentative track
-    tentative_max_miss_s: float    # tentative track removed after this unobserved time
+    rematch_max_s: float           # a LOST track may be re-matched by motion (exclusively) only within this gap
     predict_max_s: float           # after this unobserved time position is HELD (velocity frozen)
     lost_max_s: float              # LOST track removed after this unobserved time
     duplicate_iou: float           # unmatched high det overlapping a matched track above this does not spawn
@@ -94,13 +96,15 @@ class TrackingConfig:
     def validate(self) -> None:
         for n in ("low_score_min_iou", "iou_weight", "contest_margin", "duplicate_iou"):
             _unit(f"tracking.{n}", getattr(self, n))
-        for n in ("gate_base_h", "max_speed_h_per_s", "gate_max_h", "confirm_s", "tentative_max_miss_s",
+        for n in ("gate_base_h", "max_speed_h_per_s", "gate_max_h", "confirm_s", "rematch_max_s",
                   "predict_max_s", "lost_max_s"):
             _pos(f"tracking.{n}", getattr(self, n))
         if self.max_height_ratio < 1.0:
             raise ConfigError("tracking.max_height_ratio must be >= 1")
         if self.gate_base_h > self.gate_max_h:
             raise ConfigError("tracking.gate_base_h must be <= tracking.gate_max_h")
+        if self.rematch_max_s > self.predict_max_s:
+            raise ConfigError("tracking.rematch_max_s must be <= tracking.predict_max_s")
         if self.predict_max_s > self.lost_max_s:
             raise ConfigError("tracking.predict_max_s must be <= tracking.lost_max_s")
 

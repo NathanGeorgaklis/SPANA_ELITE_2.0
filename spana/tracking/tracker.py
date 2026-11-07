@@ -7,14 +7,19 @@ Per frame:
      epochs is the identity layer's job (appearance), not this layer's.
   2. OK camera motion -> every track state is mapped through the inter-frame transform.
   3. Motion prediction to the frame time (seconds). Beyond predict_max_s the velocity is frozen (HELD).
-  4. Association, three Hungarian stages:
-        S1 high-score detections  <-> CONFIRMED + LOST tracks (centre gate in body heights, height ratio, IoU/dist cost)
-        S2 low-score detections   <-> CONFIRMED tracks observed on the previous frame (IoU only, strict)
-        S3 remaining high-score   <-> TENTATIVE tracks
-     A match is CONTESTED when another candidate (track for the detection, or detection for the track) is gated
-     and within contest_margin of the chosen cost. Contested matches are kept but flagged for downstream layers.
-  5. Lifecycle: TENTATIVE -> CONFIRMED (observed span >= confirm_s), CONFIRMED -> LOST when unobserved,
-     LOST -> REMOVED after lost_max_s, TENTATIVE -> REMOVED after tentative_max_miss_s, any unobserved track whose
+  4. Association, in priority order (Hungarian within a stage):
+        S1 high-score detections  <-> tracks observed on the previous frame (CONFIRMED)
+        S2 low-score detections   <-> remaining CONFIRMED tracks observed on the previous frame (IoU only, strict)
+        S3 remaining high-score   <-> TENTATIVE tracks observed on the previous frame
+        S4 re-match after a gap: LOST tracks unobserved <= rematch_max_s, EXCLUSIVE pairs only: the detection
+           is inside the gate of no other live track, and the track's gate holds no other detection (any score).
+     Motion alone cannot tell "the same player came back" from "another player walked in", so a gap is only
+     bridged when it is short and unambiguous. Every bridged gap is recorded on the track (gaps_bridged,
+     last_gap_s) for downstream identity checks. Anything else ends continuity: re-linking is the identity
+     layer's job. The distance cost is in absolute body heights, so a more uncertain track never looks cheaper.
+     A match is CONTESTED when another gated candidate is within contest_margin of the chosen cost.
+  5. Lifecycle: TENTATIVE -> CONFIRMED (observed span >= confirm_s); a TENTATIVE track that misses a frame is
+     removed; CONFIRMED -> LOST when unobserved; LOST -> REMOVED after lost_max_s; any unobserved track whose
      prediction leaves the image -> REMOVED (LEFT_FRAME).
 """
 from __future__ import annotations
@@ -46,6 +51,8 @@ class _Track:
     observed_frames: int
     observed_last_frame: bool
     velocity_frozen: bool = False
+    gaps_bridged: int = 0
+    last_gap_s: float = 0.0
 
     def box(self) -> np.ndarray:
         return cxcywh_to_box(self.kf.x)
@@ -66,6 +73,8 @@ class MultiPlayerTracker:
                camera: CameraObservation) -> FrameTracks:
         if self._last_frame is not None and frame_index <= self._last_frame:
             raise ValueError(f"frames must be strictly increasing ({frame_index} after {self._last_frame})")
+        if (camera.status == CameraStatus.FIRST) != (self._last_frame is None):
+            raise ValueError("camera status FIRST is required on the first frame and only there")
         self._last_frame = frame_index
         out = FrameTracks(frame_index, time_s, camera)
         out.decisions.append({"kind": "camera", "status": camera.status.value, "inliers": camera.inliers,
@@ -94,13 +103,14 @@ class MultiPlayerTracker:
         low = [i for i, d in enumerate(dets) if d.score < self.cfg.detection.score_high]
         matched: Dict[int, Tuple[int, bool]] = {}  # track list index -> (detection index, contested)
 
-        s1_tracks = [k for k, t in enumerate(self._tracks) if t.state in (TrackState.CONFIRMED, TrackState.LOST)]
-        rem_high = self._stage("S1", s1_tracks, high, dets, time_s, matched, out, iou_only=False)
-        s2_tracks = [k for k in s1_tracks if k not in matched and self._tracks[k].observed_last_frame
-                     and self._tracks[k].state == TrackState.CONFIRMED]
-        self._stage("S2", s2_tracks, low, dets, time_s, matched, out, iou_only=True)
-        s3_tracks = [k for k, t in enumerate(self._tracks) if t.state == TrackState.TENTATIVE]
-        rem_high = self._stage("S3", s3_tracks, rem_high, dets, time_s, matched, out, iou_only=False)
+        live = [k for k, t in enumerate(self._tracks) if t.observed_last_frame]
+        s1 = [k for k in live if self._tracks[k].state == TrackState.CONFIRMED]
+        rem_high = self._stage("S1", s1, high, dets, time_s, matched, out, iou_only=False)
+        s2 = [k for k in s1 if k not in matched]
+        self._stage("S2", s2, low, dets, time_s, matched, out, iou_only=True)
+        s3 = [k for k in live if self._tracks[k].state == TrackState.TENTATIVE]
+        rem_high = self._stage("S3", s3, rem_high, dets, time_s, matched, out, iou_only=False)
+        rem_high = self._rematch(rem_high, dets, time_s, matched, out)
 
         self._apply_matches(matched, dets, time_s)
         self._lifecycle(matched, time_s, out)
@@ -140,7 +150,7 @@ class MultiPlayerTracker:
                 if dh > radius:  # implausible centre displacement for the unobserved time
                     continue
                 w = self.tc.iou_weight
-                cost[a, b] = w * (1.0 - ious[a, b]) + (1.0 - w) * (dh / radius)
+                cost[a, b] = w * (1.0 - ious[a, b]) + (1.0 - w) * (dh / self.tc.gate_max_h)
         return cost, ious, dist_h
 
     def _stage(self, name: str, tracks: List[int], det_idx: List[int], dets: Sequence[Detection], time_s: float,
@@ -172,6 +182,37 @@ class MultiPlayerTracker:
             })
         return [i for i in det_idx if i not in used]
 
+    def _rematch(self, rem_high: List[int], dets: Sequence[Detection], time_s: float,
+                 matched: Dict[int, Tuple[int, bool]], out: FrameTracks) -> List[int]:
+        cand = [k for k, t in enumerate(self._tracks) if t.state == TrackState.LOST and k not in matched
+                and time_s - t.last_observed_t <= self.tc.rematch_max_s + 1e-9]
+        if not cand or not rem_high:
+            return rem_high
+        all_tracks = list(range(len(self._tracks)))
+        all_dets = list(range(len(dets)))
+        gated, _, _ = self._cost_matrix(all_tracks, all_dets, dets, time_s, iou_only=False)
+        ok = gated < _INVALID
+        used: Set[int] = set()
+        for k in cand:
+            hits = [i for i in rem_high if ok[k, i] and i not in used]
+            for i in hits:
+                rivals_t = [self._tracks[a].track_id for a in all_tracks if a != k and ok[a, i]]
+                rivals_d = [b for b in all_dets if b != i and ok[k, b]]
+                accepted = not rivals_t and not rivals_d and len(hits) == 1
+                out.decisions.append({
+                    "kind": "rematch" if accepted else "rematch_refused", "stage": "S4",
+                    "track_id": self._tracks[k].track_id, "detection": i, "cost": round(float(gated[k, i]), 4),
+                    "gap_s": round(time_s - self._tracks[k].last_observed_t, 6),
+                    "rival_tracks": rivals_t, "rival_detections": rivals_d,
+                })
+                if accepted:
+                    t = self._tracks[k]
+                    t.gaps_bridged += 1
+                    t.last_gap_s = round(time_s - t.last_observed_t, 6)
+                    matched[k] = (i, False)
+                    used.add(i)
+        return [i for i in rem_high if i not in used]
+
     # ------------------------------------------------------------- lifecycle
     def _apply_matches(self, matched: Dict[int, Tuple[int, bool]], dets: Sequence[Detection], time_s: float) -> None:
         for k, t in enumerate(self._tracks):
@@ -202,7 +243,7 @@ class MultiPlayerTracker:
                 elif t.state == TrackState.LOST:
                     t.state = TrackState.CONFIRMED
             else:
-                if t.state == TrackState.TENTATIVE and unobserved > self.tc.tentative_max_miss_s + 1e-9:
+                if t.state == TrackState.TENTATIVE:
                     reason = EndReason.TENTATIVE_EXPIRED
                 elif t.state == TrackState.CONFIRMED:
                     t.state = TrackState.LOST
@@ -261,5 +302,6 @@ class MultiPlayerTracker:
             ov = float(overlaps[k, j]) if j >= 0 else 0.0
             obs.append(TrackObservation(t.track_id, t.state, src, box, det_i, score, contested,
                                         round(time_s - t.last_observed_t, 6), t.observed_frames, t.epoch,
-                                        round(ov, 6), self._tracks[j].track_id if ov > 0 else None))
+                                        round(ov, 6), self._tracks[j].track_id if ov > 0 else None,
+                                        t.gaps_bridged, t.last_gap_s))
         return obs

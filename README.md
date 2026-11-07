@@ -21,7 +21,9 @@ Fresh build started 2026-11-07. No code from earlier SPANA builds is used.
 | 10 | Statistics (reducer over validated events only) | — | |
 | 11 | Clips (from validated events only) | — | |
 
-Each layer consumes the previous layer's **versioned artifact** (`spana/artifacts.py`), never its internals.
+Each layer consumes the previous layer's **versioned artifact** (`spana/artifacts.py`, currently
+`spana.detections` / `spana.tracks` 1.1.0), never its internals. Stage records, including negative results,
+are in `records/`.
 
 ## Run
 
@@ -42,6 +44,8 @@ licence, preprocessing and output interpretation. The weights are hash-checked b
 - Tracker states keep observation and inference apart: OBSERVED / PREDICTED / HELD.
 - A camera cut or unestimated camera motion ends motion continuity (a new epoch). Re-linking across epochs
   belongs to the identity layer.
+- A lost track is re-matched by motion only within `rematch_max_s` and only when the pairing is exclusive.
+  Every bridged gap is recorded (`gaps_bridged`, `last_gap_s`) and must be verified by the identity layer.
 - Ambiguity is reported, not hidden: `contested` (association ambiguity) and `max_overlap_iou` / `overlap_with`
   (physical overlap) are separate fields.
 - Every association, spawn and end is written to the decision log (`*.decisions.jsonl`).

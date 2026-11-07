@@ -71,6 +71,7 @@ class GeometryKalman(unittest.TestCase):
 class ArtifactTests(unittest.TestCase):
     def _doc(self):
         res = run([Player("A", (300, 500), (100, 0)), Player("B", (330, 500), (0, 0))], fps=30, duration_s=1)
+        assert len(res.frames) > 1
         oc = load_config(CONFIG_PATH).output
         return {"schema": TRACKS_SCHEMA[0], "schema_version": TRACKS_SCHEMA[1], "provenance": {}, "video": {},
                 "detections_sha256": "0" * 64, "frames": [tracks_frame(ft, oc) for ft in res.frames]}
@@ -82,7 +83,7 @@ class ArtifactTests(unittest.TestCase):
 
     def test_contract_violations_rejected(self):
         base = self._doc()
-        tr = next(fr for fr in base["frames"] if fr["tracks"])
+        tr = next(fr for fr in base["frames"][1:] if fr["tracks"])
         idx = base["frames"].index(tr)
         mutations = [
             lambda d: d.update(schema_version="9.9.9"),
@@ -93,6 +94,17 @@ class ArtifactTests(unittest.TestCase):
             lambda d: d["frames"].reverse(),
             lambda d: d["frames"][idx]["camera"].update(status="MAYBE"),
             lambda d: d["frames"][idx]["tracks"][0].update(overlap_with=None, max_overlap_iou=0.5),
+            lambda d: d["frames"][idx]["tracks"][0].update(state="CONFIRMED", source="PREDICTED"),
+            lambda d: d["frames"][idx]["tracks"][0].update(box=[10, 10, 5, 20]),
+            lambda d: d["frames"][idx]["tracks"][0].update(box=["a", 1, 2, 3]),
+            lambda d: d["frames"][idx]["tracks"][0].update(detection_index=-1),
+            lambda d: d["frames"][idx]["tracks"][0].update(gaps_bridged=1, last_gap_s=0.0),
+            lambda d: d["frames"][idx]["tracks"][0].update(epoch=-1),
+            lambda d: d["frames"][idx]["camera"].update(affine=[[1, 0]]),
+            lambda d: d["frames"][idx]["camera"].pop("inliers"),
+            lambda d: d["frames"][idx].update(t=-1.0),
+            lambda d: d["frames"][idx]["ended"].append(["T999999", "LOST_EXPIRED"]),
+            lambda d: d["frames"][idx]["camera"].update(status="FIRST"),
         ]
         for m in mutations:
             d = copy.deepcopy(base)

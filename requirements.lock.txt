@@ -4,3 +4,4 @@ onnxruntime==1.29.0
 pytest==9.1.1
 PyYAML==6.0.3
 scipy==1.18.1
+# opencv (cv2) 5.0.0 present in the build environment (not pip-managed)

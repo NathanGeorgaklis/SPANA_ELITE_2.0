@@ -80,6 +80,8 @@ class TrackObservation:
     epoch: int                       # continuity epoch (increments at every cut or unknown camera motion)
     max_overlap_iou: float           # largest IoU with any other live track's box on this frame
     overlap_with: Optional[str]      # that track's id (None when max_overlap_iou == 0)
+    gaps_bridged: int                # unobserved gaps this track bridged by motion re-match (S4)
+    last_gap_s: float                # duration of the most recent bridged gap (0 if none)
 
 
 @dataclass

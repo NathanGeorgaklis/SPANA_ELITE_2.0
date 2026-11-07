@@ -109,7 +109,7 @@ class CameraMotion(unittest.TestCase):
     def test_translation_recovered_in_source_pixels(self):
         big = _texture(1200, 2200)
         a, b = big[100:640, 100:1060], big[100 + 6:640 + 6, 100 + 20:1060 + 20]   # camera moves right/down
-        est = CameraMotionEstimator(CFG.camera, 960, 540)
+        est = CameraMotionEstimator(CFG.camera, 960, 540, 25.0)
         self.assertEqual(est.observe(a, []).status, CameraStatus.FIRST)
         obs = est.observe(b, [])
         self.assertEqual(obs.status, CameraStatus.OK)
@@ -123,14 +123,14 @@ class CameraMotion(unittest.TestCase):
         player = _texture(200, 80, seed=5)
         a[200:400, 300:380] = player
         b[200:400, 340:420] = player                        # the player moves 40 px; the background does not
-        est = CameraMotionEstimator(CFG.camera, 960, 540)
+        est = CameraMotionEstimator(CFG.camera, 960, 540, 25.0)
         est.observe(a, [(300, 200, 380, 400)])
         obs = est.observe(b, [(340, 200, 420, 400)])
         self.assertEqual(obs.status, CameraStatus.OK)
         self.assertLess(abs(obs.matrix()[0, 2]), 1.0)
 
     def test_cut_and_unknown(self):
-        est = CameraMotionEstimator(CFG.camera, 960, 540)
+        est = CameraMotionEstimator(CFG.camera, 960, 540, 25.0)
         est.observe(_texture(seed=1), [])
         green = np.zeros((540, 960, 3), np.uint8); green[:, :, 1] = 200
         self.assertEqual(est.observe(green, []).status, CameraStatus.CUT)

@@ -1,7 +1,12 @@
 """Versioned, validated JSON artifacts passed between layers.
 
-  spana.detections 1.0.0 : per-frame person detections (Pass: detection)
-  spana.tracks     1.0.0 : per-frame multi-player tracks (Pass: tracking), consumes a detections artifact
+  spana.detections 1.1.0 : per-frame person detections (Pass: detection)
+  spana.tracks     1.1.0 : per-frame multi-player tracks (Pass: tracking), consumes a detections artifact
+
+Change log:
+  1.1.0 detections: + top-level detection_config (tracking refuses detections made under another config).
+  1.1.0 tracks: + per-track gaps_bridged / last_gap_s; stricter validation (state/source, boxes, camera,
+        time, epoch, ended ids). 1.0.0 documents are not accepted.
 
 Any change to keys, types, units or meaning increments the version. Writers are atomic and never overwrite.
 """
@@ -11,14 +16,15 @@ import hashlib
 import json
 import math
 import os
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence
 
 from .config import OutputConfig
 from .records import CameraStatus, Detection, EndReason, FrameTracks, PositionSource, TrackState
 
-DETECTIONS_SCHEMA = ("spana.detections", "1.0.0")
-TRACKS_SCHEMA = ("spana.tracks", "1.0.0")
+DETECTIONS_SCHEMA = ("spana.detections", "1.1.0")
+TRACKS_SCHEMA = ("spana.tracks", "1.1.0")
 
 
 class ArtifactError(ValueError):
@@ -33,37 +39,39 @@ def sha256_doc(doc: Any) -> str:
     return hashlib.sha256(canonical_bytes(doc)).hexdigest()
 
 
-def write_json_atomic(path: str | Path, doc: Any) -> str:
-    """Write canonical JSON; refuse to overwrite. Returns the sha256 of the written bytes."""
-    p = Path(path)
-    if p.exists():
-        raise ArtifactError(f"refusing to overwrite {p}")
-    p.parent.mkdir(parents=True, exist_ok=True)
-    data = canonical_bytes(doc)
-    tmp = p.with_suffix(p.suffix + ".tmp")
-    with open(tmp, "wb") as fh:
-        fh.write(data)
-        fh.flush()
-        os.fsync(fh.fileno())
-    os.replace(tmp, p)
+def _publish(path: Path, data: bytes) -> str:
+    """Write bytes to a unique temp file, then hard-link it into place: atomic and never overwrites."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        try:
+            os.link(tmp, path)
+        except FileExistsError:
+            raise ArtifactError(f"refusing to overwrite {path}") from None
+    finally:
+        os.unlink(tmp)
     return hashlib.sha256(data).hexdigest()
 
 
+def refuse_existing(*paths: str | Path) -> None:
+    existing = [str(p) for p in paths if Path(p).exists()]
+    if existing:
+        raise ArtifactError(f"refusing to overwrite {existing}")
+
+
+def write_json_atomic(path: str | Path, doc: Any) -> str:
+    """Write canonical JSON; refuse to overwrite. Returns the sha256 of the written bytes."""
+    return _publish(Path(path), canonical_bytes(doc))
+
+
 def write_jsonl_atomic(path: str | Path, rows: Iterable[dict]) -> str:
-    p = Path(path)
-    if p.exists():
-        raise ArtifactError(f"refusing to overwrite {p}")
-    tmp = p.with_suffix(p.suffix + ".tmp")
-    h = hashlib.sha256()
-    with open(tmp, "wb") as fh:
-        for r in rows:
-            line = json.dumps(r, sort_keys=True, separators=(",", ":"), allow_nan=False).encode() + b"\n"
-            h.update(line)
-            fh.write(line)
-        fh.flush()
-        os.fsync(fh.fileno())
-    os.replace(tmp, p)
-    return h.hexdigest()
+    data = b"".join(json.dumps(r, sort_keys=True, separators=(",", ":"), allow_nan=False).encode() + b"\n"
+                    for r in rows)
+    return _publish(Path(path), data)
 
 
 def read_json(path: str | Path) -> dict:
@@ -84,7 +92,10 @@ def detections_from_frame(fr: dict) -> List[Detection]:
 
 
 def validate_detections(doc: Any) -> None:
-    _header(doc, DETECTIONS_SCHEMA, ("schema", "schema_version", "provenance", "video", "model", "frames"))
+    _header(doc, DETECTIONS_SCHEMA, ("schema", "schema_version", "provenance", "video", "model",
+                                     "detection_config", "frames"))
+    if not doc["frames"]:
+        raise ArtifactError("detections artifact has no frames")
     prev = -1
     for fr in doc["frames"]:
         _keys(fr, ("frame", "t", "detections"), "frame")
@@ -92,7 +103,7 @@ def validate_detections(doc: Any) -> None:
         for r in fr["detections"]:
             if not (isinstance(r, list) and len(r) == 6 and all(_num(v) for v in r[:5]) and isinstance(r[5], int)):
                 raise ArtifactError(f"frame {fr['frame']}: bad detection row {r!r}")
-            if not (r[2] >= r[0] and r[3] >= r[1] and 0.0 <= r[4] <= 1.0):
+            if not (r[2] > r[0] and r[3] > r[1] and 0.0 <= r[4] <= 1.0):
                 raise ArtifactError(f"frame {fr['frame']}: invalid box/score {r!r}")
 
 
@@ -110,50 +121,89 @@ def tracks_frame(ft: FrameTracks, oc: OutputConfig) -> dict:
             "contested": o.contested, "time_since_observed_s": o.time_since_observed_s,
             "observed_frames": o.observed_frames, "epoch": o.epoch,
             "max_overlap_iou": round(o.max_overlap_iou, oc.score_decimals), "overlap_with": o.overlap_with,
+            "gaps_bridged": o.gaps_bridged, "last_gap_s": o.last_gap_s,
         } for o in ft.tracks],
         "ended": [[tid, r.value] for tid, r in ft.ended],
     }
 
 
 _TRACK_KEYS = ("track_id", "state", "source", "box", "detection_index", "detection_score", "contested",
-               "time_since_observed_s", "observed_frames", "epoch", "max_overlap_iou", "overlap_with")
+               "time_since_observed_s", "observed_frames", "epoch", "max_overlap_iou", "overlap_with", "gaps_bridged",
+               "last_gap_s")
+_CAMERA_KEYS = ("status", "affine", "inliers", "hist_distance")
+_SOURCES_FOR_STATE = {TrackState.TENTATIVE.value: {PositionSource.OBSERVED.value},
+                      TrackState.CONFIRMED.value: {PositionSource.OBSERVED.value},
+                      TrackState.LOST.value: {PositionSource.PREDICTED.value, PositionSource.HELD.value}}
 
 
 def validate_tracks(doc: Any) -> None:
     _header(doc, TRACKS_SCHEMA, ("schema", "schema_version", "provenance", "video", "detections_sha256", "frames"))
-    states = {s.value for s in TrackState if s != TrackState.REMOVED}
-    sources = {s.value for s in PositionSource}
+    if not doc["frames"]:
+        raise ArtifactError("tracks artifact has no frames")
     cams = {s.value for s in CameraStatus}
     reasons = {r.value for r in EndReason}
-    prev = -1
-    for fr in doc["frames"]:
+    prev, prev_t, prev_epoch = -1, -math.inf, 0
+    seen: Dict[str, int] = {}       # track id -> epoch
+    live_prev: set = set()
+    ended_ids: set = set()
+    for n, fr in enumerate(doc["frames"]):
         _keys(fr, ("frame", "t", "camera", "tracks", "ended"), "frame")
         prev = _frame_order(fr, prev)
         where = f"frame {fr['frame']}"
-        if fr["camera"].get("status") not in cams:
-            raise ArtifactError(f"{where}: bad camera status")
-        ids = set()
+        if not _num(fr["t"]) or fr["t"] <= prev_t:
+            raise ArtifactError(f"{where}: time not strictly increasing")
+        prev_t = fr["t"]
+        cam = fr["camera"]
+        _keys(cam, _CAMERA_KEYS, f"{where} camera")
+        if cam["status"] not in cams or (cam["status"] == CameraStatus.FIRST.value) != (n == 0):
+            raise ArtifactError(f"{where}: bad camera status {cam['status']!r}")
+        a = cam["affine"]
+        if not (isinstance(a, list) and len(a) == 2 and all(isinstance(r, list) and len(r) == 3
+                                                            and all(_num(v) for v in r) for r in a)):
+            raise ArtifactError(f"{where}: bad camera affine")
+        if not (isinstance(cam["inliers"], int) and cam["inliers"] >= 0):
+            raise ArtifactError(f"{where}: bad camera inliers")
+        if cam["hist_distance"] is not None and not _num(cam["hist_distance"]):
+            raise ArtifactError(f"{where}: bad hist_distance")
+        for e in fr["ended"]:
+            if not (isinstance(e, list) and len(e) == 2 and e[1] in reasons and e[0] in live_prev):
+                raise ArtifactError(f"{where}: bad ended entry {e!r}")
+        ids: set = set()
         for tr in fr["tracks"]:
             _keys(tr, _TRACK_KEYS, where)
-            if tr["track_id"] in ids:
-                raise ArtifactError(f"{where}: duplicate track {tr['track_id']}")
-            ids.add(tr["track_id"])
-            if tr["state"] not in states or tr["source"] not in sources:
-                raise ArtifactError(f"{where}: bad state/source for {tr['track_id']}")
+            tid = tr["track_id"]
+            if not isinstance(tid, str) or tid in ids:
+                raise ArtifactError(f"{where}: duplicate or bad track id {tid!r}")
+            ids.add(tid)
+            if tr["source"] not in _SOURCES_FOR_STATE.get(tr["state"], set()):
+                raise ArtifactError(f"{where}: {tid} state {tr['state']!r} with source {tr['source']!r}")
+            b = tr["box"]
+            if not (isinstance(b, list) and len(b) == 4 and all(_num(v) for v in b) and b[2] > b[0] and b[3] > b[1]):
+                raise ArtifactError(f"{where}: {tid} bad box")
             observed = tr["source"] == PositionSource.OBSERVED.value
-            if observed != (tr["detection_index"] is not None) or observed != (tr["detection_score"] is not None):
-                raise ArtifactError(f"{where}: {tr['track_id']} detection fields disagree with source")
+            di, ds = tr["detection_index"], tr["detection_score"]
+            if observed != (di is not None) or observed != (ds is not None):
+                raise ArtifactError(f"{where}: {tid} detection fields disagree with source")
+            if observed and not (isinstance(di, int) and di >= 0 and _num(ds) and 0 <= ds <= 1):
+                raise ArtifactError(f"{where}: {tid} bad detection index/score")
             if not observed and tr["contested"]:
-                raise ArtifactError(f"{where}: {tr['track_id']} contested without an observation")
-            if (tr["overlap_with"] is None) != (tr["max_overlap_iou"] == 0):
-                raise ArtifactError(f"{where}: {tr['track_id']} overlap fields disagree")
-            if tr["overlap_with"] is not None and tr["overlap_with"] == tr["track_id"]:
-                raise ArtifactError(f"{where}: {tr['track_id']} overlaps itself")
-            if observed and tr["time_since_observed_s"] != 0:
-                raise ArtifactError(f"{where}: {tr['track_id']} observed but time_since_observed_s != 0")
-        for e in fr["ended"]:
-            if not (isinstance(e, list) and len(e) == 2 and e[1] in reasons):
-                raise ArtifactError(f"{where}: bad ended entry {e!r}")
+                raise ArtifactError(f"{where}: {tid} contested without an observation")
+            if not _num(tr["time_since_observed_s"]) or (observed != (tr["time_since_observed_s"] == 0)):
+                raise ArtifactError(f"{where}: {tid} time_since_observed_s disagrees with source")
+            if (tr["overlap_with"] is None) != (tr["max_overlap_iou"] == 0) or tr["overlap_with"] == tid:
+                raise ArtifactError(f"{where}: {tid} overlap fields disagree")
+            if not (isinstance(tr["gaps_bridged"], int) and tr["gaps_bridged"] >= 0 and _num(tr["last_gap_s"])
+                    and (tr["gaps_bridged"] == 0) == (tr["last_gap_s"] == 0)):
+                raise ArtifactError(f"{where}: {tid} bad gap fields")
+            ep = tr["epoch"]
+            if not isinstance(ep, int) or ep < prev_epoch or seen.get(tid, ep) != ep:
+                raise ArtifactError(f"{where}: {tid} epoch inconsistent")
+            seen[tid] = ep
+        prev_epoch = max([prev_epoch] + [t["epoch"] for t in fr["tracks"]])
+        ended_ids |= {e[0] for e in fr["ended"]}
+        if ids & ended_ids:
+            raise ArtifactError(f"{where}: an ended track id reappears {sorted(ids & ended_ids)}")
+        live_prev = ids
 
 
 # ----------------------------------------------------------------------------- helpers

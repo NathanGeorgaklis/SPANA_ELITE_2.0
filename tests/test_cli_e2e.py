@@ -55,9 +55,32 @@ class EndToEnd(unittest.TestCase):
         self.assertTrue(tpath.with_suffix(".decisions.jsonl").stat().st_size > 0)
         states = {t["state"] for fr in tdoc["frames"] for t in fr["tracks"]}
         self.assertIn("CONFIRMED", states)
+        cams = [fr["camera"] for fr in tdoc["frames"][1:]]
+        self.assertTrue(all(c["status"] == "OK" for c in cams), {c["status"] for c in cams})
+        # The video pans 2 px/frame to the right -> scene content moves left by 2 px.
+        self.assertTrue(all(abs(c["affine"][0][2] + 2.0) < 0.5 for c in cams), [c["affine"][0][2] for c in cams])
         # Overwrite is refused.
         with self.assertRaises(ArtifactError):
             self._detect(dpath)
+
+    def test_config_mismatch_between_passes_refused(self):
+        import yaml
+        dpath = self.td / "det.json"
+        self._detect(dpath)
+        with open(CONFIG_PATH) as fh:
+            raw = yaml.safe_load(fh)
+        raw["detection"]["score_low"] = 0.2
+        other_cfg = self.td / "cfg.yaml"
+        other_cfg.write_text(yaml.safe_dump(raw))
+        with self.assertRaises(ArtifactError):
+            cli.main(["track", "--video", str(self.video), "--config", str(other_cfg), "--detections", str(dpath),
+                      "--out", str(self.td / "t.json")])
+        self.assertFalse((self.td / "t.json").exists())
+        self.assertFalse((self.td / "t.decisions.jsonl").exists())
+
+    def test_start_beyond_video_refused(self):
+        with self.assertRaises(ArtifactError):
+            self._detect(self.td / "x.json", start=500)
 
     def test_inputs_fail_closed(self):
         with self.assertRaises(VideoError):

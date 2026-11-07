@@ -9,12 +9,13 @@ detections without re-running the model. Every input is hash-checked; nothing fa
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import sys
 from pathlib import Path
 from typing import List, Optional
 
 from .artifacts import (DETECTIONS_SCHEMA, TRACKS_SCHEMA, ArtifactError, detection_frame, detections_from_frame,
-                        read_json, sha256_doc, tracks_frame, validate_detections, validate_tracks,
+                        read_json, refuse_existing, sha256_doc, tracks_frame, validate_detections, validate_tracks,
                         write_json_atomic, write_jsonl_atomic)
 from .config import load_config
 from .provenance import build_provenance
@@ -27,18 +28,22 @@ def cmd_detect(a: argparse.Namespace) -> int:
     from .detection.onnx_backend import ModelRecord, OnnxPersonDetector
 
     cfg = load_config(a.config)
+    refuse_existing(a.out)
     video = VideoSource(a.video, expected_sha256=a.video_sha256)
     rec = ModelRecord.load(a.model_record)
     det = OnnxPersonDetector(rec, cfg.detection)
     frames = [detection_frame(i, t, det.detect(img), cfg.output)
               for i, t, img in video.frames(a.start, a.stop)]
+    if not frames:
+        raise ArtifactError(f"no frames read from {a.video} in [{a.start}, {a.stop})")
     doc = {
         "schema": DETECTIONS_SCHEMA[0], "schema_version": DETECTIONS_SCHEMA[1],
         "provenance": build_provenance(config_sha256=cfg.sha256(), argv=sys.argv,
                                        inputs={"video": video.meta.sha256,
                                                "model_record": sha256_file(a.model_record),
                                                "weights": rec.sha256}),
-        "video": video.meta.to_dict(), "model": det.model_id, "frames": frames,
+        "video": video.meta.to_dict(), "model": det.model_id,
+        "detection_config": dataclasses.asdict(cfg.detection), "frames": frames,
     }
     validate_detections(doc)
     print(write_json_atomic(a.out, doc))
@@ -47,13 +52,17 @@ def cmd_detect(a: argparse.Namespace) -> int:
 
 def cmd_track(a: argparse.Namespace) -> int:
     cfg = load_config(a.config)
+    decisions_path = Path(a.out).with_suffix(".decisions.jsonl")
+    refuse_existing(a.out, decisions_path)
     video = VideoSource(a.video, expected_sha256=a.video_sha256)
     ddoc = read_json(a.detections)
     validate_detections(ddoc)
     if ddoc["video"]["sha256"] != video.meta.sha256:
         raise ArtifactError("detections artifact was produced from a different video")
+    if ddoc["detection_config"] != dataclasses.asdict(cfg.detection):
+        raise ArtifactError("detections artifact was produced under a different detection config")
     det_frames = {fr["frame"]: fr for fr in ddoc["frames"]}
-    cam = CameraMotionEstimator(cfg.camera, video.meta.width, video.meta.height)
+    cam = CameraMotionEstimator(cfg.camera, video.meta.width, video.meta.height, video.meta.fps)
     trk = MultiPlayerTracker(cfg, video.meta.width, video.meta.height)
     frames, log = [], []
     first, last = min(det_frames), max(det_frames)
@@ -64,7 +73,7 @@ def cmd_track(a: argparse.Namespace) -> int:
         ft = trk.update(i, t, dets, cam.observe(img, [d.box for d in dets]))
         frames.append(tracks_frame(ft, cfg.output))
         log.extend({"frame": i, **d} for d in ft.decisions)
-    if frames[-1]["frame"] != last:
+    if not frames or frames[-1]["frame"] != last:
         raise ArtifactError("video ended before the last detection frame")
     doc = {
         "schema": TRACKS_SCHEMA[0], "schema_version": TRACKS_SCHEMA[1],
@@ -73,8 +82,8 @@ def cmd_track(a: argparse.Namespace) -> int:
         "video": video.meta.to_dict(), "detections_sha256": sha256_doc(ddoc), "frames": frames,
     }
     validate_tracks(doc)
+    print(write_jsonl_atomic(decisions_path, log))   # log first: a tracks file never exists without its log
     print(write_json_atomic(a.out, doc))
-    print(write_jsonl_atomic(Path(a.out).with_suffix(".decisions.jsonl"), log))
     return 0
 
 

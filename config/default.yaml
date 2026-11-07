@@ -17,7 +17,8 @@ camera:
   min_inliers: 25
   ransac_reproj_frac: 0.006   # ~3.6 px on a 480x270 analysis frame
   cut_hist_distance: 0.55
-  max_scale_change: 0.15      # >~16 % zoom between consecutive frames is implausible -> UNKNOWN
+  max_log_scale_rate_per_s: 1.0   # zoom faster than ~e (2.7x) per second is implausible -> UNKNOWN
+  scale_noise_log: 0.02           # estimate noise allowance per frame pair
 
 kalman:
   pos_std_h: 0.05
@@ -33,7 +34,7 @@ tracking:
   iou_weight: 0.5
   contest_margin: 0.10
   confirm_s: 0.10
-  tentative_max_miss_s: 0.10
+  rematch_max_s: 0.20         # longest gap bridged by motion alone (exclusive pairs only)
   predict_max_s: 0.50
   lost_max_s: 2.00
   duplicate_iou: 0.70

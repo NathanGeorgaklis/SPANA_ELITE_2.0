@@ -30,12 +30,26 @@ class SinglePlayer(unittest.TestCase):
             self.assertGreaterEqual(first + 1e-9, c.tracking.confirm_s, fps)
             self.assertLessEqual(first, c.tracking.confirm_s + 1.0 / fps + 1e-9, fps)
 
-    def test_short_occlusion_predicted_then_same_track(self):
-        p = Player("A", (300, 500), (150, 0), visible=lambda t: not (1.0 <= t < 1.3))
-        res = run([p], fps=30, duration_s=3)
+    def test_short_gap_bridged_and_recorded(self):
+        c = cfg()
+        gap = c.tracking.rematch_max_s * 0.75
+        p = Player("A", (300, 500), (150, 0), visible=lambda t: not (1.0 <= t < 1.0 + gap))
+        res = run([p], fps=30, duration_s=2)
         self.assertEqual(len(res.gid_tracks["A"]), 1)
-        hidden = [ft.tracks[0] for ft in res.frames if 1.0 <= ft.time_s < 1.3]
+        hidden = [ft.tracks[0] for ft in res.frames if 1.0 <= ft.time_s < 1.0 + gap]
+        self.assertTrue(hidden)
         self.assertTrue(all(o.source == PositionSource.PREDICTED and o.state == TrackState.LOST for o in hidden))
+        last = res.frames[-1].tracks[0]
+        self.assertEqual(last.gaps_bridged, 1)
+        self.assertGreater(last.last_gap_s, 0)
+
+    def test_gap_longer_than_rematch_window_ends_continuity(self):
+        c = cfg()
+        gap = c.tracking.rematch_max_s * 1.5
+        p = Player("A", (300, 500), (150, 0), visible=lambda t: not (1.0 <= t < 1.0 + gap))
+        res = run([p], fps=30, duration_s=2)
+        self.assertEqual(len(res.gid_tracks["A"]), 2)   # fragmentation is the safe outcome
+        self.assertEqual(res.false_continuity, {})
 
     def test_long_absence_held_then_removed(self):
         c = cfg()
@@ -55,6 +69,52 @@ class SinglePlayer(unittest.TestCase):
         res = run([p1, p2], fps=30, duration_s=2)
         self.assertEqual(res.false_continuity, {})
         self.assertNotEqual(res.gid_tracks["A"][0], res.gid_tracks["B"][0])
+
+
+class LostTrackSafety(unittest.TestCase):
+    """Regressions for QA review H1-H3: a LOST track must never be inherited by another player."""
+    H = 80.0
+
+    def test_new_player_near_lost_track(self):
+        for fps in (10, 25, 120):
+            for d in (0.3, 0.5, 1.0, 1.5, 1.9):
+                for appear in (0.05, 0.15, 0.6):
+                    b = Player("B", (800, 500), (0, 0), visible=lambda t: t < 1.0)
+                    a = Player("A", (800 + d * self.H, 500), (0, 0), visible=lambda t, s=1.0 + appear: t >= s)
+                    res = run([a, b], fps=fps, duration_s=2.0)
+                    if appear * 1.0 > cfg().tracking.rematch_max_s or d > 1.0:
+                        self.assertEqual(res.false_continuity, {}, (fps, d, appear))
+
+    def test_new_player_on_extrapolated_path(self):
+        b = Player("B", (400, 500), (300, 0), visible=lambda t: t < 1.0)
+        a = Player("A", (400 + 300 * 1.3, 500), (0, 0), visible=lambda t: t >= 1.3)
+        self.assertEqual(run([a, b], fps=25, duration_s=2).false_continuity, {})
+
+    def test_player_walks_through_occluded_players_position(self):
+        for fps in (10, 25, 120):
+            b = Player("B", (800, 500), (0, 0), visible=lambda t: not (1.0 <= t < 2.5))
+            a = Player("A", (500, 560), (200, 0), visible=lambda t: t >= 1.2)
+            self.assertEqual(run([a, b], fps=fps, duration_s=3).false_continuity, {}, fps)
+
+    def test_lost_track_cannot_steal_continuing_players_detection(self):
+        for off in (0.3, 0.4, 0.45, 0.5):
+            class Jump(Player):
+                def box_at(self, t, o=off):
+                    b = super().box_at(t)
+                    return b + (np.array([1, 0, 1, 0]) * o * 80 if t >= 1.0 else 0)
+            a = Jump("A", (800, 500), (0, 0))
+            b = Player("B", (800 + 1.2 * 80, 500), (0, 0), visible=lambda t: t < 0.95)
+            self.assertEqual(run([a, b], fps=25, duration_s=1.6).false_continuity, {}, off)
+
+    def test_rematch_refused_when_another_detection_is_in_the_gate(self):
+        c = cfg()
+        gap = c.tracking.rematch_max_s * 0.5
+        a = Player("A", (800, 500), (0, 0), visible=lambda t: not (1.0 <= t < 1.0 + gap))
+        n = Player("N", (800 + 0.25 * 80, 500), (0, 0), visible=lambda t: t >= 1.0 + gap)
+        res = run([a, n], fps=30, duration_s=1.5)
+        self.assertEqual(res.false_continuity, {})
+        refused = [d for ft in res.frames for d in ft.decisions if d["kind"] == "rematch_refused"]
+        self.assertTrue(refused)
 
 
 class MultiPlayer(unittest.TestCase):
@@ -105,14 +165,23 @@ class MultiPlayer(unittest.TestCase):
         self.assertEqual(len(live), 1)
 
     def test_scale_invariance(self):
-        # Same scene at two zoom levels (all sizes and speeds scaled) gives the same association outcome.
-        outcomes = []
+        # Same scene at two zoom levels (all sizes and speeds scaled): identical decisions, frame by frame.
+        logs = []
         for s in (0.5, 2.0):
-            a = Player("A", (400 * s, 500 * s), (300 * s, 0), height=80 * s)
+            a = Player("A", (400 * s, 500 * s), (300 * s, 0), height=80 * s, visible=lambda t: not .9 < t < 1.0)
             b = Player("B", (1000 * s, 510 * s), (-300 * s, 0), height=80 * s)
             res = run([a, b], fps=30, duration_s=2, frame_w=int(1920 * s), frame_h=int(1080 * s))
-            outcomes.append((len(res.gid_tracks["A"]), len(res.gid_tracks["B"]), len(res.false_continuity)))
-        self.assertEqual(outcomes[0], outcomes[1])
+            logs.append([[(o.track_id, o.state, o.source, o.detection_index, o.contested) for o in ft.tracks]
+                         for ft in res.frames])
+        self.assertEqual(logs[0], logs[1])
+
+    def test_deterministic(self):
+        def once():
+            a = Player("A", (400, 500), (300, 0)); b = Player("B", (1000, 510), (-300, 0))
+            c = Player("C", (700, 700), (0, -50), visible=lambda t: not .5 < t < .6)
+            return [[(o.track_id, o.box, o.source) for o in ft.tracks] for ft in run([a, b, c], fps=30,
+                                                                                     duration_s=2).frames]
+        self.assertEqual(once(), once())
 
 
 class Camera(unittest.TestCase):
@@ -156,6 +225,14 @@ class Camera(unittest.TestCase):
 
 
 class Lifecycle(unittest.TestCase):
+    def test_first_status_only_on_first_frame(self):
+        t = MultiPlayerTracker(cfg(), 1920, 1080)
+        with self.assertRaises(ValueError):
+            t.update(0, 0.0, [], CameraObservation.identity(CameraStatus.OK))
+        t.update(0, 0.0, [], CameraObservation.identity(CameraStatus.FIRST))
+        with self.assertRaises(ValueError):
+            t.update(1, 0.04, [], CameraObservation.identity(CameraStatus.FIRST))
+
     def test_frames_must_increase(self):
         t = MultiPlayerTracker(cfg(), 1920, 1080)
         t.update(5, 0.2, [], CameraObservation.identity(CameraStatus.FIRST))

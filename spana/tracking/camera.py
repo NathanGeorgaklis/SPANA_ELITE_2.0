@@ -15,8 +15,11 @@ from ..records import CameraObservation, CameraStatus
 
 
 class CameraMotionEstimator:
-    def __init__(self, cfg: CameraConfig, frame_w: int, frame_h: int):
+    def __init__(self, cfg: CameraConfig, frame_w: int, frame_h: int, fps: float):
+        if not fps > 0:
+            raise ValueError(f"invalid fps {fps!r}")
         self.cfg = cfg
+        self.max_log_scale = cfg.scale_noise_log + cfg.max_log_scale_rate_per_s / fps
         self.k = min(1.0, cfg.analysis_width_px / float(frame_w))  # source -> analysis scale
         self.size = (max(1, int(round(frame_w * self.k))), max(1, int(round(frame_h * self.k))))
         self._prev_gray: Optional[np.ndarray] = None
@@ -63,7 +66,7 @@ class CameraMotionEstimator:
         if A is None or n_inl < self.cfg.min_inliers:
             return CameraObservation.identity(CameraStatus.UNKNOWN, hist_distance=dist, inliers=n_inl)
         scale = float(np.sqrt(abs(np.linalg.det(A[:, :2]))))
-        if not scale > 0 or abs(np.log(scale)) > self.cfg.max_scale_change:
+        if not scale > 0 or abs(np.log(scale)) > self.max_log_scale:
             return CameraObservation.identity(CameraStatus.UNKNOWN, hist_distance=dist, inliers=n_inl)
         # Analysis-frame transform -> source-pixel transform: linear part unchanged, translation / k.
         A_src = A.astype(float).copy()
