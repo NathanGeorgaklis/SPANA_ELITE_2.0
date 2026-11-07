@@ -188,3 +188,43 @@ class BrowserPage(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BenchmarkTool(unittest.TestCase):
+    """End to end: pack -> human labels -> freeze -> detect + track -> benchmark against frozen labels."""
+
+    def test_benchmark_scores_against_frozen_labels(self):
+        import subprocess
+        import yaml
+        from tests.synth import CONFIG_PATH
+        from tests.test_detection_camera import constant_onnx, write_record
+        td = Path(tempfile.mkdtemp())
+        video = td / "DEVCLIP.avi"
+        write_video(video, 20, 25.0)
+        pack = td / "pack"
+        make_pack(str(video), "DEV", 0.2, str(pack))
+        out = np.zeros((1, 6, 1), np.float32)
+        out[0, :, 0] = [32, 32, 8, 20, 0.9, 0.1]          # one fixed person box: x 140-180, y 40-140 in source px
+        constant_onnx(td / "m.onnx", out, 64)
+        record = write_record(td, td / "m.onnx")
+        raw = yaml.safe_load(open(CONFIG_PATH)); raw["detection"]["tiling_enabled"] = False
+        cfg = td / "cfg.yaml"; cfg.write_text(yaml.safe_dump(raw))
+        run = lambda *a: subprocess.run(["python3", "-m", *a], check=True, capture_output=True)  # noqa: E731
+        run("spana.cli", "detect", "--video", str(video), "--config", str(cfg), "--model-record", str(record),
+            "--out", str(td / "d.json"))
+        run("spana.cli", "track", "--video", str(video), "--config", str(cfg), "--detections", str(td / "d.json"),
+            "--out", str(td / "t.json"))
+        for name, rows in (("good", "{f},1,140,40,40,100,1,1,1\n"), ("wrong", "{f},1,10,10,30,60,1,1,1\n")):
+            gt = "".join(rows.format(f=f + 1) for f in (0, 5, 10, 15))
+            g, r = td / f"{name}_gt.txt", td / f"{name}_rec.json"
+            g.write_text(gt)
+            rec = _record(pack, gt, [0, 5, 10, 15]); rec["label_version"] = 1 if name == "good" else 2
+            r.write_text(json.dumps(rec))
+            dest = freeze(str(pack), str(g), str(r), str(video), root=td / "repo")
+            run("tools.benchmark", "--labels", str(dest), "--detections", str(td / "d.json"), "--tracks",
+                str(td / "t.json"), "--decisions", str(td / "t.decisions.jsonl"), "--out", str(td / f"{name}.json"))
+            s = json.loads((td / f"{name}.json").read_text())["summary"]
+            if name == "good":
+                self.assertEqual((s["detection_recall"], s["missed_players"], s["identity_transfers"]), (1.0, 0, 0))
+            else:
+                self.assertEqual((s["detection_recall"], s["missed_players"]), (0.0, 4))
