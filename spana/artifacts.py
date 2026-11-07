@@ -1,11 +1,12 @@
 """Versioned, validated JSON artifacts passed between layers.
 
-  spana.detections 1.1.0 : per-frame person detections (Pass: detection)
+  spana.detections 1.3.0 : per-frame person detections (Pass: detection)
   spana.tracks     2.0.0 : per-frame multi-player tracks (Pass: tracking), consumes a detections artifact
 
 Change log:
   1.1.0 detections: + top-level detection_config (tracking refuses detections made under another config).
   1.2.0 detections: + top-level frame_stride (every N-th frame analysed; frames must be a contiguous run).
+  1.3.0 detections: + 7th row column multi_body (0/1). 1.2.0 inputs: migrate with tools/refilter_detections.py.
   1.1.0 tracks: + per-track gaps_bridged / last_gap_s; stricter validation (state/source, boxes, camera,
         time, epoch, ended ids). 1.0.0 documents are not accepted.
   2.0.0 tracks: states ACTIVE/OCCLUDED/LOST (TERMINATED via `ended`), + confirmed, confidence, age_frames,
@@ -27,7 +28,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 from .config import OutputConfig
 from .records import CameraStatus, Detection, EndReason, FrameTracks, PositionSource, TrackletSummary, TrackState
 
-DETECTIONS_SCHEMA = ("spana.detections", "1.2.0")
+DETECTIONS_SCHEMA = ("spana.detections", "1.3.0")
 TRACKS_SCHEMA = ("spana.tracks", "2.0.0")
 
 
@@ -87,11 +88,11 @@ def read_json(path: str | Path) -> dict:
 def detection_frame(frame: int, t: float, dets: Sequence[Detection], oc: OutputConfig) -> dict:
     return {"frame": frame, "t": round(t, 6),
             "detections": [[*(round(v, oc.box_decimals) for v in d.box), round(d.score, oc.score_decimals),
-                            d.class_id] for d in dets]}
+                            d.class_id, int(d.multi_body)] for d in dets]}
 
 
 def detections_from_frame(fr: dict) -> List[Detection]:
-    return [Detection((float(r[0]), float(r[1]), float(r[2]), float(r[3])), float(r[4]), int(r[5]))
+    return [Detection((float(r[0]), float(r[1]), float(r[2]), float(r[3])), float(r[4]), int(r[5]), bool(r[6]))
             for r in fr["detections"]]
 
 
@@ -107,7 +108,8 @@ def validate_detections(doc: Any) -> None:
         _keys(fr, ("frame", "t", "detections"), "frame")
         prev = _frame_order(fr, prev)
         for r in fr["detections"]:
-            if not (isinstance(r, list) and len(r) == 6 and all(_num(v) for v in r[:5]) and isinstance(r[5], int)):
+            if not (isinstance(r, list) and len(r) == 7 and all(_num(v) for v in r[:5]) and isinstance(r[5], int)
+                    and r[6] in (0, 1) and not isinstance(r[6], bool)):
                 raise ArtifactError(f"frame {fr['frame']}: bad detection row {r!r}")
             if not (r[2] > r[0] and r[3] > r[1] and 0.0 <= r[4] <= 1.0):
                 raise ArtifactError(f"frame {fr['frame']}: invalid box/score {r!r}")

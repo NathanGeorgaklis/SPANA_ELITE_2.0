@@ -42,6 +42,7 @@ class Detection:
     box: Tuple[float, float, float, float]  # x1, y1, x2, y2, source pixels
     score: float
     class_id: int
+    multi_body: bool = False  # box may contain more than one person (see postprocess.flag_multi_body)
 
     @property
     def height(self) -> float:

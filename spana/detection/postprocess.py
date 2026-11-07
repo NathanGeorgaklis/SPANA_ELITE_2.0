@@ -73,7 +73,33 @@ def filter_detections(boxes: np.ndarray, scores: np.ndarray, class_ids: np.ndarr
     idx = np.flatnonzero(ok)
     keep = nms(boxes[idx], scores[idx], cfg.nms_iou)
     keep = suppress_unions(boxes[idx][keep], scores[idx][keep], cfg, keep)
-    return [Detection(tuple(float(v) for v in boxes[idx[k]]), float(scores[idx[k]]), int(keep_class)) for k in keep]
+    flags = flag_multi_body(boxes[idx][keep], scores[idx][keep], cfg)
+    return [Detection(tuple(float(v) for v in boxes[idx[k]]), float(scores[idx[k]]), int(keep_class), bool(f))
+            for k, f in zip(keep, flags)]
+
+
+def flag_multi_body(boxes: np.ndarray, scores: np.ndarray, cfg: DetectionConfig) -> List[bool]:
+    """Flag boxes that may hold more than one person: the box encloses another, confident detection (inside it by
+    >= multibody_member_ioa of its own area, score >= multibody_member_score) and is >= multibody_min_extent times
+    wider or taller than it, so a large part of the box is not explained by that person.
+
+    Real DEV finding: two players in contact produce one merged box next to one player's own box. Deleting such
+    boxes would lose real people; flagged boxes are kept and the tracker treats them as ambiguous evidence.
+    Uses only post-suppression boxes; independent of input order."""
+    boxes = np.asarray(boxes, dtype=float).reshape(-1, 4)
+    n = len(boxes)
+    if n < 2:
+        return [False] * n
+    iw = np.clip(np.minimum(boxes[:, None, 2], boxes[None, :, 2]) - np.maximum(boxes[:, None, 0], boxes[None, :, 0]), 0, None)
+    ih = np.clip(np.minimum(boxes[:, None, 3], boxes[None, :, 3]) - np.maximum(boxes[:, None, 1], boxes[None, :, 1]), 0, None)
+    w = np.maximum(boxes[:, 2] - boxes[:, 0], 1e-9)
+    h = np.maximum(boxes[:, 3] - boxes[:, 1], 1e-9)
+    ioa_in = iw * ih / (w * h)[:, None]                        # [a, b] = share of box a inside box b
+    extent = np.maximum(w[None, :] / w[:, None], h[None, :] / h[:, None])   # [a, b] = how much b exceeds a
+    member = (ioa_in >= cfg.multibody_member_ioa) & (np.asarray(scores)[:, None] >= cfg.multibody_member_score) & \
+        (extent >= cfg.multibody_min_extent)
+    np.fill_diagonal(member, False)
+    return [bool(v) for v in member.any(axis=0)]
 
 
 def suppress_unions(boxes: np.ndarray, scores: np.ndarray, cfg: DetectionConfig, ids: List[int]) -> List[int]:

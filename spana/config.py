@@ -38,6 +38,9 @@ class DetectionConfig:
     tile_edge_margin_frac: float  # tile boxes this close to an internal tile edge are truncated -> dropped
     union_member_ioa: float     # union-box rule: a member lies inside the union box by this share of its area
     union_member_max_iou: float # ... and two members overlap each other by at most this IoU (distinct people)
+    multibody_member_ioa: float   # multi-body flag: a confident detection lies inside the box by this share of its area
+    multibody_member_score: float # ... and scores at least this
+    multibody_min_extent: float   # ... and the box is at least this many times wider or taller than it
 
     def validate(self) -> None:
         _pos("detection.tile_size_frac", self.tile_size_frac)
@@ -45,6 +48,10 @@ class DetectionConfig:
         _unit("detection.tile_edge_margin_frac", self.tile_edge_margin_frac)
         _unit("detection.union_member_ioa", self.union_member_ioa)
         _unit("detection.union_member_max_iou", self.union_member_max_iou)
+        _unit("detection.multibody_member_ioa", self.multibody_member_ioa)
+        _unit("detection.multibody_member_score", self.multibody_member_score)
+        if not self.multibody_min_extent > 1.0:
+            raise ConfigError("detection.multibody_min_extent must be > 1")
         if self.tile_overlap_frac >= 1.0 or self.tile_edge_margin_frac >= self.tile_overlap_frac:
             raise ConfigError("detection: need tile_edge_margin_frac < tile_overlap_frac < 1")
         _unit("detection.score_low", self.score_low)

@@ -14,6 +14,11 @@ detection:
   tile_edge_margin_frac: 0.05   # detectors place truncated edges a few px inside the cut; 0.05 x 648 = 32 px
   union_member_ioa: 0.70       # DEV FRESH_01: two-player union boxes from the low-resolution pass (see records)
   union_member_max_iou: 0.30
+  # Multi-body flag (calibrated on DEV FRESH_02 only): a box that encloses a confident detection and extends well
+  # beyond it may hold two people in contact. It is kept, but cannot start a track or update appearance.
+  multibody_member_ioa: 0.60
+  multibody_member_score: 0.50
+  multibody_min_extent: 1.20
 
 camera:
   analysis_width_px: 480   # compute-only downscale; results are mapped back to source pixels

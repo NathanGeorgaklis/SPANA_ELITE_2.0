@@ -158,6 +158,7 @@ class MultiPlayerTracker:
         rem_high = self._refuse_hidden_rivals(rem_high, dets, desc, time_s, matched, out)
         rem_high = self._recover(rem_high, dets, desc, time_s, matched, out)   # low scores never recover/spawn
         self._log_unmatched(dets, desc, time_s, matched, out)                    # read-only diagnostics
+        self._contest_multi_body(matched, dets, out)
 
         self._apply_matches(matched, dets, desc, frame_index, time_s)
         self._lifecycle(matched, dets, frame_index, time_s, out)
@@ -242,6 +243,15 @@ class MultiPlayerTracker:
                 "contested": contested, "rival_tracks": rival_tracks, "rival_detections": rival_dets,
             })
         return [i for i in det_idx if i not in used]
+
+    def _contest_multi_body(self, matched: Dict[int, Tuple[int, bool]], dets: Sequence[Detection], out: FrameTracks) -> None:
+        """A match through a box that may hold more than one person is CONTESTED (so it never updates appearance),
+        whichever stage made it."""
+        for k, (i, contested) in list(matched.items()):
+            if dets[i].multi_body and not contested:
+                matched[k] = (i, True)
+                out.decisions.append({"kind": "contested_multi_body", "track_id": self._tracks[k].track_id,
+                                      "detection": i})
 
     def _recoverable(self, t: _Track, time_s: float) -> bool:
         """An unobserved track that a detection may still be re-associated to on this frame."""
@@ -553,6 +563,9 @@ class MultiPlayerTracker:
         observed = [dets[i].as_array() for i, _ in matched.values()]
         unobserved = [k for k in range(len(self._tracks)) if k not in matched]
         for i in rem_high:
+            if dets[i].multi_body:            # a possibly merged box must not start a track
+                out.decisions.append({"kind": "spawn_refused", "detection": i, "reason": "MULTI_BODY_DETECTION"})
+                continue
             d = dets[i].as_array()
             dup = self._duplicate_of(d, observed)
             if dup is not None:
