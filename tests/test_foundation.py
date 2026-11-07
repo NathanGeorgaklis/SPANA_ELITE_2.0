@@ -66,6 +66,18 @@ class GeometryKalman(unittest.TestCase):
                 kf.update(np.array([200.0 * i / fps, 0.0, 32.0, 80.0]))
             self.assertAlmostEqual(kf.x[4], 200.0, delta=10.0)
 
+    def test_size_not_extrapolated_under_jitter(self):
+        # Real DEV finding (FRESH_01): size velocity from jittery box sizes collapsed/inflated unobserved boxes.
+        cfg = load_config(CONFIG_PATH).kalman
+        rng = np.random.default_rng(0)
+        kf = BoxKalman(np.array([500.0, 500.0, 32.0, 80.0]), cfg)
+        for i in range(1, 30):
+            kf.predict(1 / 30)
+            kf.update(np.array([500.0 + 3 * i, 500.0, 32.0 * rng.uniform(0.9, 1.1), 80.0 * rng.uniform(0.9, 1.1)]))
+        for _ in range(60):                       # 2 s unobserved
+            kf.predict(1 / 30)
+        self.assertTrue(70.0 <= kf.x[3] <= 90.0 and 28.0 <= kf.x[2] <= 36.0, kf.x[:4])
+
     def test_camera_mapping_of_state(self):
         cfg = load_config(CONFIG_PATH).kalman
         kf = BoxKalman(np.array([100.0, 50.0, 20.0, 40.0]), cfg)
@@ -124,6 +136,16 @@ class ArtifactTests(unittest.TestCase):
             m(d)
             with self.assertRaises(ArtifactError):
                 validate_tracks(d)
+
+    def test_tiny_overlap_serialises_consistently(self):
+        # Real DEV finding (FRESH_01 f34): IoU 3e-5 rounded to 0 while overlap_with was still set.
+        import dataclasses as dc
+        res = run([Player("A", (300, 500), (0, 0)), Player("B", (900, 500), (0, 0))], fps=30, duration_s=0.2)
+        ft = res.frames[-1]
+        o = ft.tracks[0]
+        ft.tracks[0] = dc.replace(o, max_overlap_iou=3e-5, overlap_with=ft.tracks[1].track_id)
+        rec = tracks_frame(ft, load_config(CONFIG_PATH).output)["tracks"][0]
+        self.assertEqual((rec["max_overlap_iou"], rec["overlap_with"]), (0.0, None))
 
     def test_atomic_write_never_overwrites(self):
         with tempfile.TemporaryDirectory() as td:

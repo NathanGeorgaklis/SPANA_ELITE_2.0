@@ -12,6 +12,8 @@ detection:
   tile_size_frac: 0.60         # 648 px tiles at 1080p -> distant players seen at ~1x instead of ~0.33x
   tile_overlap_frac: 0.25      # bodies up to ~0.15 frame heights are fully inside some tile
   tile_edge_margin_frac: 0.05   # detectors place truncated edges a few px inside the cut; 0.05 x 648 = 32 px
+  union_member_ioa: 0.70       # DEV FRESH_01: two-player union boxes from the low-resolution pass (see records)
+  union_member_max_iou: 0.30
 
 camera:
   analysis_width_px: 480   # compute-only downscale; results are mapped back to source pixels

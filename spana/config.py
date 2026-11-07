@@ -36,11 +36,15 @@ class DetectionConfig:
     tile_size_frac: float       # tile side as a fraction of frame height
     tile_overlap_frac: float    # overlap between neighbouring tiles, fraction of the tile side
     tile_edge_margin_frac: float  # tile boxes this close to an internal tile edge are truncated -> dropped
+    union_member_ioa: float     # union-box rule: a member lies inside the union box by this share of its area
+    union_member_max_iou: float # ... and two members overlap each other by at most this IoU (distinct people)
 
     def validate(self) -> None:
         _pos("detection.tile_size_frac", self.tile_size_frac)
         _unit("detection.tile_overlap_frac", self.tile_overlap_frac)
         _unit("detection.tile_edge_margin_frac", self.tile_edge_margin_frac)
+        _unit("detection.union_member_ioa", self.union_member_ioa)
+        _unit("detection.union_member_max_iou", self.union_member_max_iou)
         if self.tile_overlap_frac >= 1.0 or self.tile_edge_margin_frac >= self.tile_overlap_frac:
             raise ConfigError("detection: need tile_edge_margin_frac < tile_overlap_frac < 1")
         _unit("detection.score_low", self.score_low)

@@ -71,6 +71,33 @@ class PostProcess(unittest.TestCase):
         self.assertEqual([d.box for d in out], [(0.0, 0.0, 10.0, 100.0)])
 
 
+class UnionBoxes(unittest.TestCase):
+    """Regression for the real DEV finding: a two-player union box survives NMS next to the players' own boxes."""
+    def _run(self, boxes, scores):
+        return [d.box for d in filter_detections(np.array(boxes, float), np.array(scores), np.zeros(len(scores)),
+                                                 frame_w=1920, frame_h=1080, cfg=CFG.detection, keep_class=0)]
+
+    def test_union_of_two_more_confident_players_is_dropped(self):
+        far, near, union = [500, 300, 530, 380], [495, 370, 545, 500], [490, 295, 550, 505]
+        out = self._run([far, near, union], [0.85, 0.80, 0.70])
+        self.assertEqual(sorted(out), sorted([tuple(map(float, far)), tuple(map(float, near))]))
+
+    def test_full_box_more_confident_than_its_partials_is_kept(self):
+        full, upper, legs = [500, 300, 540, 420], [502, 300, 538, 360], [503, 365, 537, 420]
+        out = self._run([full, upper, legs], [0.90, 0.40, 0.35])
+        self.assertIn(tuple(map(float, full)), out)
+
+    def test_single_member_or_overlapping_members_do_not_trigger(self):
+        a, b, union = [500, 300, 530, 380], [502, 305, 532, 385], [490, 295, 550, 505]
+        self.assertIn(tuple(map(float, union)), self._run([a, b, union], [0.85, 0.80, 0.70]))   # members overlap
+        self.assertIn(tuple(map(float, union)), self._run([a, union], [0.85, 0.70]))            # one member
+
+    def test_order_independent(self):
+        far, near, union = [500, 300, 530, 380], [495, 370, 545, 500], [490, 295, 550, 505]
+        self.assertEqual(sorted(self._run([union, near, far], [0.70, 0.80, 0.85])),
+                         sorted(self._run([far, near, union], [0.85, 0.80, 0.70])))
+
+
 class OnnxBackend(unittest.TestCase):
     def setUp(self):
         self.td = Path(tempfile.mkdtemp())

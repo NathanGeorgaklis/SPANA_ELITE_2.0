@@ -72,4 +72,28 @@ def filter_detections(boxes: np.ndarray, scores: np.ndarray, class_ids: np.ndarr
     ok = (class_ids == keep_class) & (scores >= cfg.score_low) & (h >= cfg.min_box_height_frac * frame_h) & (w > 0)
     idx = np.flatnonzero(ok)
     keep = nms(boxes[idx], scores[idx], cfg.nms_iou)
+    keep = suppress_unions(boxes[idx][keep], scores[idx][keep], cfg, keep)
     return [Detection(tuple(float(v) for v in boxes[idx[k]]), float(scores[idx[k]]), int(keep_class)) for k in keep]
+
+
+def suppress_unions(boxes: np.ndarray, scores: np.ndarray, cfg: DetectionConfig, ids: List[int]) -> List[int]:
+    """Drop union boxes: a box containing two DISTINCT detections (each inside it by >= union_member_ioa of its own
+    area, mutual IoU <= union_member_max_iou) that are each MORE confident than the box itself.
+
+    Real DEV finding: a low-resolution pass merges two depth-aligned players into one box that survives NMS next to
+    their separate boxes (IoU with each is low). A single player's full box normally outscores its partial boxes, so
+    it is not affected. Decisions use only the boxes that survived NMS; the result is independent of input order."""
+    n = len(boxes)
+    if n < 3:
+        return list(ids)
+    iw = np.clip(np.minimum(boxes[:, None, 2], boxes[None, :, 2]) - np.maximum(boxes[:, None, 0], boxes[None, :, 0]), 0, None)
+    ih = np.clip(np.minimum(boxes[:, None, 3], boxes[None, :, 3]) - np.maximum(boxes[:, None, 1], boxes[None, :, 1]), 0, None)
+    area = np.maximum((boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1]), 1e-9)
+    ioa_in = iw * ih / area[:, None]          # [i, j] = share of box i inside box j
+    ious = iou_matrix(boxes, boxes)
+    drop = set()
+    for j in range(n):
+        members = [i for i in range(n) if i != j and ioa_in[i, j] >= cfg.union_member_ioa and scores[i] > scores[j]]
+        if any(ious[a, b] <= cfg.union_member_max_iou for x, a in enumerate(members) for b in members[x + 1:]):
+            drop.add(j)
+    return [k for pos, k in enumerate(ids) if pos not in drop]

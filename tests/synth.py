@@ -34,12 +34,18 @@ class Player:
     visible: Callable[[float], bool] = lambda t: True
     score: Callable[[float], float] = lambda t: 0.9
     appearance: Optional[np.ndarray] = None   # torso descriptor (normalised histogram); None = unknown
+    size_jitter: float = 0.0                  # relative per-frame box-size noise (real detectors: ~5-10 %)
 
     def box_at(self, t: float) -> np.ndarray:
         cx = self.start[0] + self.velocity[0] * t
         cy = self.start[1] + self.velocity[1] * t
-        w = self.height * self.aspect
-        return np.array([cx - w / 2, cy - self.height / 2, cx + w / 2, cy + self.height / 2])
+        h, w = self.height, self.height * self.aspect
+        if self.size_jitter:
+            r = np.random.default_rng(int(round(t * 1e4)) * 7919 + sum(map(ord, self.gid)))
+            h *= 1 + self.size_jitter * r.uniform(-1, 1)
+            w *= 1 + self.size_jitter * r.uniform(-1, 1)
+            cy += 0.5 * (self.height - h)          # feet stay on the ground: the box top moves
+        return np.array([cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2])
 
 
 def kit(index: int, bins: int = 128, spread: int = 6, seed: int = 0) -> np.ndarray:

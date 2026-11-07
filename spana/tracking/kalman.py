@@ -1,4 +1,9 @@
-"""Constant-velocity Kalman filter on (cx, cy, w, h) with noise scaled by body height and elapsed seconds.
+"""Kalman filter on (cx, cy, w, h): constant velocity for the CENTRE, constant (random-walk) SIZE.
+
+Box size is never extrapolated by a size velocity. Real DEV finding (FRESH_01): frame-to-frame jitter of detected
+box sizes produced large size velocities whose extrapolation collapsed or inflated unobserved boxes (height x0.03
+to x6 within 1-2 s), so no gate could re-associate the player. Size changes from camera zoom are applied by the
+camera transform; size changes from a player approaching the camera are followed by the updates.
 
 Noise model (documented, uncalibrated):
   * measurement std of every coordinate = pos_std_h * h;
@@ -33,12 +38,13 @@ class BoxKalman:
         if dt <= 0:
             return
         F = np.eye(2 * _DIM)
-        F[:_DIM, _DIM:] = np.eye(_DIM) * dt
+        F[0, 4] = F[1, 5] = dt          # centre moves with its velocity; size has no velocity term
         h = self.height
         q_pos = (self.cfg.pos_std_h * h) ** 2 * dt
         q_vel = (self.cfg.vel_std_h_per_s * h) ** 2 * dt
         Q = np.diag([q_pos] * _DIM + [q_vel] * _DIM)
         self.x = F @ self.x
+        self.x[6:8] = 0.0               # size velocity is not modelled
         self.x[2] = max(self.x[2], 1.0)
         self.x[3] = max(self.x[3], 1.0)
         self.P = F @ self.P @ F.T + Q

@@ -6,6 +6,7 @@ measured and bounded where continuity is physically recoverable.
 """
 from __future__ import annotations
 
+import dataclasses
 import unittest
 
 import numpy as np
@@ -312,6 +313,50 @@ class QARound2Regressions(unittest.TestCase):
         res = run([a, b], fps=25, duration_s=1.6)
         late = [o for ft in res.frames if ft.time_s > 1.05 for o in ft.tracks if o.state == TrackState.OCCLUDED]
         self.assertEqual(late, [])
+
+
+class RealFootageRegressions(unittest.TestCase):
+    """Failures first seen on real DEV footage (fresh clips, 2026-11-07)."""
+
+    def test_size_jitter_does_not_break_short_occlusion_recovery(self):
+        for fps in FPS_SET:
+            a = Player("A", (700, 500), (0, 0), height=90, appearance=kit(0), size_jitter=0.08)
+            b = Player("B", (500, 495), (200, 0), appearance=kit(1), size_jitter=0.08,
+                       visible=lambda t: not (0.9 <= t < 1.3))
+            res = run([a, b], fps=fps, duration_s=2)
+            m = assert_safe(self, res, fps)
+            self.assertEqual(m.total_fragments, 0, fps)
+
+    def test_size_jitter_with_missed_detections_keeps_tracks(self):
+        rng = np.random.default_rng(5)
+        for fps in FPS_SET:
+            miss = rng.random(int(3 * fps) + 2) < 0.15
+            ps = [Player(f"P{k}", (300 + 250 * k, 450 + 40 * k), (80 - 40 * k, 20), size_jitter=0.08,
+                         appearance=kit(k), visible=lambda t, f=fps, m=miss, k=k: not m[(int(round(t * f)) + 7 * k) % len(m)])
+                  for k in range(4)]
+            m = assert_safe(self, run(ps, fps=fps, duration_s=3), fps)
+            calm = [dataclasses.replace(p, size_jitter=0.0) for p in ps]
+            baseline = evaluate(run(calm, fps=fps, duration_s=3)).total_fragments
+            # At 10 fps two consecutive misses (0.3 s) exceed rematch_max_s by design; jitter may add at most one
+            # fragment there (measured: 6 vs 5 without jitter; 7 with the old size-velocity filter).
+            self.assertLessEqual(m.total_fragments, baseline + (1 if fps < 25 else 0), fps)
+            if fps >= 25:
+                self.assertEqual(m.total_fragments, 0, fps)
+
+    def test_union_box_does_not_create_a_duplicate_track(self):
+        def extra(i, t):
+            a, b = Player("A", (600, 420), (0, 0), height=60).box_at(t), Player("B", (605, 500), (0, 0)).box_at(t)
+            u = (min(a[0], b[0]) - 3, a[1] - 3, max(a[2], b[2]) + 3, b[3] + 3)
+            return [Detection(tuple(map(float, u)), 0.65, 0)]
+        ps = [Player("A", (600, 420), (0, 0), height=60, score=lambda t: 0.85),
+              Player("B", (605, 500), (0, 0), score=lambda t: 0.8)]
+        from spana.detection.postprocess import suppress_unions
+        cfgd = cfg().detection
+        res = run(ps, fps=25, duration_s=1.5, extra=extra)
+        # the tracker alone cannot remove it: the detection layer's union rule must drop it before tracking
+        boxes = np.array(res.det_boxes[5], float)
+        scores = np.array([0.85, 0.8, 0.65])
+        self.assertEqual(len(suppress_unions(boxes, scores, cfgd, [0, 1, 2])), 2)
 
 
 class TrackFields(unittest.TestCase):
