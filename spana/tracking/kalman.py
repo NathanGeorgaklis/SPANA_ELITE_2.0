@@ -53,6 +53,13 @@ class BoxKalman:
         self.x = self.x + K @ y
         self.P = (np.eye(2 * _DIM) - K @ H) @ self.P
 
+    def position_mahalanobis2(self, xy: np.ndarray) -> float:
+        """Squared Mahalanobis distance of a measured centre from the predicted centre, using the predicted
+        position covariance plus measurement noise. Grows tolerant with elapsed time and velocity uncertainty."""
+        S = self.P[:2, :2] + np.eye(2) * (self.cfg.pos_std_h * self.height) ** 2
+        y = np.asarray(xy, dtype=float) - self.x[:2]
+        return float(y @ np.linalg.solve(S, y))
+
     def freeze_velocity(self) -> None:
         self.x[_DIM:] = 0.0
 

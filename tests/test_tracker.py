@@ -22,6 +22,7 @@ FPS_SET = (10, 25, 60)
 def assert_safe(tc: unittest.TestCase, res, msg=""):
     m = evaluate(res)
     tc.assertEqual(m.identity_transfers, 0, f"identity transfer {m.transfer_tracks} {msg}")
+    tc.assertEqual(m.unflagged_transfers, 0, f"silent identity transfer {msg}")
     tc.assertEqual(m.wrong_recoveries, 0, f"wrong recovery {msg}")
     tc.assertEqual(m.duplicate_frames, 0, f"duplicate tracks {msg}")
     return m
@@ -244,6 +245,73 @@ class LostTrackSafety(unittest.TestCase):
                   camera=cam)
         self.assertEqual([r for _, r in res.frames[30].ended], [EndReason.CAMERA_CUT] * 2)
         self.assertFalse({o.track_id for o in res.frames[29].tracks} & {o.track_id for o in res.frames[31].tracks})
+
+
+class QARound2Regressions(unittest.TestCase):
+    """Regressions for the independent QA review of 3d68382 (each failed on that commit)."""
+
+    def test_h1_occluder_detection_drop_does_not_hand_its_track_to_the_emerging_player(self):
+        for fps in FPS_SET:
+            for look in (1, 0):
+                a = Player("A", (700, 500), (0, 0), height=90, appearance=kit(0),
+                           visible=lambda t: not (1.2 <= t < 1.2 + 1.5 / 25))
+                b = Player("B", (560, 495), (110, 0), appearance=kit(look),
+                           visible=lambda t: not (0.9 <= t < 1.2))
+                res = run([a, b], fps=fps, duration_s=2)
+                if look == 1:
+                    assert_safe(self, res, (fps, look))
+                else:
+                    # Same look: NMS merges the two bodies into one box right after an ambiguous spawn. Known
+                    # limit: a transfer may follow, but only on a track already flagged as ambiguous.
+                    m = evaluate(res)
+                    self.assertEqual(m.unflagged_transfers, 0, (fps, look))
+                    self.assertEqual(m.wrong_recoveries, 0, (fps, look))
+
+    def test_h1_front_swap_at_crossing(self):
+        for fps in FPS_SET + (120,):
+            for la, lb in ((kit(0), kit(0)), (kit(0), kit(1)), (None, None)):
+                a = Player("A", (400, 500), (300, 0), appearance=la, visible=lambda t: not (1.0 <= t < 1.2))
+                b = Player("B", (1000, 505), (-300, 0), appearance=lb, visible=lambda t: not (0.8 <= t < 1.0))
+                assert_safe(self, run([a, b], fps=fps, duration_s=3), (fps, la is None))
+
+    def test_h2_unknown_appearance_short_gap_needs_motion_consistency(self):
+        for fps in FPS_SET + (120,):
+            for off in (0.5, 1.0, 1.3):
+                b = Player("B", (800, 500), (0, 0), visible=lambda t: t < 1.0)
+                c = Player("C", (800 + off * H, 500), (0, 0), visible=lambda t: t >= 1.0 + 1.0 / fps)
+                assert_safe(self, run([b, c], fps=fps, duration_s=1.6, use_appearance=False), (fps, off))
+
+    def test_h4_shifted_partial_body_box_never_becomes_a_confirmed_track(self):
+        for shift in (0.0, 0.1, 0.2, 0.3):
+            def extra(i, t, sh=shift):
+                b = Player("A", (600, 500), (60, 0)).box_at(t)
+                w = b[2] - b[0]
+                return [Detection((b[0] + sh * w, b[1], b[2] + sh * w, b[1] + 0.6 * (b[3] - b[1])), 0.8, 0)]
+            res = run([Player("A", (600, 500), (60, 0))], fps=25, duration_s=2, extra=extra)
+            assert_safe(self, res, shift)
+            confirmed = {o.track_id for ft in res.frames for o in ft.tracks if o.confirmed}
+            self.assertEqual(len(confirmed), 1, shift)
+
+    def test_m1_confirmation_and_continuity_independent_of_fps_under_score_flicker(self):
+        c = cfg()
+        rng = np.random.default_rng(3)
+        for fps in (10, 25, 60, 120):
+            draws = rng.random(int(3 * fps) + 2)
+            p = Player("A", (500, 500), (80, 0),
+                       score=lambda t, f=fps, d=draws: 0.9 if d[int(round(t * f))] < 0.5 else 0.3)
+            res = run([p], fps=fps, duration_s=3)
+            m = evaluate(res)
+            self.assertEqual(m.total_fragments, 0, fps)
+            share = np.mean([any(o.confirmed for o in ft.tracks) for ft in res.frames])
+            self.assertGreater(share, 0.9, fps)
+        self.assertGreater(c.detection.score_high, 0.3)
+
+    def test_m2_occlusion_not_sticky_when_occluder_is_unobserved(self):
+        a = Player("A", (700, 500), (0, 0), height=90, appearance=kit(0), visible=lambda t: t < 1.0)
+        b = Player("B", (680, 495), (0, 0), appearance=kit(1), visible=lambda t: t < 0.9)
+        res = run([a, b], fps=25, duration_s=1.6)
+        late = [o for ft in res.frames if ft.time_s > 1.05 for o in ft.tracks if o.state == TrackState.OCCLUDED]
+        self.assertEqual(late, [])
 
 
 class TrackFields(unittest.TestCase):

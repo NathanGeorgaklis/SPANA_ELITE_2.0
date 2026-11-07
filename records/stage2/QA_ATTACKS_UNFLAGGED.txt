@@ -1,0 +1,22 @@
+third_on_path_samelook_gap0.4      fps= 10 T=1 U=0 W=1 D=0
+third_on_path_samelook_gap0.4      fps= 25 T=1 U=0 W=1 D=0
+third_on_path_samelook_gap0.4      fps= 60 T=1 U=0 W=1 D=0
+third_on_path_samelook_gap0.4      fps=120 T=1 U=0 W=1 D=0
+third_on_path_samelook_gap0.9      fps= 10 T=1 U=0 W=1 D=0
+third_on_path_samelook_gap0.9      fps= 25 T=1 U=0 W=1 D=0
+third_on_path_samelook_gap0.9      fps= 60 T=1 U=0 W=1 D=0
+third_on_path_samelook_gap0.9      fps=120 T=1 U=0 W=1 D=0
+third_on_path_None_gap0.1          fps= 25 T=1 U=0 W=1 D=0
+third_on_path_None_gap0.1          fps= 60 T=1 U=0 W=1 D=0
+third_on_path_None_gap0.1          fps=120 T=1 U=0 W=1 D=0
+margin_gone_samekit                fps= 10 T=3 U=3 W=0 D=0
+margin_gone_samekit                fps= 25 T=2 U=2 W=0 D=0
+crowd10_s1                         fps= 10 T=1 U=1 W=0 D=0
+crowd10_s1_none50                  fps= 10 T=2 U=2 W=0 D=0
+crowd10_s1_none50                  fps= 25 T=2 U=1 W=0 D=0
+crowd10_s1_longdrop                fps= 10 T=1 U=1 W=0 D=0
+crowd15_s1                         fps= 10 T=1 U=1 W=0 D=0
+crowd15_s1_none50                  fps= 10 T=2 U=2 W=0 D=0
+crowd15_s1_none50                  fps= 25 T=2 U=1 W=0 D=0
+crowd15_s1_longdrop                fps= 10 T=1 U=1 W=0 D=0
+{'T': 29, 'U': 15, 'W': 11, 'D': 0, 'runs': 168}

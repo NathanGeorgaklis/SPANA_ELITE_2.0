@@ -1,6 +1,7 @@
 """End-to-end: video -> detect (pinned ONNX) -> detections artifact -> track -> tracks artifact + decision log."""
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -66,6 +67,13 @@ class EndToEnd(unittest.TestCase):
         self.assertTrue(all(c["status"] == "OK" for c in cams), {c["status"] for c in cams})
         # The video pans 2 px/frame to the right -> scene content moves left by 2 px.
         self.assertTrue(all(abs(c["affine"][0][2] + 2.0) < 0.5 for c in cams), [c["affine"][0][2] for c in cams])
+        # Observations are cross-checked against the detections artifact.
+        validate_tracks(tdoc, ddoc)
+        bad = json.loads(json.dumps(tdoc))
+        obs = next(t for fr in bad["frames"] for t in fr["tracks"] if t["detection_index"] is not None)
+        obs["detection_index"] = 99
+        with self.assertRaises(ArtifactError):
+            validate_tracks(bad, ddoc)
         # Overwrite is refused.
         with self.assertRaises(ArtifactError):
             self._detect(dpath)

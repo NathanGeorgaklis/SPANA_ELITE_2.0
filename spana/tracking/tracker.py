@@ -10,25 +10,39 @@ Per frame:
      identity layer's job.
   2. OK camera motion -> every track state mapped through the inter-frame transform.
   3. Prediction to the frame time (seconds); beyond predict_max_s a LOST track's velocity is frozen (HELD).
-  4. Association, in priority order (Hungarian within a stage):
+  4. Association, in priority order (Hungarian within a stage). Every pair must pass BOTH the max-speed centre
+     gate (body heights) and the Kalman gate (squared Mahalanobis distance of the centre <= gate_chi2): tight for
+     a track with an established velocity, wide for a new or long-unobserved one. In every stage a known track
+     appearance that is clearly dissimilar to a known detection descriptor vetoes the pair.
        S1 high-score detections  <-> confirmed tracks observed on the previous frame
-       S2 low-score detections   <-> remaining S1 tracks (IoU only, strict): continuation through weak frames
+       S2 low-score detections   <-> remaining tracks observed on the previous frame (IoU only, strict):
+                                     continuation through weak frames, never a recovery or a spawn
        S3 remaining high-score   <-> unconfirmed tracks observed on the previous frame
-       S4 recovery of a LOST (gap <= rematch_max_s) or OCCLUDED (gap <= occlusion_max_s) confirmed track:
-          the track's gate must hold exactly one unexplained detection (high score), no detection whose
-          association this frame was contested, and that detection must lie in no other unmatched track's gate.
-          Appearance: a known, dissimilar descriptor vetoes. A gap longer than rematch_max_s (occlusion only)
-          additionally REQUIRES appearance that matches the track and beats every other track by min_margin,
-          so same-looking players (e.g. one kit) are never recovered on a guess, AND the detection must lie within
-          gate_base_h + 0.5 * max_accel_h_per_s2 * gap^2 body heights of the constant-velocity prediction (a hidden
-          player keeps roughly his velocity; a look-alike appearing elsewhere is not him). OCCLUDED tracks keep
-          their velocity (no HELD freeze) for this reason.
+       Hidden-rival check: a continuing match is refused when an unobserved confirmed track (any gap) explains the
+          detection better by more than contest_margin (the continuing player may have dropped while the hidden
+          one re-emerged), or equally well (within the margin) unless appearance favours the continuing track by
+          min_margin: two same-looking players at the same place cannot be told apart. Kept matches within the
+          margin are CONTESTED. A refused detection goes through S4 and, if refused there, spawns a new track
+          naming both candidates as possible_predecessors.
+       S4 recovery of an unobserved track: LOST or unconfirmed (gap <= rematch_max_s), or confirmed OCCLUDED
+          (gap <= occlusion_max_s). The max-speed gate must hold exactly one unexplained high-score detection, no
+          detection whose association was contested, and that detection must lie in no other unmatched track's
+          gate. It must also fit the hidden player's own motion: within gate_base_h + 0.5 * max_accel_h_per_s2 *
+          gap^2 body heights of the constant-velocity prediction (OCCLUDED tracks keep their velocity). A gap
+          longer than rematch_max_s (occlusion only) additionally REQUIRES appearance that matches the track and
+          beats every other track by min_margin, so same-looking players are never recovered on a guess.
      Refused recovery is safe: the old track stays unobserved and expires; a new track is spawned and lists
      the unobserved tracks whose gate it lies in as `possible_predecessors` (evidence, not a merge).
+     Known limit: a never-tracked player who looks the same and appears exactly on a hidden player's predicted
+     path is indistinguishable from him; every bridged gap is therefore recorded (`recoveries`, `last_gap_s`).
   5. Spawn: a high-score detection starts an unconfirmed track unless it duplicates an observed box
      (IoU > duplicate_iou, or inside it by duplicate_ioa of its own area: a partial-body duplicate).
+     Confirmation needs an observed span >= confirm_s AND the box not nested (IoA >= confirm_nested_ioa) inside
+     another observed player's box: a shifted partial-body duplicate can never become a confirmed track. An
+     unconfirmed track older than unconfirmed_max_s is terminated.
   6. Unmatched: OCCLUDED if >= occlusion_min_ioa of the predicted box is covered by an observed box and the gap is
-     <= occlusion_max_s (sticky until recovery or occlusion_max_s: a re-emerging body is often missed), else LOST; TERMINATED after lost_max_s or when the prediction leaves the image.
+     <= occlusion_max_s (sticky while that occluder is still observed: a re-emerging body is often missed),
+     else LOST; an unconfirmed track unobserved longer than rematch_max_s is TERMINATED; TERMINATED after lost_max_s or when the prediction leaves the image.
 
 Track confidence (documented, uncalibrated, not a probability): over the last confidence_window_s of the track's
 frames, the mean detection score with unobserved frames counted as 0. Range [0, 1]; high = detected strongly and
@@ -135,11 +149,13 @@ class MultiPlayerTracker:
 
         cont = [k for k, t in enumerate(self._tracks) if t.observed_last_frame]
         s1 = [k for k in cont if self._tracks[k].confirmed]
-        rem_high = self._stage("S1", s1, high, dets, time_s, matched, out, iou_only=False)
-        self._stage("S2", [k for k in s1 if k not in matched], low, dets, time_s, matched, out, iou_only=True)
-        rem_high = self._stage("S3", [k for k in cont if not self._tracks[k].confirmed], rem_high, dets, time_s,
-                               matched, out, iou_only=False)
-        rem_high = self._recover(rem_high, dets, desc, time_s, matched, out)
+        s3 = [k for k in cont if not self._tracks[k].confirmed]
+        rem_high = self._stage("S1", s1, high, dets, time_s, matched, out, False, desc)
+        self._stage("S2", [k for k in cont if k not in matched], low, dets, time_s, matched, out, True, desc)
+        rem_high = self._stage("S3", [k for k in s3 if k not in matched], rem_high, dets, time_s, matched, out,
+                               False, desc)
+        rem_high = self._refuse_hidden_rivals(rem_high, dets, desc, time_s, matched, out)
+        rem_high = self._recover(rem_high, dets, desc, time_s, matched, out)   # low scores never recover/spawn
 
         self._apply_matches(matched, dets, desc, frame_index, time_s)
         self._lifecycle(matched, dets, frame_index, time_s, out)
@@ -162,7 +178,10 @@ class MultiPlayerTracker:
         return min(self.tc.gate_max_h, self.tc.gate_base_h + self.tc.max_speed_h_per_s * unobserved)
 
     def _cost_matrix(self, tracks: Sequence[int], det_idx: Sequence[int], dets: Sequence[Detection],
-                     time_s: float, iou_only: bool) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+                     time_s: float, iou_only: bool, desc: Optional[Sequence[Optional[np.ndarray]]] = None
+                     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Gated costs. A known track appearance that is clearly dissimilar to a known detection descriptor
+        (similarity < appearance.min_similarity) vetoes the pair in every stage."""
         tb = np.array([self._tracks[k].box() for k in tracks]).reshape(-1, 4)
         db = np.array([dets[i].as_array() for i in det_idx]).reshape(-1, 4)
         ious = iou_matrix(tb, db)
@@ -174,6 +193,10 @@ class MultiPlayerTracker:
             radius = self._gate_radius_h(t, time_s)
             for b, i in enumerate(det_idx):
                 d = dets[i]
+                if desc is not None:
+                    sim = similarity(desc[i], t.appearance)
+                    if sim is not None and sim < self.ac.min_similarity:
+                        continue
                 if iou_only:
                     if ious[a, b] >= self.tc.low_score_min_iou:
                         cost[a, b] = 1.0 - ious[a, b]
@@ -181,19 +204,21 @@ class MultiPlayerTracker:
                 ratio = max(d.height, 1.0) / ph
                 if not (1.0 / self.tc.max_height_ratio <= ratio <= self.tc.max_height_ratio):
                     continue
-                dh = float(np.hypot(*(box_to_cxcywh(d.as_array())[:2] - pc))) / ph
+                dc = box_to_cxcywh(d.as_array())[:2]
+                dh = float(np.hypot(*(dc - pc))) / ph
                 dist_h[a, b] = dh
-                if dh > radius:
+                if dh > radius or t.kf.position_mahalanobis2(dc) > self.tc.gate_chi2:
                     continue
                 w = self.tc.iou_weight
                 cost[a, b] = w * (1.0 - ious[a, b]) + (1.0 - w) * (dh / self.tc.gate_max_h)
         return cost, ious, dist_h
 
     def _stage(self, name: str, tracks: List[int], det_idx: List[int], dets: Sequence[Detection], time_s: float,
-               matched: Dict[int, Tuple[int, bool]], out: FrameTracks, iou_only: bool) -> List[int]:
+               matched: Dict[int, Tuple[int, bool]], out: FrameTracks, iou_only: bool,
+               desc: Sequence[Optional[np.ndarray]]) -> List[int]:
         if not tracks or not det_idx:
             return list(det_idx)
-        cost, ious, dist_h = self._cost_matrix(tracks, det_idx, dets, time_s, iou_only)
+        cost, ious, dist_h = self._cost_matrix(tracks, det_idx, dets, time_s, iou_only, desc)
         rows, cols = linear_sum_assignment(cost)
         used: Set[int] = set()
         for r, c in zip(rows, cols):
@@ -216,17 +241,61 @@ class MultiPlayerTracker:
             })
         return [i for i in det_idx if i not in used]
 
+    def _recoverable(self, t: _Track, time_s: float) -> bool:
+        """An unobserved track that a detection may still be re-associated to on this frame."""
+        if t.observed_last_frame:
+            return False
+        gap = time_s - t.last_observed_t
+        if t.confirmed and t.state == TrackState.OCCLUDED:
+            return gap <= self.tc.occlusion_max_s + _EPS
+        return gap <= self.tc.rematch_max_s + _EPS
+
+    def _refuse_hidden_rivals(self, rem_high: List[int], dets: Sequence[Detection],
+                              desc: Sequence[Optional[np.ndarray]], time_s: float,
+                              matched: Dict[int, Tuple[int, bool]], out: FrameTracks) -> List[int]:
+        """A continuing track's match is refused when a recoverable hidden track explains the detection better
+        (by more than contest_margin): the continuing player may have dropped while the hidden one re-emerged.
+        Within the margin the match stands but is CONTESTED. A refused high-score detection goes to S4."""
+        # Rivals are ALL unobserved confirmed tracks (not only recoverable ones): being a rival can only refuse.
+        hidden = [k for k, t in enumerate(self._tracks)
+                  if k not in matched and not t.observed_last_frame and t.confirmed]
+        if not matched:
+            return rem_high
+        refused: List[int] = []
+        for k, (i, contested) in list(matched.items()):
+            # The ambiguity with a track's own recorded possible predecessors was settled when it was spawned.
+            rivals = [j for j in hidden if self._tracks[j].track_id not in self._tracks[k].predecessors]
+            if not rivals:
+                continue
+            own = self._cost_matrix([k], [i], dets, time_s, False, desc)[0][0, 0]
+            hc = self._cost_matrix(rivals, [i], dets, time_s, False, desc)[0][:, 0]
+            best = float(hc.min())
+            if best >= _INVALID:
+                continue
+            h = self._tracks[rivals[int(hc.argmin())]]
+            if best > own + self.tc.contest_margin:
+                continue
+            s_own, s_hid = similarity(desc[i], self._tracks[k].appearance), similarity(desc[i], h.appearance)
+            own_distinct = s_own is not None and s_hid is not None and s_own - s_hid >= self.ac.min_margin
+            if best + self.tc.contest_margin < own or not own_distinct:
+                del matched[k]
+                refused.append(i)
+                out.decisions.append({
+                    "kind": "match_refused", "track_id": self._tracks[k].track_id, "detection": i,
+                    "reason": "HIDDEN_TRACK_EXPLAINS_BETTER" if best + self.tc.contest_margin < own
+                    else "AMBIGUOUS_WITH_HIDDEN_TRACK",
+                    "own_cost": None if own >= _INVALID else round(float(own), 4), "hidden_track": h.track_id,
+                    "hidden_cost": round(best, 4), "own_similarity": s_own, "hidden_similarity": s_hid})
+            elif not contested:
+                matched[k] = (i, True)
+                out.decisions.append({"kind": "contested_by_hidden", "track_id": self._tracks[k].track_id,
+                                      "detection": i, "hidden_track": h.track_id})
+        high = set(rem_high) | {i for i in refused if dets[i].score >= self.cfg.detection.score_high}
+        return sorted(high)
+
     def _recover(self, rem_high: List[int], dets: Sequence[Detection], desc: Sequence[Optional[np.ndarray]],
                  time_s: float, matched: Dict[int, Tuple[int, bool]], out: FrameTracks) -> List[int]:
-        def eligible(t: _Track) -> bool:
-            gap = time_s - t.last_observed_t
-            if not t.confirmed or t.observed_last_frame:
-                return False
-            if t.state == TrackState.LOST:
-                return gap <= self.tc.rematch_max_s + _EPS
-            return t.state == TrackState.OCCLUDED and gap <= self.tc.occlusion_max_s + _EPS
-
-        cand = [k for k, t in enumerate(self._tracks) if k not in matched and eligible(t)]
+        cand = [k for k, t in enumerate(self._tracks) if k not in matched and self._recoverable(t, time_s)]
         if not cand or not rem_high:
             return rem_high
         all_t, all_d = list(range(len(self._tracks))), list(range(len(dets)))
@@ -256,7 +325,7 @@ class MultiPlayerTracker:
                     reason = "RIVAL_TRACK"
                 elif sim is not None and sim < self.ac.min_similarity:
                     reason = "APPEARANCE_MISMATCH"
-                elif gap > self.tc.rematch_max_s + _EPS and not self._motion_consistent(t, dets[i], gap):
+                elif not self._motion_consistent(t, dets[i], gap):
                     reason = "INCONSISTENT_WITH_MOTION"
                 elif gap > self.tc.rematch_max_s + _EPS:
                     others = [similarity(desc[i], o.appearance) for j, o in enumerate(self._tracks) if j != k]
@@ -321,6 +390,18 @@ class MultiPlayerTracker:
                 t.observed_last_frame = False
                 t.missed_frames += 1
 
+    def _nested(self, b: np.ndarray, k: int, matched: Dict[int, Tuple[int, bool]], dets: Sequence[Detection]) -> bool:
+        area = max((b[2] - b[0]) * (b[3] - b[1]), _EPS)
+        for j, (i, _) in matched.items():
+            if j == k:
+                continue
+            o = dets[i].box
+            iw = max(0.0, min(b[2], o[2]) - max(b[0], o[0]))
+            ih = max(0.0, min(b[3], o[3]) - max(b[1], o[1]))
+            if iw * ih / area >= self.tc.confirm_nested_ioa:
+                return True
+        return False
+
     def _left_frame(self, t: _Track) -> bool:
         cx, cy = t.kf.x[:2]
         return not (0.0 <= cx <= self.frame_w and 0.0 <= cy <= self.frame_h)
@@ -344,20 +425,25 @@ class MultiPlayerTracker:
         remap: Dict[int, int] = {}
         for k, t in enumerate(self._tracks):
             reason: Optional[EndReason] = None
+            gap = time_s - t.last_observed_t
             if k in matched:
-                if not t.confirmed and t.observed_frames >= 2 and \
-                        t.last_observed_t - t.first_observed_t >= self.tc.confirm_s - _EPS:
-                    t.confirmed = True
-            elif not t.confirmed:
+                if not t.confirmed:
+                    if t.observed_frames >= 2 and t.last_observed_t - t.first_observed_t >= self.tc.confirm_s - _EPS \
+                            and not self._nested(dets[matched[k][0]].as_array(), k, matched, dets):
+                        t.confirmed = True
+                    elif time_s - t.first_observed_t > self.tc.unconfirmed_max_s + _EPS:
+                        reason = EndReason.UNCONFIRMED_TIMEOUT
+            elif not t.confirmed and gap > self.tc.rematch_max_s + _EPS:
                 reason = EndReason.UNCONFIRMED_MISSED
             else:
-                gap = time_s - t.last_observed_t
                 occ = None
                 if gap <= self.tc.occlusion_max_s + _EPS:
-                    # Sticky: an occluded body often stays undetected while it re-emerges (partly covered),
-                    # after its prediction has slid off the occluder. Recovery rules, not the state, keep it safe.
-                    occ = self._occluder(t, matched, dets) or (t.occluder if t.state == TrackState.OCCLUDED
-                                                               else None)
+                    # Sticky while the occluder is still observed: an occluded body is often missed while it
+                    # re-emerges (partly covered). Recovery rules, not the state, keep it safe.
+                    occ = self._occluder(t, matched, dets)
+                    if occ is None and t.state == TrackState.OCCLUDED and \
+                            any(self._tracks[j].track_id == t.occluder for j in matched):
+                        occ = t.occluder
                 t.state, t.occluder = (TrackState.OCCLUDED, occ) if occ else (TrackState.LOST, None)
                 if gap > self.tc.lost_max_s + _EPS:
                     reason = EndReason.LOST_EXPIRED

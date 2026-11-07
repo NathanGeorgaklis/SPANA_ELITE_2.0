@@ -6,9 +6,12 @@ Per frame, OBSERVED track boxes are matched to visible ground-truth boxes by Hun
                        one track id carrying two physical players (ID switch through the track / false merge).
   id_switches        : ground-truth-centric (MOT-style): times a player's matched track id changes between
                        matched frames. Includes safe fragmentation restarts and unsafe transfers.
-  duplicate_frames   : frames where an extra OBSERVED track overlaps an already-matched player (IoU >= MATCH_IOU):
-                       one player represented by two simultaneous tracks.
+  duplicate_frames   : frames where an extra OBSERVED track overlaps an already-matched player (IoU >= MATCH_IOU),
+                       or an extra CONFIRMED observed track lies mostly inside one (IoA >= DUP_IOA, e.g. a partial-
+                       body box): one player represented by two simultaneous tracks.
   fragments          : per player, number of distinct track ids minus 1 (false splits).
+  unflagged_transfers: identity transfers on tracks that carry no ambiguity flag (no possible_predecessors and no
+                       recoveries): a silent identity switch. Must be 0 everywhere; flagged ones are reported.
   wrong_recoveries   : recovery decisions whose detection belongs to a player other than the track's last one.
   coverage           : share of visible player-frames with a matched observed track.
 """
@@ -24,11 +27,19 @@ from spana.geometry import iou_matrix
 from spana.records import PositionSource
 
 MATCH_IOU = 0.5
+DUP_IOA = 0.6
+
+
+def _ioa(inner: np.ndarray, outer: np.ndarray) -> float:
+    iw = max(0.0, min(inner[2], outer[2]) - max(inner[0], outer[0]))
+    ih = max(0.0, min(inner[3], outer[3]) - max(inner[1], outer[1]))
+    return iw * ih / max((inner[2] - inner[0]) * (inner[3] - inner[1]), 1e-9)
 
 
 @dataclass
 class Metrics:
     identity_transfers: int = 0
+    unflagged_transfers: int = 0
     id_switches: int = 0
     duplicate_frames: int = 0
     fragments: Dict[str, int] = field(default_factory=dict)
@@ -68,6 +79,8 @@ def evaluate(res) -> Metrics:
             if tid in track_gt and track_gt[tid] != g:
                 m.identity_transfers += 1
                 m.transfer_tracks.add(tid)
+                if not obs[c].possible_predecessors and obs[c].recoveries == 0:
+                    m.unflagged_transfers += 1
             track_gt[tid] = g
             if g in gt_last_track and gt_last_track[g] != tid:
                 m.id_switches += 1
@@ -76,7 +89,9 @@ def evaluate(res) -> Metrics:
             if tid not in seq:
                 seq.append(tid)
         extra = [c for c in range(len(obs)) if c not in matched_obs]
-        if any(ious[:, c].max() >= MATCH_IOU for c in extra):
+        if any(ious[:, c].max() >= MATCH_IOU or
+               (obs[c].confirmed and max(_ioa(np.asarray(obs[c].box), gt[g]) for g in gids) >= DUP_IOA)
+               for c in extra):
             m.duplicate_frames += 1
         for d in ft.decisions:
             if d["kind"] == "recovery":

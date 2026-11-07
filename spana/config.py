@@ -93,10 +93,13 @@ class TrackingConfig:
     gate_base_h: float             # centre gate radius at zero elapsed time, body heights
     max_speed_h_per_s: float       # plausible max player speed (gate growth), body heights / s
     gate_max_h: float              # absolute cap on the gate radius; also the distance-cost scale
+    gate_chi2: float               # Kalman gate: max squared Mahalanobis distance of the centre (2 dof)
     max_height_ratio: float        # det/pred height ratio must lie in [1/r, r]
     iou_weight: float              # cost = iou_weight*(1-IoU) + (1-iou_weight)*dist_h/gate_max_h
     contest_margin: float          # a rival within this cost margin marks the match CONTESTED
     confirm_s: float               # observed span required to confirm a new (uncertain) track
+    confirm_nested_ioa: float      # ... and its box must not lie inside another observed box by this share
+    unconfirmed_max_s: float       # an unconfirmed track older than this is terminated
     rematch_max_s: float           # LOST track: longest gap bridged by motion (exclusive pairs only)
     occlusion_min_ioa: float       # unobserved track is OCCLUDED when this share of its box is covered by an
                                    #   observed track's box
@@ -111,15 +114,19 @@ class TrackingConfig:
 
     def validate(self) -> None:
         for n in ("low_score_min_iou", "iou_weight", "contest_margin", "duplicate_iou", "duplicate_ioa",
-                  "occlusion_min_ioa"):
+                  "occlusion_min_ioa", "confirm_nested_ioa"):
             _unit(f"tracking.{n}", getattr(self, n))
-        for n in ("gate_base_h", "max_speed_h_per_s", "gate_max_h", "confirm_s", "rematch_max_s",
+        for n in ("gate_base_h", "max_speed_h_per_s", "gate_max_h", "gate_chi2", "confirm_s", "unconfirmed_max_s", "rematch_max_s",
                   "occlusion_max_s", "max_accel_h_per_s2", "predict_max_s", "lost_max_s", "confidence_window_s", "history_s"):
             _pos(f"tracking.{n}", getattr(self, n))
         if self.max_height_ratio < 1.0:
             raise ConfigError("tracking.max_height_ratio must be >= 1")
         if self.gate_base_h > self.gate_max_h:
             raise ConfigError("tracking.gate_base_h must be <= tracking.gate_max_h")
+        if self.confirm_nested_ioa > self.duplicate_ioa:
+            raise ConfigError("tracking.confirm_nested_ioa must be <= tracking.duplicate_ioa")
+        if self.confirm_s > self.unconfirmed_max_s:
+            raise ConfigError("tracking.confirm_s must be <= tracking.unconfirmed_max_s")
         if not self.rematch_max_s <= self.occlusion_max_s <= self.lost_max_s:
             raise ConfigError("tracking: need rematch_max_s <= occlusion_max_s <= lost_max_s")
         if self.predict_max_s > self.lost_max_s:

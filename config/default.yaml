@@ -11,7 +11,7 @@ detection:
   tiling_enabled: true
   tile_size_frac: 0.60         # 648 px tiles at 1080p -> distant players seen at ~1x instead of ~0.33x
   tile_overlap_frac: 0.25      # bodies up to ~0.15 frame heights are fully inside some tile
-  tile_edge_margin_frac: 0.01
+  tile_edge_margin_frac: 0.05   # detectors place truncated edges a few px inside the cut; 0.05 x 648 = 32 px
 
 camera:
   analysis_width_px: 480   # compute-only downscale; results are mapped back to source pixels
@@ -34,10 +34,13 @@ tracking:
   gate_base_h: 0.35
   max_speed_h_per_s: 5.0       # ~9 m/s sprint for a 1.8 m player
   gate_max_h: 2.0
+  gate_chi2: 9.21              # 99 % of a 2-dof chi-square: rejects centres the motion model cannot explain
   max_height_ratio: 1.5
   iou_weight: 0.5
   contest_margin: 0.10
   confirm_s: 0.10
+  confirm_nested_ioa: 0.60     # a box mostly inside another player's box is not confirmed (partial duplicate)
+  unconfirmed_max_s: 1.00
   rematch_max_s: 0.20          # longest gap bridged by motion alone (exclusive pairs only)
   occlusion_min_ioa: 0.30
   occlusion_max_s: 1.00        # longest occlusion recovered, and only with distinct appearance

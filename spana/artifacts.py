@@ -21,7 +21,7 @@ import math
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 from .config import OutputConfig
 from .records import CameraStatus, Detection, EndReason, FrameTracks, PositionSource, TrackletSummary, TrackState
@@ -149,9 +149,16 @@ _SOURCES_FOR_STATE = {TrackState.ACTIVE.value: {PositionSource.OBSERVED.value},
                       TrackState.LOST.value: {PositionSource.PREDICTED.value, PositionSource.HELD.value}}
 
 
-def validate_tracks(doc: Any) -> None:
+def validate_tracks(doc: Any, detections: Optional[dict] = None) -> None:
+    """Structural and temporal validation. With the source `detections` artifact, every observation is also
+    checked against the detection it claims (index in range, same box and score)."""
     _header(doc, TRACKS_SCHEMA, ("schema", "schema_version", "provenance", "video", "detections_sha256", "frames",
                                  "tracklets"))
+    det_rows = None
+    if detections is not None:
+        if sha256_doc(detections) != doc["detections_sha256"]:
+            raise ArtifactError("detections artifact does not match detections_sha256")
+        det_rows = {fr["frame"]: fr["detections"] for fr in detections["frames"]}
     if not doc["frames"]:
         raise ArtifactError("tracks artifact has no frames")
     cams = {s.value for s in CameraStatus}
@@ -160,6 +167,7 @@ def validate_tracks(doc: Any) -> None:
     seen: Dict[str, int] = {}       # track id -> epoch
     live_prev: set = set()
     ended_ids: set = set()
+    last: Dict[str, dict] = {}      # track id -> its record on the previous frame it was live
     for n, fr in enumerate(doc["frames"]):
         _keys(fr, ("frame", "t", "camera", "tracks", "ended"), "frame")
         prev = _frame_order(fr, prev)
@@ -182,6 +190,14 @@ def validate_tracks(doc: Any) -> None:
         for e in fr["ended"]:
             if not (isinstance(e, list) and len(e) == 2 and e[1] in reasons and e[0] in live_prev):
                 raise ArtifactError(f"{where}: bad ended entry {e!r}")
+        ended_now = {e[0] for e in fr["ended"]}
+        breaks = cam["status"] in (CameraStatus.CUT.value, CameraStatus.UNKNOWN.value)
+        if breaks and ended_now != live_prev:
+            raise ArtifactError(f"{where}: {cam['status']} must end every live track")
+        frame_ids = {t.get("track_id") for t in fr["tracks"] if isinstance(t, dict)}
+        if live_prev - frame_ids - ended_now:
+            raise ArtifactError(f"{where}: tracks vanished without an end: {sorted(live_prev - frame_ids - ended_now)}")
+        used_dets: set = set()
         ids: set = set()
         for tr in fr["tracks"]:
             _keys(tr, _TRACK_KEYS, where)
@@ -219,14 +235,41 @@ def validate_tracks(doc: Any) -> None:
             if not (isinstance(tr["possible_predecessors"], list)
                     and all(isinstance(x, str) and x != tid for x in tr["possible_predecessors"])):
                 raise ArtifactError(f"{where}: {tid} bad possible_predecessors")
-            if not tr["confirmed"] and tr["state"] != TrackState.ACTIVE.value:
-                raise ArtifactError(f"{where}: {tid} unconfirmed track must be ACTIVE")
             ep = tr["epoch"]
             if not isinstance(ep, int) or ep < prev_epoch or seen.get(tid, ep) != ep:
                 raise ArtifactError(f"{where}: {tid} epoch inconsistent")
+            if observed:
+                if di in used_dets:
+                    raise ArtifactError(f"{where}: detection {di} used by two tracks")
+                used_dets.add(di)
+                if det_rows is not None:
+                    rows = det_rows.get(fr["frame"])
+                    if rows is None or di >= len(rows) or rows[di][:4] != b or rows[di][4] != ds:
+                        raise ArtifactError(f"{where}: {tid} does not match detection {di}")
+            if tr["occluder"] is not None and tr["occluder"] not in frame_ids:
+                raise ArtifactError(f"{where}: {tid} occluder {tr['occluder']} is not live")
+            if any(p not in seen for p in tr["possible_predecessors"]):
+                raise ArtifactError(f"{where}: {tid} names an unknown predecessor")
+            if not isinstance(tr["observed_frames"], int) or tr["observed_frames"] < 1:
+                raise ArtifactError(f"{where}: {tid} bad observed_frames")
+            if tid not in seen:
+                if not (tr["age_frames"] == 0 and tr["observed_frames"] == 1 and observed and not tr["confirmed"]):
+                    raise ArtifactError(f"{where}: new track {tid} does not start as a fresh observation")
+                if breaks and ep <= prev_epoch and n > 0:
+                    raise ArtifactError(f"{where}: {tid} after {cam['status']} must be in a new epoch")
+            else:
+                p = last[tid]
+                step = fr["frame"] - p["frame"]
+                if tr["age_frames"] != p["age_frames"] + step or \
+                        tr["observed_frames"] != p["observed_frames"] + (1 if observed else 0) or \
+                        tr["missed_frames"] != (0 if observed else p["missed_frames"] + 1) or \
+                        (p["confirmed"] and not tr["confirmed"]):
+                    raise ArtifactError(f"{where}: {tid} counters inconsistent with the previous frame")
             seen[tid] = ep
+            last[tid] = {"frame": fr["frame"], "age_frames": tr["age_frames"], "observed_frames": tr["observed_frames"],
+                         "missed_frames": tr["missed_frames"], "confirmed": tr["confirmed"]}
         prev_epoch = max([prev_epoch] + [t["epoch"] for t in fr["tracks"]])
-        ended_ids |= {e[0] for e in fr["ended"]}
+        ended_ids |= ended_now
         if ids & ended_ids:
             raise ArtifactError(f"{where}: an ended track id reappears {sorted(ids & ended_ids)}")
         live_prev = ids

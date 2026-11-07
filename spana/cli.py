@@ -85,7 +85,7 @@ def cmd_track(a: argparse.Namespace) -> int:
         "video": video.meta.to_dict(), "detections_sha256": sha256_doc(ddoc), "frames": frames,
         "tracklets": tracklet_rows(trk.summaries()),
     }
-    validate_tracks(doc)
+    validate_tracks(doc, ddoc)
     print(write_jsonl_atomic(decisions_path, log))   # log first: a tracks file never exists without its log
     print(write_json_atomic(a.out, doc))
     return 0

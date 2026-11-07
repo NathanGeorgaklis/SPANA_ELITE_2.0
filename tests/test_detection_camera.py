@@ -141,6 +141,25 @@ class Tiling(unittest.TestCase):
         self.assertEqual(origins, [])
         self.assertEqual(sorted(tuple(round(v) for v in d.box) for d in found), sorted(tuple(p) for p in people))
 
+    def test_truncated_tile_boxes_with_inset_edges_are_dropped(self):
+        # Real detectors place a truncated box edge a few pixels inside the cut: still dropped (QA M4).
+        w, h = 1920, 1080
+        grid = tile_grid(w, h, CFG.detection)
+        x0, _, side = grid[1]
+        people = [[x0 - 30, 600, x0 + 30, 750]]             # straddles the left edge of tile 1
+        for inset in (0, 5, 10, 20):
+            origins = [(x, y) for x, y, _ in grid]
+
+            def infer(img, ins=inset):
+                origin = (0, 0) if img.shape[:2] == (h, w) else origins.pop(0)
+                b, sc = self._fake(people, origin)(img)
+                if origin != (0, 0) and len(b):
+                    b[:, 0] = np.where(b[:, 0] == 0, ins, b[:, 0])
+                    b[:, 2] = np.where(b[:, 2] == side, side - ins, b[:, 2])
+                return b, sc
+            found = detect_tiled(infer, np.zeros((h, w, 3), np.uint8), CFG.detection, 0)
+            self.assertEqual(len(found), 1, inset)
+
     def test_grid_covers_frame_and_is_resolution_independent(self):
         for w, h in ((640, 360), (1280, 720), (1920, 1080), (3840, 2160)):
             g = tile_grid(w, h, CFG.detection)

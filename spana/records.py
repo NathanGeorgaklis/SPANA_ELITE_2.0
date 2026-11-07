@@ -29,7 +29,8 @@ class PositionSource(str, Enum):
 
 
 class EndReason(str, Enum):
-    UNCONFIRMED_MISSED = "UNCONFIRMED_MISSED"   # an unconfirmed (uncertain) track missed a frame
+    UNCONFIRMED_MISSED = "UNCONFIRMED_MISSED"   # an unconfirmed track stayed unobserved beyond rematch_max_s
+    UNCONFIRMED_TIMEOUT = "UNCONFIRMED_TIMEOUT"  # an unconfirmed track could not confirm within unconfirmed_max_s
     LOST_EXPIRED = "LOST_EXPIRED"
     CAMERA_CUT = "CAMERA_CUT"
     CAMERA_MOTION_UNKNOWN = "CAMERA_MOTION_UNKNOWN"
@@ -70,7 +71,7 @@ class TrackObservation:
     """One live track on one frame, as emitted by the multi-player tracker."""
     track_id: str
     state: TrackState
-    confirmed: bool                  # False = new uncertain track (observed span < confirm_s)
+    confirmed: bool                  # False = new uncertain track (not yet observed over confirm_s, or nested)
     source: PositionSource
     box: Tuple[float, float, float, float]
     detection_index: Optional[int]   # index into the frame's detection list when ACTIVE

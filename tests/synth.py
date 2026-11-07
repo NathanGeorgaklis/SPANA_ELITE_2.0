@@ -11,10 +11,13 @@ from typing import Callable, Dict, List, Optional, Sequence, Set, Tuple
 import numpy as np
 
 from spana.config import SpanaConfig, load_config
+from spana.detection.postprocess import nms
 from spana.records import CameraObservation, CameraStatus, Detection
 from spana.tracking.tracker import MultiPlayerTracker
 
-CONFIG_PATH = "config/default.yaml"
+from pathlib import Path
+
+CONFIG_PATH = str(Path(__file__).resolve().parent.parent / "config" / "default.yaml")
 
 
 def cfg() -> SpanaConfig:
@@ -54,13 +57,6 @@ class RunResult:
     gt_of_detection: List[List[Optional[str]]]          # per frame: detection index -> gid
     gt_boxes: List[Dict[str, np.ndarray]] = field(default_factory=list)  # per frame: visible gid -> box
     tracker: Optional[MultiPlayerTracker] = None
-    track_gids: Dict[str, Set[str]] = field(default_factory=dict)   # track_id -> gids it was OBSERVED on
-    gid_tracks: Dict[str, List[str]] = field(default_factory=dict)  # gid -> ordered distinct track ids
-
-    @property
-    def false_continuity(self) -> Dict[str, Set[str]]:
-        """Tracks observed on more than one ground-truth player (identity switch through the track)."""
-        return {k: v for k, v in self.track_gids.items() if len(v) > 1}
 
 
 def run(players: Sequence[Player], *, fps: float, duration_s: float, frame_w: int = 1920, frame_h: int = 1080,
@@ -93,17 +89,14 @@ def run(players: Sequence[Player], *, fps: float, duration_s: float, frame_w: in
                 dets.append(d)
                 gids.append(None)
                 app.append(None)
+        if dets:   # the real detector applies NMS; synthetic detections must not be cleaner or dirtier than that
+            keep = sorted(nms(np.array([d.box for d in dets]), np.array([d.score for d in dets]),
+                              c.detection.nms_iou))
+            dets, gids, app = [dets[k] for k in keep], [gids[k] for k in keep], [app[k] for k in keep]
         cam = camera(i) if camera else (CameraObservation.identity(CameraStatus.FIRST) if i == 0
                                         else CameraObservation.identity(CameraStatus.OK, inliers=100))
         ft = trk.update(i, t, dets, cam, app)
         res.frames.append(ft)
         res.gt_of_detection.append(gids)
         res.gt_boxes.append(gtb)
-        for o in ft.tracks:
-            if o.detection_index is not None and gids[o.detection_index] is not None:
-                g = gids[o.detection_index]
-                res.track_gids.setdefault(o.track_id, set()).add(g)
-                seq = res.gid_tracks.setdefault(g, [])
-                if not seq or seq[-1] != o.track_id:
-                    seq.append(o.track_id)
     return res
