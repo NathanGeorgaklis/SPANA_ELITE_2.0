@@ -56,6 +56,7 @@ class RunResult:
     frames: list
     gt_of_detection: List[List[Optional[str]]]          # per frame: detection index -> gid
     gt_boxes: List[Dict[str, np.ndarray]] = field(default_factory=list)  # per frame: visible gid -> box
+    det_boxes: List[List[tuple]] = field(default_factory=list)          # per frame: detection boxes (after NMS)
     tracker: Optional[MultiPlayerTracker] = None
 
 
@@ -99,4 +100,5 @@ def run(players: Sequence[Player], *, fps: float, duration_s: float, frame_w: in
         res.frames.append(ft)
         res.gt_of_detection.append(gids)
         res.gt_boxes.append(gtb)
+        res.det_boxes.append([d.box for d in dets])
     return res
