@@ -5,6 +5,7 @@
 
 Change log:
   1.1.0 detections: + top-level detection_config (tracking refuses detections made under another config).
+  1.2.0 detections: + top-level frame_stride (every N-th frame analysed; frames must be a contiguous run).
   1.1.0 tracks: + per-track gaps_bridged / last_gap_s; stricter validation (state/source, boxes, camera,
         time, epoch, ended ids). 1.0.0 documents are not accepted.
   2.0.0 tracks: states ACTIVE/OCCLUDED/LOST (TERMINATED via `ended`), + confirmed, confidence, age_frames,
@@ -26,7 +27,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 from .config import OutputConfig
 from .records import CameraStatus, Detection, EndReason, FrameTracks, PositionSource, TrackletSummary, TrackState
 
-DETECTIONS_SCHEMA = ("spana.detections", "1.1.0")
+DETECTIONS_SCHEMA = ("spana.detections", "1.2.0")
 TRACKS_SCHEMA = ("spana.tracks", "2.0.0")
 
 
@@ -96,7 +97,9 @@ def detections_from_frame(fr: dict) -> List[Detection]:
 
 def validate_detections(doc: Any) -> None:
     _header(doc, DETECTIONS_SCHEMA, ("schema", "schema_version", "provenance", "video", "model",
-                                     "detection_config", "frames"))
+                                     "detection_config", "frame_stride", "frames"))
+    if not (isinstance(doc["frame_stride"], int) and doc["frame_stride"] >= 1):
+        raise ArtifactError("bad frame_stride")
     if not doc["frames"]:
         raise ArtifactError("detections artifact has no frames")
     prev = -1

@@ -34,8 +34,10 @@ def cmd_detect(a: argparse.Namespace) -> int:
     video = VideoSource(a.video, expected_sha256=a.video_sha256)
     rec = ModelRecord.load(a.model_record)
     det = OnnxPersonDetector(rec, cfg.detection)
+    if a.stride < 1:
+        raise ArtifactError("--stride must be >= 1")
     frames = [detection_frame(i, t, det.detect(img), cfg.output)
-              for i, t, img in video.frames(a.start, a.stop)]
+              for i, t, img in video.frames(a.start, a.stop) if (i - a.start) % a.stride == 0]
     if not frames:
         raise ArtifactError(f"no frames read from {a.video} in [{a.start}, {a.stop})")
     doc = {
@@ -45,7 +47,7 @@ def cmd_detect(a: argparse.Namespace) -> int:
                                                "model_record": sha256_file(a.model_record),
                                                "weights": rec.sha256}),
         "video": video.meta.to_dict(), "model": det.model_id,
-        "detection_config": dataclasses.asdict(cfg.detection), "frames": frames,
+        "detection_config": dataclasses.asdict(cfg.detection), "frame_stride": a.stride, "frames": frames,
     }
     validate_detections(doc)
     print(write_json_atomic(a.out, doc))
@@ -67,10 +69,12 @@ def cmd_track(a: argparse.Namespace) -> int:
     cam = CameraMotionEstimator(cfg.camera, video.meta.width, video.meta.height, video.meta.fps)
     trk = MultiPlayerTracker(cfg, video.meta.width, video.meta.height)
     frames, log = [], []
-    first, last = min(det_frames), max(det_frames)
+    first, last, stride = min(det_frames), max(det_frames), ddoc["frame_stride"]
+    if sorted(det_frames) != list(range(first, last + 1, stride)):
+        raise ArtifactError("detections artifact frames are not a contiguous run at its frame_stride")
     for i, t, img in video.frames(first, last + 1):
-        if i not in det_frames:
-            raise ArtifactError(f"frame {i} missing from the detections artifact")
+        if (i - first) % stride:
+            continue
         dets = detections_from_frame(det_frames[i])
         boxes = [d.box for d in dets]
         ft = trk.update(i, t, dets, cam.observe(img, boxes), describe(img, boxes, cfg.appearance))
@@ -104,6 +108,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     d.add_argument("--model-record", required=True)
     d.add_argument("--start", type=int, default=0)
     d.add_argument("--stop", type=int, default=None)
+    d.add_argument("--stride", type=int, default=1, help="analyse every N-th frame (tracking is time-based)")
     sub.choices["track"].add_argument("--detections", required=True)
     a = p.parse_args(argv)
     return cmd_detect(a) if a.cmd == "detect" else cmd_track(a)

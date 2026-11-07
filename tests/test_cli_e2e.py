@@ -92,6 +92,17 @@ class EndToEnd(unittest.TestCase):
         self.assertFalse((self.td / "t.json").exists())
         self.assertFalse((self.td / "t.decisions.jsonl").exists())
 
+    def test_stride_runs_every_nth_frame(self):
+        dpath, tpath = self.td / "det2.json", self.td / "trk2.json"
+        self._detect(dpath, stride=2)
+        ddoc = read_json(dpath)
+        self.assertEqual([fr["frame"] for fr in ddoc["frames"]], list(range(0, 20, 2)))
+        self.assertEqual(cli.main(["track", "--video", str(self.video), "--config", self.config,
+                                   "--detections", str(dpath), "--out", str(tpath)]), 0)
+        tdoc = read_json(tpath)
+        validate_tracks(tdoc, ddoc)
+        self.assertEqual([fr["frame"] for fr in tdoc["frames"]], list(range(0, 20, 2)))
+
     def test_start_beyond_video_refused(self):
         with self.assertRaises(ArtifactError):
             self._detect(self.td / "x.json", start=500)

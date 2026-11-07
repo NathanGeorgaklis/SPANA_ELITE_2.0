@@ -41,7 +41,7 @@ def sha256_file(path: str | Path, chunk: int = 1 << 20) -> str:
 
 
 class VideoSource:
-    """Sequential frame reader. Frame time = index / fps (constant-frame-rate assumption, recorded in meta)."""
+    """Sequential frame reader. Frame time = container presentation timestamp (see frames())."""
 
     def __init__(self, path: str | Path, expected_sha256: Optional[str] = None):
         p = Path(path)
@@ -62,27 +62,29 @@ class VideoSource:
             raise VideoError(f"invalid fps {fps!r} in {p}")
         if w <= 0 or h <= 0:
             raise VideoError(f"invalid frame size {w}x{h} in {p}")
-        self.meta = VideoMeta(str(p), digest, fps, w, h, n, "index_over_fps")
+        self.meta = VideoMeta(str(p), digest, fps, w, h, n, "container_pts")
 
     def frames(self, start: int = 0, stop: Optional[int] = None) -> Iterator[Tuple[int, float, np.ndarray]]:
-        """Frames [start, stop). Decodes sequentially from frame 0 (container seeks can land on keyframes and
-        mislabel indices). Raises VideoError if the container timestamps drift from index/fps by more than half
-        a frame (variable frame rate), because frame times would then be wrong."""
+        """Frames [start, stop) with their presentation times in seconds.
+
+        Decodes sequentially from frame 0 (container seeks can land on keyframes and mislabel indices). Frame time
+        is the container presentation timestamp of the decoded frame, so a dropped or trailing frame becomes a
+        longer time step (the tracker works in seconds), not a wrong time. index / fps is used only when the
+        backend reports no timestamp. Times must strictly increase, otherwise VideoError (fail closed)."""
         if start < 0:
             raise VideoError(f"invalid start {start}")
         cap = cv2.VideoCapture(self.meta.path)
-        half = 0.5 / self.meta.fps
         try:
-            idx = 0
+            idx, prev_t = 0, -1.0
             while stop is None or idx < stop:
                 ok, frame = cap.read()
                 if not ok:
                     break
                 pos_ms = cap.get(cv2.CAP_PROP_POS_MSEC)
-                t = idx / self.meta.fps
-                if pos_ms > 0 and abs(pos_ms / 1000.0 - t) > half:
-                    raise VideoError(f"frame {idx}: container time {pos_ms / 1000.0:.4f}s != index/fps {t:.4f}s "
-                                     "(variable frame rate is not supported)")
+                t = pos_ms / 1000.0 if (pos_ms > 0 or (idx == 0 and pos_ms == 0)) else idx / self.meta.fps
+                if t <= prev_t:
+                    raise VideoError(f"frame {idx}: time {t:.4f}s does not increase (previous {prev_t:.4f}s)")
+                prev_t = t
                 if frame.shape[1] != self.meta.width or frame.shape[0] != self.meta.height:
                     raise VideoError(f"frame {idx} size {frame.shape[1]}x{frame.shape[0]} differs from metadata")
                 if idx >= start:
