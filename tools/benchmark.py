@@ -17,11 +17,11 @@ from pathlib import Path
 from typing import Dict, List
 
 from spana.artifacts import read_json, validate_detections, validate_tracks, write_json_atomic
-from spana.evaluation import EvalFrame, TrackBox, evaluate
+from spana.evaluation import NESTED_V1, RULES, EvalFrame, TrackBox, evaluate
 from spana.labels import parse_mot
 
 IGNORE_IOA = 0.5        # scoring convention (not a tracker setting)
-MATCH_IOU = 0.5
+DEFAULT_RULE = NESTED_V1.name   # frozen 2026-11-08, records/MATCHING_RULE_NESTED_V1.md
 
 
 def _ioa(inner, outer) -> float:
@@ -71,6 +71,7 @@ def main() -> int:
     p = argparse.ArgumentParser()
     for k in ("labels", "detections", "tracks", "decisions", "out"):
         p.add_argument(f"--{k}", required=True)
+    p.add_argument("--rule", default=DEFAULT_RULE, choices=sorted(RULES))
     a = p.parse_args()
     frozen, gt = load_frozen(Path(a.labels))
     dd, td = read_json(a.detections), read_json(a.tracks)
@@ -80,10 +81,10 @@ def main() -> int:
         raise SystemExit("refusing: the run was made from a different video than the labels")
     decisions = [json.loads(l) for l in Path(a.decisions).read_text().splitlines() if l.strip()]
     frames = build_frames(gt, dd, td, decisions)
-    r = evaluate(frames, match_iou=MATCH_IOU)
+    r = evaluate(frames, rule=RULES[a.rule])
     occluded = sum(len(gt.occluded.get(ef.frame, ())) for ef in frames)
     miss_occ = sum(1 for e in r.missed_events if e["player"] in gt.occluded.get(e["frame"], ()))
-    report = {"labels": {"dir": a.labels, "gt_sha256": frozen["gt_sha256"], "frames": len(frames),
+    report = {"match_rule": a.rule, "labels": {"dir": a.labels, "gt_sha256": frozen["gt_sha256"], "frames": len(frames),
                          "frame_step": frozen["frame_step"], "annotator": frozen["annotator"]},
               "run": {"detections_commit": dd["provenance"]["git"], "tracks_commit": td["provenance"]["git"]},
               "summary": r.summary(),
@@ -94,7 +95,7 @@ def main() -> int:
               "events": {"transfers": r.transfer_events, "wrong_recoveries": r.wrong_recovery_events,
                          "missed": r.missed_events, "duplicates": r.duplicate_events}}
     write_json_atomic(a.out, report)
-    print(json.dumps({k: report[k] for k in ("summary", "recall_visible", "recall_occluded")}, indent=1))
+    print(json.dumps({k: report[k] for k in ("match_rule", "summary", "recall_visible", "recall_occluded")}, indent=1))
     return 0
 
 

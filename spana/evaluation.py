@@ -4,18 +4,19 @@ synthetic QA suite and by the DEV validation tool).
 Inputs per frame: visible ground-truth boxes {player_id: box} (ignored / not-annotated regions excluded), the
 frame's detections, the tracker's OBSERVED track boxes, and the tracker's recovery decisions.
 
-Matching: Hungarian on IoU, a pair counts when IoU >= match_iou.
+Matching: a versioned MatchRule decides which pairs are eligible (IOU_050: IoU >= 0.5; NESTED_V1 adds same-body
+pairs drawn in a different box style); Hungarian picks a one-to-one assignment preferring larger overlap.
 
 Detection layer
   missed_players      ground-truth boxes with no detection matched (by height bin: small players are the risk)
-  duplicate_dets      unmatched detections that overlap a matched player (IoU >= match_iou, or lie inside his
+  duplicate_dets      unmatched detections that overlap a matched player (eligible under the match rule, or lie inside his
                       box by dup_ioa: partial-body boxes)
 Tracking layer
   identity_transfers  a track matched to player A and later to B (the unsafe error)
   unflagged_transfers transfers on tracks with no ambiguity flag (no possible_predecessors, no recoveries)
   id_switches         player-centric: changes of a player's matched track id between matched frames
   wrong_recoveries    recovery decisions whose detection is a different player than the track's last one
-  duplicate_tracks    frames where an extra OBSERVED track overlaps a matched player (IoU >= match_iou), or an
+  duplicate_tracks    frames where an extra OBSERVED track is eligible for a matched player under the rule, or an
                       extra CONFIRMED one lies inside his box (IoA >= dup_ioa)
   fragments           per player: distinct track ids - 1
   coverage            share of visible player-frames with a matched OBSERVED track
@@ -105,13 +106,58 @@ def _ioa(inner: Box, outer: Box) -> float:
     return iw * ih / max((inner[2] - inner[0]) * (inner[3] - inner[1]), 1e-9)
 
 
-def _match(gids: List[str], gt: Dict[str, Box], boxes: Sequence[Box], match_iou: float
+@dataclass(frozen=True)
+class MatchRule:
+    """When a detection/track box counts as the same body as a ground-truth box. Frozen rules are versioned."""
+    name: str
+    min_iou: float
+    nested: bool = False              # also accept the same body drawn tighter or looser (see NESTED_V1)
+    nested_min_ioa: float = 0.0
+    nested_min_height_ratio: float = 0.0
+    nested_min_width_ratio: float = 0.0
+
+
+IOU_050 = MatchRule("IOU_050", 0.5)
+# NESTED_V1 (frozen 2026-11-08, records/MATCHING_RULE_NESTED_V1.md): IoU >= 0.5, OR all of:
+#   each box's centre lies inside the other; one box lies inside the other by >= 0.70 of its own area;
+#   height ratio (small/large) >= 0.60; width ratio >= 0.40.
+# A superset of IOU_050: it never removes a standard match; it only adds same-body pairs that differ in box style.
+NESTED_V1 = MatchRule("NESTED_V1", 0.5, True, 0.70, 0.60, 0.40)
+RULES = {r.name: r for r in (IOU_050, NESTED_V1)}
+
+
+def eligible_matrix(gt_boxes: np.ndarray, boxes: np.ndarray, rule: MatchRule) -> Tuple[np.ndarray, np.ndarray]:
+    """(eligible[g, d], iou[g, d])."""
+    ious = iou_matrix(gt_boxes, boxes)
+    ok = ious >= rule.min_iou
+    if rule.nested and ious.size:
+        g, d = gt_boxes[:, None, :], boxes[None, :, :]
+        gc = (g[..., :2] + g[..., 2:4]) / 2
+        dc = (d[..., :2] + d[..., 2:4]) / 2
+        inside = lambda c, b: (c[..., 0] >= b[..., 0]) & (c[..., 0] <= b[..., 2]) & \
+                              (c[..., 1] >= b[..., 1]) & (c[..., 1] <= b[..., 3])        # noqa: E731
+        iw = np.clip(np.minimum(g[..., 2], d[..., 2]) - np.maximum(g[..., 0], d[..., 0]), 0, None)
+        ih = np.clip(np.minimum(g[..., 3], d[..., 3]) - np.maximum(g[..., 1], d[..., 1]), 0, None)
+        ga = np.maximum((g[..., 2] - g[..., 0]) * (g[..., 3] - g[..., 1]), 1e-9)
+        da = np.maximum((d[..., 2] - d[..., 0]) * (d[..., 3] - d[..., 1]), 1e-9)
+        ioa = np.maximum(iw * ih / ga, iw * ih / da)
+        gh, dh = g[..., 3] - g[..., 1], d[..., 3] - d[..., 1]
+        gw, dw = g[..., 2] - g[..., 0], d[..., 2] - d[..., 0]
+        hr = np.minimum(gh, dh) / np.maximum(np.maximum(gh, dh), 1e-9)
+        wr = np.minimum(gw, dw) / np.maximum(np.maximum(gw, dw), 1e-9)
+        ok |= inside(dc, g) & inside(gc, d) & (ioa >= rule.nested_min_ioa) & \
+            (hr >= rule.nested_min_height_ratio) & (wr >= rule.nested_min_width_ratio)
+    return ok, ious
+
+
+def _match(gids: List[str], gt: Dict[str, Box], boxes: Sequence[Box], rule: MatchRule
            ) -> Tuple[Dict[int, str], np.ndarray]:
     if not gids or not len(boxes):
-        return {}, np.zeros((len(gids), len(boxes)))
-    ious = iou_matrix(np.array([gt[g] for g in gids]), np.array(boxes, dtype=float))
-    rows, cols = linear_sum_assignment(-ious)
-    return {int(c): gids[r] for r, c in zip(rows, cols) if ious[r, c] >= match_iou}, ious
+        return {}, np.zeros((len(gids), len(boxes)), dtype=bool)
+    ok, ious = eligible_matrix(np.array([gt[g] for g in gids], float), np.array(boxes, dtype=float), rule)
+    score = np.where(ok, ious + 1.0, 0.0)          # eligible pairs only; prefer the larger overlap
+    rows, cols = linear_sum_assignment(-score)
+    return {int(c): gids[r] for r, c in zip(rows, cols) if ok[r, c]}, ok
 
 
 def _bin(h: float) -> str:
@@ -121,7 +167,7 @@ def _bin(h: float) -> str:
     return "inf"
 
 
-def evaluate(frames: Iterable[EvalFrame], match_iou: float = 0.5, dup_ioa: float = 0.6) -> Report:
+def evaluate(frames: Iterable[EvalFrame], rule: MatchRule = IOU_050, dup_ioa: float = 0.6) -> Report:
     r = Report()
     track_gt: Dict[str, str] = {}
     gt_last: Dict[str, str] = {}
@@ -134,7 +180,7 @@ def evaluate(frames: Iterable[EvalFrame], match_iou: float = 0.5, dup_ioa: float
             b = _bin(ef.gt[g][3] - ef.gt[g][1])
             r.gt_by_height[b] = r.gt_by_height.get(b, 0) + 1
 
-        det_gt, det_iou = _match(gids, ef.gt, ef.detections, match_iou)
+        det_gt, det_ok = _match(gids, ef.gt, ef.detections, rule)
         hit = set(det_gt.values())
         for g in gids:
             if g not in hit:
@@ -145,13 +191,13 @@ def evaluate(frames: Iterable[EvalFrame], match_iou: float = 0.5, dup_ioa: float
         for d in range(len(ef.detections)):
             if d in det_gt or not gids:
                 continue
-            over = [g for gi, g in enumerate(gids) if g in hit and (det_iou[gi, d] >= match_iou or
+            over = [g for gi, g in enumerate(gids) if g in hit and (det_ok[gi, d] or
                                                                   _ioa(ef.detections[d], ef.gt[g]) >= dup_ioa)]
             if over:
                 r.duplicate_dets += 1
                 r.duplicate_events.append({"frame": ef.frame, "detection": d, "player": over[0]})
 
-        tr_gt, tr_iou = _match(gids, ef.gt, [t.box for t in ef.tracks], match_iou)
+        tr_gt, tr_ok = _match(gids, ef.gt, [t.box for t in ef.tracks], rule)
         for c, g in tr_gt.items():
             t = ef.tracks[c]
             r.covered += 1
@@ -168,7 +214,7 @@ def evaluate(frames: Iterable[EvalFrame], match_iou: float = 0.5, dup_ioa: float
             if t.track_id not in seq:
                 seq.append(t.track_id)
         extra = [c for c in range(len(ef.tracks)) if c not in tr_gt]
-        if gids and any(tr_iou[:, c].max() >= match_iou or
+        if gids and any(tr_ok[:, c].any() or
                         (ef.tracks[c].confirmed and max(_ioa(ef.tracks[c].box, ef.gt[g]) for g in gids) >= dup_ioa)
                         for c in extra):
             r.duplicate_frames += 1
