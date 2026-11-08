@@ -48,7 +48,8 @@ class Workflow(unittest.TestCase):
         self.manifest = self.td / "match.json"
         m = manifest_template("M_TEST_001", "TRAIN", sha256_file(str(self.video)))
         m.update(footage_licence="SPANA-owned test footage", rights_holder="SPANA", consent_basis="synthetic",
-                 training_permitted=True)
+                 training_permitted=True, agreement_reference="synthetic test",
+                 permissions={k: True for k in m["permissions"]})
         self.manifest.write_text(json.dumps(m))
         self.repo = self.td / "repo"
 
@@ -75,11 +76,18 @@ class Workflow(unittest.TestCase):
 
     def test_manifest_requires_split_rights_and_consent(self):
         m = json.loads(self.manifest.read_text())
-        for k, v in (("split", "TEST"), ("footage_licence", " "), ("consent_basis", ""), ("training_permitted", False)):
+        for k, v in (("split", "TEST"), ("footage_licence", " "), ("consent_basis", ""), ("training_permitted", False),
+                     ("agreement_reference", "")):
             bad = {**m, k: v}
             with self.assertRaises(ReidLabelError, msg=k):
                 validate_manifest(bad)
-        validate_manifest({**m, "split": "EVAL", "training_permitted": False})     # EVAL may be labelled
+        for perm in ("copy_and_process", "ml_development", "commercial_use", "player_consent", "minors_covered",
+                     "retain_derived_data"):
+            with self.assertRaises(ReidLabelError, msg=perm):
+                validate_manifest({**m, "permissions": {**m["permissions"], perm: False}})
+        validate_manifest({**m, "permissions": {**m["permissions"], "model_survives_footage_removal": False}})
+        validate_manifest({**m, "split": "EVAL", "training_permitted": False,
+                           "permissions": {k: False for k in m["permissions"]}})   # EVAL may be labelled
 
     def test_proposals_cut_at_gaps(self):
         doc = json.loads(self.tracks.read_text())

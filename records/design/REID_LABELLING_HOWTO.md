@@ -13,9 +13,21 @@ hash-checked loading of frozen labels.
 ```
 python -m tools.reid_match_manifest --video MATCH.mp4 --match-id <MATCH_ID> --split TRAIN --out <MATCH_ID>.reid_match.json
 ```
-Then fill in `footage_licence`, `rights_holder` and `consent_basis`. Set `training_permitted: true` only if the
-rights and consent cover ML training. A TRAIN match is refused without it. The split is decided per match, before
-labelling, and never changes.
+Then fill in `footage_licence`, `rights_holder`, `consent_basis` and `agreement_reference`. Set
+`training_permitted` and each entry of `permissions` to true only where the written permission says so:
+
+| permission | the agreement must grant |
+|---|---|
+| `copy_and_process` | copying and processing the footage |
+| `ml_development` | developing, training, testing and improving ML / computer-vision models |
+| `commercial_use` | that this use may be commercial |
+| `player_consent` | consent or authority covering the players' images for tracking / re-ID development |
+| `minors_covered` | parent / guardian consent or another legal basis for any minors (true also if none appear) |
+| `retain_derived_data` | keeping crops, annotations, embeddings and training outputs |
+| `model_survives_footage_removal` | recommended, not required: continued use of the trained model if the footage is later removed |
+
+A TRAIN match is refused unless all six required permissions, `training_permitted` and `agreement_reference` are
+set (manifest schema 1.1.0). The split is decided per match, before labelling, and never changes.
 
 ## 2. Detect and track (tracker proposes tracklets)
 ```

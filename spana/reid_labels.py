@@ -17,10 +17,22 @@ SIDES = ("A", "B", "GK_A", "GK_B", "REF", "OTHER")
 PURPOSE_SPLIT = {"train": "TRAIN", "tune": "DEV", "eval": "EVAL"}
 MATCH_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{2,63}$")
 PLAYER_RE = re.compile(r"^[A-Za-z0-9_-]{1,16}$")
-MANIFEST_SCHEMA = ("spana.reid_match", "1.0.0")
+MANIFEST_SCHEMA = ("spana.reid_match", "1.1.0")
 IDENTITIES_SCHEMA = ("spana.reid_identities", "1.0.0")
 MANIFEST_FIELDS = ("schema", "schema_version", "match_id", "split", "video_sha256", "footage_licence",
-                   "rights_holder", "consent_basis", "training_permitted", "notes")
+                   "rights_holder", "consent_basis", "training_permitted", "agreement_reference", "permissions",
+                   "notes")
+# What a written permission must explicitly grant before a match may be TRAIN (Nathan, 2026-11-08). Each is
+# recorded as true only when the agreement says so; anything else keeps the match out of TRAIN.
+REQUIRED_PERMISSIONS = (
+    "copy_and_process",          # copy / process the footage
+    "ml_development",            # develop, train, test and improve ML / computer-vision models
+    "commercial_use",            # that use may be commercial (SPANA is a commercial product)
+    "player_consent",            # consent / authority covering the players' images for tracking / re-ID development
+    "minors_covered",            # parent / guardian consent or another legal basis for any minors (or none filmed)
+    "retain_derived_data",       # keep crops, annotations, embeddings and training outputs
+)
+RECOMMENDED_PERMISSIONS = ("model_survives_footage_removal",)
 
 
 class ReidLabelError(ValueError):
@@ -45,15 +57,25 @@ def validate_manifest(m: dict) -> dict:
             raise ReidLabelError(f"{k} is required for every match")
     if not isinstance(m["training_permitted"], bool):
         raise ReidLabelError("training_permitted must be true or false")
-    if m["split"] == "TRAIN" and not m["training_permitted"]:
-        raise ReidLabelError("a TRAIN match must have training_permitted = true (rights and consent cover training)")
+    perms = m["permissions"]
+    keys = REQUIRED_PERMISSIONS + RECOMMENDED_PERMISSIONS
+    if not isinstance(perms, dict) or set(perms) != set(keys) or not all(isinstance(perms[k], bool) for k in keys):
+        raise ReidLabelError(f"permissions must give true/false for exactly: {list(keys)}")
+    if m["split"] == "TRAIN":
+        missing = [k for k in REQUIRED_PERMISSIONS if not perms[k]]
+        if not m["training_permitted"] or missing:
+            raise ReidLabelError("a TRAIN match needs training_permitted = true and written permission for: "
+                                 f"{missing or REQUIRED_PERMISSIONS}")
+        if not str(m["agreement_reference"]).strip():
+            raise ReidLabelError("a TRAIN match needs agreement_reference (the written permission it relies on)")
     return m
 
 
 def manifest_template(match_id: str, split: str, video_sha256: str) -> dict:
     return {"schema": MANIFEST_SCHEMA[0], "schema_version": MANIFEST_SCHEMA[1], "match_id": match_id,
             "split": split, "video_sha256": video_sha256, "footage_licence": "", "rights_holder": "",
-            "consent_basis": "", "training_permitted": False, "notes": ""}
+            "consent_basis": "", "training_permitted": False, "agreement_reference": "",
+            "permissions": {k: False for k in REQUIRED_PERMISSIONS + RECOMMENDED_PERMISSIONS}, "notes": ""}
 
 
 def split_guard(split: str, purpose: str, eval_approval: Optional[str] = None) -> None:
