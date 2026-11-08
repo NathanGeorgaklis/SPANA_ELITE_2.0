@@ -124,7 +124,7 @@ class MultiPlayerTracker:
         self._last_frame = frame_index
         out = FrameTracks(frame_index, time_s, camera)
         out.decisions.append({"kind": "camera", "status": camera.status.value, "inliers": camera.inliers,
-                              "hist_distance": camera.hist_distance})
+                              "hist_distance": camera.hist_distance, "motion_std_px": round(camera.motion_std_px, 3)})
 
         if camera.status in (CameraStatus.CUT, CameraStatus.UNKNOWN):
             reason = EndReason.CAMERA_CUT if camera.status == CameraStatus.CUT else EndReason.CAMERA_MOTION_UNKNOWN
@@ -134,7 +134,7 @@ class MultiPlayerTracker:
             self._epoch += 1
         elif camera.status == CameraStatus.OK:
             for t in self._tracks:
-                t.kf.apply_camera(camera.matrix())
+                t.kf.apply_camera(camera.matrix(), camera.motion_std_px)
 
         for t in self._tracks:
             t.kf.predict(time_s - t.last_update_t)

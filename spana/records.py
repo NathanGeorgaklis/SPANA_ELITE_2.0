@@ -58,6 +58,9 @@ class CameraObservation:
     affine: Tuple[Tuple[float, float, float], Tuple[float, float, float]]  # prev -> current, source pixels
     inliers: int
     hist_distance: Optional[float]
+    # Per-axis std (source px) of the camera displacement at a point, measured from how far ALL tracked background
+    # features disagree with the fitted transform. 0 = no extra uncertainty (identity, or a perfectly agreeing fit).
+    motion_std_px: float = 0.0
 
     @staticmethod
     def identity(status: CameraStatus, hist_distance: Optional[float] = None, inliers: int = 0) -> "CameraObservation":

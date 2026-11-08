@@ -73,6 +73,7 @@ class CameraConfig:
     cut_hist_distance: float      # Bhattacharyya distance on HSV histograms above which a frame is a cut
     max_log_scale_rate_per_s: float  # plausible zoom speed, |log(scale)| per second
     scale_noise_log: float           # per-estimate |log(scale)| noise allowance on top of the rate
+    disagreement_noise_scale: float  # camera motion std = this x per-axis RMS disagreement of tracked features
 
     def validate(self) -> None:
         _pos_int("camera.analysis_width_px", self.analysis_width_px)
@@ -84,6 +85,8 @@ class CameraConfig:
         _unit("camera.cut_hist_distance", self.cut_hist_distance)
         _pos("camera.max_log_scale_rate_per_s", self.max_log_scale_rate_per_s)
         _pos("camera.scale_noise_log", self.scale_noise_log)
+        if not self.disagreement_noise_scale >= 0:
+            raise ConfigError("camera.disagreement_noise_scale must be >= 0")
 
 
 @dataclass(frozen=True)

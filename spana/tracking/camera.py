@@ -72,4 +72,14 @@ class CameraMotionEstimator:
         A_src = A.astype(float).copy()
         A_src[:, 2] /= self.k
         affine = tuple(tuple(float(v) for v in row) for row in A_src)
-        return CameraObservation(CameraStatus.OK, affine, n_inl, dist)  # type: ignore[arg-type]
+        return CameraObservation(CameraStatus.OK, affine, n_inl, dist,  # type: ignore[arg-type]
+                                 self._motion_std_px(A, pts[good], nxt[good]))
+
+    def _motion_std_px(self, A: np.ndarray, src: np.ndarray, dst: np.ndarray) -> float:
+        """Per-axis RMS disagreement (source px) of every tracked feature, inlier or not, with the fitted transform.
+
+        Real DEV finding: with few inliers the fit can follow the wrong motion while its inliers agree among
+        themselves; the share and size of disagreeing features is what measures that ambiguity."""
+        s, d = src.reshape(-1, 2).astype(float), dst.reshape(-1, 2).astype(float)
+        r = d - (s @ A[:, :2].T + A[:, 2])
+        return float(self.cfg.disagreement_noise_scale * np.sqrt((r ** 2).sum(axis=1).mean() / 2.0) / self.k)

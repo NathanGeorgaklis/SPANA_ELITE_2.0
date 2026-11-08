@@ -30,6 +30,9 @@ camera:
   cut_hist_distance: 0.55
   max_log_scale_rate_per_s: 1.0   # zoom faster than ~e (2.7x) per second is implausible -> UNKNOWN
   scale_noise_log: 0.02           # estimate noise allowance per frame pair
+  # Camera-motion uncertainty: feature disagreement with the fitted transform is added to every track's predicted
+  # position variance, so a weakly supported estimate widens the motion gate and a strong one leaves it unchanged.
+  disagreement_noise_scale: 1.0
 
 kalman:
   pos_std_h: 0.05

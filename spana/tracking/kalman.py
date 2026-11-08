@@ -69,8 +69,9 @@ class BoxKalman:
     def freeze_velocity(self) -> None:
         self.x[_DIM:] = 0.0
 
-    def apply_camera(self, affine: np.ndarray) -> None:
-        """Map the state through the inter-frame similarity transform (prev -> current image)."""
+    def apply_camera(self, affine: np.ndarray, motion_std_px: float = 0.0) -> None:
+        """Map the state through the inter-frame similarity transform (prev -> current image), then add the
+        transform's own uncertainty (per-axis std in px) to the position variance."""
         A = np.asarray(affine, dtype=float)
         L, t = A[:, :2], A[:, 2]
         s = affine_scale(A)
@@ -83,3 +84,5 @@ class BoxKalman:
         x[0:2] += t
         self.x = x
         self.P = T @ self.P @ T.T
+        self.P[0, 0] += motion_std_px ** 2
+        self.P[1, 1] += motion_std_px ** 2
