@@ -1,28 +1,39 @@
-# TRAIN_M001_MORETON_CITY: preparation status (2026-11-08)
+# TRAIN_M001_MORETON_CITY: preparation status (2026-11-09): READY FOR LABELLING
 
-## Match
-- Source: `Downloads/videoplayback (1).mp4`, chosen by Nathan.
-- FQTV broadcast featuring Moreton City Excelsior, 1280×720, 60 fps, 147 min.
-- sha256 `e8bd4d5fd8105a862ad8388f09473732b47481d6bda89ce10480ca18c810c519`.
-- **Not a DEV match.** The DEV matches are G1 SUD v APL, G2 NWS v SDR and G3 SFC v STC (FRESH_* clips). A
-  contact sheet confirms this one is a different broadcast, competition and teams.
-- Proposed 10-minute window: 3000–3600 s of the file. Play was confirmed at 3000 s; the full window is not yet
-  inspected.
-- Draft manifest: `Downloads/SPANA_reid/TRAIN_M001/TRAIN_M001_MORETON_CITY.reid_match.json`, split TRAIN.
-  `validate_manifest` refuses it, as intended, until the rights fields are filled.
+## Match and rights
+- Source: `Downloads/videoplayback (1).mp4`, the Moreton City Excelsior FQTV broadcast, 1280×720, 60 fps.
+  sha256 `e8bd4d5f…c519`.
+- **Not a DEV match**: verified against G1, G2 and G3.
+- **Manifest** (`Downloads/SPANA_reid/TRAIN_M001/TRAIN_M001_MORETON_CITY.reid_match.json`, schema 1.1.0): split
+  TRAIN, rights holder Moreton City Excelsior. It validates.
+- **Permission:** written permission dated 3 November 2026 covering commercial AI/ML development, including
+  detection, tracking, re-ID, training, validation and testing. As stated by Nathan:
+  - no minors in this match;
+  - retention of derived data is covered;
+  - continued model use after footage removal is covered.
 
-## Blocked: written permission details not recorded
-- Nathan answered "written permission exists" but supplied the list of what the permission must cover, not the
-  agreement itself. That list is now enforced as `permissions` in manifest schema 1.1.0.
-- Nothing has been copied, cropped, detected or tracked from this match. Processing the footage needs
-  `copy_and_process` first.
+## Window and video
+- Window: 3000–3600 s of the source (50:00–60:00), live play throughout.
+  - The stream-copy cut is AV1 (sha `2c61dd01…7416`).
+  - It was transcoded to H.264 because OpenCV here cannot decode AV1:
+    `ffmpeg -c:v libdav1d -i CLIP -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -fps_mode passthrough -an`.
+  - Result: all 36,170 frames, sha `2475f26c…4c58`. This is the manifest's `video_sha256`.
+- Both clips are in `Downloads/SPANA_reid/TRAIN_M001/`.
 
-## Needed to proceed
-1. **The agreement details:** `rights_holder`, `footage_licence`, `consent_basis`, `agreement_reference` (document
-   name or number and date), and true/false for each permission, as the document states it.
-2. **Then:**
-   - cut the window on the Mac (stream copy);
-   - `spana.cli detect --stride 4` (15 Hz analysis), then `track`;
-   - `tools.reid_pack`.
-   - Expected time: about 9,000 analysed frames × about 2 s, so about 5 h on the 2-CPU workspace. A faster
-     machine is recommended.
+## Detection and tracking (config/default.yaml, YOLOX-s, stride 4 = 15 Hz analysis)
+- Detected in 4 chunks (0–9040, 9040–18080, 18080–27120, 27120–36170), about 1.4 h each, then merged with
+  `tools/merge_detections.py`:
+  - `TRAIN_M001.det.json` sha `cf12f800…fbd`, 9,043 analysed frames.
+- `TRAIN_M001.trk.json` sha `e2836bdf…bd6e`.
+
+## Pack
+- **Full proposal** (`--min-observed 3`): 4,716 tracklets, median 14 observed frames (< 1 s). Kept in the
+  workspace only, not given to the labeller.
+- **Labelling pack** (`--min-observed 15`, tracklets ≥ 1 s of observation):
+  `Downloads/SPANA_reid/TRAIN_M001/TRAIN_M001_MORETON_CITY_reid_pack/`.
+  - 2,354 tracklets; median 35 observed frames; 450 ≥ 5 s; 451 flagged by the tracker (identity contest).
+  - tracklets sha `61b97d3a…6b12` (equal on the Mac).
+- **Shirt numbers** are legible in many thumbnails at this camera distance. They are recorded as an optional
+  `shirt_number` per player.
+
+Nothing has been trained. DEV and EVAL are not involved.
