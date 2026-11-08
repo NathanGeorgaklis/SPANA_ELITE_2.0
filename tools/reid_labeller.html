@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SPANA re-ID tracklet labeller</title>
+<style>
+  :root { --bg:#111418; --panel:#1b2027; --line:#2c333d; --text:#e6e9ee; --muted:#8b95a3; --ok:#3fb950; --warn:#d29922; --bad:#f85149; --acc:#58a6ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:13px/1.4 system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  header { position:sticky; top:0; z-index:5; background:var(--panel); border-bottom:1px solid var(--line); padding:8px 12px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  header input { background:#0d1014; color:var(--text); border:1px solid var(--line); padding:4px 6px; border-radius:4px; }
+  button { background:#262c35; color:var(--text); border:1px solid var(--line); border-radius:4px; padding:4px 8px; cursor:pointer; }
+  button:hover { border-color:var(--acc); }
+  button.primary { background:#1f6feb; border-color:#1f6feb; }
+  .muted { color:var(--muted); }
+  .badge { padding:1px 6px; border-radius:10px; border:1px solid var(--line); font-size:11px; }
+  .badge.warn { color:var(--warn); border-color:var(--warn); }
+  main { display:grid; grid-template-columns: 260px 1fr; gap:12px; padding:12px; }
+  aside { position:sticky; top:62px; align-self:start; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:10px; max-height:calc(100vh - 80px); overflow:auto; }
+  aside .player { display:flex; justify-content:space-between; align-items:center; padding:4px 6px; border-radius:4px; cursor:pointer; margin:2px 0; }
+  aside .player.active { outline:2px solid var(--acc); }
+  .swatch { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:middle; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px; margin-bottom:10px; }
+  .card.conflict { border-color:var(--bad); }
+  .card .head { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:6px; }
+  .strip { display:flex; align-items:stretch; gap:0; flex-wrap:wrap; }
+  .part { display:flex; flex-direction:column; border:2px solid var(--line); border-radius:6px; padding:4px; margin:2px; }
+  .part .thumbs { display:flex; gap:2px; align-items:flex-end; }
+  .part img { height:112px; border-radius:3px; }
+  .part .ctl { display:flex; gap:4px; margin-top:4px; flex-wrap:wrap; align-items:center; }
+  .cut { width:18px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--muted); user-select:none; }
+  .cut:hover { color:var(--warn); }
+  .thumbwrap { position:relative; display:flex; align-items:flex-end; }
+  .fr { position:absolute; bottom:2px; left:2px; font-size:10px; background:#000a; padding:0 3px; border-radius:2px; }
+  #status { margin-left:auto; }
+  #status.bad { color:var(--bad); } #status.ok { color:var(--ok); } #status.warn { color:var(--warn); }
+  label.small { font-size:11px; color:var(--muted); display:block; margin-top:8px; }
+  select, aside input { width:100%; background:#0d1014; color:var(--text); border:1px solid var(--line); padding:4px; border-radius:4px; }
+</style>
+</head>
+<body>
+<header>
+  <strong>SPANA re-ID labeller</strong>
+  <span id="match" class="muted"></span>
+  <label>Annotator <input id="annotator" size="10"></label>
+  <label>Version <input id="version" size="2" value="1"></label>
+  <label>Reason (v&gt;1) <input id="reason" size="18"></label>
+  <label>Show <select id="filter" style="width:auto"><option value="all">all</option><option value="open">undecided</option><option value="conflict">conflicts</option><option value="flag">flagged by tracker</option></select></label>
+  <span id="progress" class="muted"></span>
+  <button id="export" class="primary">Export frozen labels</button>
+  <span id="status"></span>
+</header>
+<main>
+  <aside>
+    <strong>Players (this match)</strong>
+    <div class="muted" style="font-size:11px">Click a player to make it active, then "Assign" on tracklet parts. Assigning the same player to several parts links them.</div>
+    <label class="small">Key (e.g. A07, B11, REF1)</label><input id="pkey">
+    <label class="small">Side</label>
+    <select id="pside"><option>A</option><option>B</option><option>GK_A</option><option>GK_B</option><option>REF</option><option>OTHER</option></select>
+    <label class="small">Shirt number (optional)</label><input id="pnum">
+    <button id="padd" style="margin-top:6px;width:100%">Add player</button>
+    <div id="players" style="margin-top:10px"></div>
+    <div class="muted" style="font-size:11px;margin-top:10px">Keys: <b>a</b> assign active player to the hovered part, <b>r</b> reject, <b>u</b> unsure, <b>c</b> clear.</div>
+  </aside>
+  <section id="list"></section>
+</main>
+<script src="pack.js"></script>
+<script>
+"use strict";
+const PACK = window.SPANA_REID_PACK;
+const $ = id => document.getElementById(id);
+function status(msg, cls) { const s = $("status"); s.textContent = msg; s.className = cls || ""; }
+if (!PACK || !PACK.tracklets) { status("pack.js missing: open index.html from inside a re-ID pack folder.", "bad"); throw new Error("no pack"); }
+const KEY = "spana_reid_" + PACK.tracklets_sha256;
+const COLORS = ["#58a6ff","#3fb950","#d29922","#f778ba","#a371f7","#39c5cf","#ff7b72","#e3b341","#7ee787","#79c0ff","#ffa657","#d2a8ff"];
+const TL = Object.fromEntries(PACK.tracklets.map(t => [t.id, t]));
+let S = load() || { players: {}, cuts: {}, decisions: {}, annotator: "", version: 1, reason: "" };
+let active = null, hovered = null;
+
+function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); return s && s.players ? s : null; } catch (e) { return null; } }
+function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { status("Browser storage unavailable: export often.", "warn"); } }
+function color(p) { const keys = Object.keys(S.players).sort(); return COLORS[keys.indexOf(p) % COLORS.length]; }
+
+// parts of a tracklet: cuts are the first frames of every part after the first (always observed thumb frames)
+function parts(t) {
+  const cuts = (S.cuts[t.id] || []).slice().sort((a, b) => a - b);
+  const out = []; let start = 0;
+  for (const c of cuts.concat([null])) {
+    const endIdx = c === null ? t.frames.length - 1 : t.frames.indexOf(c) - 1;
+    out.push({ first: t.frames[start], last: t.frames[endIdx], key: t.id + "@" + t.frames[start] });
+    if (c !== null) start = t.frames.indexOf(c);
+  }
+  return out;
+}
+function decision(k) { return S.decisions[k] || null; }
+
+function conflicts() {
+  const occ = {}, bad = new Set();
+  for (const t of PACK.tracklets) for (const p of parts(t)) {
+    const d = decision(p.key); if (!d || d.decision !== "player") continue;
+    const fs = t.frames.slice(t.frames.indexOf(p.first), t.frames.indexOf(p.last) + 1);
+    for (const f of fs) { const k = d.player + "|" + f; if (occ[k] && occ[k] !== p.key) { bad.add(occ[k]); bad.add(p.key); } else occ[k] = p.key; }
+  }
+  return bad;
+}
+
+function renderPlayers() {
+  const box = $("players"); box.innerHTML = "";
+  const counts = {};
+  for (const d of Object.values(S.decisions)) if (d.decision === "player") counts[d.player] = (counts[d.player] || 0) + 1;
+  for (const k of Object.keys(S.players).sort()) {
+    const p = S.players[k], el = document.createElement("div");
+    el.className = "player" + (active === k ? " active" : "");
+    el.innerHTML = `<span><span class="swatch" style="background:${color(k)}"></span>${k} <span class="muted">${p.side}${p.shirt_number ? " #" + p.shirt_number : ""}</span></span><span class="muted">${counts[k] || 0}</span>`;
+    el.onclick = () => { active = k; renderPlayers(); };
+    el.ondblclick = () => { if (!counts[k] && confirm("Remove player " + k + "?")) { delete S.players[k]; if (active === k) active = null; persist(); render(); } };
+    box.appendChild(el);
+  }
+}
+
+function render() {
+  renderPlayers();
+  const list = $("list"); list.innerHTML = "";
+  const bad = conflicts(), filt = $("filter").value;
+  let decided = 0, total = 0;
+  for (const t of PACK.tracklets) {
+    const ps = parts(t);
+    const open = ps.some(p => !decision(p.key));
+    ps.forEach(p => { total++; if (decision(p.key)) decided++; });
+    const isBad = ps.some(p => bad.has(p.key));
+    if ((filt === "open" && !open) || (filt === "conflict" && !isBad) || (filt === "flag" && !(t.starts_uncertain || t.uncertain_frames))) continue;
+    const card = document.createElement("div"); card.className = "card" + (isBad ? " conflict" : "");
+    const dur = ((t.last_frame - t.first_frame) / PACK.video.fps).toFixed(1);
+    card.innerHTML = `<div class="head"><b>${t.id}</b><span class="muted">frames ${t.first_frame}–${t.last_frame} (${dur}s, ${t.observed} observed)</span>` +
+      (t.starts_uncertain ? `<span class="badge warn">starts after identity contest</span>` : "") +
+      (t.uncertain_frames ? `<span class="badge warn">${t.uncertain_frames} uncertain frames</span>` : "") +
+      (t.after_gap ? `<span class="badge">after gap</span>` : "") +
+      (!t.confirmed ? `<span class="badge">unconfirmed</span>` : "") + (isBad ? `<span class="badge" style="color:var(--bad)">player in two places</span>` : "") + `</div>`;
+    const strip = document.createElement("div"); strip.className = "strip";
+    for (const p of ps) {
+      const d = decision(p.key);
+      const box = document.createElement("div"); box.className = "part";
+      box.style.borderColor = d ? (d.decision === "player" ? color(d.player) : d.decision === "reject" ? "var(--bad)" : "var(--warn)") : "var(--line)";
+      const th = document.createElement("div"); th.className = "thumbs";
+      const thumbs = t.thumbs.filter(x => x.frame >= p.first && x.frame <= p.last);
+      thumbs.forEach((x, i) => {
+        if (i > 0) {
+          const cut = document.createElement("span"); cut.className = "cut"; cut.title = "split here"; cut.textContent = "✂";
+          cut.onclick = () => { const c = (S.cuts[t.id] = S.cuts[t.id] || []); if (!c.includes(x.frame)) c.push(x.frame); persist(); render(); };
+          th.appendChild(cut);
+        }
+        const w = document.createElement("span"); w.className = "thumbwrap";
+        w.innerHTML = `<img src="${x.file}" loading="lazy"><span class="fr">${x.frame}</span>`;
+        th.appendChild(w);
+      });
+      box.appendChild(th);
+      const ctl = document.createElement("div"); ctl.className = "ctl";
+      const label = d ? (d.decision === "player" ? `<b style="color:${color(d.player)}">${d.player}</b>` : `<b>${d.decision.toUpperCase()}</b>`) : `<span class="muted">undecided</span>`;
+      ctl.innerHTML = `<span>${label}</span><span class="muted">${p.first}–${p.last}</span>`;
+      const mk = (txt, fn) => { const b = document.createElement("button"); b.textContent = txt; b.onclick = fn; ctl.appendChild(b); };
+      mk("Assign", () => assign(p.key)); mk("Reject", () => setD(p.key, "reject")); mk("Unsure", () => setD(p.key, "unsure")); mk("Clear", () => setD(p.key, null));
+      if (p.first !== t.first_frame) mk("Join with previous", () => { S.cuts[t.id] = (S.cuts[t.id] || []).filter(c => c !== p.first); delete S.decisions[p.key]; persist(); render(); });
+      box.appendChild(ctl);
+      box.onmouseenter = () => { hovered = p.key; };
+      strip.appendChild(box);
+    }
+    card.appendChild(strip); list.appendChild(card);
+  }
+  $("progress").textContent = `${decided}/${total} parts decided · ${PACK.tracklets.length} tracklets`;
+}
+
+function assign(k) { if (!active) { status("Select (click) a player on the left first.", "warn"); return; } S.decisions[k] = { decision: "player", player: active }; persist(); render(); }
+function setD(k, d) { if (d) S.decisions[k] = { decision: d, player: null }; else delete S.decisions[k]; persist(); render(); }
+
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || !hovered) return;
+  if (e.key === "a") assign(hovered); else if (e.key === "r") setD(hovered, "reject");
+  else if (e.key === "u") setD(hovered, "unsure"); else if (e.key === "c") setD(hovered, null);
+});
+$("padd").onclick = () => {
+  const k = $("pkey").value.trim(), side = $("pside").value, num = $("pnum").value.trim();
+  if (!/^[A-Za-z0-9_-]{1,16}$/.test(k)) { status("Player key: 1-16 letters, digits, _ or -", "bad"); return; }
+  if (S.players[k]) { status("Player " + k + " already exists", "warn"); return; }
+  S.players[k] = { side, shirt_number: num || null }; active = k; $("pkey").value = ""; $("pnum").value = ""; persist(); render();
+};
+for (const id of ["annotator", "version", "reason"]) { $(id).value = S[id] ?? $(id).value; $(id).oninput = () => { S[id] = id === "version" ? parseInt($(id).value, 10) : $(id).value; persist(); }; }
+$("filter").onchange = render;
+
+$("export").onclick = () => {
+  const out = [], undecided = [];
+  for (const t of PACK.tracklets) for (const p of parts(t)) {
+    const d = decision(p.key);
+    if (!d) { undecided.push(p.key); continue; }
+    out.push({ tracklet: t.id, first_frame: p.first, last_frame: p.last, decision: d.decision, player: d.player || null });
+  }
+  if (undecided.length) { status(`${undecided.length} parts undecided: decide every part (or Reject / Unsure) before export.`, "bad"); $("filter").value = "open"; render(); return; }
+  if (conflicts().size) { status("A player is in two places at once: fix the red cards first.", "bad"); $("filter").value = "conflict"; render(); return; }
+  if (!String(S.annotator || "").trim()) { status("Annotator name required.", "bad"); return; }
+  const v = parseInt(S.version || 1, 10);
+  if (v > 1 && !String(S.reason || "").trim()) { status("A new version needs a reason.", "bad"); return; }
+  const used = new Set(out.filter(o => o.decision === "player").map(o => o.player));
+  const players = Object.fromEntries(Object.entries(S.players).filter(([k]) => used.has(k)));
+  const doc = { schema: "spana.reid_label_export", schema_version: "1.0.0", match_id: PACK.match.match_id, split: PACK.match.split,
+    tracklets_sha256: PACK.tracklets_sha256, annotator: S.annotator.trim(), label_version: v, reason: S.reason || "",
+    exported_utc: new Date().toISOString(), players, parts: out };
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 1)], { type: "application/json" }));
+  a.download = `${PACK.match.match_id}_reid_v${v}.json`; a.click();
+  status("Exported " + a.download + " — freeze it with tools/freeze_reid_labels.py", "ok");
+};
+$("match").textContent = `${PACK.match.match_id} · ${PACK.match.split} · ${PACK.match.footage_licence} · consent: ${PACK.match.consent_basis}`;
+render();
+status(Object.keys(S.decisions).length ? "Progress restored from this browser." : "Add players on the left, then decide every tracklet part.", "ok");
+</script>
+</body>
+</html>
