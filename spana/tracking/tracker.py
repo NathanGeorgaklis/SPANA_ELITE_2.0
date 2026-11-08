@@ -75,6 +75,13 @@ _EPS = 1e-9
 
 
 @dataclass
+class _Rival:
+    """One unresolved identity ambiguity between a track and a rival track."""
+    appearance: Optional[np.ndarray]    # the rival's stored appearance when the ambiguity (re)started, or None
+    since_t: float                      # time of the latest contest between the two (evidence must come after it)
+
+
+@dataclass
 class _Track:
     track_id: str
     kf: BoxKalman
@@ -96,7 +103,7 @@ class _Track:
     recoveries: int = 0
     last_gap_s: float = 0.0
     predecessors: Tuple[str, ...] = ()
-    identity_rivals: Dict[str, Optional[np.ndarray]] = field(default_factory=dict)  # rival -> its appearance then
+    identity_rivals: Dict[str, "_Rival"] = field(default_factory=dict)   # rival id -> what is known about it
     uncertain_episodes: int = 0
     resolve_since_t: Optional[float] = None    # start of the current run of clean evidence favouring this track
     scores: Deque[Tuple[float, float]] = field(default_factory=deque)      # (time, score or 0)
@@ -114,6 +121,7 @@ class MultiPlayerTracker:
         self.frame_w, self.frame_h = frame_w, frame_h
         self._tracks: List[_Track] = []
         self._next_id = 1
+        self._clean_crops: Dict[str, Tuple[float, np.ndarray]] = {}   # track id -> latest clean, uncontested crop
         self._epoch = 0
         self._last_frame: Optional[int] = None
         self._summaries: Dict[str, TrackletSummary] = {}
@@ -285,7 +293,10 @@ class MultiPlayerTracker:
                 for a, b in ((t, r), (r, t)):
                     if not a.identity_rivals:
                         a.uncertain_episodes += 1
-                    a.identity_rivals.setdefault(b.track_id, None if b.appearance is None else b.appearance.copy())
+                    prev = a.identity_rivals.get(b.track_id)
+                    snap = prev.appearance if prev is not None else (None if b.appearance is None
+                                                                      else b.appearance.copy())
+                    a.identity_rivals[b.track_id] = _Rival(snap, time_s)
                     a.resolve_since_t = None
                 out.decisions.append({"kind": "identity_uncertain", "track_id": t.track_id, "rival": r.track_id,
                                       "detection": i, "own_similarity": s_own, "rival_similarity": s_riv})
@@ -295,28 +306,53 @@ class MultiPlayerTracker:
 
     def _identity_resolution(self, matched: Dict[int, Tuple[int, bool]], dets: Sequence[Detection],
                              desc: Sequence[Optional[np.ndarray]], time_s: float, out: FrameTracks) -> None:
-        """An uncertain track becomes CERTAIN only after clean evidence (uncontested match, clean crop) favours its
-        own frozen appearance over every rival's recorded appearance by min_margin, continuously for
-        identity_resolve_s. Evidence favouring a rival, or a rival without a known appearance, never resolves."""
+        """An uncertain track becomes CERTAIN only after clean evidence (uncontested match, clean crop) clears EVERY
+        rival pair on the same frame and no pair has been contradicted for identity_resolve_s. Per pair:
+          TWO_SIDED  both appearances stored: own crop matches own (>= min_similarity) and beats the rival's by
+                     min_margin (the original rule);
+          RIVAL_ONLY only the rival's stored: own crop is clearly unlike the rival (<= min_similarity - min_margin);
+          OWN_ONLY   only own stored: own crop matches own, and the rival's latest clean crop taken after the
+                     contest is clearly unlike own (<= min_similarity - min_margin); no such crop = no evidence;
+          neither stored: never evidence.
+        Any pair with clean evidence against it resets the run; frames without evidence for a pair hold it."""
+        clear_max = self.ac.min_similarity - self.ac.min_margin
         for k, (i, contested) in matched.items():
             t = self._tracks[k]
             if not t.identity_rivals or contested or desc[i] is None or not self._clean(i, dets, matched):
                 continue
             s_own = similarity(desc[i], t.appearance)
-            riv = [None if a is None else similarity(desc[i], a) for a in t.identity_rivals.values()]
-            favours = s_own is not None and s_own >= self.ac.min_similarity and \
-                all(v is not None and s_own - v >= self.ac.min_margin for v in riv)
-            if not favours:
+            verdicts: Dict[str, Tuple[str, Optional[bool]]] = {}
+            for rid, rv in t.identity_rivals.items():
+                if t.appearance is not None and rv.appearance is not None:
+                    ok = s_own >= self.ac.min_similarity and s_own - similarity(desc[i], rv.appearance) >= \
+                        self.ac.min_margin
+                    verdicts[rid] = ("TWO_SIDED", ok)
+                elif rv.appearance is not None:
+                    verdicts[rid] = ("RIVAL_ONLY", similarity(desc[i], rv.appearance) <= clear_max)
+                elif t.appearance is not None:
+                    crop = self._clean_crops.get(rid)
+                    if crop is None or crop[0] <= rv.since_t:
+                        verdicts[rid] = ("OWN_ONLY", None if s_own >= self.ac.min_similarity else False)
+                    else:
+                        verdicts[rid] = ("OWN_ONLY", s_own >= self.ac.min_similarity and
+                                         similarity(crop[1], t.appearance) <= clear_max)
+                else:
+                    verdicts[rid] = ("NONE_STORED", None)
+            if any(v is False for _, v in verdicts.values()):
                 if t.resolve_since_t is not None:
                     out.decisions.append({"kind": "identity_resolution_reset", "track_id": t.track_id,
-                                          "detection": i, "own_similarity": s_own})
+                                          "detection": i, "own_similarity": s_own,
+                                          "against": sorted(r for r, (_, v) in verdicts.items() if v is False)})
                 t.resolve_since_t = None
                 continue
+            if not all(v for _, v in verdicts.values()):
+                continue                      # some pair has no evidence on this frame: hold, do not advance
             if t.resolve_since_t is None:
                 t.resolve_since_t = time_s
             if time_s - t.resolve_since_t >= self.tc.identity_resolve_s - _EPS:
                 out.decisions.append({"kind": "identity_resolved", "track_id": t.track_id, "detection": i,
-                                      "rivals": sorted(t.identity_rivals), "own_similarity": s_own})
+                                      "rivals": {r: rule for r, (rule, _) in sorted(verdicts.items())},
+                                      "own_similarity": s_own})
                 t.identity_rivals, t.resolve_since_t = {}, None
 
     def _recoverable(self, t: _Track, time_s: float) -> bool:
@@ -541,8 +577,10 @@ class MultiPlayerTracker:
                 t.observed_frames += 1
                 t.velocity_frozen, t.observed_last_frame, t.missed_frames = False, True, 0
                 t.state, t.occluder = TrackState.ACTIVE, None
-                if not contested and not t.identity_rivals and self._clean(i, dets, matched):
-                    self._update_appearance(t, desc[i], time_s)     # frozen while IDENTITY_UNCERTAIN
+                if not contested and self._clean(i, dets, matched) and desc[i] is not None:
+                    self._clean_crops[t.track_id] = (time_s, desc[i])   # evidence only, never the model
+                    if not t.identity_rivals:
+                        self._update_appearance(t, desc[i], time_s)     # frozen while IDENTITY_UNCERTAIN
             else:
                 t.observed_last_frame = False
                 t.missed_frames += 1

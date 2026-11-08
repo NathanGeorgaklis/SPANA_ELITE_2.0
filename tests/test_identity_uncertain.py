@@ -120,5 +120,61 @@ class Resolution(unittest.TestCase):
         self.assertNotIn("identity_resolved", [d["kind"] for ft in fts for d in ft.decisions])
 
 
+class OneSidedResolution(unittest.TestCase):
+    """Track T is crowd-born (no clean crop before the contest, so no stored appearance); rival R has one.
+    One shared undescribed box makes both uncertain; afterwards the evidence decides."""
+    R_BOX, T_BOX = (500.0, 300.0, 540.0, 420.0), (545.0, 300.0, 585.0, 420.0)
+    MID = (522.0, 300.0, 562.0, 420.0)
+    KIT_R = np.array([0.97, 0.01, 0.01, 0.01])
+    KIT_T = np.array([0.01, 0.01, 0.01, 0.97])      # similarity with KIT_R ~0.22: clearly unlike
+
+    def _run(self, after_r, after_t):
+        trk = MultiPlayerTracker(CFG, 1920, 1080)
+        cam = lambda i: CameraObservation.identity(CameraStatus.FIRST if i == 0 else CameraStatus.OK, inliers=100)  # noqa
+        fts = []
+        for i in range(45):
+            if i == 10:
+                dets, desc = [Detection(self.MID, 0.9, 0)], [None]
+            else:
+                dets = [Detection(self.R_BOX, 0.9, 0), Detection(self.T_BOX, 0.9, 0)]
+                desc = [self.KIT_R, None] if i < 10 else [after_r, after_t]
+            fts.append(trk.update(i, i / 30, dets, cam(i), desc))
+        ids = {o.detection_index: o.track_id for o in fts[9].tracks}
+        return fts, ids[0], ids[1]
+
+    def _resolved(self, fts):
+        return {d["track_id"]: d["rivals"] for ft in fts for d in ft.decisions if d["kind"] == "identity_resolved"}
+
+    def test_safe_crowd_born_resolution(self):
+        fts, r, t = self._run(self.KIT_R, self.KIT_T)
+        self.assertEqual({o.track_id for o in fts[10].tracks if o.identity != IdentityState.CERTAIN}, {r, t})
+        res = self._resolved(fts)
+        self.assertEqual(res.get(t), {r: "RIVAL_ONLY"})       # T is clearly not R's player
+        self.assertEqual(res.get(r), {t: "OWN_ONLY"})         # R matches itself and T's later crop is unlike R
+        self.assertTrue(all(o.identity == IdentityState.CERTAIN for o in fts[-1].tracks))
+
+    def test_rival_only_needs_the_full_window(self):
+        fts, r, t = self._run(self.KIT_R, self.KIT_T)
+        first = next(k for k, ft in enumerate(fts) if any(d["kind"] == "identity_resolved" and d["track_id"] == t
+                                                          for d in ft.decisions))
+        self.assertGreaterEqual((first - 11) / 30, CFG.tracking.identity_resolve_s - 1e-9)
+
+    def test_same_kit_pair_stays_uncertain(self):
+        fts, r, t = self._run(self.KIT_R, self.KIT_R)
+        self.assertEqual(self._resolved(fts), {})
+        self.assertTrue(all(o.identity == IdentityState.IDENTITY_UNCERTAIN for o in fts[-1].tracks))
+
+    def test_true_takeover_never_resolves(self):
+        # After the contest the crowd-born track T is on R's player and R's track is on the other one.
+        fts, r, t = self._run(self.KIT_T, self.KIT_R)
+        self.assertEqual(self._resolved(fts), {})
+        after = [o for ft in fts[10:] for o in ft.tracks if o.track_id in (r, t)]
+        self.assertTrue(after and all(o.identity == IdentityState.IDENTITY_UNCERTAIN for o in after))
+
+    def test_neither_appearance_known_stays_uncertain(self):
+        fts, r, t = self._run(None, None)
+        self.assertEqual(self._resolved(fts), {})
+
+
 if __name__ == "__main__":
     unittest.main()

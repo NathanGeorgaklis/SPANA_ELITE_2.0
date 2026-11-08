@@ -26,7 +26,7 @@ def _probe(self, matched, dets, desc, time_s, out):
             continue
         row = {"frame": self._frame, "t": round(time_s, 4), "state": t.state.value,
                "rivals": sorted(t.identity_rivals),
-               "rival_without_appearance": sorted(r for r, a in t.identity_rivals.items() if a is None),
+               "rival_without_appearance": sorted(r for r, a in t.identity_rivals.items() if a.appearance is None),
                "own_appearance": t.appearance is not None}
         if t.track_id not in by_track:
             row["reason"] = "UNOBSERVED"
@@ -40,7 +40,8 @@ def _probe(self, matched, dets, desc, time_s, out):
                 row["reason"] = "BOX_OVERLAPS_MATCHED"
             else:
                 s_own = similarity(desc[i], t.appearance)
-                riv = {r: (None if a is None else similarity(desc[i], a)) for r, a in t.identity_rivals.items()}
+                riv = {r: (None if a.appearance is None else similarity(desc[i], a.appearance))
+                       for r, a in t.identity_rivals.items()}
                 row.update({"own_similarity": s_own, "rival_similarity": riv})
                 if s_own is None:
                     row["reason"] = "OWN_APPEARANCE_UNKNOWN"
