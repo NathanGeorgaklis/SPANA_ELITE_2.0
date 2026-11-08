@@ -1,0 +1,212 @@
+{
+ "by_class_first_pass": {
+  "NO_CLEAN_CROP": 3,
+  "TRACK_ENDS_FIRST": 3,
+  "OTHER": 1,
+  "RESOLVED": 1
+ },
+ "frames_by_reason": {
+  "CONTESTED_MATCH": 24,
+  "NO_CLEAN_CROP": 41,
+  "UNOBSERVED": 275,
+  "OWN_APPEARANCE_UNKNOWN": 47,
+  "MARGIN_TOO_SMALL": 2,
+  "FAVOURS_OWN": 13
+ },
+ "tracks": [
+  {
+   "track_id": "T000006",
+   "class": "NO_CLEAN_CROP",
+   "uncertain_frames": 70,
+   "uncertain_s": 2.3,
+   "first_frame": 154,
+   "last_frame": 292,
+   "ended": [
+    292,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "CONTESTED_MATCH": 2,
+    "NO_CLEAN_CROP": 4,
+    "UNOBSERVED": 64
+   },
+   "rivals": [
+    "T000013",
+    "T000021"
+   ],
+   "rival_without_appearance": [
+    "T000021"
+   ],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000013",
+   "class": "TRACK_ENDS_FIRST",
+   "uncertain_frames": 56,
+   "uncertain_s": 1.833,
+   "first_frame": 154,
+   "last_frame": 264,
+   "ended": [
+    264,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "UNOBSERVED": 56
+   },
+   "rivals": [
+    "T000006",
+    "T000021"
+   ],
+   "rival_without_appearance": [
+    "T000021"
+   ],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000021",
+   "class": "OTHER",
+   "uncertain_frames": 144,
+   "uncertain_s": 4.767,
+   "first_frame": 182,
+   "last_frame": 468,
+   "ended": [
+    468,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "CONTESTED_MATCH": 5,
+    "NO_CLEAN_CROP": 31,
+    "OWN_APPEARANCE_UNKNOWN": 47,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000006",
+    "T000013"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": false,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000007",
+   "class": "TRACK_ENDS_FIRST",
+   "uncertain_frames": 2,
+   "uncertain_s": 0.033,
+   "first_frame": 220,
+   "last_frame": 222,
+   "ended": [
+    222,
+    "LEFT_FRAME"
+   ],
+   "reasons": {
+    "UNOBSERVED": 2
+   },
+   "rivals": [
+    "T000023"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000023",
+   "class": "TRACK_ENDS_FIRST",
+   "uncertain_frames": 5,
+   "uncertain_s": 0.133,
+   "first_frame": 220,
+   "last_frame": 228,
+   "ended": [
+    228,
+    "LEFT_FRAME"
+   ],
+   "reasons": {
+    "CONTESTED_MATCH": 1,
+    "MARGIN_TOO_SMALL": 2,
+    "NO_CLEAN_CROP": 1,
+    "UNOBSERVED": 1
+   },
+   "rivals": [
+    "T000007"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": true,
+   "margin_median": 0.0325,
+   "margin_max": 0.0336
+  },
+  {
+   "track_id": "T000030",
+   "class": "NO_CLEAN_CROP",
+   "uncertain_frames": 64,
+   "uncertain_s": 2.1,
+   "first_frame": 624,
+   "last_frame": 750,
+   "ended": [
+    750,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "NO_CLEAN_CROP": 1,
+    "CONTESTED_MATCH": 2,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000036",
+    "T000049"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000036",
+   "class": "NO_CLEAN_CROP",
+   "uncertain_frames": 34,
+   "uncertain_s": 1.1,
+   "first_frame": 624,
+   "last_frame": 690,
+   "ended": [
+    690,
+    "LEFT_FRAME"
+   ],
+   "reasons": {
+    "CONTESTED_MATCH": 4,
+    "UNOBSERVED": 30
+   },
+   "rivals": [
+    "T000030"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000049",
+   "class": "RESOLVED",
+   "uncertain_frames": 27,
+   "uncertain_s": 0.867,
+   "first_frame": 668,
+   "last_frame": 720,
+   "ended": null,
+   "reasons": {
+    "CONTESTED_MATCH": 10,
+    "FAVOURS_OWN": 13,
+    "NO_CLEAN_CROP": 4
+   },
+   "rivals": [
+    "T000030"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": true,
+   "margin_median": 0.5335,
+   "margin_max": 0.597
+  }
+ ]
+}

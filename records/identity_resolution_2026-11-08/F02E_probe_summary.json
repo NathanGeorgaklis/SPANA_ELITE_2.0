@@ -1,0 +1,607 @@
+{
+ "by_class_first_pass": {
+  "RESOLVED": 3,
+  "NO_CLEAN_CROP": 8,
+  "RIVAL_NO_APPEARANCE": 6,
+  "MARGIN_TOO_SMALL": 1,
+  "OTHER": 4,
+  "TRACK_ENDS_FIRST": 1
+ },
+ "frames_by_reason": {
+  "CONTESTED_MATCH": 92,
+  "NO_CLEAN_CROP": 425,
+  "FAVOURS_OWN": 59,
+  "UNOBSERVED": 894,
+  "MARGIN_TOO_SMALL": 2,
+  "RIVAL_NO_APPEARANCE": 130,
+  "OWN_APPEARANCE_UNKNOWN": 130
+ },
+ "tracks": [
+  {
+   "track_id": "T000005",
+   "class": "RESOLVED",
+   "uncertain_frames": 83,
+   "uncertain_s": 4.033,
+   "first_frame": 169,
+   "last_frame": 290,
+   "ended": [
+    290,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "CONTESTED_MATCH": 7,
+    "NO_CLEAN_CROP": 17,
+    "FAVOURS_OWN": 14,
+    "UNOBSERVED": 45
+   },
+   "rivals": [
+    "T000002",
+    "T000008"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": true,
+   "margin_median": 0.4409,
+   "margin_max": 0.4662
+  },
+  {
+   "track_id": "T000007",
+   "class": "NO_CLEAN_CROP",
+   "uncertain_frames": 66,
+   "uncertain_s": 2.167,
+   "first_frame": 169,
+   "last_frame": 234,
+   "ended": [
+    234,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "NO_CLEAN_CROP": 5,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000014",
+    "T000214",
+    "T000217"
+   ],
+   "rival_without_appearance": [
+    "T000217"
+   ],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000008",
+   "class": "RESOLVED",
+   "uncertain_frames": 38,
+   "uncertain_s": 1.233,
+   "first_frame": 169,
+   "last_frame": 206,
+   "ended": null,
+   "reasons": {
+    "NO_CLEAN_CROP": 17,
+    "CONTESTED_MATCH": 5,
+    "FAVOURS_OWN": 16
+   },
+   "rivals": [
+    "T000005"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": true,
+   "margin_median": 0.5111,
+   "margin_max": 0.6918
+  },
+  {
+   "track_id": "T000014",
+   "class": "NO_CLEAN_CROP",
+   "uncertain_frames": 67,
+   "uncertain_s": 2.2,
+   "first_frame": 169,
+   "last_frame": 235,
+   "ended": [
+    235,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "CONTESTED_MATCH": 4,
+    "NO_CLEAN_CROP": 2,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000007",
+    "T000214",
+    "T000217"
+   ],
+   "rival_without_appearance": [
+    "T000217"
+   ],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000214",
+   "class": "RIVAL_NO_APPEARANCE",
+   "uncertain_frames": 114,
+   "uncertain_s": 3.767,
+   "first_frame": 182,
+   "last_frame": 295,
+   "ended": [
+    295,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "CONTESTED_MATCH": 12,
+    "NO_CLEAN_CROP": 37,
+    "MARGIN_TOO_SMALL": 1,
+    "RIVAL_NO_APPEARANCE": 3,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000007",
+    "T000014",
+    "T000026",
+    "T000217",
+    "T000229",
+    "T000236",
+    "T000248"
+   ],
+   "rival_without_appearance": [
+    "T000217",
+    "T000229",
+    "T000236"
+   ],
+   "own_appearance_known": true,
+   "margin_median": -0.0437,
+   "margin_max": -0.0437
+  },
+  {
+   "track_id": "T000217",
+   "class": "NO_CLEAN_CROP",
+   "uncertain_frames": 134,
+   "uncertain_s": 4.433,
+   "first_frame": 191,
+   "last_frame": 324,
+   "ended": [
+    324,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "CONTESTED_MATCH": 4,
+    "NO_CLEAN_CROP": 69,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000007",
+    "T000014",
+    "T000214",
+    "T000236",
+    "T000248",
+    "T000275"
+   ],
+   "rival_without_appearance": [
+    "T000236"
+   ],
+   "own_appearance_known": false,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000026",
+   "class": "NO_CLEAN_CROP",
+   "uncertain_frames": 63,
+   "uncertain_s": 2.067,
+   "first_frame": 197,
+   "last_frame": 259,
+   "ended": [
+    259,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "NO_CLEAN_CROP": 2,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000214",
+    "T000229"
+   ],
+   "rival_without_appearance": [
+    "T000229"
+   ],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000229",
+   "class": "NO_CLEAN_CROP",
+   "uncertain_frames": 74,
+   "uncertain_s": 2.433,
+   "first_frame": 206,
+   "last_frame": 279,
+   "ended": [
+    279,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "CONTESTED_MATCH": 6,
+    "NO_CLEAN_CROP": 7,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000026",
+    "T000214",
+    "T000236"
+   ],
+   "rival_without_appearance": [
+    "T000236"
+   ],
+   "own_appearance_known": false,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000009",
+   "class": "NO_CLEAN_CROP",
+   "uncertain_frames": 72,
+   "uncertain_s": 2.367,
+   "first_frame": 230,
+   "last_frame": 301,
+   "ended": [
+    301,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "CONTESTED_MATCH": 1,
+    "NO_CLEAN_CROP": 10,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000212"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000212",
+   "class": "MARGIN_TOO_SMALL",
+   "uncertain_frames": 98,
+   "uncertain_s": 3.233,
+   "first_frame": 230,
+   "last_frame": 327,
+   "ended": [
+    327,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "NO_CLEAN_CROP": 28,
+    "CONTESTED_MATCH": 8,
+    "MARGIN_TOO_SMALL": 1,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000009",
+    "T000263"
+   ],
+   "rival_without_appearance": [
+    "T000263"
+   ],
+   "own_appearance_known": true,
+   "margin_median": -0.0861,
+   "margin_max": -0.0861
+  },
+  {
+   "track_id": "T000236",
+   "class": "RIVAL_NO_APPEARANCE",
+   "uncertain_frames": 83,
+   "uncertain_s": 2.733,
+   "first_frame": 239,
+   "last_frame": 321,
+   "ended": [
+    321,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "CONTESTED_MATCH": 5,
+    "NO_CLEAN_CROP": 17,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000214",
+    "T000217",
+    "T000229",
+    "T000248",
+    "T000275"
+   ],
+   "rival_without_appearance": [
+    "T000217",
+    "T000229"
+   ],
+   "own_appearance_known": false,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000002",
+   "class": "RIVAL_NO_APPEARANCE",
+   "uncertain_frames": 145,
+   "uncertain_s": 4.867,
+   "first_frame": 246,
+   "last_frame": 390,
+   "ended": null,
+   "reasons": {
+    "CONTESTED_MATCH": 13,
+    "NO_CLEAN_CROP": 99,
+    "RIVAL_NO_APPEARANCE": 33
+   },
+   "rivals": [
+    "T000005",
+    "T000279"
+   ],
+   "rival_without_appearance": [
+    "T000279"
+   ],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000263",
+   "class": "OTHER",
+   "uncertain_frames": 74,
+   "uncertain_s": 2.433,
+   "first_frame": 257,
+   "last_frame": 330,
+   "ended": [
+    330,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "NO_CLEAN_CROP": 9,
+    "CONTESTED_MATCH": 3,
+    "OWN_APPEARANCE_UNKNOWN": 1,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000212"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": false,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000248",
+   "class": "RIVAL_NO_APPEARANCE",
+   "uncertain_frames": 66,
+   "uncertain_s": 2.167,
+   "first_frame": 258,
+   "last_frame": 323,
+   "ended": [
+    323,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "NO_CLEAN_CROP": 2,
+    "CONTESTED_MATCH": 3,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000214",
+    "T000217",
+    "T000236",
+    "T000275"
+   ],
+   "rival_without_appearance": [
+    "T000217",
+    "T000236"
+   ],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000279",
+   "class": "OTHER",
+   "uncertain_frames": 109,
+   "uncertain_s": 3.667,
+   "first_frame": 282,
+   "last_frame": 390,
+   "ended": null,
+   "reasons": {
+    "NO_CLEAN_CROP": 53,
+    "OWN_APPEARANCE_UNKNOWN": 56
+   },
+   "rivals": [
+    "T000002"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": false,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000275",
+   "class": "RIVAL_NO_APPEARANCE",
+   "uncertain_frames": 106,
+   "uncertain_s": 3.567,
+   "first_frame": 285,
+   "last_frame": 390,
+   "ended": null,
+   "reasons": {
+    "CONTESTED_MATCH": 11,
+    "RIVAL_NO_APPEARANCE": 94,
+    "NO_CLEAN_CROP": 1
+   },
+   "rivals": [
+    "T000217",
+    "T000236",
+    "T000248"
+   ],
+   "rival_without_appearance": [
+    "T000217",
+    "T000236"
+   ],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000278",
+   "class": "RIVAL_NO_APPEARANCE",
+   "uncertain_frames": 74,
+   "uncertain_s": 2.433,
+   "first_frame": 304,
+   "last_frame": 377,
+   "ended": [
+    377,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "NO_CLEAN_CROP": 11,
+    "CONTESTED_MATCH": 2,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000282"
+   ],
+   "rival_without_appearance": [
+    "T000282"
+   ],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000282",
+   "class": "OTHER",
+   "uncertain_frames": 87,
+   "uncertain_s": 2.933,
+   "first_frame": 304,
+   "last_frame": 390,
+   "ended": null,
+   "reasons": {
+    "CONTESTED_MATCH": 1,
+    "NO_CLEAN_CROP": 13,
+    "OWN_APPEARANCE_UNKNOWN": 73
+   },
+   "rivals": [
+    "T000278"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": false,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000010",
+   "class": "RESOLVED",
+   "uncertain_frames": 49,
+   "uncertain_s": 1.6,
+   "first_frame": 306,
+   "last_frame": 354,
+   "ended": null,
+   "reasons": {
+    "CONTESTED_MATCH": 4,
+    "FAVOURS_OWN": 27,
+    "NO_CLEAN_CROP": 18
+   },
+   "rivals": [
+    "T000012"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": true,
+   "margin_median": 0.7898,
+   "margin_max": 0.8308
+  },
+  {
+   "track_id": "T000012",
+   "class": "NO_CLEAN_CROP",
+   "uncertain_frames": 63,
+   "uncertain_s": 2.067,
+   "first_frame": 306,
+   "last_frame": 368,
+   "ended": [
+    368,
+    "LOST_EXPIRED"
+   ],
+   "reasons": {
+    "NO_CLEAN_CROP": 2,
+    "UNOBSERVED": 61
+   },
+   "rivals": [
+    "T000010"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000004",
+   "class": "NO_CLEAN_CROP",
+   "uncertain_frames": 30,
+   "uncertain_s": 1.033,
+   "first_frame": 361,
+   "last_frame": 390,
+   "ended": null,
+   "reasons": {
+    "CONTESTED_MATCH": 1,
+    "UNOBSERVED": 29
+   },
+   "rivals": [
+    "T000211",
+    "T000306"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  },
+  {
+   "track_id": "T000211",
+   "class": "OTHER",
+   "uncertain_frames": 30,
+   "uncertain_s": 1.033,
+   "first_frame": 361,
+   "last_frame": 390,
+   "ended": null,
+   "reasons": {
+    "NO_CLEAN_CROP": 1,
+    "FAVOURS_OWN": 2,
+    "UNOBSERVED": 27
+   },
+   "rivals": [
+    "T000004",
+    "T000306"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": true,
+   "margin_median": 0.1231,
+   "margin_max": 0.1269
+  },
+  {
+   "track_id": "T000306",
+   "class": "TRACK_ENDS_FIRST",
+   "uncertain_frames": 7,
+   "uncertain_s": 0.267,
+   "first_frame": 384,
+   "last_frame": 390,
+   "ended": null,
+   "reasons": {
+    "CONTESTED_MATCH": 2,
+    "NO_CLEAN_CROP": 5
+   },
+   "rivals": [
+    "T000004",
+    "T000211"
+   ],
+   "rival_without_appearance": [],
+   "own_appearance_known": true,
+   "margin_median": null,
+   "margin_max": null
+  }
+ ]
+}
