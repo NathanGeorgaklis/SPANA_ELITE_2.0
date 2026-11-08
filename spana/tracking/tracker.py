@@ -38,6 +38,9 @@ Per frame:
      the unobserved tracks whose gate it lies in as `possible_predecessors` (evidence, not a merge).
      Known limit: a never-tracked player who looks the same and appears exactly on a hidden player's predicted
      path is indistinguishable from him; every bridged gap is therefore recorded (`recoveries`, `last_gap_s`).
+  Identity: a contested match of a confirmed track that a rival confirmed track also passes, with appearance
+     unable to separate them, marks both IDENTITY_UNCERTAIN (appearance frozen) until clean appearance evidence
+     favours the track over every recorded rival for identity_resolve_s.
   5. Spawn: a high-score detection starts an unconfirmed track unless it duplicates an observed box
      (IoU > duplicate_iou, or inside it by duplicate_ioa of its own area: a partial-body duplicate).
      Confirmation needs an observed span >= confirm_s AND the box not nested (IoA >= confirm_nested_ioa) inside
@@ -64,7 +67,7 @@ from ..appearance import similarity
 from ..config import SpanaConfig
 from ..geometry import box_to_cxcywh, cxcywh_to_box, iou_matrix
 from ..records import (CameraObservation, CameraStatus, Detection, EndReason, FrameTracks, HistoryEntry,
-                       PositionSource, TrackletSummary, TrackObservation, TrackState)
+                       IdentityState, PositionSource, TrackletSummary, TrackObservation, TrackState)
 from .kalman import BoxKalman
 
 _INVALID = 1e6
@@ -93,6 +96,9 @@ class _Track:
     recoveries: int = 0
     last_gap_s: float = 0.0
     predecessors: Tuple[str, ...] = ()
+    identity_rivals: Dict[str, Optional[np.ndarray]] = field(default_factory=dict)  # rival -> its appearance then
+    uncertain_episodes: int = 0
+    resolve_since_t: Optional[float] = None    # start of the current run of clean evidence favouring this track
     scores: Deque[Tuple[float, float]] = field(default_factory=deque)      # (time, score or 0)
     history: Deque[HistoryEntry] = field(default_factory=deque)
 
@@ -161,6 +167,8 @@ class MultiPlayerTracker:
         rem_high = self._recover(rem_high, dets, desc, time_s, matched, out)   # low scores never recover/spawn
         self._log_unmatched(dets, desc, time_s, matched, out)                    # read-only diagnostics
         self._contest_multi_body(matched, dets, out)
+        self._identity_ambiguity(matched, dets, desc, time_s, out)
+        self._identity_resolution(matched, dets, desc, time_s, out)
 
         self._apply_matches(matched, dets, desc, frame_index, time_s)
         self._lifecycle(matched, dets, frame_index, time_s, out)
@@ -254,6 +262,62 @@ class MultiPlayerTracker:
                 matched[k] = (i, True)
                 out.decisions.append({"kind": "contested_multi_body", "track_id": self._tracks[k].track_id,
                                       "detection": i})
+
+    def _identity_ambiguity(self, matched: Dict[int, Tuple[int, bool]], dets: Sequence[Detection],
+                            desc: Sequence[Optional[np.ndarray]], time_s: float, out: FrameTracks) -> None:
+        """IDENTITY_UNCERTAIN trigger (real DEV finding: a crossing swapped two identities with only per-frame
+        contest flags, so the swap stayed silent). A contested match of a confirmed track whose detection a rival
+        confirmed track also passes (every gate + its own motion), with appearance unable to separate the two by
+        min_margin, marks BOTH tracks uncertain. Evaluated on predicted states, before any update (read-only)."""
+        for k, (i, contested) in list(matched.items()):
+            t = self._tracks[k]
+            if not (contested and t.confirmed):
+                continue
+            for r in self._tracks:
+                if r is t or not r.confirmed or not self._recoverable_or_live(r, time_s):
+                    continue
+                rep = self._gate_report(r, dets[i], desc[i], time_s)
+                if rep["failed"] or not rep["motion_consistent"]:
+                    continue
+                s_own, s_riv = similarity(desc[i], t.appearance), similarity(desc[i], r.appearance)
+                if s_own is not None and s_riv is not None and abs(s_own - s_riv) >= self.ac.min_margin:
+                    continue                      # appearance tells them apart: an ordinary contest
+                for a, b in ((t, r), (r, t)):
+                    if not a.identity_rivals:
+                        a.uncertain_episodes += 1
+                    a.identity_rivals.setdefault(b.track_id, None if b.appearance is None else b.appearance.copy())
+                    a.resolve_since_t = None
+                out.decisions.append({"kind": "identity_uncertain", "track_id": t.track_id, "rival": r.track_id,
+                                      "detection": i, "own_similarity": s_own, "rival_similarity": s_riv})
+
+    def _recoverable_or_live(self, t: _Track, time_s: float) -> bool:
+        return t.observed_last_frame or time_s - t.last_observed_t <= self.tc.occlusion_max_s + _EPS
+
+    def _identity_resolution(self, matched: Dict[int, Tuple[int, bool]], dets: Sequence[Detection],
+                             desc: Sequence[Optional[np.ndarray]], time_s: float, out: FrameTracks) -> None:
+        """An uncertain track becomes CERTAIN only after clean evidence (uncontested match, clean crop) favours its
+        own frozen appearance over every rival's recorded appearance by min_margin, continuously for
+        identity_resolve_s. Evidence favouring a rival, or a rival without a known appearance, never resolves."""
+        for k, (i, contested) in matched.items():
+            t = self._tracks[k]
+            if not t.identity_rivals or contested or desc[i] is None or not self._clean(i, dets, matched):
+                continue
+            s_own = similarity(desc[i], t.appearance)
+            riv = [None if a is None else similarity(desc[i], a) for a in t.identity_rivals.values()]
+            favours = s_own is not None and s_own >= self.ac.min_similarity and \
+                all(v is not None and s_own - v >= self.ac.min_margin for v in riv)
+            if not favours:
+                if t.resolve_since_t is not None:
+                    out.decisions.append({"kind": "identity_resolution_reset", "track_id": t.track_id,
+                                          "detection": i, "own_similarity": s_own})
+                t.resolve_since_t = None
+                continue
+            if t.resolve_since_t is None:
+                t.resolve_since_t = time_s
+            if time_s - t.resolve_since_t >= self.tc.identity_resolve_s - _EPS:
+                out.decisions.append({"kind": "identity_resolved", "track_id": t.track_id, "detection": i,
+                                      "rivals": sorted(t.identity_rivals), "own_similarity": s_own})
+                t.identity_rivals, t.resolve_since_t = {}, None
 
     def _recoverable(self, t: _Track, time_s: float) -> bool:
         """An unobserved track that a detection may still be re-associated to on this frame."""
@@ -477,8 +541,8 @@ class MultiPlayerTracker:
                 t.observed_frames += 1
                 t.velocity_frozen, t.observed_last_frame, t.missed_frames = False, True, 0
                 t.state, t.occluder = TrackState.ACTIVE, None
-                if not contested and self._clean(i, dets, matched):
-                    self._update_appearance(t, desc[i], time_s)
+                if not contested and not t.identity_rivals and self._clean(i, dets, matched):
+                    self._update_appearance(t, desc[i], time_s)     # frozen while IDENTITY_UNCERTAIN
             else:
                 t.observed_last_frame = False
                 t.missed_frames += 1
@@ -633,7 +697,9 @@ class MultiPlayerTracker:
                 t.track_id, t.state, t.confirmed, src, box, det_i, score, round(conf, 6), contested,
                 frame_index - t.created_frame, t.missed_frames, round(time_s - t.last_observed_t, 6),
                 t.observed_frames, t.epoch, t.occluder, round(o, 6), self._tracks[j].track_id if o > 0 else None,
-                t.recoveries, t.last_gap_s, t.predecessors)
+                t.recoveries, t.last_gap_s, t.predecessors,
+                IdentityState.IDENTITY_UNCERTAIN if t.identity_rivals else IdentityState.CERTAIN,
+                tuple(sorted(t.identity_rivals)), t.uncertain_episodes)
             obs.append(rec)
             t.history.append(HistoryEntry(frame_index, time_s, t.state, src, box, score))
             while t.history and time_s - t.history[0].time_s > self.tc.history_s + _EPS:

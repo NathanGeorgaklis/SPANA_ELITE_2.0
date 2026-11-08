@@ -17,11 +17,11 @@ from pathlib import Path
 from typing import Dict, List
 
 from spana.artifacts import read_json, validate_detections, validate_tracks, write_json_atomic
-from spana.evaluation import NESTED_V1, RULES, EvalFrame, TrackBox, evaluate
+from spana.evaluation import NESTED_V2, RULES, EvalFrame, TrackBox, evaluate
 from spana.labels import parse_mot
 
 IGNORE_IOA = 0.5        # scoring convention (not a tracker setting)
-DEFAULT_RULE = NESTED_V1.name   # frozen 2026-11-08, records/MATCHING_RULE_NESTED_V1.md
+DEFAULT_RULE = NESTED_V2.name   # default from 2026-11-08 (records/MATCHING_RULE_NESTED_V2.md); NESTED_V1 via --rule
 
 
 def _ioa(inner, outer) -> float:
@@ -60,7 +60,8 @@ def build_frames(gt, dets_doc: dict, tracks_doc: dict, decisions: List[dict]) ->
         remap = {k: n for n, k in enumerate(d_idx)}
         boxes = [dets[f][k] for k in d_idx]
         obs = [TrackBox(t["track_id"], t["box"], t["confirmed"],
-                        bool(t["possible_predecessors"]) or t["recoveries"] > 0, remap.get(t["detection_index"]))
+                        bool(t["possible_predecessors"]) or t["recoveries"] > 0, remap.get(t["detection_index"]),
+                        t["identity"] != "CERTAIN", t["uncertain_episodes"])
                for t in trk[f]["tracks"] if t["source"] == "OBSERVED" and keep(t["box"])]
         recs = [(tid, remap[d]) for tid, d in rec.get(f, []) if d in remap]
         out.append(EvalFrame(f, gt.players.get(f, {}), boxes, obs, recs, frozenset(gt.occluded.get(f, ()))))

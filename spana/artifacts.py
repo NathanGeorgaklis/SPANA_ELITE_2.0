@@ -12,6 +12,7 @@ Change log:
   2.0.0 tracks: states ACTIVE/OCCLUDED/LOST (TERMINATED via `ended`), + confirmed, confidence, age_frames,
         missed_frames, occluder, recoveries (replaces gaps_bridged), possible_predecessors; + top-level
         `tracklets` summary. Not backward compatible (state vocabulary changed).
+  2.1.0 tracks: + per-track identity (CERTAIN / IDENTITY_UNCERTAIN), identity_rivals, uncertain_episodes.
 
 Any change to keys, types, units or meaning increments the version. Writers are atomic and never overwrite.
 """
@@ -26,10 +27,11 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 from .config import OutputConfig
-from .records import CameraStatus, Detection, EndReason, FrameTracks, PositionSource, TrackletSummary, TrackState
+from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityState, PositionSource, TrackletSummary,
+                      TrackState)
 
 DETECTIONS_SCHEMA = ("spana.detections", "1.3.0")
-TRACKS_SCHEMA = ("spana.tracks", "2.0.0")
+TRACKS_SCHEMA = ("spana.tracks", "2.1.0")
 
 
 class ArtifactError(ValueError):
@@ -134,6 +136,8 @@ def tracks_frame(ft: FrameTracks, oc: OutputConfig) -> dict:
             "overlap_with": o.overlap_with if round(o.max_overlap_iou, oc.score_decimals) > 0 else None,
             "recoveries": o.recoveries, "last_gap_s": o.last_gap_s,
             "possible_predecessors": list(o.possible_predecessors),
+            "identity": o.identity.value, "identity_rivals": list(o.identity_rivals),
+            "uncertain_episodes": o.uncertain_episodes,
         } for o in ft.tracks],
         "ended": [[tid, r.value] for tid, r in ft.ended],
     }
@@ -143,10 +147,12 @@ def tracklet_rows(summaries: Iterable[TrackletSummary]) -> List[dict]:
     return [{**s.__dict__, "possible_predecessors": list(s.possible_predecessors)} for s in summaries]
 
 
+_IDENTITY = {v.value for v in IdentityState}
 _TRACK_KEYS = ("track_id", "state", "confirmed", "source", "box", "detection_index", "detection_score",
                "confidence", "contested", "age_frames", "missed_frames", "time_since_observed_s",
                "observed_frames", "epoch", "occluder", "max_overlap_iou", "overlap_with", "recoveries",
-               "last_gap_s", "possible_predecessors")
+               "last_gap_s", "possible_predecessors", "identity", "identity_rivals",
+               "uncertain_episodes")
 _TRACKLET_KEYS = ("track_id", "epoch", "first_frame", "last_frame", "last_observed_frame", "observed_frames",
                   "confirmed", "end_reason", "recoveries", "possible_predecessors")
 _CAMERA_KEYS = ("status", "affine", "inliers", "hist_distance")
@@ -254,6 +260,12 @@ def validate_tracks(doc: Any, detections: Optional[dict] = None) -> None:
                         raise ArtifactError(f"{where}: {tid} does not match detection {di}")
             if tr["occluder"] is not None and tr["occluder"] not in frame_ids:
                 raise ArtifactError(f"{where}: {tid} occluder {tr['occluder']} is not live")
+            if tr["identity"] not in _IDENTITY or not isinstance(tr["identity_rivals"], list) or \
+                    any(not isinstance(x, str) or x == tid for x in tr["identity_rivals"]) or \
+                    (tr["identity"] == IdentityState.CERTAIN.value) != (not tr["identity_rivals"]) or \
+                    not (isinstance(tr["uncertain_episodes"], int) and tr["uncertain_episodes"] >= 0) or \
+                    (tr["identity"] != IdentityState.CERTAIN.value and tr["uncertain_episodes"] < 1):
+                raise ArtifactError(f"{where}: {tid} bad identity fields")
             if any(p not in seen for p in tr["possible_predecessors"]):
                 raise ArtifactError(f"{where}: {tid} names an unknown predecessor")
             if not isinstance(tr["observed_frames"], int) or tr["observed_frames"] < 1:

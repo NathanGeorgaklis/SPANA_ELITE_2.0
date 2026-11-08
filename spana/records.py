@@ -22,6 +22,13 @@ class TrackState(str, Enum):
     TERMINATED = "TERMINATED"  # ended on this frame (reported in FrameTracks.ended, never emitted as live)
 
 
+class IdentityState(str, Enum):
+    """Orthogonal to the lifecycle state: whether the track's identity is still trusted."""
+    CERTAIN = "CERTAIN"
+    IDENTITY_UNCERTAIN = "IDENTITY_UNCERTAIN"   # a rival track fitted the same evidence and appearance could not
+                                                # separate them; held until clean appearance evidence resolves it
+
+
 class PositionSource(str, Enum):
     OBSERVED = "OBSERVED"    # matched to a detection on this frame
     PREDICTED = "PREDICTED"  # motion-model prediction (unobserved <= predict_max_s)
@@ -93,6 +100,9 @@ class TrackObservation:
     recoveries: int                  # gaps bridged after LOST/OCCLUDED (motion-exclusive or appearance-distinct)
     last_gap_s: float                # duration of the most recent bridged gap (0 if none)
     possible_predecessors: Tuple[str, ...]  # unobserved tracks this one may continue (recovery was refused)
+    identity: IdentityState = IdentityState.CERTAIN
+    identity_rivals: Tuple[str, ...] = ()   # tracks this one could not be told apart from (while uncertain)
+    uncertain_episodes: int = 0             # times the track has entered IDENTITY_UNCERTAIN
 
 
 @dataclass(frozen=True)

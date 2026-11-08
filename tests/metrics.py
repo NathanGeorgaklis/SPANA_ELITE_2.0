@@ -12,7 +12,8 @@ def evaluate(res) -> Report:
     frames = []
     for f, ft in enumerate(res.frames):
         obs = [TrackBox(o.track_id, o.box, o.confirmed, bool(o.possible_predecessors) or o.recoveries > 0,
-                        o.detection_index) for o in ft.tracks if o.source == PositionSource.OBSERVED]
+                        o.detection_index, o.identity.value != "CERTAIN", o.uncertain_episodes)
+               for o in ft.tracks if o.source == PositionSource.OBSERVED]
         idx = {o.track_id: o.detection_index for o in ft.tracks}
         rec = [(d["track_id"], idx[d["track_id"]]) for d in ft.decisions if d["kind"] == "recovery"]
         dets = [d_box for d_box in res.det_boxes[f]]

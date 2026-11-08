@@ -17,7 +17,8 @@ Detection layer
                       box by dup_ioa: partial-body boxes)
 Tracking layer
   identity_transfers  a track matched to player A and later to B (the unsafe error)
-  unflagged_transfers transfers on tracks with no ambiguity flag (no possible_predecessors, no recoveries)
+  unflagged_transfers transfers on tracks with no ambiguity flag: no possible_predecessors, no recoveries, not
+                      IDENTITY_UNCERTAIN now, and no uncertainty episode since the track's previous attribution
   id_switches         player-centric: changes of a player's matched track id between matched frames
   wrong_recoveries    recovery decisions whose detection is a different player than the track's last one
   duplicate_tracks    frames where an extra OBSERVED track is eligible for a matched player under the rule, or an
@@ -47,6 +48,8 @@ class TrackBox:
     confirmed: bool
     flagged: bool                 # has possible_predecessors or recoveries > 0
     detection_index: Optional[int]
+    uncertain: bool = False       # IDENTITY_UNCERTAIN on this frame
+    uncertain_episodes: int = 0   # times the track has entered IDENTITY_UNCERTAIN so far
 
 
 @dataclass(frozen=True)
@@ -215,6 +218,7 @@ def evaluate(frames: Iterable[EvalFrame], rule: MatchRule = IOU_050, dup_ioa: fl
     track_gt: Dict[str, str] = {}
     gt_last: Dict[str, str] = {}
     gt_tracks: Dict[str, List[str]] = {}
+    eps_at_attr: Dict[str, int] = {}               # track -> uncertainty episodes at its last attribution
     for ef in frames:
         prev_track_gt = dict(track_gt)
         gids = sorted(ef.gt)
@@ -250,11 +254,15 @@ def evaluate(frames: Iterable[EvalFrame], rule: MatchRule = IOU_050, dup_ioa: fl
                                            "last_clear": track_gt.get(t.track_id)})
                 continue
             if t.track_id in track_gt and track_gt[t.track_id] != g:
+                flagged = t.flagged or t.uncertain or t.uncertain_episodes > eps_at_attr.get(t.track_id, 0)
                 r.identity_transfers += 1
-                r.unflagged_transfers += 0 if t.flagged else 1
+                r.unflagged_transfers += 0 if flagged else 1
                 r.transfer_events.append({"frame": ef.frame, "track_id": t.track_id, "from": track_gt[t.track_id],
-                                          "to": g, "flagged": t.flagged})
+                                          "to": g, "flagged": flagged,
+                                          "identity_uncertain": t.uncertain or
+                                          t.uncertain_episodes > eps_at_attr.get(t.track_id, 0)})
             track_gt[t.track_id] = g
+            eps_at_attr[t.track_id] = t.uncertain_episodes
             if g in gt_last and gt_last[g] != t.track_id:
                 r.id_switches += 1
             gt_last[g] = t.track_id
@@ -292,7 +300,8 @@ def frames_from_artifacts(tracks_doc: dict, detections_doc: dict, gt: Dict[int, 
     out = []
     for fr in tracks_doc["frames"]:
         obs = [TrackBox(t["track_id"], t["box"], t["confirmed"], bool(t["possible_predecessors"]) or t["recoveries"] > 0,
-                        t["detection_index"]) for t in fr["tracks"] if t["source"] == "OBSERVED"]
+                        t["detection_index"], t["identity"] != "CERTAIN", t["uncertain_episodes"])
+               for t in fr["tracks"] if t["source"] == "OBSERVED"]
         out.append(EvalFrame(fr["frame"], gt.get(fr["frame"], {}), dets.get(fr["frame"], []), obs,
                              rec.get(fr["frame"], [])))
     return out

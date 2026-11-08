@@ -125,13 +125,15 @@ class TrackingConfig:
     duplicate_ioa: float           # ... or lying inside an observed box by this share of its own area
     confidence_window_s: float     # window of the track confidence (see tracker docstring)
     history_s: float               # per-track history kept in memory (API), seconds
+    identity_resolve_s: float      # IDENTITY_UNCERTAIN ends after clean appearance evidence favours the track this long
 
     def validate(self) -> None:
         for n in ("low_score_min_iou", "iou_weight", "contest_margin", "duplicate_iou", "duplicate_ioa",
                   "occlusion_min_ioa", "confirm_nested_ioa"):
             _unit(f"tracking.{n}", getattr(self, n))
         for n in ("gate_base_h", "max_speed_h_per_s", "gate_max_h", "gate_chi2", "confirm_s", "unconfirmed_max_s", "rematch_max_s",
-                  "occlusion_max_s", "max_accel_h_per_s2", "predict_max_s", "lost_max_s", "confidence_window_s", "history_s"):
+                  "occlusion_max_s", "max_accel_h_per_s2", "predict_max_s", "lost_max_s", "confidence_window_s", "history_s",
+                  "identity_resolve_s"):
             _pos(f"tracking.{n}", getattr(self, n))
         if self.max_height_ratio < 1.0:
             raise ConfigError("tracking.max_height_ratio must be >= 1")

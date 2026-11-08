@@ -61,6 +61,10 @@ tracking:
   duplicate_ioa: 0.85
   confidence_window_s: 1.00
   history_s: 5.00
+  # IDENTITY_UNCERTAIN: a contested match that a rival track also passes, with appearance unable to separate them,
+  # marks both tracks uncertain (appearance frozen). Cleared only after clean appearance evidence favours the track
+  # over every recorded rival by appearance.min_margin, continuously for this long.
+  identity_resolve_s: 0.50
 
 appearance:
   enabled: true
