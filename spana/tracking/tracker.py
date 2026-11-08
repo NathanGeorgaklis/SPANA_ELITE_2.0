@@ -15,8 +15,10 @@ Per frame:
      a track with an established velocity, wide for a new or long-unobserved one. In every stage a known track
      appearance that is clearly dissimilar to a known detection descriptor vetoes the pair.
        S1 high-score detections  <-> confirmed tracks observed on the previous frame
-       S2 low-score detections   <-> remaining tracks observed on the previous frame (IoU only, strict):
-                                     continuation through weak frames, never a recovery or a spawn
+       S2 low-score detections   <-> remaining CONFIRMED tracks observed on the previous frame (IoU only, strict):
+                                     continuation through weak frames, never a recovery or a spawn. Unconfirmed
+                                     tracks never take low-score boxes (real DEV finding: a new track took its
+                                     player's low-score partial box ahead of its own high-score full box in S3)
        S3 remaining high-score   <-> unconfirmed tracks observed on the previous frame
        Hidden-rival check: a continuing match is refused when an unobserved confirmed track (gap <= occlusion_max_s,
           and whose own motion can reach the detection) explains the
@@ -152,7 +154,7 @@ class MultiPlayerTracker:
         s1 = [k for k in cont if self._tracks[k].confirmed]
         s3 = [k for k in cont if not self._tracks[k].confirmed]
         rem_high = self._stage("S1", s1, high, dets, time_s, matched, out, False, desc)
-        self._stage("S2", [k for k in cont if k not in matched], low, dets, time_s, matched, out, True, desc)
+        self._stage("S2", [k for k in s1 if k not in matched], low, dets, time_s, matched, out, True, desc)
         rem_high = self._stage("S3", [k for k in s3 if k not in matched], rem_high, dets, time_s, matched, out,
                                False, desc)
         rem_high = self._refuse_hidden_rivals(rem_high, dets, desc, time_s, matched, out)
