@@ -1,0 +1,904 @@
+{
+ "clip": "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+ "summary": {
+  "accepted_continuous_matches": 2777,
+  "nis_mean": 0.413,
+  "nis_expected_mean_2dof": 2.0,
+  "share_nis_over_gate": 0.0,
+  "expected_share_over_gate": 0.01,
+  "nis_p50_p90_p99": [
+   0.11,
+   1.05,
+   4.8
+  ],
+  "sqrtS_h_median_xy": [
+   0.072,
+   0.072
+  ],
+  "abs_innov_h_p50_p90_xy": [
+   [
+    0.0158,
+    0.0581
+   ],
+   [
+    0.0106,
+    0.0392
+   ]
+  ],
+  "streak_1_5": {
+   "n": 43,
+   "nis_mean": 0.735,
+   "sqrtS_h_median_y": 0.081,
+   "share_over_gate": 0.0
+  },
+  "streak_5_30": {
+   "n": 794,
+   "nis_mean": 0.56,
+   "sqrtS_h_median_y": 0.0721,
+   "share_over_gate": 0.0
+  },
+  "streak_30_inf": {
+   "n": 1940,
+   "nis_mean": 0.345,
+   "sqrtS_h_median_y": 0.072,
+   "share_over_gate": 0.0
+  },
+  "common_mode_innov_h_by_inliers": {
+   "50-150": {
+    "frames": 340,
+    "median": 0.0101,
+    "p90": 0.0275
+   },
+   "<50": {
+    "frames": 47,
+    "median": 0.0524,
+    "p90": 0.1065
+   }
+  }
+ },
+ "cases": [
+  {
+   "player": "10",
+   "old_track": "T000005",
+   "new_track": "T000012",
+   "frame": 10,
+   "stage": "continuing",
+   "reason": "GATE_FAILED:mahalanobis_ok+height_ok",
+   "truth": "TAKEN_OVER_BY_SUCCESSOR",
+   "owner_at_frame": "T000012",
+   "gate": {
+    "score": 0.8629,
+    "dist_h": 0.4154,
+    "gate_radius_h": 0.5167,
+    "mahalanobis2": 27.604,
+    "failed": [
+     "mahalanobis_ok",
+     "height_ok"
+    ],
+    "taken_by": "T000012",
+    "height_ratio": 1.625,
+    "iou": 0.4807
+   },
+   "kalman": {
+    "pred_c": [
+     1762.5,
+     439.2
+    ],
+    "det_c": [
+     1766.2,
+     404.7
+    ],
+    "innov_h": [
+     0.0438,
+     -0.4131
+    ],
+    "pred_h": 83.4,
+    "sqrtP_pos_h": [
+     0.0613,
+     0.0613
+    ],
+    "sqrtP_vel_h_per_s": [
+     0.8535,
+     0.8535
+    ],
+    "sqrtR_h": 0.05,
+    "sqrtS_h": [
+     0.0791,
+     0.0791
+    ],
+    "vel_h_per_s": [
+     -1.408,
+     0.737
+    ],
+    "dt_since_observed_s": 0.0333,
+    "observed_frames": 5,
+    "age_s": 0.167,
+    "gate_chi2": 9.21
+   },
+   "competitors": [],
+   "frame_other_matches": {
+    "n": 10,
+    "median_innov_h_xy": [
+     0.009,
+     0.0116
+    ]
+   },
+   "camera": {
+    "status": "OK",
+    "inliers": 75,
+    "affine": [
+     [
+      1.0017263761276431,
+      0.000498755193056393,
+      1.3919904045012814
+     ],
+     [
+      -0.000498755193056393,
+      1.0017263761276431,
+      0.3192454581541206
+     ]
+    ]
+   }
+  },
+  {
+   "player": "10",
+   "old_track": "T000012",
+   "new_track": "T000033",
+   "frame": 354,
+   "stage": "continuing",
+   "reason": "GATE_FAILED:mahalanobis_ok",
+   "truth": "TAKEN_OVER_BY_SUCCESSOR",
+   "owner_at_frame": "T000033",
+   "gate": {
+    "score": 0.7022,
+    "dist_h": 0.2236,
+    "gate_radius_h": 0.5167,
+    "mahalanobis2": 9.48,
+    "failed": [
+     "mahalanobis_ok"
+    ],
+    "taken_by": null,
+    "height_ratio": 1.07,
+    "iou": 0.3864
+   },
+   "kalman": {
+    "pred_c": [
+     881.6,
+     360.2
+    ],
+    "det_c": [
+     854.5,
+     356.1
+    ],
+    "innov_h": [
+     -0.2211,
+     -0.0334
+    ],
+    "pred_h": 122.9,
+    "sqrtP_pos_h": [
+     0.0527,
+     0.0527
+    ],
+    "sqrtP_vel_h_per_s": [
+     0.7283,
+     0.7283
+    ],
+    "sqrtR_h": 0.05,
+    "sqrtS_h": [
+     0.0726,
+     0.0726
+    ],
+    "vel_h_per_s": [
+     -2.197,
+     0.885
+    ],
+    "dt_since_observed_s": 0.0333,
+    "observed_frames": 176,
+    "age_s": 5.867,
+    "gate_chi2": 9.21
+   },
+   "competitors": [],
+   "frame_other_matches": {
+    "n": 2,
+    "median_innov_h_xy": [
+     -0.088,
+     -0.0357
+    ]
+   },
+   "camera": {
+    "status": "OK",
+    "inliers": 32,
+    "affine": [
+     [
+      1.0004530018823459,
+      -5.859710667304373e-05,
+      -0.1602245906371291
+     ],
+     [
+      5.859710667304373e-05,
+      1.0004530018823459,
+      -0.012155499274511846
+     ]
+    ]
+   }
+  },
+  {
+   "player": "4",
+   "old_track": "T000011",
+   "new_track": "T000021",
+   "frame": 144,
+   "stage": "continuing",
+   "reason": "GATE_FAILED:mahalanobis_ok",
+   "truth": "LABELLED_SAME_PLAYER",
+   "owner_at_frame": "T000021",
+   "gate": {
+    "score": 0.6552,
+    "dist_h": 0.2798,
+    "gate_radius_h": 0.5167,
+    "mahalanobis2": 16.301,
+    "failed": [
+     "mahalanobis_ok"
+    ],
+    "taken_by": null,
+    "height_ratio": 1.204,
+    "iou": 0.4586
+   },
+   "kalman": {
+    "pred_c": [
+     877.9,
+     359.2
+    ],
+    "det_c": [
+     868.0,
+     333.5
+    ],
+    "innov_h": [
+     -0.1004,
+     -0.2612
+    ],
+    "pred_h": 98.5,
+    "sqrtP_pos_h": [
+     0.048,
+     0.048
+    ],
+    "sqrtP_vel_h_per_s": [
+     0.7819,
+     0.7819
+    ],
+    "sqrtR_h": 0.05,
+    "sqrtS_h": [
+     0.0693,
+     0.0693
+    ],
+    "vel_h_per_s": [
+     0.25,
+     1.624
+    ],
+    "dt_since_observed_s": 0.0333,
+    "observed_frames": 72,
+    "age_s": 2.4,
+    "gate_chi2": 9.21
+   },
+   "competitors": [
+    {
+     "detection": 7,
+     "score": 0.7671,
+     "dist_h": 0.4676,
+     "mahalanobis2": 45.518,
+     "taken_by": null,
+     "failed": [
+      "mahalanobis_ok"
+     ]
+    },
+    {
+     "detection": 5,
+     "score": 0.8225,
+     "dist_h": 0.5919,
+     "mahalanobis2": 72.95,
+     "taken_by": "T000006",
+     "failed": [
+      "centre_ok",
+      "mahalanobis_ok",
+      "height_ok"
+     ]
+    }
+   ],
+   "frame_other_matches": {
+    "n": 9,
+    "median_innov_h_xy": [
+     -0.022,
+     0.0025
+    ]
+   },
+   "camera": {
+    "status": "OK",
+    "inliers": 79,
+    "affine": [
+     [
+      0.9972418871371681,
+      -0.001207361612478887,
+      -3.571161240360541
+     ],
+     [
+      0.001207361612478887,
+      0.9972418871371681,
+      -0.6300053331532389
+     ]
+    ]
+   }
+  },
+  {
+   "player": "4",
+   "old_track": "T000022",
+   "new_track": "T000025",
+   "frame": 190,
+   "stage": "continuing",
+   "reason": "GATE_FAILED:centre_ok+mahalanobis_ok",
+   "truth": "OWNER_AT_F=T000024",
+   "owner_at_frame": "T000024",
+   "gate": {
+    "score": 0.7676,
+    "dist_h": 1.4455,
+    "gate_radius_h": 0.5167,
+    "mahalanobis2": 395.546,
+    "failed": [
+     "centre_ok",
+     "mahalanobis_ok"
+    ],
+    "taken_by": "T000024",
+    "height_ratio": 1.35,
+    "iou": 0.0
+   },
+   "kalman": {
+    "pred_c": [
+     510.6,
+     327.9
+    ],
+    "det_c": [
+     650.8,
+     389.6
+    ],
+    "innov_h": [
+     1.3233,
+     0.5818
+    ],
+    "pred_h": 105.9,
+    "sqrtP_pos_h": [
+     0.0528,
+     0.0528
+    ],
+    "sqrtP_vel_h_per_s": [
+     0.7358,
+     0.7358
+    ],
+    "sqrtR_h": 0.05,
+    "sqrtS_h": [
+     0.0727,
+     0.0727
+    ],
+    "vel_h_per_s": [
+     -2.245,
+     0.342
+    ],
+    "dt_since_observed_s": 0.0333,
+    "observed_frames": 22,
+    "age_s": 0.733,
+    "gate_chi2": 9.21
+   },
+   "competitors": [],
+   "frame_other_matches": {
+    "n": 6,
+    "median_innov_h_xy": [
+     0.0083,
+     0.0006
+    ]
+   },
+   "camera": {
+    "status": "OK",
+    "inliers": 72,
+    "affine": [
+     [
+      0.9983052544055555,
+      -0.0009244505758698106,
+      -2.7579565102882304
+     ],
+     [
+      0.0009244505758698106,
+      0.9983052544055555,
+      -0.2615177010618914
+     ]
+    ]
+   }
+  },
+  {
+   "player": "7",
+   "old_track": "T000009",
+   "new_track": "T000035",
+   "frame": 354,
+   "stage": "continuing",
+   "reason": "GATE_FAILED:mahalanobis_ok",
+   "truth": "OWNER_AT_F=T000032",
+   "owner_at_frame": "T000032",
+   "gate": {
+    "score": 0.7328,
+    "dist_h": 0.2356,
+    "gate_radius_h": 0.5167,
+    "mahalanobis2": 11.346,
+    "failed": [
+     "mahalanobis_ok"
+    ],
+    "taken_by": null,
+    "height_ratio": 1.21,
+    "iou": 0.3717
+   },
+   "kalman": {
+    "pred_c": [
+     448.9,
+     433.3
+    ],
+    "det_c": [
+     430.2,
+     460.5
+    ],
+    "innov_h": [
+     -0.1334,
+     0.1942
+    ],
+    "pred_h": 140.2,
+    "sqrtP_pos_h": [
+     0.0489,
+     0.0489
+    ],
+    "sqrtP_vel_h_per_s": [
+     0.7581,
+     0.7581
+    ],
+    "sqrtR_h": 0.05,
+    "sqrtS_h": [
+     0.0699,
+     0.0699
+    ],
+    "vel_h_per_s": [
+     -2.621,
+     -0.481
+    ],
+    "dt_since_observed_s": 0.0333,
+    "observed_frames": 177,
+    "age_s": 5.9,
+    "gate_chi2": 9.21
+   },
+   "competitors": [
+    {
+     "detection": 1,
+     "score": 0.8881,
+     "dist_h": 1.2169,
+     "mahalanobis2": 302.638,
+     "taken_by": "T000013",
+     "failed": [
+      "centre_ok",
+      "mahalanobis_ok",
+      "appearance_veto"
+     ]
+    },
+    {
+     "detection": 5,
+     "score": 0.4418,
+     "dist_h": 1.2707,
+     "mahalanobis2": 330.03,
+     "taken_by": null,
+     "failed": [
+      "low_score_iou_ok"
+     ]
+    }
+   ],
+   "frame_other_matches": {
+    "n": 2,
+    "median_innov_h_xy": [
+     -0.088,
+     -0.0357
+    ]
+   },
+   "camera": {
+    "status": "OK",
+    "inliers": 32,
+    "affine": [
+     [
+      1.0004530018823459,
+      -5.859710667304373e-05,
+      -0.1602245906371291
+     ],
+     [
+      5.859710667304373e-05,
+      1.0004530018823459,
+      -0.012155499274511846
+     ]
+    ]
+   }
+  },
+  {
+   "player": "8",
+   "old_track": "T000002",
+   "new_track": "T000013",
+   "frame": 4,
+   "stage": "continuing",
+   "reason": "GATE_FAILED:mahalanobis_ok",
+   "truth": "TAKEN_OVER_BY_SUCCESSOR",
+   "owner_at_frame": "T000013",
+   "gate": {
+    "score": 0.9062,
+    "dist_h": 0.3377,
+    "gate_radius_h": 0.5167,
+    "mahalanobis2": 9.672,
+    "failed": [
+     "mahalanobis_ok"
+    ],
+    "taken_by": "T000013",
+    "height_ratio": 1.273,
+    "iou": 0.4782
+   },
+   "kalman": {
+    "pred_c": [
+     1199.7,
+     607.2
+    ],
+    "det_c": [
+     1199.8,
+     558.2
+    ],
+    "innov_h": [
+     0.0005,
+     -0.3377
+    ],
+    "pred_h": 145.4,
+    "sqrtP_pos_h": [
+     0.0964,
+     0.0964
+    ],
+    "sqrtP_vel_h_per_s": [
+     2.0828,
+     2.0828
+    ],
+    "sqrtR_h": 0.05,
+    "sqrtS_h": [
+     0.1086,
+     0.1086
+    ],
+    "vel_h_per_s": [
+     0.203,
+     4.3
+    ],
+    "dt_since_observed_s": 0.0333,
+    "observed_frames": 2,
+    "age_s": 0.067,
+    "gate_chi2": 9.21
+   },
+   "competitors": [
+    {
+     "detection": 1,
+     "score": 0.9145,
+     "dist_h": 0.7396,
+     "mahalanobis2": 46.407,
+     "taken_by": "T000003",
+     "failed": [
+      "centre_ok",
+      "mahalanobis_ok"
+     ]
+    },
+    {
+     "detection": 9,
+     "score": 0.7741,
+     "dist_h": 0.925,
+     "mahalanobis2": 72.594,
+     "taken_by": null,
+     "failed": [
+      "centre_ok",
+      "mahalanobis_ok"
+     ]
+    }
+   ],
+   "frame_other_matches": {
+    "n": 0,
+    "median_innov_h_xy": [
+     null,
+     null
+    ]
+   },
+   "camera": {
+    "status": "OK",
+    "inliers": 77,
+    "affine": [
+     [
+      1.002029467229783,
+      0.00042968945428234386,
+      1.3311820431616601
+     ],
+     [
+      -0.00042968945428234386,
+      1.002029467229783,
+      0.1896825940383066
+     ]
+    ]
+   }
+  },
+  {
+   "player": "11",
+   "old_track": "T000034",
+   "new_track": "T000038",
+   "frame": 374,
+   "stage": "continuing",
+   "reason": "GATE_FAILED:mahalanobis_ok",
+   "truth": "TAKEN_OVER_BY_SUCCESSOR",
+   "owner_at_frame": "T000038",
+   "gate": {
+    "score": 0.7823,
+    "dist_h": 0.3045,
+    "gate_radius_h": 0.5167,
+    "mahalanobis2": 17.42,
+    "failed": [
+     "mahalanobis_ok"
+    ],
+    "taken_by": null,
+    "height_ratio": 1.062,
+    "iou": 0.2178
+   },
+   "kalman": {
+    "pred_c": [
+     1656.8,
+     403.4
+    ],
+    "det_c": [
+     1618.1,
+     395.6
+    ],
+    "innov_h": [
+     -0.2986,
+     -0.0599
+    ],
+    "pred_h": 129.5,
+    "sqrtP_pos_h": [
+     0.0531,
+     0.0531
+    ],
+    "sqrtP_vel_h_per_s": [
+     0.7293,
+     0.7293
+    ],
+    "sqrtR_h": 0.05,
+    "sqrtS_h": [
+     0.073,
+     0.073
+    ],
+    "vel_h_per_s": [
+     0.625,
+     0.498
+    ],
+    "dt_since_observed_s": 0.0333,
+    "observed_frames": 10,
+    "age_s": 0.333,
+    "gate_chi2": 9.21
+   },
+   "competitors": [
+    {
+     "detection": 7,
+     "score": 0.3812,
+     "dist_h": 1.1253,
+     "mahalanobis2": 237.883,
+     "taken_by": null,
+     "failed": [
+      "low_score_iou_ok"
+     ]
+    },
+    {
+     "detection": 8,
+     "score": 0.1294,
+     "dist_h": 1.252,
+     "mahalanobis2": 294.5,
+     "taken_by": null,
+     "failed": [
+      "low_score_iou_ok"
+     ]
+    }
+   ],
+   "frame_other_matches": {
+    "n": 5,
+    "median_innov_h_xy": [
+     -0.0985,
+     -0.0381
+    ]
+   },
+   "camera": {
+    "status": "OK",
+    "inliers": 33,
+    "affine": [
+     [
+      0.9990576633824617,
+      -0.00019742563101115635,
+      0.12795860615253946
+     ],
+     [
+      0.00019742563101115635,
+      0.9990576633824617,
+      -0.11365974332616975
+     ]
+    ]
+   }
+  },
+  {
+   "player": "11",
+   "old_track": "T000038",
+   "new_track": "T000061",
+   "frame": 630,
+   "stage": "continuing",
+   "reason": "GATE_FAILED:mahalanobis_ok",
+   "truth": "OWNER_AT_F=T000057",
+   "owner_at_frame": "T000057",
+   "gate": {
+    "score": 0.7352,
+    "dist_h": 0.2345,
+    "gate_radius_h": 0.5167,
+    "mahalanobis2": 10.802,
+    "failed": [
+     "mahalanobis_ok"
+    ],
+    "taken_by": null,
+    "height_ratio": 0.928,
+    "iou": 0.3206
+   },
+   "kalman": {
+    "pred_c": [
+     1779.2,
+     328.1
+    ],
+    "det_c": [
+     1810.4,
+     330.9
+    ],
+    "innov_h": [
+     0.2335,
+     0.0217
+    ],
+    "pred_h": 133.7,
+    "sqrtP_pos_h": [
+     0.0509,
+     0.0509
+    ],
+    "sqrtP_vel_h_per_s": [
+     0.7416,
+     0.7416
+    ],
+    "sqrtR_h": 0.05,
+    "sqrtS_h": [
+     0.0713,
+     0.0713
+    ],
+    "vel_h_per_s": [
+     2.856,
+     -0.292
+    ],
+    "dt_since_observed_s": 0.0333,
+    "observed_frames": 128,
+    "age_s": 4.267,
+    "gate_chi2": 9.21
+   },
+   "competitors": [],
+   "frame_other_matches": {
+    "n": 3,
+    "median_innov_h_xy": [
+     0.0315,
+     0.0532
+    ]
+   },
+   "camera": {
+    "status": "OK",
+    "inliers": 35,
+    "affine": [
+     [
+      1.000017220189906,
+      0.0003535447834027066,
+      0.26746070538125927
+     ],
+     [
+      -0.0003535447834027066,
+      1.000017220189906,
+      0.16123405133915264
+     ]
+    ]
+   }
+  },
+  {
+   "player": "12",
+   "old_track": "T000036",
+   "new_track": "T000041",
+   "frame": 386,
+   "stage": "continuing",
+   "reason": "GATE_FAILED:mahalanobis_ok",
+   "truth": "OWNER_AT_F=T000040",
+   "owner_at_frame": "T000040",
+   "gate": {
+    "score": 0.8595,
+    "dist_h": 0.2214,
+    "gate_radius_h": 0.5167,
+    "mahalanobis2": 9.461,
+    "failed": [
+     "mahalanobis_ok"
+    ],
+    "taken_by": null,
+    "height_ratio": 1.006,
+    "iou": 0.4653
+   },
+   "kalman": {
+    "pred_c": [
+     1712.4,
+     530.3
+    ],
+    "det_c": [
+     1676.3,
+     529.6
+    ],
+    "innov_h": [
+     -0.2213,
+     -0.0043
+    ],
+    "pred_h": 163.2,
+    "sqrtP_pos_h": [
+     0.0518,
+     0.0518
+    ],
+    "sqrtP_vel_h_per_s": [
+     0.7344,
+     0.7344
+    ],
+    "sqrtR_h": 0.05,
+    "sqrtS_h": [
+     0.072,
+     0.072
+    ],
+    "vel_h_per_s": [
+     0.116,
+     0.312
+    ],
+    "dt_since_observed_s": 0.0333,
+    "observed_frames": 11,
+    "age_s": 0.367,
+    "gate_chi2": 9.21
+   },
+   "competitors": [
+    {
+     "detection": 2,
+     "score": 0.8051,
+     "dist_h": 1.746,
+     "mahalanobis2": 588.571,
+     "taken_by": "T000038",
+     "failed": [
+      "centre_ok",
+      "mahalanobis_ok",
+      "appearance_veto"
+     ]
+    }
+   ],
+   "frame_other_matches": {
+    "n": 5,
+    "median_innov_h_xy": [
+     -0.033,
+     -0.0184
+    ]
+   },
+   "camera": {
+    "status": "OK",
+    "inliers": 32,
+    "affine": [
+     [
+      0.9999994299688932,
+      9.612170219439739e-06,
+      -0.035675914374054485
+     ],
+     [
+      -9.612170219439739e-06,
+      0.9999994299688932,
+      -0.015298129568506203
+     ]
+    ]
+   }
+  }
+ ]
+}
