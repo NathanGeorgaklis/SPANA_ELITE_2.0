@@ -37,9 +37,9 @@ Per-track classes are in `track_classes.json`. By clip:
   - FRESH_07 T000191: frames 247–390. This is the correctly tracked player 18 from the earlier diagnosis.
   - FRESH_07 T000175 (194–390) and T000145 (142–364).
   - FRESH_02 T000279 (282–390) and T000282 (304–390).
-- **The rival side is usually gone.** For these frames the rival track is UNOBSERVED or ENDED in 534 of 656 frame
-  checks (FRESH_02 264 of 260+, FRESH_05 94, FRESH_07 375). There is never a frame with both crops clean at once,
-  so a simultaneous pairwise comparison is impossible.
+- **The rival side is usually gone.** On the one-sided frames, the rival track is UNOBSERVED or ENDED in 733 of 826
+  (frame, rival) checks: FRESH_02 264 of 357, FRESH_05 94 of 94, FRESH_07 375 of 375. There is never a frame with
+  both crops clean at once, so a simultaneous pairwise comparison is impossible.
 - **The rival's appearance is usually known.** 9 of these 10 tracks have at least one rival with a stored
   appearance. The current rule needs both stored appearances, so that one-sided knowledge is never used.
 - **A looser crop rule would not help.** If "clean" were judged on the torso band alone, it would have given an
