@@ -1,0 +1,3213 @@
+[
+{
+"track_id": "T000014",
+"frame": 176,
+"from": "10",
+"to": "8",
+"flagged": null,
+"span": 10,
+"frames": [
+{
+"frame": 166,
+"track_state": "ACTIVE",
+"source": "OBSERVED",
+"detection": 14,
+"contested": false,
+"box": [
+1102.7,
+419.4,
+1145.3,
+511.7
+],
+"iou_with_from_player": 0.857,
+"iou_with_to_player": 0.222,
+"from_player_box_interp": [
+1101.8,
+414.8,
+1147.3,
+515.6
+],
+"to_player_box_interp": [
+1075.8,
+405.6,
+1119.7,
+512.8
+],
+"match_decision": {
+"kind": "match",
+"stage": "S1",
+"cost": 0.1254,
+"iou": 0.767,
+"dist_h": 0.0355,
+"contested": false,
+"rival_tracks": [],
+"rival_detections": []
+},
+"other_decisions_for_track": [],
+"detections_near_track": [
+{
+"detection": 9,
+"box": [
+1189.8,
+375.9,
+1223.0,
+463.8
+],
+"score": 0.8655,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 13,
+"box": [
+1082.4,
+412.6,
+1116.8,
+509.7
+],
+"score": 0.7242,
+"multi_body": 0,
+"iou_from": 0.219,
+"iou_to": 0.71
+},
+{
+"detection": 14,
+"box": [
+1102.7,
+419.4,
+1145.3,
+511.7
+],
+"score": 0.717,
+"multi_body": 0,
+"iou_from": 0.857,
+"iou_to": 0.222
+},
+{
+"detection": 41,
+"box": [
+1081.5,
+303.5,
+1110.9,
+351.2
+],
+"score": 0.3006,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 64,
+"box": [
+1002.2,
+379.7,
+1031.0,
+430.8
+],
+"score": 0.2469,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 68,
+"box": [
+1086.5,
+402.3,
+1125.8,
+490.1
+],
+"score": 0.2355,
+"multi_body": 0,
+"iou_from": 0.29,
+"iou_to": 0.524
+},
+{
+"detection": 79,
+"box": [
+1013.2,
+382.9,
+1035.3,
+431.0
+],
+"score": 0.2021,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 98,
+"box": [
+1114.9,
+422.0,
+1136.6,
+492.0
+],
+"score": 0.1704,
+"multi_body": 0,
+"iou_from": 0.331,
+"iou_to": 0.057
+}
+],
+"gate_reports": [
+{
+"track": "T000007",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 14,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.0,
+-0.02
+],
+"score": 0.717,
+"dist_h": 0.3415,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 22.376,
+"height_ratio": 0.953,
+"iou": 0.0993,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": [
+"mahalanobis_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 13,
+"owner": "T000007",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.54,
+-0.05
+],
+"score": 0.7242,
+"dist_h": 0.2286,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 9.893,
+"height_ratio": 1.026,
+"iou": 0.2182,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": [
+"mahalanobis_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 14,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.54,
+-0.05
+],
+"score": 0.717,
+"dist_h": 0.0355,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 0.238,
+"height_ratio": 0.975,
+"iou": 0.767,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 41,
+"owner": "T000139",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.54,
+-0.05
+],
+"score": 0.3006,
+"dist_h": 1.4661,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 406.775,
+"height_ratio": 0.504,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 64,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.54,
+-0.05
+],
+"score": 0.2469,
+"dist_h": 1.2655,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 303.076,
+"height_ratio": 0.54,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 68,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.54,
+-0.05
+],
+"score": 0.2355,
+"dist_h": 0.2446,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 11.319,
+"height_ratio": 0.927,
+"iou": 0.3137,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 79,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.54,
+-0.05
+],
+"score": 0.2021,
+"dist_h": 1.1865,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 266.414,
+"height_ratio": 0.508,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 98,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.54,
+-0.05
+],
+"score": 0.1704,
+"dist_h": 0.0881,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 1.469,
+"height_ratio": 0.739,
+"iou": 0.477,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+}
+]
+},
+{
+"frame": 167,
+"track_state": "ACTIVE",
+"source": "OBSERVED",
+"detection": 14,
+"contested": true,
+"box": [
+1115.5,
+419.8,
+1148.5,
+509.6
+],
+"iou_with_from_player": 0.646,
+"iou_with_to_player": 0.112,
+"from_player_box_interp": [
+1104.5,
+414.8,
+1150.0,
+515.6
+],
+"to_player_box_interp": [
+1080.2,
+405.4,
+1124.1,
+512.6
+],
+"match_decision": {
+"kind": "match",
+"stage": "S1",
+"cost": 0.1997,
+"iou": 0.6372,
+"dist_h": 0.073,
+"contested": true,
+"rival_tracks": [],
+"rival_detections": [
+15
+]
+},
+"other_decisions_for_track": [],
+"detections_near_track": [
+{
+"detection": 9,
+"box": [
+1191.0,
+375.9,
+1222.8,
+464.7
+],
+"score": 0.867,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 12,
+"box": [
+1092.4,
+411.4,
+1119.0,
+514.2
+],
+"score": 0.771,
+"multi_body": 0,
+"iou_from": 0.245,
+"iou_to": 0.567
+},
+{
+"detection": 14,
+"box": [
+1115.5,
+419.8,
+1148.5,
+509.6
+],
+"score": 0.7223,
+"multi_body": 0,
+"iou_from": 0.646,
+"iou_to": 0.112
+},
+{
+"detection": 15,
+"box": [
+1092.5,
+412.7,
+1137.4,
+507.8
+],
+"score": 0.7093,
+"multi_body": 1,
+"iou_from": 0.528,
+"iou_to": 0.503
+},
+{
+"detection": 43,
+"box": [
+1117.5,
+420.4,
+1140.1,
+490.0
+],
+"score": 0.3014,
+"multi_body": 0,
+"iou_from": 0.343,
+"iou_to": 0.079
+},
+{
+"detection": 45,
+"box": [
+1081.6,
+303.5,
+1111.8,
+351.7
+],
+"score": 0.2993,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 72,
+"box": [
+1002.2,
+379.9,
+1029.4,
+430.8
+],
+"score": 0.219,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 77,
+"box": [
+1020.5,
+385.5,
+1035.7,
+431.1
+],
+"score": 0.208,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 139,
+"box": [
+1010.8,
+385.8,
+1035.1,
+430.7
+],
+"score": 0.1236,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+}
+],
+"gate_reports": [
+{
+"track": "T000007",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 14,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.43,
+-0.0
+],
+"score": 0.7223,
+"dist_h": 0.3277,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 20.673,
+"height_ratio": 0.927,
+"iou": 0.0537,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": [
+"mahalanobis_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 12,
+"owner": "T000007",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.71,
+0.04
+],
+"score": 0.771,
+"dist_h": 0.2074,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 8.311,
+"height_ratio": 1.091,
+"iou": 0.2176,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 14,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.71,
+0.04
+],
+"score": 0.7223,
+"dist_h": 0.073,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 1.03,
+"height_ratio": 0.953,
+"iou": 0.6372,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 15,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.71,
+0.04
+],
+"score": 0.7093,
+"dist_h": 0.119,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 2.739,
+"height_ratio": 1.009,
+"iou": 0.5483,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 43,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.71,
+0.04
+],
+"score": 0.3014,
+"dist_h": 0.1109,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 2.376,
+"height_ratio": 0.738,
+"iou": 0.4741,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 45,
+"owner": "T000139",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.71,
+0.04
+],
+"score": 0.2993,
+"dist_h": 1.4883,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 428.145,
+"height_ratio": 0.511,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 72,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.71,
+0.04
+],
+"score": 0.219,
+"dist_h": 1.3211,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 337.344,
+"height_ratio": 0.54,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 77,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.71,
+0.04
+],
+"score": 0.208,
+"dist_h": 1.1921,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 274.669,
+"height_ratio": 0.484,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 139,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.71,
+0.04
+],
+"score": 0.1236,
+"dist_h": 1.2398,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 297.108,
+"height_ratio": 0.476,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+}
+]
+},
+{
+"frame": 168,
+"track_state": "ACTIVE",
+"source": "OBSERVED",
+"detection": 13,
+"contested": false,
+"box": [
+1112.4,
+419.0,
+1148.2,
+510.2
+],
+"iou_with_from_player": 0.712,
+"iou_with_to_player": 0.224,
+"from_player_box_interp": [
+1107.2,
+414.8,
+1152.7,
+515.6
+],
+"to_player_box_interp": [
+1084.5,
+405.1,
+1128.4,
+512.3000000000001
+],
+"match_decision": {
+"kind": "match",
+"stage": "S1",
+"cost": 0.0698,
+"iou": 0.8713,
+"dist_h": 0.0219,
+"contested": false,
+"rival_tracks": [],
+"rival_detections": []
+},
+"other_decisions_for_track": [],
+"detections_near_track": [
+{
+"detection": 9,
+"box": [
+1191.7,
+375.9,
+1223.0,
+464.6
+],
+"score": 0.8647,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 12,
+"box": [
+1095.7,
+413.5,
+1120.9,
+510.6
+],
+"score": 0.7984,
+"multi_body": 0,
+"iou_from": 0.229,
+"iou_to": 0.52
+},
+{
+"detection": 13,
+"box": [
+1112.4,
+419.0,
+1148.2,
+510.2
+],
+"score": 0.7378,
+"multi_body": 0,
+"iou_from": 0.712,
+"iou_to": 0.224
+},
+{
+"detection": 65,
+"box": [
+1002.2,
+379.8,
+1029.3,
+430.7
+],
+"score": 0.2373,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 76,
+"box": [
+1020.5,
+385.6,
+1035.6,
+431.1
+],
+"score": 0.2176,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 126,
+"box": [
+1118.4,
+421.4,
+1140.4,
+486.0
+],
+"score": 0.1379,
+"multi_body": 0,
+"iou_from": 0.31,
+"iou_to": 0.118
+},
+{
+"detection": 137,
+"box": [
+1010.4,
+385.9,
+1035.0,
+430.7
+],
+"score": 0.1308,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+}
+],
+"gate_reports": [
+{
+"track": "T000007",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 13,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.67,
+0.08
+],
+"score": 0.7378,
+"dist_h": 0.224,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 9.525,
+"height_ratio": 0.933,
+"iou": 0.234,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": [
+"mahalanobis_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 12,
+"owner": "T000007",
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.1,
+0.03
+],
+"score": 0.7984,
+"dist_h": 0.2589,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 13.142,
+"height_ratio": 1.039,
+"iou": 0.1072,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": [
+"mahalanobis_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 13,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.1,
+0.03
+],
+"score": 0.7378,
+"dist_h": 0.0219,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 0.094,
+"height_ratio": 0.976,
+"iou": 0.8713,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 65,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.1,
+0.03
+],
+"score": 0.2373,
+"dist_h": 1.4013,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 384.969,
+"height_ratio": 0.545,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 76,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.1,
+0.03
+],
+"score": 0.2176,
+"dist_h": 1.2694,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 315.903,
+"height_ratio": 0.487,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 126,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.1,
+0.03
+],
+"score": 0.1379,
+"dist_h": 0.124,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 3.014,
+"height_ratio": 0.691,
+"iou": 0.437,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 137,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.1,
+0.03
+],
+"score": 0.1308,
+"dist_h": 1.3202,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 341.718,
+"height_ratio": 0.479,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+}
+]
+},
+{
+"frame": 169,
+"track_state": "ACTIVE",
+"source": "OBSERVED",
+"detection": 10,
+"contested": true,
+"box": [
+1104.5,
+416.1,
+1153.2,
+512.2
+],
+"iou_with_from_player": 0.815,
+"iou_with_to_player": 0.417,
+"from_player_box_interp": [
+1109.9,
+414.8,
+1155.4,
+515.6
+],
+"to_player_box_interp": [
+1089.4,
+404.8,
+1133.3,
+512.0
+],
+"match_decision": {
+"kind": "match",
+"stage": "S1",
+"cost": 0.1673,
+"iou": 0.6952,
+"dist_h": 0.0598,
+"contested": false,
+"rival_tracks": [],
+"rival_detections": []
+},
+"other_decisions_for_track": [
+{
+"frame": 169,
+"kind": "contested_multi_body",
+"track_id": "T000014",
+"detection": 10
+}
+],
+"detections_near_track": [
+{
+"detection": 9,
+"box": [
+1193.0,
+376.5,
+1223.9,
+465.1
+],
+"score": 0.8553,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 10,
+"box": [
+1104.5,
+416.1,
+1153.2,
+512.2
+],
+"score": 0.8455,
+"multi_body": 1,
+"iou_from": 0.815,
+"iou_to": 0.417
+},
+{
+"detection": 13,
+"box": [
+1098.3,
+413.2,
+1122.8,
+507.7
+],
+"score": 0.7128,
+"multi_body": 0,
+"iou_from": 0.21,
+"iou_to": 0.492
+},
+{
+"detection": 44,
+"box": [
+1002.2,
+379.5,
+1031.3,
+430.9
+],
+"score": 0.3014,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 71,
+"box": [
+1016.1,
+383.4,
+1035.9,
+430.8
+],
+"score": 0.2168,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+}
+],
+"gate_reports": [
+{
+"track": "T000007",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 10,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.66,
+0.08
+],
+"score": 0.8455,
+"dist_h": 0.1547,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 4.605,
+"height_ratio": 0.984,
+"iou": 0.4562,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 10,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.99,
+0.01
+],
+"score": 0.8455,
+"dist_h": 0.0598,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 0.696,
+"height_ratio": 1.033,
+"iou": 0.6952,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 13,
+"owner": "T000007",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.99,
+0.01
+],
+"score": 0.7128,
+"dist_h": 0.2602,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 13.183,
+"height_ratio": 1.016,
+"iou": 0.1047,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": [
+"mahalanobis_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 44,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.99,
+0.01
+],
+"score": 0.3014,
+"dist_h": 1.4167,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 390.807,
+"height_ratio": 0.552,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 71,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.99,
+0.01
+],
+"score": 0.2168,
+"dist_h": 1.319,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 338.788,
+"height_ratio": 0.509,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+}
+]
+},
+{
+"frame": 170,
+"track_state": "ACTIVE",
+"source": "OBSERVED",
+"detection": 10,
+"contested": true,
+"box": [
+1105.1,
+416.1,
+1154.8,
+512.5
+],
+"iou_with_from_player": 0.766,
+"iou_with_to_player": 0.498,
+"from_player_box_interp": [
+1112.6,
+414.8,
+1158.1,
+515.6
+],
+"to_player_box_interp": [
+1094.2,
+404.6,
+1138.1,
+511.8
+],
+"match_decision": {
+"kind": "match",
+"stage": "S1",
+"cost": 0.1481,
+"iou": 0.7249,
+"dist_h": 0.0422,
+"contested": false,
+"rival_tracks": [],
+"rival_detections": []
+},
+"other_decisions_for_track": [
+{
+"frame": 170,
+"kind": "contested_multi_body",
+"track_id": "T000014",
+"detection": 10
+}
+],
+"detections_near_track": [
+{
+"detection": 8,
+"box": [
+1193.7,
+376.5,
+1223.2,
+466.1
+],
+"score": 0.8663,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 10,
+"box": [
+1105.1,
+416.1,
+1154.8,
+512.5
+],
+"score": 0.8616,
+"multi_body": 1,
+"iou_from": 0.766,
+"iou_to": 0.498
+},
+{
+"detection": 13,
+"box": [
+1104.5,
+413.7,
+1128.0,
+509.2
+],
+"score": 0.6056,
+"multi_body": 0,
+"iou_from": 0.27,
+"iou_to": 0.477
+},
+{
+"detection": 43,
+"box": [
+1002.1,
+379.5,
+1031.6,
+431.0
+],
+"score": 0.3104,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 58,
+"box": [
+1017.1,
+383.7,
+1035.9,
+430.8
+],
+"score": 0.2573,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+}
+],
+"gate_reports": [
+{
+"track": "T000007",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 10,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.5,
+-0.02
+],
+"score": 0.8616,
+"dist_h": 0.1367,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 3.64,
+"height_ratio": 0.993,
+"iou": 0.4973,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 10,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.7,
+-0.02
+],
+"score": 0.8616,
+"dist_h": 0.0422,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 0.341,
+"height_ratio": 1.031,
+"iou": 0.7249,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 13,
+"owner": "T000007",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.7,
+-0.02
+],
+"score": 0.6056,
+"dist_h": 0.1913,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 6.995,
+"height_ratio": 1.021,
+"iou": 0.2545,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 43,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.7,
+-0.02
+],
+"score": 0.3104,
+"dist_h": 1.4022,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 375.737,
+"height_ratio": 0.551,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 58,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.7,
+-0.02
+],
+"score": 0.2573,
+"dist_h": 1.3008,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 323.34,
+"height_ratio": 0.504,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+}
+]
+},
+{
+"frame": 171,
+"track_state": "ACTIVE",
+"source": "OBSERVED",
+"detection": 10,
+"contested": true,
+"box": [
+1104.7,
+413.6,
+1153.0,
+512.2
+],
+"iou_with_from_player": 0.647,
+"iou_with_to_player": 0.656,
+"from_player_box_interp": [
+1115.3,
+414.8,
+1160.8,
+515.6
+],
+"to_player_box_interp": [
+1099.1,
+404.3,
+1143.0,
+511.5
+],
+"match_decision": {
+"kind": "match",
+"stage": "S1",
+"cost": 0.127,
+"iou": 0.7715,
+"dist_h": 0.051,
+"contested": true,
+"rival_tracks": [
+"T000007"
+],
+"rival_detections": []
+},
+"other_decisions_for_track": [],
+"detections_near_track": [
+{
+"detection": 9,
+"box": [
+1193.9,
+376.5,
+1223.2,
+465.6
+],
+"score": 0.8608,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 10,
+"box": [
+1104.7,
+413.6,
+1153.0,
+512.2
+],
+"score": 0.8592,
+"multi_body": 0,
+"iou_from": 0.647,
+"iou_to": 0.656
+},
+{
+"detection": 45,
+"box": [
+1002.1,
+379.5,
+1031.3,
+430.9
+],
+"score": 0.3078,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 57,
+"box": [
+1016.8,
+383.6,
+1035.9,
+430.8
+],
+"score": 0.2565,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 101,
+"box": [
+1107.1,
+412.1,
+1128.5,
+502.1
+],
+"score": 0.163,
+"multi_body": 0,
+"iou_from": 0.215,
+"iou_to": 0.409
+}
+],
+"gate_reports": [
+{
+"track": "T000007",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 10,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.46,
+-0.01
+],
+"score": 0.8592,
+"dist_h": 0.079,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 1.214,
+"height_ratio": 1.019,
+"iou": 0.6202,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 10,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.48,
+-0.03
+],
+"score": 0.8592,
+"dist_h": 0.051,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 0.496,
+"height_ratio": 1.049,
+"iou": 0.7715,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 45,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.48,
+-0.03
+],
+"score": 0.3078,
+"dist_h": 1.3922,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 369.45,
+"height_ratio": 0.547,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 57,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.48,
+-0.03
+],
+"score": 0.2565,
+"dist_h": 1.2912,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 317.812,
+"height_ratio": 0.502,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 101,
+"owner": "T000007",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.48,
+-0.03
+],
+"score": 0.163,
+"dist_h": 0.1831,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 6.387,
+"height_ratio": 0.958,
+"iou": 0.2841,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": [
+"low_score_iou_ok"
+]
+}
+]
+},
+{
+"frame": 172,
+"track_state": "ACTIVE",
+"source": "OBSERVED",
+"detection": 12,
+"contested": true,
+"box": [
+1107.2,
+410.6,
+1152.9,
+513.0
+],
+"iou_with_from_player": 0.587,
+"iou_with_to_player": 0.774,
+"from_player_box_interp": [
+1118.0,
+414.8,
+1163.5,
+515.6
+],
+"to_player_box_interp": [
+1104.0,
+404.0,
+1147.9,
+511.2
+],
+"match_decision": {
+"kind": "match",
+"stage": "S1",
+"cost": 0.0963,
+"iou": 0.82,
+"dist_h": 0.0254,
+"contested": false,
+"rival_tracks": [],
+"rival_detections": []
+},
+"other_decisions_for_track": [
+{
+"frame": 172,
+"kind": "contested_multi_body",
+"track_id": "T000014",
+"detection": 12
+}
+],
+"detections_near_track": [
+{
+"detection": 8,
+"box": [
+1194.8,
+376.8,
+1223.5,
+464.8
+],
+"score": 0.8753,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 12,
+"box": [
+1107.2,
+410.6,
+1152.9,
+513.0
+],
+"score": 0.7663,
+"multi_body": 1,
+"iou_from": 0.587,
+"iou_to": 0.774
+},
+{
+"detection": 13,
+"box": [
+1110.0,
+411.4,
+1136.7,
+508.9
+],
+"score": 0.6648,
+"multi_body": 0,
+"iou_from": 0.324,
+"iou_to": 0.553
+},
+{
+"detection": 39,
+"box": [
+1081.7,
+303.4,
+1111.2,
+351.6
+],
+"score": 0.3188,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 44,
+"box": [
+1002.1,
+379.8,
+1032.3,
+431.3
+],
+"score": 0.2924,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 67,
+"box": [
+1018.7,
+383.9,
+1035.8,
+430.7
+],
+"score": 0.225,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 147,
+"box": [
+1125.3,
+422.7,
+1150.5,
+502.5
+],
+"score": 0.1052,
+"multi_body": 0,
+"iou_from": 0.438,
+"iou_to": 0.367
+}
+],
+"gate_reports": [
+{
+"track": "T000007",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 12,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.28,
+-0.25
+],
+"score": 0.7663,
+"dist_h": 0.0782,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 1.205,
+"height_ratio": 1.072,
+"iou": 0.5916,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 12,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.25,
+-0.09
+],
+"score": 0.7663,
+"dist_h": 0.0254,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 0.123,
+"height_ratio": 1.082,
+"iou": 0.82,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 13,
+"owner": "T000007",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.25,
+-0.09
+],
+"score": 0.6648,
+"dist_h": 0.0969,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 1.78,
+"height_ratio": 1.03,
+"iou": 0.564,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 39,
+"owner": "T000139",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.25,
+-0.09
+],
+"score": 0.3188,
+"dist_h": 1.4818,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 416.194,
+"height_ratio": 0.509,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 44,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.25,
+-0.09
+],
+"score": 0.2924,
+"dist_h": 1.3568,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 348.969,
+"height_ratio": 0.544,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 67,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.25,
+-0.09
+],
+"score": 0.225,
+"dist_h": 1.2541,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 298.112,
+"height_ratio": 0.494,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 147,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.25,
+-0.09
+],
+"score": 0.1052,
+"dist_h": 0.0627,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 0.745,
+"height_ratio": 0.843,
+"iou": 0.524,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+}
+]
+},
+{
+"frame": 173,
+"track_state": "ACTIVE",
+"source": "OBSERVED",
+"detection": 12,
+"contested": false,
+"box": [
+1109.2,
+411.5,
+1153.1,
+511.4
+],
+"iou_with_from_player": 0.536,
+"iou_with_to_player": 0.909,
+"from_player_box_interp": [
+1120.7,
+414.8,
+1166.2,
+515.6
+],
+"to_player_box_interp": [
+1108.8,
+403.8,
+1152.7,
+511.0
+],
+"match_decision": {
+"kind": "match",
+"stage": "S1",
+"cost": 0.051,
+"iou": 0.9018,
+"dist_h": 0.0076,
+"contested": false,
+"rival_tracks": [],
+"rival_detections": []
+},
+"other_decisions_for_track": [],
+"detections_near_track": [
+{
+"detection": 8,
+"box": [
+1195.3,
+377.8,
+1223.7,
+465.6
+],
+"score": 0.8735,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 12,
+"box": [
+1109.2,
+411.5,
+1153.1,
+511.4
+],
+"score": 0.7996,
+"multi_body": 0,
+"iou_from": 0.536,
+"iou_to": 0.909
+},
+{
+"detection": 19,
+"box": [
+1111.7,
+413.7,
+1140.0,
+506.7
+],
+"score": 0.4611,
+"multi_body": 0,
+"iou_from": 0.326,
+"iou_to": 0.559
+},
+{
+"detection": 44,
+"box": [
+1081.4,
+303.3,
+1112.6,
+351.2
+],
+"score": 0.3063,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 45,
+"box": [
+1002.1,
+379.3,
+1030.7,
+431.0
+],
+"score": 0.3047,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 68,
+"box": [
+1010.3,
+382.0,
+1034.8,
+431.2
+],
+"score": 0.2372,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 95,
+"box": [
+1020.7,
+384.9,
+1035.3,
+430.8
+],
+"score": 0.1882,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 111,
+"box": [
+1132.5,
+417.7,
+1152.8,
+497.9
+],
+"score": 0.159,
+"multi_body": 0,
+"iou_from": 0.355,
+"iou_to": 0.344
+}
+],
+"gate_reports": [
+{
+"track": "T000007",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 12,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.26,
+-0.14
+],
+"score": 0.7996,
+"dist_h": 0.0473,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 0.431,
+"height_ratio": 1.042,
+"iou": 0.6195,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 12,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.15,
+-0.16
+],
+"score": 0.7996,
+"dist_h": 0.0076,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 0.011,
+"height_ratio": 1.043,
+"iou": 0.9018,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 19,
+"owner": "T000007",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.15,
+-0.16
+],
+"score": 0.4611,
+"dist_h": 0.0629,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 0.742,
+"height_ratio": 0.971,
+"iou": 0.6605,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 44,
+"owner": "T000139",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.15,
+-0.16
+],
+"score": 0.3063,
+"dist_h": 1.4524,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 395.625,
+"height_ratio": 0.5,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 45,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.15,
+-0.16
+],
+"score": 0.3047,
+"dist_h": 1.341,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 337.256,
+"height_ratio": 0.54,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 68,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.15,
+-0.16
+],
+"score": 0.2372,
+"dist_h": 1.2768,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 305.748,
+"height_ratio": 0.514,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 95,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.15,
+-0.16
+],
+"score": 0.1882,
+"dist_h": 1.2203,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 279.268,
+"height_ratio": 0.479,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 111,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.15,
+-0.16
+],
+"score": 0.159,
+"dist_h": 0.1235,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 2.862,
+"height_ratio": 0.837,
+"iou": 0.3957,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": [
+"low_score_iou_ok"
+]
+}
+]
+},
+{
+"frame": 174,
+"track_state": "ACTIVE",
+"source": "OBSERVED",
+"detection": 12,
+"contested": false,
+"box": [
+1112.0,
+411.5,
+1153.8,
+511.0
+],
+"iou_with_from_player": 0.502,
+"iou_with_to_player": 0.814,
+"from_player_box_interp": [
+1123.4,
+414.8,
+1168.9,
+515.6
+],
+"to_player_box_interp": [
+1113.7,
+403.5,
+1157.6000000000001,
+510.7
+],
+"match_decision": {
+"kind": "match",
+"stage": "S1",
+"cost": 0.0429,
+"iou": 0.92,
+"dist_h": 0.0116,
+"contested": false,
+"rival_tracks": [],
+"rival_detections": []
+},
+"other_decisions_for_track": [],
+"detections_near_track": [
+{
+"detection": 8,
+"box": [
+1195.5,
+378.1,
+1224.0,
+465.7
+],
+"score": 0.8775,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 12,
+"box": [
+1112.0,
+411.5,
+1153.8,
+511.0
+],
+"score": 0.8144,
+"multi_body": 0,
+"iou_from": 0.502,
+"iou_to": 0.814
+},
+{
+"detection": 41,
+"box": [
+1081.0,
+303.3,
+1111.8,
+350.8
+],
+"score": 0.3094,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 47,
+"box": [
+1002.0,
+379.3,
+1030.8,
+431.1
+],
+"score": 0.2975,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 69,
+"box": [
+1062.8,
+304.3,
+1086.8,
+353.7
+],
+"score": 0.2239,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 81,
+"box": [
+1015.2,
+382.3,
+1035.5,
+430.6
+],
+"score": 0.1986,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 87,
+"box": [
+1133.8,
+414.2,
+1154.3,
+506.7
+],
+"score": 0.1878,
+"multi_body": 0,
+"iou_from": 0.41,
+"iou_to": 0.403
+}
+],
+"gate_reports": [
+{
+"track": "T000007",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 12,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+1.17,
+-0.06
+],
+"score": 0.8144,
+"dist_h": 0.0337,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 0.22,
+"height_ratio": 1.044,
+"iou": 0.6562,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 12,
+"owner": "T000014",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.12,
+-0.19
+],
+"score": 0.8144,
+"dist_h": 0.0116,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 0.026,
+"height_ratio": 1.032,
+"iou": 0.92,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 41,
+"owner": "T000139",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.12,
+-0.19
+],
+"score": 0.3094,
+"dist_h": 1.4373,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 391.946,
+"height_ratio": 0.493,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 47,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.12,
+-0.19
+],
+"score": 0.2975,
+"dist_h": 1.3295,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 335.369,
+"height_ratio": 0.537,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 69,
+"owner": "T000141",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.12,
+-0.19
+],
+"score": 0.2239,
+"dist_h": 1.4915,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 422.084,
+"height_ratio": 0.512,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 81,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.12,
+-0.19
+],
+"score": 0.1986,
+"dist_h": 1.2406,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 292.039,
+"height_ratio": 0.501,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 87,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.12,
+-0.19
+],
+"score": 0.1878,
+"dist_h": 0.1272,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 3.069,
+"height_ratio": 0.959,
+"iou": 0.4177,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+}
+]
+},
+{
+"frame": 175,
+"track_state": "LOST",
+"source": "PREDICTED",
+"detection": null,
+"contested": false,
+"box": [
+1112.2,
+412.1,
+1153.9,
+509.0
+],
+"iou_with_from_player": 0.461,
+"iou_with_to_player": 0.666,
+"from_player_box_interp": [
+1125.0,
+414.8,
+1170.5,
+515.6
+],
+"to_player_box_interp": [
+1117.8,
+403.2,
+1161.7,
+510.4
+],
+"match_decision": {
+"kind": "match",
+"stage": "S1",
+"cost": 0.1087,
+"iou": 0.8042,
+"dist_h": 0.043,
+"contested": false,
+"rival_tracks": [],
+"rival_detections": []
+},
+"other_decisions_for_track": [
+{
+"frame": 175,
+"kind": "match_refused",
+"track_id": "T000014",
+"detection": 13,
+"reason": "AMBIGUOUS_WITH_HIDDEN_TRACK",
+"own_cost": 0.1087,
+"hidden_track": "T000007",
+"hidden_cost": 0.1864,
+"own_similarity": null,
+"hidden_similarity": null
+}
+],
+"detections_near_track": [
+{
+"detection": 7,
+"box": [
+1196.0,
+378.9,
+1225.2,
+465.6
+],
+"score": 0.8757,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 13,
+"box": [
+1116.0,
+411.6,
+1158.4,
+510.8
+],
+"score": 0.8018,
+"multi_body": 0,
+"iou_from": 0.574,
+"iou_to": 0.818
+},
+{
+"detection": 36,
+"box": [
+1080.4,
+303.3,
+1110.9,
+351.0
+],
+"score": 0.3254,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 39,
+"box": [
+1002.0,
+379.2,
+1031.7,
+431.3
+],
+"score": 0.323,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 73,
+"box": [
+1063.0,
+304.4,
+1086.4,
+353.6
+],
+"score": 0.2123,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 77,
+"box": [
+1011.6,
+381.9,
+1035.4,
+430.9
+],
+"score": 0.2015,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 108,
+"box": [
+1021.2,
+384.7,
+1035.7,
+430.6
+],
+"score": 0.1626,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 162,
+"box": [
+1138.2,
+417.2,
+1158.3,
+509.5
+],
+"score": 0.1033,
+"multi_body": 0,
+"iou_from": 0.405,
+"iou_to": 0.394
+}
+],
+"gate_reports": [
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 13,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.18,
+-0.18
+],
+"score": 0.8018,
+"dist_h": 0.043,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 0.352,
+"height_ratio": 1.024,
+"iou": 0.8042,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 36,
+"owner": "T000139",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.18,
+-0.18
+],
+"score": 0.3254,
+"dist_h": 1.4301,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 389.889,
+"height_ratio": 0.492,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 39,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.18,
+-0.18
+],
+"score": 0.323,
+"dist_h": 1.3284,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 336.431,
+"height_ratio": 0.538,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 73,
+"owner": "T000141",
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.18,
+-0.18
+],
+"score": 0.2123,
+"dist_h": 1.4855,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 420.689,
+"height_ratio": 0.508,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 77,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.18,
+-0.18
+],
+"score": 0.2015,
+"dist_h": 1.2615,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 303.387,
+"height_ratio": 0.506,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 108,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.18,
+-0.18
+],
+"score": 0.1626,
+"dist_h": 1.21,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 279.142,
+"height_ratio": 0.474,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "ACTIVE",
+"observed_last": true,
+"detection": 162,
+"owner": null,
+"gap_s": 0.033,
+"vel_h_per_s": [
+0.18,
+-0.18
+],
+"score": 0.1033,
+"dist_h": 0.1591,
+"gate_radius_h": 0.5167,
+"mahalanobis2": 4.826,
+"height_ratio": 0.952,
+"iou": 0.3246,
+"appearance_similarity": null,
+"motion_consistent": true,
+"failed": [
+"low_score_iou_ok"
+]
+}
+]
+},
+{
+"frame": 176,
+"track_state": "OCCLUDED",
+"source": "PREDICTED",
+"detection": null,
+"contested": false,
+"box": [
+1112.9,
+411.6,
+1154.6,
+508.5
+],
+"iou_with_from_player": 0.437,
+"iou_with_to_player": 0.571,
+"from_player_box_interp": [
+1126.6,
+414.8,
+1172.1,
+515.6
+],
+"to_player_box_interp": [
+1121.8,
+403.0,
+1165.7,
+510.2
+],
+"match_decision": null,
+"other_decisions_for_track": [],
+"detections_near_track": [
+{
+"detection": 7,
+"box": [
+1196.6,
+379.0,
+1225.6,
+466.8
+],
+"score": 0.8766,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 12,
+"box": [
+1126.5,
+412.8,
+1162.1,
+510.2
+],
+"score": 0.8508,
+"multi_body": 0,
+"iou_from": 0.726,
+"iou_to": 0.737
+},
+{
+"detection": 36,
+"box": [
+1002.1,
+379.2,
+1031.4,
+431.1
+],
+"score": 0.3288,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 40,
+"box": [
+1080.7,
+303.2,
+1110.8,
+351.5
+],
+"score": 0.3144,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 77,
+"box": [
+1012.9,
+382.2,
+1035.5,
+430.7
+],
+"score": 0.2149,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 87,
+"box": [
+1062.9,
+304.4,
+1086.7,
+353.7
+],
+"score": 0.2021,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+},
+{
+"detection": 142,
+"box": [
+1020.8,
+384.7,
+1035.9,
+430.0
+],
+"score": 0.1238,
+"multi_body": 0,
+"iou_from": 0.0,
+"iou_to": 0.0
+}
+],
+"gate_reports": [
+{
+"track": "T000014",
+"confirmed": true,
+"state": "LOST",
+"observed_last": false,
+"detection": 12,
+"owner": "T000214",
+"gap_s": 0.067,
+"vel_h_per_s": [
+0.18,
+-0.18
+],
+"score": 0.8508,
+"dist_h": 0.1097,
+"gate_radius_h": 0.6833,
+"mahalanobis2": 1.565,
+"height_ratio": 1.005,
+"iou": 0.5585,
+"appearance_similarity": 0.7685,
+"motion_consistent": true,
+"failed": []
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "LOST",
+"observed_last": false,
+"detection": 36,
+"owner": null,
+"gap_s": 0.067,
+"vel_h_per_s": [
+0.18,
+-0.18
+],
+"score": 0.3288,
+"dist_h": 1.3339,
+"gate_radius_h": 0.6833,
+"mahalanobis2": 231.477,
+"height_ratio": 0.536,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "LOST",
+"observed_last": false,
+"detection": 40,
+"owner": "T000139",
+"gap_s": 0.067,
+"vel_h_per_s": [
+0.18,
+-0.18
+],
+"score": 0.3144,
+"dist_h": 1.4242,
+"gate_radius_h": 0.6833,
+"mahalanobis2": 263.893,
+"height_ratio": 0.498,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "LOST",
+"observed_last": false,
+"detection": 77,
+"owner": null,
+"gap_s": 0.067,
+"vel_h_per_s": [
+0.18,
+-0.18
+],
+"score": 0.2149,
+"dist_h": 1.2587,
+"gate_radius_h": 0.6833,
+"mahalanobis2": 206.131,
+"height_ratio": 0.501,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "LOST",
+"observed_last": false,
+"detection": 87,
+"owner": "T000141",
+"gap_s": 0.067,
+"vel_h_per_s": [
+0.18,
+-0.18
+],
+"score": 0.2021,
+"dist_h": 1.4823,
+"gate_radius_h": 0.6833,
+"mahalanobis2": 285.844,
+"height_ratio": 0.509,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+},
+{
+"track": "T000014",
+"confirmed": true,
+"state": "LOST",
+"observed_last": false,
+"detection": 142,
+"owner": null,
+"gap_s": 0.067,
+"vel_h_per_s": [
+0.18,
+-0.18
+],
+"score": 0.1238,
+"dist_h": 1.2162,
+"gate_radius_h": 0.6833,
+"mahalanobis2": 192.442,
+"height_ratio": 0.468,
+"iou": 0.0,
+"appearance_similarity": null,
+"motion_consistent": false,
+"failed": [
+"low_score_iou_ok"
+]
+}
+]
+}
+]
+}
+]

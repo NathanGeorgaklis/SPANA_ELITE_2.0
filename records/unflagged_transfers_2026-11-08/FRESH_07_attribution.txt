@@ -1,0 +1,33 @@
+
+=== T000191 17->18 at 294 (flagged=False)
+  f270 OBS | 17(occ) iou 0.49 foot +0.03,+0.19h | 18 iou 0.45 foot -0.00,-0.06h | players' IoU 0.49
+  f276 OBS | 17(occ) iou 0.46 foot +0.09,+0.18h | 18 iou 0.42 foot +0.03,-0.04h | players' IoU 0.42
+  f282 OBS | 17(occ) iou 0.64 foot +0.04,+0.15h | 18 iou 0.59 foot -0.02,-0.06h | players' IoU 0.43
+  f288 OBS | 17(occ) iou 0.51 foot -0.03,+0.12h | 18 iou 0.44 foot -0.07,-0.09h | players' IoU 0.53
+  f294 OBS | 17(occ) iou 0.53 foot -0.05,+0.13h | 18 iou 0.62 foot +0.05,-0.05h | players' IoU 0.37
+  f300 OBS | 17(occ) iou 0.37 foot -0.11,+0.23h | 18 iou 0.72 foot -0.02,-0.07h | players' IoU 0.37
+  f306 OBS | 17(occ) iou 0.32 foot -0.16,+0.19h | 18 iou 0.57 foot +0.04,-0.05h | players' IoU 0.17
+  f312 OBS | 17(occ) iou 0.21 foot -0.23,+0.19h | 18 iou 0.75 foot -0.01,-0.09h | players' IoU 0.18
+  f318 OBS | 17(occ) iou 0.15 foot -0.25,+0.22h | 18 iou 0.80 foot +0.04,+0.04h | players' IoU 0.13
+
+=== T000191 18->17 at 342 (flagged=False)
+  f318 OBS | 18 iou 0.80 foot +0.04,+0.04h | 17(occ) iou 0.15 foot -0.25,+0.22h | players' IoU 0.13
+  f324 OBS | 18 iou 0.81 foot -0.01,+0.09h | 17(occ) iou 0.19 foot -0.25,+0.26h | players' IoU 0.19
+  f330 OBS | 18 iou 0.79 foot +0.03,+0.08h | 17(occ) iou 0.29 foot -0.16,+0.26h | players' IoU 0.25
+  f336 OBS | 18 iou 0.77 foot +0.04,-0.02h | 17(occ) iou 0.33 foot -0.14,+0.24h | players' IoU 0.30
+  f342 OBS | 18 iou 0.56 foot +0.08,-0.06h | 17(occ) iou 0.58 foot -0.03,+0.30h | players' IoU 0.33
+  f348 OBS | 18 iou 0.70 foot +0.04,-0.05h | 17(occ) iou 0.65 foot -0.00,+0.22h | players' IoU 0.47
+  f354 OBS | 18 iou 0.78 foot -0.00,-0.04h | 17(occ) iou 0.55 foot -0.05,+0.25h | players' IoU 0.45
+  f360 OBS | 18 iou 0.85 foot +0.01,-0.00h | 17(occ) iou 0.58 foot -0.04,+0.20h | players' IoU 0.52
+  f366 OBS | 18 iou 0.80 foot +0.01,-0.01h | 17(occ) iou 0.51 foot +0.09,+0.26h | players' IoU 0.43
+
+=== T000191 17->18 at 348 (flagged=False)
+  f324 OBS | 17(occ) iou 0.19 foot -0.25,+0.26h | 18 iou 0.81 foot -0.01,+0.09h | players' IoU 0.19
+  f330 OBS | 17(occ) iou 0.29 foot -0.16,+0.26h | 18 iou 0.79 foot +0.03,+0.08h | players' IoU 0.25
+  f336 OBS | 17(occ) iou 0.33 foot -0.14,+0.24h | 18 iou 0.77 foot +0.04,-0.02h | players' IoU 0.30
+  f342 OBS | 17(occ) iou 0.58 foot -0.03,+0.30h | 18 iou 0.56 foot +0.08,-0.06h | players' IoU 0.33
+  f348 OBS | 17(occ) iou 0.65 foot -0.00,+0.22h | 18 iou 0.70 foot +0.04,-0.05h | players' IoU 0.47
+  f354 OBS | 17(occ) iou 0.55 foot -0.05,+0.25h | 18 iou 0.78 foot -0.00,-0.04h | players' IoU 0.45
+  f360 OBS | 17(occ) iou 0.58 foot -0.04,+0.20h | 18 iou 0.85 foot +0.01,-0.00h | players' IoU 0.52
+  f366 OBS | 17(occ) iou 0.51 foot +0.09,+0.26h | 18 iou 0.80 foot +0.01,-0.01h | players' IoU 0.43
+  f372 OBS | 17(occ) iou 0.18 foot +0.27,+0.20h | 18 iou 0.90 foot +0.02,-0.01h | players' IoU 0.20
