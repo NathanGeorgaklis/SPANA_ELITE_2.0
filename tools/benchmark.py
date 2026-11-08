@@ -63,7 +63,7 @@ def build_frames(gt, dets_doc: dict, tracks_doc: dict, decisions: List[dict]) ->
                         bool(t["possible_predecessors"]) or t["recoveries"] > 0, remap.get(t["detection_index"]))
                for t in trk[f]["tracks"] if t["source"] == "OBSERVED" and keep(t["box"])]
         recs = [(tid, remap[d]) for tid, d in rec.get(f, []) if d in remap]
-        out.append(EvalFrame(f, gt.players.get(f, {}), boxes, obs, recs))
+        out.append(EvalFrame(f, gt.players.get(f, {}), boxes, obs, recs, frozenset(gt.occluded.get(f, ()))))
     return out
 
 
@@ -93,7 +93,8 @@ def main() -> int:
               "gt_occluded_boxes": occluded, "missed_occluded": miss_occ,
               "fragments_by_player": r.fragments,
               "events": {"transfers": r.transfer_events, "wrong_recoveries": r.wrong_recovery_events,
-                         "missed": r.missed_events, "duplicates": r.duplicate_events}}
+                         "missed": r.missed_events, "duplicates": r.duplicate_events,
+                         "ambiguous_attributions": r.ambiguous_events}}
     write_json_atomic(a.out, report)
     print(json.dumps({k: report[k] for k in ("match_rule", "summary", "recall_visible", "recall_occluded")}, indent=1))
     return 0

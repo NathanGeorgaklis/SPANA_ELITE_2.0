@@ -6,6 +6,10 @@ frame's detections, the tracker's OBSERVED track boxes, and the tracker's recove
 
 Matching: a versioned MatchRule decides which pairs are eligible (IOU_050: IoU >= 0.5; NESTED_V1 adds same-body
 pairs drawn in a different box style); Hungarian picks a one-to-one assignment preferring larger overlap.
+NESTED_V2 keeps NESTED_V1 eligibility but, for a box eligible for two labelled players that overlap each other,
+attributes it by foot point (bottom-centre) instead of IoU, and marks it AMBIGUOUS when the foot points do not
+separate the players or when any of them is labelled occluded (an occluded label's feet are an estimate): an
+ambiguous track match counts as coverage but never as an identity change.
 
 Detection layer
   missed_players      ground-truth boxes with no detection matched (by height bin: small players are the risk)
@@ -20,6 +24,7 @@ Tracking layer
                       extra CONFIRMED one lies inside his box (IoA >= dup_ioa)
   fragments           per player: distinct track ids - 1
   coverage            share of visible player-frames with a matched OBSERVED track
+  ambiguous_attributions  (NESTED_V2) track matches whose player could not be told apart from an overlapping one
 """
 from __future__ import annotations
 
@@ -51,6 +56,7 @@ class EvalFrame:
     detections: Sequence[Box]
     tracks: Sequence[TrackBox]                 # OBSERVED tracks only
     recoveries: Sequence[Tuple[str, int]]      # (track_id, detection index) accepted on this frame
+    occluded: frozenset = frozenset()          # player ids labelled occluded on this frame (NESTED_V2 only)
 
 
 @dataclass
@@ -72,6 +78,8 @@ class Report:
     wrong_recovery_events: List[dict] = field(default_factory=list)
     missed_events: List[dict] = field(default_factory=list)
     duplicate_events: List[dict] = field(default_factory=list)
+    ambiguous_attributions: int = 0
+    ambiguous_events: List[dict] = field(default_factory=list)
 
     @property
     def transfer_tracks(self) -> Set[str]:
@@ -97,7 +105,7 @@ class Report:
                 "id_switches": self.id_switches, "wrong_recoveries": self.wrong_recoveries,
                 "recoveries": self.recoveries, "duplicate_track_frames": self.duplicate_frames,
                 "fragments_total": self.total_fragments, "players": len(self.fragments),
-                "track_coverage": round(self.coverage, 4)}
+                "track_coverage": round(self.coverage, 4), "ambiguous_attributions": self.ambiguous_attributions}
 
 
 def _ioa(inner: Box, outer: Box) -> float:
@@ -115,6 +123,8 @@ class MatchRule:
     nested_min_ioa: float = 0.0
     nested_min_height_ratio: float = 0.0
     nested_min_width_ratio: float = 0.0
+    overlap_min_iou: float = 0.0      # > 0: overlapping-player attribution by foot point (see NESTED_V2)
+    foot_ambiguity_h: float = 0.0     # foot-distance margin (label heights) below which attribution is ambiguous
 
 
 IOU_050 = MatchRule("IOU_050", 0.5)
@@ -123,7 +133,13 @@ IOU_050 = MatchRule("IOU_050", 0.5)
 #   height ratio (small/large) >= 0.60; width ratio >= 0.40.
 # A superset of IOU_050: it never removes a standard match; it only adds same-body pairs that differ in box style.
 NESTED_V1 = MatchRule("NESTED_V1", 0.5, True, 0.70, 0.60, 0.40)
-RULES = {r.name: r for r in (IOU_050, NESTED_V1)}
+# NESTED_V2 (frozen 2026-11-08, records/MATCHING_RULE_NESTED_V2.md): NESTED_V1 eligibility. A box eligible for
+#   two or more labelled players whose boxes overlap each other (IoU >= 0.30) is scored by foot-point distance
+#   (bottom-centre, in each player's label height) instead of IoU; if its two nearest such players' foot distances
+#   differ by < 0.10 label heights, or any of them is labelled occluded, its attribution is AMBIGUOUS (coverage
+#   yes, identity no; the one-to-one assignment then keeps the NESTED_V1 IoU preference).
+NESTED_V2 = MatchRule("NESTED_V2", 0.5, True, 0.70, 0.60, 0.40, overlap_min_iou=0.30, foot_ambiguity_h=0.10)
+RULES = {r.name: r for r in (IOU_050, NESTED_V1, NESTED_V2)}
 
 
 def eligible_matrix(gt_boxes: np.ndarray, boxes: np.ndarray, rule: MatchRule) -> Tuple[np.ndarray, np.ndarray]:
@@ -150,14 +166,41 @@ def eligible_matrix(gt_boxes: np.ndarray, boxes: np.ndarray, rule: MatchRule) ->
     return ok, ious
 
 
-def _match(gids: List[str], gt: Dict[str, Box], boxes: Sequence[Box], rule: MatchRule
-           ) -> Tuple[Dict[int, str], np.ndarray]:
+def _foot_distance(gt_boxes: np.ndarray, boxes: np.ndarray) -> np.ndarray:
+    """[g, d] distance between foot points (bottom-centre), in units of the label's height."""
+    gf = np.stack([(gt_boxes[:, 0] + gt_boxes[:, 2]) / 2, gt_boxes[:, 3]], axis=1)
+    df = np.stack([(boxes[:, 0] + boxes[:, 2]) / 2, boxes[:, 3]], axis=1)
+    gh = np.maximum(gt_boxes[:, 3] - gt_boxes[:, 1], 1e-9)
+    return np.hypot(*(df[None, :, :] - gf[:, None, :]).transpose(2, 0, 1)) / gh[:, None]
+
+
+def _match(gids: List[str], gt: Dict[str, Box], boxes: Sequence[Box], rule: MatchRule,
+           occluded: frozenset = frozenset()) -> Tuple[Dict[int, str], np.ndarray, Set[int]]:
+    """(box index -> player, eligibility, box indices whose attribution is ambiguous)."""
     if not gids or not len(boxes):
-        return {}, np.zeros((len(gids), len(boxes)), dtype=bool)
-    ok, ious = eligible_matrix(np.array([gt[g] for g in gids], float), np.array(boxes, dtype=float), rule)
+        return {}, np.zeros((len(gids), len(boxes)), dtype=bool), set()
+    G, B = np.array([gt[g] for g in gids], float), np.array(boxes, dtype=float)
+    ok, ious = eligible_matrix(G, B, rule)
     score = np.where(ok, ious + 1.0, 0.0)          # eligible pairs only; prefer the larger overlap
+    ambiguous: Set[int] = set()
+    if rule.overlap_min_iou > 0 and len(gids) > 1:
+        mutual = iou_matrix(G, G)
+        np.fill_diagonal(mutual, 0.0)
+        foot = _foot_distance(G, B)
+        for d in range(len(boxes)):
+            cand = np.flatnonzero(ok[:, d])
+            group = [g for g in cand if any(mutual[g, o] >= rule.overlap_min_iou for o in cand if o != g)]
+            if len(group) < 2:
+                continue
+            if any(gids[g] in occluded for g in group):      # no reliable foot point: keep IoU, attribute nothing
+                ambiguous.add(d)
+                continue
+            score[group, d] = 1.0 + np.clip(1.0 - foot[group, d], 0.0, 1.0)   # nearer foot point wins
+            fd = np.sort(foot[group, d])
+            if fd[1] - fd[0] < rule.foot_ambiguity_h:
+                ambiguous.add(d)
     rows, cols = linear_sum_assignment(-score)
-    return {int(c): gids[r] for r, c in zip(rows, cols) if ok[r, c]}, ok
+    return {int(c): gids[r] for r, c in zip(rows, cols) if ok[r, c]}, ok, ambiguous
 
 
 def _bin(h: float) -> str:
@@ -180,7 +223,7 @@ def evaluate(frames: Iterable[EvalFrame], rule: MatchRule = IOU_050, dup_ioa: fl
             b = _bin(ef.gt[g][3] - ef.gt[g][1])
             r.gt_by_height[b] = r.gt_by_height.get(b, 0) + 1
 
-        det_gt, det_ok = _match(gids, ef.gt, ef.detections, rule)
+        det_gt, det_ok, _ = _match(gids, ef.gt, ef.detections, rule, ef.occluded)
         hit = set(det_gt.values())
         for g in gids:
             if g not in hit:
@@ -197,10 +240,15 @@ def evaluate(frames: Iterable[EvalFrame], rule: MatchRule = IOU_050, dup_ioa: fl
                 r.duplicate_dets += 1
                 r.duplicate_events.append({"frame": ef.frame, "detection": d, "player": over[0]})
 
-        tr_gt, tr_ok = _match(gids, ef.gt, [t.box for t in ef.tracks], rule)
+        tr_gt, tr_ok, tr_amb = _match(gids, ef.gt, [t.box for t in ef.tracks], rule, ef.occluded)
         for c, g in tr_gt.items():
             t = ef.tracks[c]
             r.covered += 1
+            if c in tr_amb:            # player not identifiable: no identity bookkeeping on this frame
+                r.ambiguous_attributions += 1
+                r.ambiguous_events.append({"frame": ef.frame, "track_id": t.track_id, "assigned": g,
+                                           "last_clear": track_gt.get(t.track_id)})
+                continue
             if t.track_id in track_gt and track_gt[t.track_id] != g:
                 r.identity_transfers += 1
                 r.unflagged_transfers += 0 if t.flagged else 1
