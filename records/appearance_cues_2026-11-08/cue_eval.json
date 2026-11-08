@@ -1,0 +1,684 @@
+{
+ "cues": [
+  "hist",
+  "osnet",
+  "youtu",
+  "dinov2"
+ ],
+ "clips": {
+  "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper": {
+   "crops": 450,
+   "players": 12,
+   "contact_pairs": 1,
+   "uncertain_rival_pairs": [
+    [
+     "12",
+     "7"
+    ],
+    [
+     "4",
+     "5"
+    ]
+   ],
+   "cue": {
+    "hist": {
+     "auc_all": 0.9081266111111111,
+     "auc_hard": 0.9998002669215758,
+     "available": 1.0,
+     "tpr_at_1pct_far_hard": 0.9955960994023277,
+     "rival_test_accuracy": 0.992,
+     "rival_test_n": 125,
+     "rival_margin_over_same_spread_median": 6.491651794147744,
+     "rival_acc_h0-90": null,
+     "rival_acc_h90-130": [
+      0.967,
+      30
+     ],
+     "rival_acc_h130-10000": [
+      1.0,
+      95
+     ],
+     "rival_acc_query_occluded": [
+      1.0,
+      1
+     ],
+     "rival_acc_query_visible": [
+      0.992,
+      124
+     ],
+     "rival_acc_gap1.0-3.0s": [
+      1.0,
+      114
+     ],
+     "rival_acc_gap3.0-6.0s": [
+      1.0,
+      6
+     ],
+     "rival_acc_gap6.0-100.0s": [
+      0.8,
+      5
+     ],
+     "rival_pair_accuracy": {
+      "12|7": 1.0,
+      "4|5": 0.986
+     }
+    },
+    "osnet": {
+     "auc_all": 0.8899626666666667,
+     "auc_hard": 0.9828689401101804,
+     "available": 1.0,
+     "tpr_at_1pct_far_hard": 0.7323057565272099,
+     "rival_test_accuracy": 0.976,
+     "rival_test_n": 125,
+     "rival_margin_over_same_spread_median": 2.863150648775799,
+     "rival_acc_h0-90": null,
+     "rival_acc_h90-130": [
+      1.0,
+      30
+     ],
+     "rival_acc_h130-10000": [
+      0.968,
+      95
+     ],
+     "rival_acc_query_occluded": [
+      0.0,
+      1
+     ],
+     "rival_acc_query_visible": [
+      0.984,
+      124
+     ],
+     "rival_acc_gap1.0-3.0s": [
+      0.974,
+      114
+     ],
+     "rival_acc_gap3.0-6.0s": [
+      1.0,
+      6
+     ],
+     "rival_acc_gap6.0-100.0s": [
+      1.0,
+      5
+     ],
+     "rival_pair_accuracy": {
+      "12|7": 0.962,
+      "4|5": 0.986
+     }
+    },
+    "youtu": {
+     "auc_all": 0.9047653333333333,
+     "auc_hard": 0.9970192739366657,
+     "available": 1.0,
+     "tpr_at_1pct_far_hard": 0.926706511481598,
+     "rival_test_accuracy": 1.0,
+     "rival_test_n": 125,
+     "rival_margin_over_same_spread_median": 4.040148385246461,
+     "rival_acc_h0-90": null,
+     "rival_acc_h90-130": [
+      1.0,
+      30
+     ],
+     "rival_acc_h130-10000": [
+      1.0,
+      95
+     ],
+     "rival_acc_query_occluded": [
+      1.0,
+      1
+     ],
+     "rival_acc_query_visible": [
+      1.0,
+      124
+     ],
+     "rival_acc_gap1.0-3.0s": [
+      1.0,
+      114
+     ],
+     "rival_acc_gap3.0-6.0s": [
+      1.0,
+      6
+     ],
+     "rival_acc_gap6.0-100.0s": [
+      1.0,
+      5
+     ],
+     "rival_pair_accuracy": {
+      "12|7": 1.0,
+      "4|5": 1.0
+     }
+    },
+    "dinov2": {
+     "auc_all": 0.7654332777777778,
+     "auc_hard": 0.7519622313387221,
+     "available": 1.0,
+     "tpr_at_1pct_far_hard": 0.18936772569990562,
+     "rival_test_accuracy": 0.848,
+     "rival_test_n": 125,
+     "rival_margin_over_same_spread_median": 1.3643420274120175,
+     "rival_acc_h0-90": null,
+     "rival_acc_h90-130": [
+      0.867,
+      30
+     ],
+     "rival_acc_h130-10000": [
+      0.842,
+      95
+     ],
+     "rival_acc_query_occluded": [
+      0.0,
+      1
+     ],
+     "rival_acc_query_visible": [
+      0.855,
+      124
+     ],
+     "rival_acc_gap1.0-3.0s": [
+      0.842,
+      114
+     ],
+     "rival_acc_gap3.0-6.0s": [
+      0.833,
+      6
+     ],
+     "rival_acc_gap6.0-100.0s": [
+      1.0,
+      5
+     ],
+     "rival_pair_accuracy": {
+      "12|7": 0.792,
+      "4|5": 0.889
+     }
+    }
+   },
+   "hard_pairs_colour_similar_ge_0.7": 0,
+   "hard_pairs": 2,
+   "number": {
+    "read_rate_conf60": 0.0467,
+    "read_rate_by_height": {
+     "0-90": null,
+     "90-130": 0.0,
+     "130-10000": 0.0559
+    },
+    "players_with_>=2_reads": 5,
+    "agreement_with_player_majority": 0.611,
+    "hard_pairs_both_numbered_and_different": 0
+   }
+  },
+  "FRESH_07_G3_1205_midfield_passing_switch": {
+   "crops": 1211,
+   "players": 21,
+   "contact_pairs": 13,
+   "uncertain_rival_pairs": [
+    [
+     "12",
+     "13"
+    ],
+    [
+     "12",
+     "9"
+    ],
+    [
+     "13",
+     "15"
+    ],
+    [
+     "13",
+     "8"
+    ],
+    [
+     "14",
+     "9"
+    ],
+    [
+     "17",
+     "18"
+    ],
+    [
+     "24",
+     "3"
+    ],
+    [
+     "4",
+     "5"
+    ],
+    [
+     "5",
+     "6"
+    ],
+    [
+     "5",
+     "7"
+    ],
+    [
+     "8",
+     "9"
+    ]
+   ],
+   "cue": {
+    "hist": {
+     "auc_all": 0.8583498055555555,
+     "auc_hard": 0.8391013888888889,
+     "available": 1.0,
+     "tpr_at_1pct_far_hard": 0.055,
+     "rival_test_accuracy": 0.8984962406015038,
+     "rival_test_n": 1862,
+     "rival_margin_over_same_spread_median": 5.273010206582258,
+     "rival_acc_h0-90": [
+      0.942,
+      415
+     ],
+     "rival_acc_h90-130": [
+      0.889,
+      1434
+     ],
+     "rival_acc_h130-10000": [
+      0.538,
+      13
+     ],
+     "rival_acc_query_occluded": [
+      0.833,
+      222
+     ],
+     "rival_acc_query_visible": [
+      0.907,
+      1640
+     ],
+     "rival_acc_gap1.0-3.0s": [
+      0.898,
+      1862
+     ],
+     "rival_acc_gap3.0-6.0s": null,
+     "rival_acc_gap6.0-100.0s": null,
+     "rival_pair_accuracy": {
+      "12|13": 0.68,
+      "12|9": 0.795,
+      "13|15": 1.0,
+      "13|8": 1.0,
+      "14|9": 0.992,
+      "17|18": 0.969,
+      "24|3": 1.0,
+      "4|5": 0.975,
+      "5|6": 0.713,
+      "5|7": 0.975,
+      "8|9": 0.992
+     }
+    },
+    "osnet": {
+     "auc_all": 0.8816846388888889,
+     "auc_hard": 0.8641911388888889,
+     "available": 1.0,
+     "tpr_at_1pct_far_hard": 0.101,
+     "rival_test_accuracy": 0.9215896885069818,
+     "rival_test_n": 1862,
+     "rival_margin_over_same_spread_median": 3.0433318001019454,
+     "rival_acc_h0-90": [
+      0.952,
+      415
+     ],
+     "rival_acc_h90-130": [
+      0.912,
+      1434
+     ],
+     "rival_acc_h130-10000": [
+      1.0,
+      13
+     ],
+     "rival_acc_query_occluded": [
+      0.793,
+      222
+     ],
+     "rival_acc_query_visible": [
+      0.939,
+      1640
+     ],
+     "rival_acc_gap1.0-3.0s": [
+      0.922,
+      1862
+     ],
+     "rival_acc_gap3.0-6.0s": null,
+     "rival_acc_gap6.0-100.0s": null,
+     "rival_pair_accuracy": {
+      "12|13": 0.738,
+      "12|9": 0.828,
+      "13|15": 1.0,
+      "13|8": 1.0,
+      "14|9": 0.975,
+      "17|18": 0.938,
+      "24|3": 0.975,
+      "4|5": 0.967,
+      "5|6": 0.754,
+      "5|7": 0.959,
+      "8|9": 0.975
+     }
+    },
+    "youtu": {
+     "auc_all": 0.8967168055555556,
+     "auc_hard": 0.8778380555555556,
+     "available": 1.0,
+     "tpr_at_1pct_far_hard": 0.15166666666666667,
+     "rival_test_accuracy": 0.9414607948442535,
+     "rival_test_n": 1862,
+     "rival_margin_over_same_spread_median": 3.852291058342915,
+     "rival_acc_h0-90": [
+      0.957,
+      415
+     ],
+     "rival_acc_h90-130": [
+      0.937,
+      1434
+     ],
+     "rival_acc_h130-10000": [
+      1.0,
+      13
+     ],
+     "rival_acc_query_occluded": [
+      0.851,
+      222
+     ],
+     "rival_acc_query_visible": [
+      0.954,
+      1640
+     ],
+     "rival_acc_gap1.0-3.0s": [
+      0.941,
+      1862
+     ],
+     "rival_acc_gap3.0-6.0s": null,
+     "rival_acc_gap6.0-100.0s": null,
+     "rival_pair_accuracy": {
+      "12|13": 0.77,
+      "12|9": 0.779,
+      "13|15": 1.0,
+      "13|8": 1.0,
+      "14|9": 0.992,
+      "17|18": 0.969,
+      "24|3": 1.0,
+      "4|5": 0.992,
+      "5|6": 0.902,
+      "5|7": 0.967,
+      "8|9": 0.992
+     }
+    },
+    "dinov2": {
+     "auc_all": 0.7597174722222222,
+     "auc_hard": 0.6895556388888889,
+     "available": 1.0,
+     "tpr_at_1pct_far_hard": 0.09866666666666667,
+     "rival_test_accuracy": 0.7873254564983888,
+     "rival_test_n": 1862,
+     "rival_margin_over_same_spread_median": 0.8397857583194112,
+     "rival_acc_h0-90": [
+      0.824,
+      415
+     ],
+     "rival_acc_h90-130": [
+      0.776,
+      1434
+     ],
+     "rival_acc_h130-10000": [
+      0.846,
+      13
+     ],
+     "rival_acc_query_occluded": [
+      0.734,
+      222
+     ],
+     "rival_acc_query_visible": [
+      0.795,
+      1640
+     ],
+     "rival_acc_gap1.0-3.0s": [
+      0.787,
+      1862
+     ],
+     "rival_acc_gap3.0-6.0s": null,
+     "rival_acc_gap6.0-100.0s": null,
+     "rival_pair_accuracy": {
+      "12|13": 0.656,
+      "12|9": 0.762,
+      "13|15": 0.918,
+      "13|8": 0.721,
+      "14|9": 0.877,
+      "17|18": 0.75,
+      "24|3": 0.951,
+      "4|5": 0.738,
+      "5|6": 0.713,
+      "5|7": 0.73,
+      "8|9": 0.705
+     }
+    }
+   },
+   "hard_pairs_colour_similar_ge_0.7": 5,
+   "hard_pairs": 16,
+   "number": {
+    "read_rate_conf60": 0.0281,
+    "read_rate_by_height": {
+     "0-90": 0.0132,
+     "90-130": 0.0303,
+     "130-10000": 0.0526
+    },
+    "players_with_>=2_reads": 5,
+    "agreement_with_player_majority": 0.647,
+    "hard_pairs_both_numbered_and_different": 1
+   }
+  },
+  "FRESH_02_G1_3000_midfield_buildup_passing": {
+   "crops": 1018,
+   "players": 18,
+   "contact_pairs": 12,
+   "uncertain_rival_pairs": [
+    [
+     "1",
+     "26"
+    ],
+    [
+     "10",
+     "8"
+    ],
+    [
+     "10",
+     "9"
+    ],
+    [
+     "15",
+     "16"
+    ],
+    [
+     "3",
+     "5"
+    ],
+    [
+     "8",
+     "9"
+    ]
+   ],
+   "cue": {
+    "hist": {
+     "auc_all": 0.8288615833333334,
+     "auc_hard": 0.8047728611111111,
+     "available": 1.0,
+     "tpr_at_1pct_far_hard": 0.050166666666666665,
+     "rival_test_accuracy": 0.8852459016393442,
+     "rival_test_n": 1281,
+     "rival_margin_over_same_spread_median": 1.8289245706351418,
+     "rival_acc_h0-90": null,
+     "rival_acc_h90-130": [
+      0.88,
+      633
+     ],
+     "rival_acc_h130-10000": [
+      0.89,
+      648
+     ],
+     "rival_acc_query_occluded": [
+      0.783,
+      60
+     ],
+     "rival_acc_query_visible": [
+      0.89,
+      1221
+     ],
+     "rival_acc_gap1.0-3.0s": [
+      0.886,
+      1277
+     ],
+     "rival_acc_gap3.0-6.0s": [
+      0.5,
+      4
+     ],
+     "rival_acc_gap6.0-100.0s": null,
+     "rival_pair_accuracy": {
+      "1|26": 0.951,
+      "10|8": 0.91,
+      "10|9": 0.926,
+      "15|16": 0.922,
+      "3|5": 0.922,
+      "8|9": 0.926
+     }
+    },
+    "osnet": {
+     "auc_all": 0.8352123888888889,
+     "auc_hard": 0.8128882222222222,
+     "available": 1.0,
+     "tpr_at_1pct_far_hard": 0.155,
+     "rival_test_accuracy": 0.9110070257611241,
+     "rival_test_n": 1281,
+     "rival_margin_over_same_spread_median": 1.3012133961352572,
+     "rival_acc_h0-90": null,
+     "rival_acc_h90-130": [
+      0.883,
+      633
+     ],
+     "rival_acc_h130-10000": [
+      0.938,
+      648
+     ],
+     "rival_acc_query_occluded": [
+      0.633,
+      60
+     ],
+     "rival_acc_query_visible": [
+      0.925,
+      1221
+     ],
+     "rival_acc_gap1.0-3.0s": [
+      0.912,
+      1277
+     ],
+     "rival_acc_gap3.0-6.0s": [
+      0.75,
+      4
+     ],
+     "rival_acc_gap6.0-100.0s": null,
+     "rival_pair_accuracy": {
+      "1|26": 0.959,
+      "10|8": 0.902,
+      "10|9": 0.902,
+      "15|16": 0.906,
+      "3|5": 0.891,
+      "8|9": 0.885
+     }
+    },
+    "youtu": {
+     "auc_all": 0.8821593333333333,
+     "auc_hard": 0.8904411388888889,
+     "available": 1.0,
+     "tpr_at_1pct_far_hard": 0.2841666666666667,
+     "rival_test_accuracy": 0.9500390320062451,
+     "rival_test_n": 1281,
+     "rival_margin_over_same_spread_median": 2.163434824941164,
+     "rival_acc_h0-90": null,
+     "rival_acc_h90-130": [
+      0.93,
+      633
+     ],
+     "rival_acc_h130-10000": [
+      0.969,
+      648
+     ],
+     "rival_acc_query_occluded": [
+      0.8,
+      60
+     ],
+     "rival_acc_query_visible": [
+      0.957,
+      1221
+     ],
+     "rival_acc_gap1.0-3.0s": [
+      0.951,
+      1277
+     ],
+     "rival_acc_gap3.0-6.0s": [
+      0.75,
+      4
+     ],
+     "rival_acc_gap6.0-100.0s": null,
+     "rival_pair_accuracy": {
+      "1|26": 0.943,
+      "10|8": 0.959,
+      "10|9": 0.943,
+      "15|16": 0.984,
+      "3|5": 1.0,
+      "8|9": 0.926
+     }
+    },
+    "dinov2": {
+     "auc_all": 0.7335040555555555,
+     "auc_hard": 0.6510936388888889,
+     "available": 1.0,
+     "tpr_at_1pct_far_hard": 0.06983333333333333,
+     "rival_test_accuracy": 0.8040593286494926,
+     "rival_test_n": 1281,
+     "rival_margin_over_same_spread_median": 0.5939588008412579,
+     "rival_acc_h0-90": null,
+     "rival_acc_h90-130": [
+      0.735,
+      633
+     ],
+     "rival_acc_h130-10000": [
+      0.872,
+      648
+     ],
+     "rival_acc_query_occluded": [
+      0.633,
+      60
+     ],
+     "rival_acc_query_visible": [
+      0.812,
+      1221
+     ],
+     "rival_acc_gap1.0-3.0s": [
+      0.806,
+      1277
+     ],
+     "rival_acc_gap3.0-6.0s": [
+      0.25,
+      4
+     ],
+     "rival_acc_gap6.0-100.0s": null,
+     "rival_pair_accuracy": {
+      "1|26": 0.893,
+      "10|8": 0.721,
+      "10|9": 0.779,
+      "15|16": 0.734,
+      "3|5": 0.922,
+      "8|9": 0.689
+     }
+    }
+   },
+   "hard_pairs_colour_similar_ge_0.7": 10,
+   "hard_pairs": 12,
+   "number": {
+    "read_rate_conf60": 0.0226,
+    "read_rate_by_height": {
+     "0-90": null,
+     "90-130": 0.0088,
+     "130-10000": 0.0295
+    },
+    "players_with_>=2_reads": 3,
+    "agreement_with_player_majority": 0.8,
+    "hard_pairs_both_numbered_and_different": 0
+   }
+  }
+ }
+}
