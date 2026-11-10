@@ -45,7 +45,7 @@
   <label>Annotator <input id="annotator" size="10"></label>
   <label>Version <input id="version" size="2" value="1"></label>
   <label>Reason (v&gt;1) <input id="reason" size="18"></label>
-  <label>Show <select id="filter" style="width:auto"><option value="all">all</option><option value="open">undecided</option><option value="conflict">conflicts</option><option value="flag">flagged by tracker</option></select></label>
+  <label>Show <select id="filter" style="width:auto"><option value="all">all</option><option value="open">undecided</option><option value="conflict">conflicts</option><option value="flag">flagged by tracker</option><option value="player">active player only (review)</option><option value="reject">rejected (review)</option><option value="unsure">unsure (review)</option></select></label>
   <span id="progress" class="muted"></span>
   <button id="export" class="primary">Export frozen labels</button>
   <span id="status"></span>
@@ -112,7 +112,7 @@ function renderPlayers() {
     const p = S.players[k], el = document.createElement("div");
     el.className = "player" + (active === k ? " active" : "");
     el.innerHTML = `<span><span class="swatch" style="background:${color(k)}"></span>${k} <span class="muted">${p.side}${p.shirt_number ? " #" + p.shirt_number : ""}</span></span><span class="muted">${counts[k] || 0}</span>`;
-    el.onclick = () => { active = k; renderPlayers(); };
+    el.onclick = () => { active = k; if ($("filter").value === "player") render(); else renderPlayers(); };
     el.ondblclick = () => { if (!counts[k] && confirm("Remove player " + k + "?")) { delete S.players[k]; if (active === k) active = null; persist(); render(); } };
     box.appendChild(el);
   }
@@ -128,7 +128,10 @@ function render() {
     const open = ps.some(p => !decision(p.key));
     ps.forEach(p => { total++; if (decision(p.key)) decided++; });
     const isBad = ps.some(p => bad.has(p.key));
-    if ((filt === "open" && !open) || (filt === "conflict" && !isBad) || (filt === "flag" && !(t.starts_uncertain || t.uncertain_frames))) continue;
+    const has = f => ps.some(p => { const d = decision(p.key); return d && f(d); });
+    if ((filt === "open" && !open) || (filt === "conflict" && !isBad) || (filt === "flag" && !(t.starts_uncertain || t.uncertain_frames)) ||
+        (filt === "player" && !has(d => d.decision === "player" && d.player === active)) ||
+        (filt === "reject" && !has(d => d.decision === "reject")) || (filt === "unsure" && !has(d => d.decision === "unsure"))) continue;
     const card = document.createElement("div"); card.className = "card" + (isBad ? " conflict" : "");
     const dur = ((t.last_frame - t.first_frame) / PACK.video.fps).toFixed(1);
     card.innerHTML = `<div class="head"><b>${t.id}</b><span class="muted">frames ${t.first_frame}–${t.last_frame} (${dur}s, ${t.observed} observed)</span>` +
