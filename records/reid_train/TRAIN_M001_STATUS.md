@@ -37,3 +37,22 @@
   `shirt_number` per player.
 
 Nothing has been trained. DEV and EVAL are not involved.
+
+## Labels frozen (2026-11-10)
+- Location: `data/reid/TRAIN/TRAIN_M001_MORETON_CITY/v1`. Annotator: nathan.
+- Export `TRAIN_M001_MORETON_CITY_reid_v1.json` (Downloads, 307 KB). All freeze checks passed.
+
+| item | count |
+|---|---|
+| tracklets | 2,354 |
+| tracklets split by hand | 22 |
+| parts | 2,378 |
+| player parts | 837 |
+| rejected | 937 |
+| unsure | 604 |
+| player boxes (MOT 1.1) | 40,076 |
+| players | 25 |
+
+- **Players:** 10 per side plus one keeper each, and 3 referees. 20 have a shirt number.
+- **Observed frames per player:** median 1,606; min 184; max 4,624.
+- **Split guard checked:** `load_frozen(..., "train")` accepts the labels and `"tune"` refuses them.

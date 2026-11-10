@@ -1,0 +1,127 @@
+{
+ "A11": {
+  "id": 1,
+  "shirt_number": "11",
+  "side": "A"
+ },
+ "A16": {
+  "id": 2,
+  "shirt_number": "16",
+  "side": "A"
+ },
+ "A17": {
+  "id": 3,
+  "shirt_number": "17",
+  "side": "A"
+ },
+ "A18": {
+  "id": 4,
+  "shirt_number": "18",
+  "side": "A"
+ },
+ "A19": {
+  "id": 5,
+  "shirt_number": "19",
+  "side": "A"
+ },
+ "A3": {
+  "id": 6,
+  "shirt_number": "3",
+  "side": "A"
+ },
+ "A5": {
+  "id": 7,
+  "shirt_number": "5",
+  "side": "A"
+ },
+ "A6": {
+  "id": 8,
+  "shirt_number": "6",
+  "side": "A"
+ },
+ "A7": {
+  "id": 9,
+  "shirt_number": "7",
+  "side": "A"
+ },
+ "A8": {
+  "id": 10,
+  "shirt_number": "8",
+  "side": "A"
+ },
+ "B10": {
+  "id": 11,
+  "shirt_number": "10",
+  "side": "B"
+ },
+ "B13": {
+  "id": 12,
+  "shirt_number": "13",
+  "side": "B"
+ },
+ "B18": {
+  "id": 13,
+  "shirt_number": "18",
+  "side": "B"
+ },
+ "B2": {
+  "id": 14,
+  "shirt_number": "2",
+  "side": "B"
+ },
+ "B23": {
+  "id": 15,
+  "shirt_number": "23",
+  "side": "B"
+ },
+ "B3": {
+  "id": 16,
+  "shirt_number": "3",
+  "side": "B"
+ },
+ "B43": {
+  "id": 17,
+  "shirt_number": "43",
+  "side": "B"
+ },
+ "B47": {
+  "id": 18,
+  "shirt_number": "47",
+  "side": "B"
+ },
+ "B5": {
+  "id": 19,
+  "shirt_number": "5",
+  "side": "B"
+ },
+ "B6": {
+  "id": 20,
+  "shirt_number": "6",
+  "side": "B"
+ },
+ "GKB": {
+  "id": 21,
+  "shirt_number": null,
+  "side": "GK_B"
+ },
+ "GK_A": {
+  "id": 22,
+  "shirt_number": null,
+  "side": "GK_A"
+ },
+ "REF": {
+  "id": 23,
+  "shirt_number": null,
+  "side": "REF"
+ },
+ "REF_2": {
+  "id": 24,
+  "shirt_number": null,
+  "side": "REF"
+ },
+ "REF_3": {
+  "id": 25,
+  "shirt_number": null,
+  "side": "REF"
+ }
+}

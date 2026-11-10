@@ -1,0 +1,22 @@
+{
+ "agreement_reference": "Moreton City Excelsior written permission, 3 November 2026",
+ "consent_basis": "Authorised football match participation and written permission covering use of the footage and player imagery/data for SPANA's AI/ML development. No minors in this match (Nathan, 2026-11-08).",
+ "footage_licence": "Written permission dated 3 November 2026: SPANA Sports Pty Ltd may use this match footage and associated player imagery/data for commercial AI and machine-learning development, including player detection, tracking, re-identification, model training, validation and testing.",
+ "match_id": "TRAIN_M001_MORETON_CITY",
+ "notes": "Source: Downloads/videoplayback (1).mp4 (FQTV broadcast, 1280x720, 60 fps, 147 min), sha256 e8bd4d5fd8105a862ad8388f09473732b47481d6bda89ce10480ca18c810c519. Window clip: 3000-3600 s of the source, stream copy (cut on the nearest keyframe), video only. Rights details as stated by Nathan on 2026-11-08 from the written permission; minors: none in this match; retention of derived data and continued model use after footage removal: covered (Nathan, 2026-11-08). The window clip is AV1 (sha256 2c61dd01f9503c7447571e59d76b190f686efbbca865596605d5b6cbf5807416), which OpenCV cannot decode here; the processed video is its lossless-intent H.264 transcode (ffmpeg -c:v libdav1d -i CLIP -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -fps_mode passthrough -an), all 36170 frames kept at 60 fps.",
+ "permissions": {
+  "commercial_use": true,
+  "copy_and_process": true,
+  "minors_covered": true,
+  "ml_development": true,
+  "model_survives_footage_removal": true,
+  "player_consent": true,
+  "retain_derived_data": true
+ },
+ "rights_holder": "Moreton City Excelsior",
+ "schema": "spana.reid_match",
+ "schema_version": "1.1.0",
+ "split": "TRAIN",
+ "training_permitted": true,
+ "video_sha256": "2475f26c622cd91e6f23cbe15fa4fb11ae36ca8a63ed55be757e6dd719e04c58"
+}
