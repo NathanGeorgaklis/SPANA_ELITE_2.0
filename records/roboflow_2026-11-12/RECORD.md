@@ -284,3 +284,17 @@ read.** DEV and EVAL not involved.
   - Pre-labelling pauses `prelabel.min_interval_s` (1 s) between frames. Run one pre-label process at a time.
   - The summary counts boxes only on frames whose labels were saved.
 - **Tests:** dataset tests 54 pass; full suite 180 passed, 3 skipped.
+
+## 2026-11-13: full pre-label attempt at commit `cc17620` (Nathan: "go ahead")
+- **Mac:** checked out `cc17620`; tests 179 passed, 4 skipped.
+- **M002 full run started 08:42 and stalled before its first frame.**
+  - No frame was tagged in 8 minutes (Roboflow still showed 46 `prelabel:v1`), so it was stopped at about 08:50.
+  - A read-only search at 08:49 returned 200 with no rate-limit headers. The stall is therefore most likely in the
+    429 back-off of the per-image tag call: Retry-After is capped at 300 s, so 6 retries can wait up to 30 min. This
+    is not confirmed: the process prints nothing until it ends.
+  - Afterwards Roboflow still showed exactly 46 `prelabel:v1` frames, so nothing was half-done.
+- **One-frame diagnostic run** (`--limit 1`) was refused by the Mac's auto-mode safety check. Not retried.
+- **Still to run on the Mac (by Nathan, or once the safety check allows it):**
+  - full pre-label of M002 and M003, one at a time;
+  - the M001 move;
+  - then pre-label M001.
