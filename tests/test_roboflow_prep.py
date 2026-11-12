@@ -95,7 +95,7 @@ class ConfigTests(unittest.TestCase):
             lambda d: d["version"].update(augmentations=["brightness"]),
             lambda d: d["version"].update(resize_format="Squash"),
             lambda d: d["splits"].update(assignable=["train", "valid", "test"]),
-            lambda d: d["splits"].update(move_method="delete"),
+            lambda d: d["splits"].update(move_method="reupload"),     # disproven by the 2026-11-13 probe
             lambda d: d["splits"].update(probe_max=0),
             lambda d: d["review"].update(reviewed_tag="prelabel:v1"),
             lambda d: d["audit"].update(phash_hamming_max=65),
@@ -176,96 +176,149 @@ class SplitTests(unittest.TestCase):
 
 
 class FakeUploader:
-    """Mimics Roboflow re-upload of identical bytes: same id back; `honour_split` decides whether the split changes."""
+    """Mimics Roboflow uploads into a FakeProject. `dedupe_deleted`: a re-upload of deleted bytes comes back as a
+    duplicate (the failure the probe is designed to catch). `honour_split=False`: the split is ignored."""
 
-    def __init__(self, project, honour_split=True, new_id=False):
-        self.project, self.honour, self.new_id, self.calls = project, honour_split, new_id, []
+    def __init__(self, project, honour_split=True, dedupe_deleted=False):
+        self.project, self.honour, self.dedupe, self.calls = project, honour_split, dedupe_deleted, []
 
     def single_upload(self, *, image_path, split, batch_name, tag_names, metadata, num_retry_uploads):
-        self.calls.append((Path(image_path).name, split, tuple(tag_names), metadata))
         name = Path(image_path).name
-        idx = next(k for k, i in enumerate(self.project.images) if i.name == name)
-        old = self.project.images[idx]
-        if self.new_id:
-            return {"image": {"id": "NEW", "duplicate": False}}
-        if self.honour:
-            self.project.images[idx] = ProjectImage(**{**old.__dict__, "split": split})
-        return {"image": {"id": old.id, "duplicate": True}}
+        self.calls.append((name, split, tuple(tag_names), metadata, batch_name))
+        if self.dedupe:
+            return {"image": {"id": "OLD", "duplicate": True}}
+        new = ProjectImage(id=f"new_{name}", name=name, split=split if self.honour else "train", in_dataset=False,
+                           tags=tuple(sorted(tag_names)), metadata=dict(metadata), width=64, height=36,
+                           url="https://img.invalid/new.jpg")
+        self.project.images.append(new)
+        self.project.batch_of[new.id] = batch_name
+        return {"image": {"id": new.id, "duplicate": False}}
+
+
+class BatchProject(FakeProject):
+    """FakeProject with upload batches (one per match, as the ingest tool creates them)."""
+
+    def __init__(self, images):
+        super().__init__(images)
+        self.batch_of = {i.id: f"spana_{i.metadata['match_id']}_train" for i in images}
+        self.deleted, self.created = [], []
+        self.ignore_delete = False
+
+    def list_batches(self):
+        names = sorted(set(self.batch_of.values()))
+        return [{"id": f"B:{n}", "name": n, "images": sum(v == n for v in self.batch_of.values())} for n in names]
+
+    def create_batch(self, source_batch_id, image_ids, name):
+        self.created.append((source_batch_id, tuple(image_ids), name))
+        for i in image_ids:
+            assert self.batch_of[i] == source_batch_id[2:]
+            self.batch_of[i] = name
+
+    def delete_batch(self, batch_id, *, permanent):
+        assert permanent
+        name = batch_id[2:]
+        self.deleted.append(name)
+        if self.ignore_delete:
+            return
+        gone = {i for i, b in self.batch_of.items() if b == name}
+        self.images = [i for i in self.images if i.id not in gone]
+        for i in gone:
+            del self.batch_of[i]
 
 
 class MoveTests(unittest.TestCase):
     def setUp(self):
-        self.td = tempfile.TemporaryDirectory()
-        self.cache = Path(self.td.name)
-        self.images = [img(i, "M1") for i in range(3)] + [img(10 + i, "M2") for i in range(2)]
-        for i in self.images:                                   # verified cache: bytes whose sha is recorded
-            (self.cache / f"{i.id}.jpg").write_bytes(b"jpeg-bytes")
         import hashlib
+        self.td = tempfile.TemporaryDirectory()
+        self.cache = Path(self.td.name) / "cache"
+        self.cache.mkdir()
         sha = hashlib.sha256(b"jpeg-bytes").hexdigest()
-        self.images = [ProjectImage(**{**i.__dict__, "metadata": dict(i.metadata, image_sha256=sha)})
-                       for i in self.images]
+        base = [img(i, "M1") for i in range(3)] + [img(10 + i, "M2") for i in range(2)]
+        self.images = [ProjectImage(**{**i.__dict__, "metadata": dict(i.metadata, image_sha256=sha)}) for i in base]
+        for i in self.images:
+            (self.cache / f"{i.id}.jpg").write_bytes(b"jpeg-bytes")
+        self.restore = Path(self.td.name) / "restore.json"
 
     def tearDown(self):
         self.td.cleanup()
 
-    def _plan(self, cfg):
-        return roboflow_split.plan_split(cfg, self.images, {"M1": "valid"})
+    def _apply(self, cfg, proj, up, **kw):
+        self.n = getattr(self, "n", 0) + 1                       # each run writes its own restore file
+        self.restore = Path(self.td.name) / f"restore{self.n}.json"
+        plan = roboflow_split.plan_split(cfg, proj.images, {"M1": "valid"})
+        return roboflow_split.apply_plan(cfg, proj, plan, exclusions_only=False, uploader=up, images=list(proj.images),
+                                         cache_dir=self.cache, restore_path=self.restore, stamp="S", **kw)
 
-    def test_probe_moves_one_frame_and_verifies(self):
+    def test_probe_moves_one_frame_via_own_batch(self):
         cfg = make_cfg()
-        proj = FakeProject(self.images)
+        proj = BatchProject(self.images)
         up = FakeUploader(proj)
-        log = roboflow_split.apply_plan(cfg, proj, self._plan(cfg), exclusions_only=False, uploader=up,
-                                        images=self.images, cache_dir=self.cache, probe=1)
+        log = self._apply(cfg, proj, up, probe=1)
+        self.assertEqual(proj.created, [("B:spana_M1_train", ("id000",), "spana_move_M1_S")])   # only that frame
+        self.assertEqual(proj.deleted, ["spana_move_M1_S"])
         self.assertEqual(len(up.calls), 1)
-        name, split, tags, meta = up.calls[0]
+        name, split, tags, meta, batch = up.calls[0]
         self.assertEqual((name, split), ("M1_f0000000.jpg", "valid"))
-        self.assertEqual(tags, self.images[0].tags)                  # same tags and metadata as the original
-        self.assertEqual(meta, self.images[0].metadata)
-        self.assertEqual(log[0]["split_after"], "valid")
-        self.assertEqual(log[0]["action"], "probe_move")
+        self.assertEqual(meta, self.images[0].metadata)                     # same tags and metadata
+        self.assertEqual(tags, self.images[0].tags)
+        self.assertEqual((log[0]["split_after"], log[0]["copies"], log[0]["action"]), ("valid", 1, "probe_move"))
+        others = [i for i in proj.images if i.metadata["match_id"] == "M1" and i.name != name]
+        self.assertTrue(all(i.split == "train" for i in others))           # nothing else touched
+        restore = json.loads(self.restore.read_text())                     # written, no local paths
+        self.assertEqual([f["name"] for f in restore["frames"]], ["M1_f0000000.jpg"])
+        self.assertNotIn("file", restore["frames"][0])
+        self.assertNotIn(str(self.cache), self.restore.read_text())
         with self.assertRaisesRegex(PolicyError, "probe_max"):
-            roboflow_split.apply_plan(cfg, proj, self._plan(cfg), exclusions_only=False, uploader=up,
-                                      images=self.images, cache_dir=self.cache, probe=2)
+            self._apply(cfg, proj, up, probe=2)
 
-    def test_split_not_honoured_or_new_id_fails_closed(self):
-        cfg = make_cfg()
-        proj = FakeProject(self.images)
-        with self.assertRaisesRegex(PolicyError, "did not move"):
-            roboflow_split.apply_plan(cfg, proj, self._plan(cfg), exclusions_only=False,
-                                      uploader=FakeUploader(proj, honour_split=False), images=self.images,
-                                      cache_dir=self.cache, probe=1)
-        with self.assertRaisesRegex(PolicyError, "returned id"):
-            roboflow_split.apply_plan(cfg, proj, self._plan(cfg), exclusions_only=False,
-                                      uploader=FakeUploader(proj, new_id=True), images=self.images,
-                                      cache_dir=self.cache, probe=1)
-
-    def test_full_apply_needs_reupload_method_and_keeps_matches_whole(self):
-        cfg = make_cfg()
-        proj = FakeProject(self.images)
+    def test_full_move_uses_whole_match_batch_and_keeps_matches_whole(self):
+        proj = BatchProject(self.images)
         with self.assertRaisesRegex(PolicyError, "move_method: none"):
-            roboflow_split.apply_plan(cfg, proj, self._plan(cfg), exclusions_only=False, uploader=FakeUploader(proj),
-                                      images=self.images, cache_dir=self.cache)
-        cfg = make_cfg(lambda d: d["splits"].update(move_method="reupload"))
-        log = roboflow_split.apply_plan(cfg, proj, self._plan(cfg), exclusions_only=False,
-                                        uploader=FakeUploader(proj), images=self.images, cache_dir=self.cache)
+            self._apply(make_cfg(), proj, FakeUploader(proj))
+        cfg = make_cfg(lambda d: d["splits"].update(move_method="delete_reupload"))
+        log = self._apply(cfg, proj, FakeUploader(proj))
+        self.assertEqual(proj.created, [])
+        self.assertEqual(proj.deleted, ["spana_M1_train"])
         self.assertEqual(len(log), 3)
         splits = {}
         for i in proj.images:
             splits.setdefault(i.metadata["match_id"], set()).add(i.split)
         self.assertEqual(splits, {"M1": {"valid"}, "M2": {"train"}})
 
-    def test_unverifiable_bytes_refused(self):
+    def test_fail_closed_cases(self):
+        cfg = make_cfg()
+        proj = BatchProject(self.images)
+        proj.ignore_delete = True
+        up = FakeUploader(proj)
+        with self.assertRaisesRegex(PolicyError, "still in the project"):
+            self._apply(cfg, proj, up, probe=1)
+        self.assertEqual(up.calls, [])                                       # nothing uploaded
+        proj = BatchProject(self.images)
+        with self.assertRaisesRegex(PolicyError, "duplicate"):
+            self._apply(cfg, proj, FakeUploader(proj, dedupe_deleted=True), probe=1)
+        proj = BatchProject(self.images)
+        with self.assertRaisesRegex(PolicyError, "not exactly once"):
+            self._apply(cfg, proj, FakeUploader(proj, honour_split=False), probe=1)
+
+    def test_restore_reuploads_missing_frames(self):
+        cfg = make_cfg()
+        proj = BatchProject(self.images)
+        with self.assertRaises(PolicyError):
+            self._apply(cfg, proj, FakeUploader(proj, dedupe_deleted=True), probe=1)    # deleted, not re-uploaded
+        self.assertNotIn("M1_f0000000.jpg", {i.name for i in proj.images})
+        log = roboflow_split.restore(cfg, proj, FakeUploader(proj), json.loads(self.restore.read_text()), self.cache)
+        self.assertEqual([e["name"] for e in log], ["M1_f0000000.jpg"])
+        self.assertEqual([i.split for i in proj.images if i.name == "M1_f0000000.jpg"], ["valid"])
+
+    def test_unverifiable_bytes_refused_before_any_change(self):
         cfg = make_cfg()
         (self.cache / f"{self.images[0].id}.jpg").write_bytes(b"tampered")
-        proj = FakeProject(self.images)
+        proj = BatchProject(self.images)
         proj.fetch_image = mock.Mock(side_effect=RoboflowApiError("image bytes do not match the sha256"))
         up = FakeUploader(proj)
         with self.assertRaisesRegex(PolicyError, "cannot verify"):
-            roboflow_split.apply_plan(cfg, proj, self._plan(cfg), exclusions_only=False, uploader=up,
-                                      images=self.images, cache_dir=self.cache, probe=1)
-        self.assertEqual(up.calls, [])
-
+            self._apply(cfg, proj, up, probe=1)
+        self.assertEqual((up.calls, proj.created, proj.deleted), ([], [], []))
 
 def resp(preds, w=64, h=36):
     return {"image": {"width": w, "height": h}, "predictions": preds}
@@ -492,6 +545,25 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(annotation_classes(None), (False, ()))
         self.assertEqual(annotation_classes([{"class": "ball"}]), (True, ("ball",)))
         self.assertEqual(annotation_classes({"boxes": [{"label": "player"}]}), (True, ("player",)))
+
+    def test_batch_calls(self):
+        session = mock.Mock()
+        session.request.return_value = mock.Mock(status_code=200, json=mock.Mock(return_value={"result": [
+            {"name": "spana_M1_train", "images": 300, "id": "b1", "numJobs": 0}]}))
+        pr = self._proj(session)
+        self.assertEqual(pr.list_batches(), [{"id": "b1", "name": "spana_M1_train", "images": 300}])
+        session.request.return_value = mock.Mock(status_code=200, json=mock.Mock(return_value={"weird": 1}))
+        with self.assertRaises(RoboflowApiError):
+            pr.list_batches()
+        session.request.return_value = mock.Mock(status_code=204)
+        pr.delete_batch("b1", permanent=True)
+        args, kw = session.request.call_args
+        self.assertEqual(args, ("DELETE", "https://api.invalid/ws/proj/annotation-batches/b1"))
+        self.assertEqual(kw["params"]["permanent"], "true")
+        session.request.return_value = mock.Mock(status_code=200, json=mock.Mock(return_value={"id": "b2"}))
+        pr.create_batch("b1", ["i1"], "move")
+        args, kw = session.request.call_args
+        self.assertEqual(kw["json"], {"sourceBatchId": "b1", "imageIds": ["i1"], "name": "move"})
 
     def test_save_never_overwrites_and_errors_are_redacted(self):
         session = mock.Mock()

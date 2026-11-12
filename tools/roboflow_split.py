@@ -11,17 +11,23 @@ Plan (always written to paths.split_dir as a before/after manifest):
   * frames the licence gate rejects are not moved and are listed with the reason.
   * near-duplicates from the audit (`--audit`) get splits.excluded_tag. They are never deleted.
 Default is a dry run (manifest only). --apply-exclusions-only adds the exclusion tags. --apply also performs the
-split moves, and only with splits.move_method "reupload"; with "none" it refuses whenever a move is planned and
+split moves, only with splits.move_method "delete_reupload"; with "none" it refuses whenever a move is planned and
 nothing is changed. Roboflow's API has no split-change call for single images (only a random ratio rebalance, which
-would split matches); "reupload" re-uploads each frame's identical, sha-verified bytes with the new split, the same
-name, tags and metadata.
---probe N moves only the first N planned frames (N <= splits.probe_max; no exclusions) to test that method. Every
-move is verified afterwards: the upload must return the same image id, and a fresh listing must show the new split;
-otherwise the run stops with an error and the manifest records what happened.
+would split matches), and re-uploading identical bytes keeps the old split (probed 2026-11-13). "delete_reupload":
+  1. every frame's original bytes are fetched and verified against the sha256 recorded at upload;
+  2. a restore file (paths.split_dir/restore_<stamp>.json: name, sha, tags, metadata, target split, cached file) is
+     written BEFORE anything is deleted; `--restore FILE` re-uploads any listed frame missing from the project;
+  3. the frames are removed with their upload batch (the match's whole batch when it holds exactly those frames,
+     else a new batch made of just those frames), permanently, and the listing must no longer show them;
+  4. each frame is uploaded again with the new split, same name, tags and metadata;
+  5. the listing must show each name exactly once, in the new split, with the same image sha256.
+Any failed check stops the run with an error (fail closed) and the manifest records what happened.
+--probe N moves only the first N planned frames (N <= splits.probe_max; no exclusions) to test the method.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from collections import Counter, defaultdict
@@ -109,47 +115,114 @@ def plan_split(cfg: DatasetConfig, images: List[ProjectImage], assign: Dict[str,
             "exclude_ids_not_in_plan": unknown_excl, "rows": rows, "skipped": skipped}
 
 
+def _find_batch(project, name: str) -> dict:
+    found = [b for b in project.list_batches() if b["name"] == name]
+    if len(found) != 1:
+        raise PolicyError(f"stopped: expected exactly one batch named {name!r}, found {len(found)}")
+    return found[0]
+
+
+def write_restore(path: Path, frames: List[dict]) -> None:
+    """Restore file: everything needed to upload the frames again. Cached files are named relative to the image
+    cache (paths.image_cache_dir), so no local directory names are stored."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rows = [{k: v for k, v in f.items() if k != "file"} for f in frames]
+    write_json_atomic(path, {"schema": "spana.roboflow_restore", "schema_version": "1.0.0", "frames": rows})
+
+
+def upload_frames(cfg: DatasetConfig, uploader, frames: List[dict]) -> List[dict]:
+    log = []
+    for f in frames:
+        res = uploader.single_upload(image_path=f["file"], split=f["split"], batch_name=f["batch_name"],
+                                     tag_names=f["tags"], metadata=f["metadata"], num_retry_uploads=0)
+        got = (res or {}).get("image") or {}
+        log.append({"name": f["name"], "old_id": f["old_id"], "new_id": got.get("id"),
+                    "duplicate": bool(got.get("duplicate")), "requested_split": f["split"]})
+        if got.get("duplicate"):
+            raise PolicyError(f"stopped: {f['name']} was treated as a duplicate after deletion. Log: {log}")
+    return log
+
+
+def verify_uploaded(cfg: DatasetConfig, project, frames: List[dict], log: List[dict]) -> None:
+    listing = project.list_images(cfg.audit.page_size)
+    by_name: Dict[str, List[ProjectImage]] = defaultdict(list)
+    for i in listing:
+        by_name[i.name].append(i)
+    for f, e in zip(frames, log):
+        hits = by_name.get(f["name"], [])
+        e["split_after"] = hits[0].split if len(hits) == 1 else None
+        e["copies"] = len(hits)
+        if len(hits) != 1 or hits[0].split != f["split"] or hits[0].metadata.get("image_sha256") != f["sha256"]:
+            raise PolicyError(f"stopped: {f['name']} is not exactly once in split {f['split']!r} with the same "
+                              f"bytes (copies {len(hits)}, split {e['split_after']!r}). Log: {log}")
+
+
 def move_frames(cfg: DatasetConfig, project, uploader, plan: dict, images: List[ProjectImage], cache_dir: Path,
-                limit: Optional[int] = None) -> List[dict]:
-    """Re-upload the planned moves (first `limit` only), then verify ids and splits. Raises PolicyError on any
-    mismatch (fail closed); the returned / raised log says what happened to each frame."""
+                restore_path: Path, limit: Optional[int] = None, stamp: str = "") -> List[dict]:
+    """delete_reupload (see module docstring). Raises PolicyError on any failed check."""
     by_id = {i.id: i for i in images}
     rows = [r for r in plan["rows"] if r["move"]]
     if limit is not None:
         rows = rows[:limit]
-    log = []
-    for r in rows:
+    frames = []
+    for r in rows:                                      # 1. verify every frame's bytes before touching anything
         img = by_id[r["id"]]
         try:
             src = verified_image_file(project, img, cache_dir)
         except SkipFrame as e:
-            raise PolicyError(f"refused: cannot verify {img.name} before re-upload: {e}") from None
-        named = cache_dir / "reupload" / img.name
+            raise PolicyError(f"refused: cannot verify {img.name} before moving it: {e}") from None
+        named = cache_dir / "move" / img.name
         named.parent.mkdir(parents=True, exist_ok=True)
         named.write_bytes(src.read_bytes())
-        res = uploader.single_upload(image_path=str(named), split=r["after"],
-                                     batch_name=f"spana_{r['match_id']}_{img.metadata.get('split', 'train')}",
-                                     tag_names=list(img.tags), metadata=dict(img.metadata), num_retry_uploads=0)
-        got = (res or {}).get("image") or {}
-        entry = {"id": img.id, "name": img.name, "requested_split": r["after"], "returned_id": got.get("id"),
-                 "duplicate": got.get("duplicate")}
-        log.append(entry)
-        if got.get("id") != img.id:
-            raise PolicyError(f"stopped: re-upload of {img.name} returned id {got.get('id')!r}, not {img.id!r} "
-                              f"(a second copy may exist). Log: {log}")
-    after = {i.id: i.split for i in project.list_images(cfg.audit.page_size)}
-    for e in log:
-        e["split_after"] = after.get(e["id"])
-    wrong = [e for e in log if e["split_after"] != e["requested_split"]]
-    if wrong:
-        raise PolicyError(f"stopped: Roboflow did not move {len(wrong)} of {len(log)} frames "
-                          f"(e.g. {wrong[0]['name']} is still {wrong[0]['split_after']!r}). Log: {log}")
+        spana_split = img.metadata.get("split", "train")
+        frames.append({"name": img.name, "old_id": img.id, "match_id": r["match_id"], "sha256": img.metadata["image_sha256"],
+                       "tags": list(img.tags), "metadata": dict(img.metadata), "split": r["after"],
+                       "file": str(named), "cached_file": f"move/{img.name}",
+                       "old_batch": f"spana_{r['match_id']}_{spana_split}",
+                       "batch_name": f"spana_{r['match_id']}_{spana_split}_{r['after']}"})
+    write_restore(restore_path, frames)                 # 2. restore file before any deletion
+    per_match_total = Counter(i.metadata.get("match_id") for i in images)
+    groups: Dict[str, List[dict]] = defaultdict(list)
+    for f in frames:
+        groups[f["old_batch"]].append(f)
+    for batch_name, fs in sorted(groups.items()):       # 3. remove with the batch, permanently
+        src = _find_batch(project, batch_name)
+        ids = [f["old_id"] for f in fs]
+        whole = len(ids) == src["images"] == per_match_total[fs[0]["match_id"]]
+        if whole:
+            target = src
+        else:
+            move_name = f"spana_move_{fs[0]['match_id']}_{stamp}"
+            project.create_batch(src["id"], ids, move_name)
+            target = _find_batch(project, move_name)
+            if target["images"] != len(ids):
+                raise PolicyError(f"stopped: batch {move_name!r} holds {target['images']} images, expected {len(ids)} "
+                                  "(nothing deleted)")
+        project.delete_batch(target["id"], permanent=True)
+    still = {i.id for i in project.list_images(cfg.audit.page_size)} & {f["old_id"] for f in frames}
+    if still:
+        raise PolicyError(f"stopped: {len(still)} frames still in the project after the batch delete; nothing "
+                          f"uploaded. Restore file: {restore_path}")
+    log = upload_frames(cfg, uploader, frames)          # 4. upload with the new split
+    verify_uploaded(cfg, project, frames, log)          # 5. exactly once, new split, same bytes
+    return log
+
+
+def restore(cfg: DatasetConfig, project, uploader, restore_doc: dict, cache_dir: Path) -> List[dict]:
+    """Re-upload every frame of a restore file that is missing from the project, then verify."""
+    present = {i.name for i in project.list_images(cfg.audit.page_size)}
+    todo = [dict(f, file=str(cache_dir / f["cached_file"])) for f in restore_doc["frames"] if f["name"] not in present]
+    for f in todo:
+        if not Path(f["file"]).is_file() or hashlib.sha256(Path(f["file"]).read_bytes()).hexdigest() != f["sha256"]:
+            raise PolicyError(f"refused: local copy of {f['name']} does not match its sha256")
+    log = upload_frames(cfg, uploader, todo)
+    verify_uploaded(cfg, project, todo, log)
     return log
 
 
 def apply_plan(cfg: DatasetConfig, project, plan: dict, *, exclusions_only: bool, uploader=None,
                images: Sequence[ProjectImage] = (), cache_dir: Optional[Path] = None,
-               probe: Optional[int] = None) -> List[dict]:
+               probe: Optional[int] = None, restore_path: Optional[Path] = None, stamp: str = "") -> List[dict]:
     """Executes a plan. Refuses (changing nothing) if a split move is needed and no move method is enabled."""
     if probe is not None:
         if not 1 <= probe <= cfg.splits.probe_max:
@@ -157,11 +230,12 @@ def apply_plan(cfg: DatasetConfig, project, plan: dict, *, exclusions_only: bool
         if not plan["n_moves"]:
             raise PolicyError("refused: nothing to move, nothing to probe")
         return [dict(m, action="probe_move") for m in
-                move_frames(cfg, project, uploader, plan, list(images), cache_dir, limit=probe)]
+                move_frames(cfg, project, uploader, plan, list(images), cache_dir, restore_path, limit=probe,
+                            stamp=stamp)]
     if not exclusions_only and plan["n_moves"] and cfg.splits.move_method == "none":
         raise PolicyError(f"refused: {plan['n_moves']} frames need a split move, but Roboflow's API cannot move "
                           "single images between splits (splits.move_method: none). Nothing was changed. "
-                          "Use --apply-exclusions-only for the exclusion tags, or --probe to test 'reupload'.")
+                          "Use --apply-exclusions-only for the exclusion tags, or --probe to test 'delete_reupload'.")
     log = []
     for r in plan["rows"]:
         if r["exclude"] and not r["already_excluded"]:
@@ -169,7 +243,7 @@ def apply_plan(cfg: DatasetConfig, project, plan: dict, *, exclusions_only: bool
             log.append({"id": r["id"], "action": "tag", "tag": cfg.splits.excluded_tag})
     if not exclusions_only and plan["n_moves"]:
         log += [dict(m, action="move") for m in
-                move_frames(cfg, project, uploader, plan, list(images), cache_dir)]
+                move_frames(cfg, project, uploader, plan, list(images), cache_dir, restore_path, stamp=stamp)]
     return log
 
 
@@ -182,8 +256,22 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     g.add_argument("--apply", action="store_true")
     g.add_argument("--apply-exclusions-only", action="store_true")
     g.add_argument("--probe", type=int, help="move only the first N planned frames (<= splits.probe_max), verify")
+    g.add_argument("--restore", help="re-upload frames of a restore file that are missing from the project")
     a = ap.parse_args(argv)
     cfg = load_dataset_config(a.config)
+    if a.restore:
+        key = load_secret(cfg.roboflow.api_key_env)
+        r = cfg.roboflow
+        uploader = RoboflowUploader(api_url=r.api_url, workspace=r.workspace, project=r.project, api_key=key,
+                                    timeout_s=r.upload_timeout_s)
+        try:
+            log = restore(cfg, open_project(cfg, key), uploader, json.loads(Path(a.restore).read_text()),
+                          REPO / cfg.paths.image_cache_dir)
+        except PolicyError as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 3
+        print(f"restored {len(log)} frames: {log}")
+        return 0
     plan = None
     try:
         assign = parse_assign(a.assign)
@@ -208,8 +296,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         log, error = [], None
         if a.apply or a.apply_exclusions_only or a.probe is not None:
             try:
+                stamp = now.strftime('%Y%m%dT%H%M%SZ')
                 log = apply_plan(cfg, project, plan, exclusions_only=a.apply_exclusions_only, uploader=uploader,
-                                 images=images, cache_dir=REPO / cfg.paths.image_cache_dir, probe=a.probe)
+                                 images=images, cache_dir=REPO / cfg.paths.image_cache_dir, probe=a.probe,
+                                 restore_path=REPO / cfg.paths.split_dir / f"restore_{stamp}.json", stamp=stamp)
             except PolicyError as e:
                 error = str(e)
         plan["applied"] = log

@@ -6,9 +6,13 @@
   fetch pixels    GET  the image's `url` (original bytes; checked against the sha256 recorded at upload)
   new version     POST {api}/{workspace}/{project}/generate    {"preprocessing": ..., "augmentation": ...}
 
+  list batches    GET  {api}/{workspace}/{project}/batches
+  new batch       POST {api}/{workspace}/{project}/annotation-batches  {"sourceBatchId", "imageIds", "name"}
+  delete batch    DELETE {api}/{workspace}/{project}/annotation-batches/{id}?permanent=true|false
+
 There is deliberately no split-change call: Roboflow's API has none for single images (only a ratio-based random
-rebalance, which would split matches across splits). Every error text is redacted (the API takes the key as a
-query parameter).
+rebalance, which would split matches across splits), and re-uploading identical bytes keeps the old split (probed
+2026-11-13). Every error text is redacted (the API takes the key as a query parameter).
 """
 from __future__ import annotations
 
@@ -92,6 +96,8 @@ class RoboflowProject:
     def _json(self, r, ok=(200,)) -> dict:
         if r.status_code not in ok:
             raise self._err(f"HTTP {r.status_code}: {r.text[:300]}")
+        if r.status_code == 204:
+            return {}
         try:
             return r.json()
         except ValueError:
@@ -162,3 +168,29 @@ class RoboflowProject:
     def generate_version(self, settings: dict) -> dict:
         return self._json(self._call("POST", f"{self._base}/{self.workspace}/{self.project}/generate",
                                      params={"api_key": self._key}, json=settings))
+
+    def list_batches(self) -> List[dict]:
+        """[{"id", "name", "images"}] for the project's upload batches. Fails closed on an unknown response shape."""
+        j = self._json(self._call("GET", f"{self._base}/{self.workspace}/{self.project}/batches",
+                                  params={"api_key": self._key}))
+        items = j if isinstance(j, list) else (j.get("batches") if isinstance(j.get("batches"), list) else j.get("result"))
+        if not isinstance(items, list):
+            raise RoboflowApiError("unexpected batch list response")
+        out = []
+        for b in items:
+            if not isinstance(b, dict) or "id" not in b or "name" not in b or not isinstance(b.get("images"), int):
+                raise RoboflowApiError("unexpected batch entry in response")
+            out.append({"id": str(b["id"]), "name": str(b["name"]), "images": b["images"]})
+        return out
+
+    def create_batch(self, source_batch_id: str, image_ids: List[str], name: str) -> None:
+        self._json(self._call("POST", f"{self._base}/{self.workspace}/{self.project}/annotation-batches",
+                              params={"api_key": self._key},
+                              json={"sourceBatchId": source_batch_id, "imageIds": list(image_ids), "name": name}),
+                   ok=(200, 201))
+
+    def delete_batch(self, batch_id: str, *, permanent: bool) -> None:
+        """permanent=True deletes the batch's image sources (not only from the project)."""
+        self._json(self._call("DELETE", f"{self._base}/{self.workspace}/{self.project}/annotation-batches/{batch_id}",
+                              params={"api_key": self._key, "permanent": "true" if permanent else "false"}),
+                   ok=(200, 202, 204))

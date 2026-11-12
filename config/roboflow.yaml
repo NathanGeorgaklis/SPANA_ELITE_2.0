@@ -68,14 +68,15 @@ licensed_matches:
 # --- dataset preparation for detector v1 (tools/roboflow_audit.py, roboflow_split.py, roboflow_prelabel.py,
 #     roboflow_progress.py, roboflow_version.py). Every tool applies the licensed_matches allow-list to every frame.
 audit:
-  phash_hamming_max: 4         # untuned prior: 64-bit DCT pHash; <= 4 differing bits = near-duplicate frame
+  phash_hamming_max: 2         # 64-bit DCT pHash; <= 2 differing bits = near-duplicate. Was 4: too loose (Nathan, 2026-11-13)
   page_size: 250
   fetch_timeout_s: 60.0
 
 splits:
   assignable: [train, valid]   # a TRAIN-licensed match goes wholly to train or wholly to valid; never test
   excluded_tag: "excluded:near-duplicate"
-  move_method: none            # no split-change API; "reupload" was probed 2026-11-13 and does NOT move splits (RECORD)
+  move_method: none            # no split-change API; plain re-upload does NOT move splits (probed 2026-11-13);
+                               # "delete_reupload" only after a successful --probe (RECORD)
   probe_max: 1                 # --probe moves at most this many frames, then verifies
 
 # Pre-labelling: pretrained general COCO detector, commercial-use licence. NOT a Universe dataset / model.

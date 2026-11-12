@@ -208,3 +208,25 @@ read.** DEV and EVAL not involved.
   - `move_method` stays `none`.
 - **Pre-label sample: not run.** The Mac's auto-mode classifier refuses Roboflow-writing commands started from this
   session, even with Nathan's request. Nathan has to run it on the Mac, or allow it there.
+
+## 2026-11-13: Nathan's decisions: allow the tools on the Mac, option (b) delete + re-upload, stricter audit
+- **Allow rule:** Nathan wants `.venv/bin/python -m tools.roboflow_*` allowed on the Mac. The Mac's Claude Code
+  refused to let this session read or edit its permission settings, which is correct: an agent may not widen its
+  own permissions. Nathan adds the rule himself.
+- **Move method `delete_reupload`** (replaces the disproven `reupload`):
+  1. Verify every frame's bytes.
+  2. Write a restore file (no local paths).
+  3. Remove the frames with their upload batch, permanently. Use the match's whole batch when it holds exactly
+     those frames; otherwise move just those frames into a new batch first.
+  4. Check the frames are gone.
+  5. Upload them again with the new split, same name, tags and metadata.
+  6. Check each name exists exactly once, in the new split, with the same sha256.
+  - Any failed check stops the run.
+  - `--restore FILE` re-uploads any frame from a restore file that is missing.
+  - `--probe 1` tests the method on one frame first.
+- **Endpoints:** batch calls follow Roboflow SDK 1.7.3: `GET /{ws}/{project}/batches`,
+  `POST .../annotation-batches`, `DELETE .../annotation-batches/{id}?permanent=true`. Per Roboflow's description,
+  permanent deletion removes the image sources, not only the project link.
+- **Audit threshold:** `audit.phash_hamming_max` 4 → 2, at Nathan's request after the 4-bit audit linked frames
+  minutes apart. The audit is re-run with the new value.
+- **Tests:** dataset tests (25 + 25) pass; full suite 176 passed, 3 skipped.

@@ -135,7 +135,8 @@ class AuditSection:
 class SplitsSection:
     assignable: Tuple[str, ...]   # Roboflow splits a TRAIN-licensed match may be assigned to (whole match only)
     excluded_tag: str             # near-duplicate frames get this tag; never deleted; versions filter it out
-    move_method: str              # "none" = refuse moves; "reupload" = re-upload identical bytes with the new split
+    move_method: str              # "none" = refuse moves; "delete_reupload" = remove from Roboflow, upload again with
+                                  #   the new split (identical, sha-verified bytes; restore file written first)
     probe_max: int                # --probe may move at most this many frames (to test a move method first)
 
     def validate(self) -> None:
@@ -145,8 +146,9 @@ class SplitsSection:
             raise ConfigError("splits.assignable must not contain 'test' (held-out testing is EVAL's job)")
         if not self.excluded_tag.strip():
             raise ConfigError("splits.excluded_tag must be non-empty")
-        if self.move_method not in ("none", "reupload"):
-            raise ConfigError("splits.move_method must be 'none' or 'reupload'")
+        if self.move_method not in ("none", "delete_reupload"):
+            raise ConfigError("splits.move_method must be 'none' or 'delete_reupload' (plain re-upload does not move "
+                              "splits: probed 2026-11-13)")
         _pos_int("splits.probe_max", self.probe_max)
 
 
