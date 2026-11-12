@@ -75,7 +75,7 @@ audit:
 splits:
   assignable: [train, valid]   # a TRAIN-licensed match goes wholly to train or wholly to valid; never test
   excluded_tag: "excluded:near-duplicate"
-  move_method: none            # no split-change API in Roboflow; "reupload" only after a --probe proves it (RECORD)
+  move_method: none            # no split-change API; "reupload" was probed 2026-11-13 and does NOT move splits (RECORD)
   probe_max: 1                 # --probe moves at most this many frames, then verifies
 
 # Pre-labelling: pretrained general COCO detector, commercial-use licence. NOT a Universe dataset / model.

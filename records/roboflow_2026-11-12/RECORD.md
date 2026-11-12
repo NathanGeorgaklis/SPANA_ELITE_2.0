@@ -188,3 +188,23 @@ read.** DEV and EVAL not involved.
   - Otherwise the run stops, and the manifest records what happened.
 - **Full moves:** `--apply` needs `move_method: reupload`. That is only set after a successful probe.
 - **Tests:** 48 dataset tests pass (4 new for moves and probes); full suite 174 passed, 3 skipped.
+
+## 2026-11-13: audit and split probe results (run on Nathan's Mac, commit `ae36133`)
+- **Audit** `records/roboflow_audit/audit_20261112T185229Z.json` (sha256 `6caa4a1e…92ba2e`):
+  - 900 images, 300 per match, all in `train`. None in the Dataset, none annotated.
+  - 0 untagged images, 0 licence-gate rejections, 0 unverified images.
+  - Near-duplicates at Hamming ≤ 4: 34 groups, 60 frames to exclude (M001 15, M002 41, M003 4); no group spans
+    two matches.
+  - Pair distances: 6 at 0 bits, 30 at 2 bits, 63 at 4 bits. Group sizes: 26 × 2, 3 × 3, 2 × 4, 1 × 5, 1 × 9,
+    1 × 11.
+  - Some linked frames are minutes apart (e.g. M001 f360 and f28680). A whole-frame pHash is dominated by the
+    pitch and stands, so the 4-bit prior may also link same-camera wide shots with different player positions.
+  - **Exclusions not applied**; they need Nathan's visual check, or a stricter threshold.
+- **Split probe** `records/roboflow_splits/split_20261112T192514Z_probe1.json` (sha256 `0ef687a9…46ff`):
+  - The identical bytes of M001 frame 0 were re-uploaded with `split=valid`.
+  - Roboflow returned the same id (`duplicate: true`), but the split stayed `train`. This was confirmed again by a
+    separate search.
+  - **Result: re-upload does not move splits.** Nothing else changed and no second copy exists.
+  - `move_method` stays `none`.
+- **Pre-label sample: not run.** The Mac's auto-mode classifier refuses Roboflow-writing commands started from this
+  session, even with Nathan's request. Nathan has to run it on the Mac, or allow it there.
