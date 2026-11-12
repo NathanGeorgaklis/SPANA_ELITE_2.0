@@ -1,0 +1,83 @@
+# Roboflow connection for the player / ball detection dataset (2026-11-12)
+
+Roles: Lead Engineer; Player Detection Engineer; Data / Licensing Steward; QA / Regression Engineer.
+Built and tested only with mocked Roboflow clients. **Nothing uploaded, no frame sent to Roboflow, no footage
+read.** DEV and EVAL not involved.
+
+## Target
+- Workspace `nathans-workspace-9brdc`, project `spana-elite`.
+  - Object detection, private, 0 images, splits train / valid / test.
+  - Checked read-only via the Roboflow connector on 2026-11-12.
+- Classes: player, goalkeeper, referee, ball.
+- Split mapping (`config/roboflow.yaml`):
+  - SPANA TRAIN goes to Roboflow `train`.
+  - SPANA DEV goes to Roboflow `valid`.
+  - SPANA EVAL has no mapping and is never uploaded.
+
+## What was added
+| piece | file |
+|---|---|
+| Config (strict loader, same rules as default.yaml; tuples now supported generically) | `config/roboflow.yaml`, `spana/dataset/config.py`, `spana/config.py` |
+| Licensing / split policy (`authorize`) | `spana/dataset/config.py` |
+| API key from env / gitignored `.env`, redaction | `spana/secrets.py`, `.env.example`, `.gitignore` |
+| Deterministic sampling (interval + heavy motion + cut, cap with even thinning) | `spana/dataset/sampling.py` |
+| Upload manifest (schema, validation, prior-split guard) | `spana/dataset/manifest.py` |
+| Ingestion CLI | `tools/roboflow_ingest.py` |
+| Generic `Detector` interface + Roboflow backend | `spana/detection/base.py`, `spana/detection/roboflow_backend.py` |
+| DEV-only baseline measurement | `tools/dev/roboflow_baseline.py` |
+| Tests (no network) | `tests/test_roboflow_dataset.py` |
+
+## Policy enforced in code (fail closed)
+- **EVAL:** `split=eval` is refused before the video is opened (CLI exit 3). The loader also rejects any
+  `split` other than `dev` for inference tools.
+- **Allow-list:** the match must be in `licensed_matches`, and each match belongs to exactly one split.
+  - A registered match is refused in any other split.
+  - The ingestion tool also refuses a match that an earlier manifest recorded under another split.
+- **Third-party processing:** a Roboflow upload, or a hosted inference call (any `api_url` not on
+  `local_api_hosts`), needs `third_party_processing_confirmed: true`.
+  - It is `false` for every match until Nathan confirms the licence covers it.
+  - `--dry-run` (local sampling and manifest only) does not need this flag.
+- **Secret:** the API key travels in the HTTP JSON body, never in a URL. Errors are redacted before display or
+  storage. Tests check that the key never appears in manifests or exceptions.
+
+## Allow-list contents (to confirm with Nathan)
+- `TRAIN_M001_MORETON_CITY`, split train.
+  - Written permission dated 2026-11-03 (records/reid_train/TRAIN_M001_STATUS.md).
+  - `third_party_processing_confirmed: false`.
+- **Discrepancy to resolve.** The task says one licensed TRAIN match (letter of 3 Nov 2026). The re-ID records
+  also list TRAIN_M002 and TRAIN_M003 with written permission dated 4 Nov 2026. These are not added to the
+  allow-list until Nathan says whether that permission covers this dataset.
+- No DEV match listed yet. Nathan will name the DEV clip and its match_id.
+
+## Baseline model (test use only)
+- `football-players-detection-3zvbc/11`, Roboflow Universe `roboflow-jvuqo/football-players-detection-3zvbc`.
+  - YOLOv8x, 1280 px input; classes ball / goalkeeper / player / referee; dataset licence CC BY 4.0.
+  - Universe-reported mAP 0.929 / precision 0.911 / recall 0.896 on its own validation set, which is not ours.
+- Choice: Roboflow's own, most-used football detector (331 stars, ~26k downloads), with the exact class list.
+  Version 11 has the best reported mAP and recall of the 1280 px versions.
+- **Caveat.** The source footage of that dataset is not documented; this is the same provenance question as
+  records/reid_licence_2026-11-08. Use it for the DEV baseline measurement only. Do not ship it and do not train
+  on its outputs without a licence review.
+- `confidence 0.25` and `iou 0.50` are untuned priors. They are not to be tuned until the baseline is reviewed.
+
+## Dependencies
+- Added: `roboflow 1.7.3`, `python-dotenv 1.2.3`, `requests 2.34.2`.
+- **`inference-sdk` not added.** Version 1.8.4 requires `numpy<2.4` and the non-headless `opencv-python<=4.13`.
+  Installing it downgraded numpy 2.5.3 to 2.2.6 and replaced cv2 5.0 with 4.12.
+  - This was reverted: numpy 2.5.3 and opencv-python-headless 5.0.0.93 restored; `pip check` clean.
+  - The adapter instead calls the inference-server API (`POST /infer/object_detection`) with `requests`. Roboflow's
+    hosted endpoint and a local inference server both serve this API.
+
+## Tests
+- `python -m pytest tests/test_roboflow_dataset.py -q`: 22 passed.
+- `python -m pytest tests -q`: 148 passed, 3 skipped (before this change: 126 passed, 3 skipped).
+
+## Next (blocked on Nathan)
+1. Confirm the licence covers third-party processing, i.e. Roboflow storage and hosted inference. Then set
+   `third_party_processing_confirmed: true` for the match.
+2. Give the TRAIN video path and match_id; resolve the TRAIN_M002 / M003 question.
+3. Give a DEV clip path and match_id; it is added to `licensed_matches` with split dev.
+4. Then run, in order:
+   - `python -m tools.roboflow_ingest --video … --match-id … --split train --dry-run` (review the frames);
+   - the same command without `--dry-run`;
+   - `python -m tools.dev.roboflow_baseline --video DEV --match-id …`.
