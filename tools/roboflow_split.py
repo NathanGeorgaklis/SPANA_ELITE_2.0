@@ -10,10 +10,14 @@ Plan (always written to paths.split_dir as a before/after manifest):
     frames, an empty valid split.
   * frames the licence gate rejects are not moved and are listed with the reason.
   * near-duplicates from the audit (`--audit`) get splits.excluded_tag. They are never deleted.
-Default is a dry run (manifest only). --apply-exclusions-only adds the exclusion tags. --apply also needs every
-split move to be possible: Roboflow's API cannot move single images between splits (only a random ratio rebalance,
-which would split matches), so with splits.move_method "none" --apply refuses whenever a move is planned and
-nothing is changed.
+Default is a dry run (manifest only). --apply-exclusions-only adds the exclusion tags. --apply also performs the
+split moves, and only with splits.move_method "reupload"; with "none" it refuses whenever a move is planned and
+nothing is changed. Roboflow's API has no split-change call for single images (only a random ratio rebalance, which
+would split matches); "reupload" re-uploads each frame's identical, sha-verified bytes with the new split, the same
+name, tags and metadata.
+--probe N moves only the first N planned frames (N <= splits.probe_max; no exclusions) to test that method. Every
+move is verified afterwards: the upload must return the same image id, and a fresh listing must show the new split;
+otherwise the run stops with an error and the manifest records what happened.
 """
 from __future__ import annotations
 
@@ -27,7 +31,8 @@ from typing import Dict, List, Optional, Sequence
 
 from spana.artifacts import write_json_atomic
 from spana.dataset.config import DatasetConfig, PolicyError, load_dataset_config, match_of
-from spana.dataset.prep import match_tag, open_project, sort_key
+from spana.dataset.prep import SkipFrame, match_tag, open_project, sort_key, verified_image_file
+from spana.dataset.upload import RoboflowUploader
 from spana.dataset.rf_project import ProjectImage
 from spana.secrets import load_secret
 
@@ -104,17 +109,67 @@ def plan_split(cfg: DatasetConfig, images: List[ProjectImage], assign: Dict[str,
             "exclude_ids_not_in_plan": unknown_excl, "rows": rows, "skipped": skipped}
 
 
-def apply_plan(cfg: DatasetConfig, project, plan: dict, *, exclusions_only: bool) -> List[dict]:
-    """Executes a plan. Refuses (changing nothing) if a split move is needed and no move method exists."""
+def move_frames(cfg: DatasetConfig, project, uploader, plan: dict, images: List[ProjectImage], cache_dir: Path,
+                limit: Optional[int] = None) -> List[dict]:
+    """Re-upload the planned moves (first `limit` only), then verify ids and splits. Raises PolicyError on any
+    mismatch (fail closed); the returned / raised log says what happened to each frame."""
+    by_id = {i.id: i for i in images}
+    rows = [r for r in plan["rows"] if r["move"]]
+    if limit is not None:
+        rows = rows[:limit]
+    log = []
+    for r in rows:
+        img = by_id[r["id"]]
+        try:
+            src = verified_image_file(project, img, cache_dir)
+        except SkipFrame as e:
+            raise PolicyError(f"refused: cannot verify {img.name} before re-upload: {e}") from None
+        named = cache_dir / "reupload" / img.name
+        named.parent.mkdir(parents=True, exist_ok=True)
+        named.write_bytes(src.read_bytes())
+        res = uploader.single_upload(image_path=str(named), split=r["after"],
+                                     batch_name=f"spana_{r['match_id']}_{img.metadata.get('split', 'train')}",
+                                     tag_names=list(img.tags), metadata=dict(img.metadata), num_retry_uploads=0)
+        got = (res or {}).get("image") or {}
+        entry = {"id": img.id, "name": img.name, "requested_split": r["after"], "returned_id": got.get("id"),
+                 "duplicate": got.get("duplicate")}
+        log.append(entry)
+        if got.get("id") != img.id:
+            raise PolicyError(f"stopped: re-upload of {img.name} returned id {got.get('id')!r}, not {img.id!r} "
+                              f"(a second copy may exist). Log: {log}")
+    after = {i.id: i.split for i in project.list_images(cfg.audit.page_size)}
+    for e in log:
+        e["split_after"] = after.get(e["id"])
+    wrong = [e for e in log if e["split_after"] != e["requested_split"]]
+    if wrong:
+        raise PolicyError(f"stopped: Roboflow did not move {len(wrong)} of {len(log)} frames "
+                          f"(e.g. {wrong[0]['name']} is still {wrong[0]['split_after']!r}). Log: {log}")
+    return log
+
+
+def apply_plan(cfg: DatasetConfig, project, plan: dict, *, exclusions_only: bool, uploader=None,
+               images: Sequence[ProjectImage] = (), cache_dir: Optional[Path] = None,
+               probe: Optional[int] = None) -> List[dict]:
+    """Executes a plan. Refuses (changing nothing) if a split move is needed and no move method is enabled."""
+    if probe is not None:
+        if not 1 <= probe <= cfg.splits.probe_max:
+            raise PolicyError(f"refused: --probe must be in [1, splits.probe_max={cfg.splits.probe_max}]")
+        if not plan["n_moves"]:
+            raise PolicyError("refused: nothing to move, nothing to probe")
+        return [dict(m, action="probe_move") for m in
+                move_frames(cfg, project, uploader, plan, list(images), cache_dir, limit=probe)]
     if not exclusions_only and plan["n_moves"] and cfg.splits.move_method == "none":
         raise PolicyError(f"refused: {plan['n_moves']} frames need a split move, but Roboflow's API cannot move "
                           "single images between splits (splits.move_method: none). Nothing was changed. "
-                          "Use --apply-exclusions-only for the exclusion tags.")
+                          "Use --apply-exclusions-only for the exclusion tags, or --probe to test 'reupload'.")
     log = []
     for r in plan["rows"]:
         if r["exclude"] and not r["already_excluded"]:
             project.update_tags(r["id"], add=[cfg.splits.excluded_tag])
             log.append({"id": r["id"], "action": "tag", "tag": cfg.splits.excluded_tag})
+    if not exclusions_only and plan["n_moves"]:
+        log += [dict(m, action="move") for m in
+                move_frames(cfg, project, uploader, plan, list(images), cache_dir)]
     return log
 
 
@@ -126,8 +181,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     g = ap.add_mutually_exclusive_group()
     g.add_argument("--apply", action="store_true")
     g.add_argument("--apply-exclusions-only", action="store_true")
+    g.add_argument("--probe", type=int, help="move only the first N planned frames (<= splits.probe_max), verify")
     a = ap.parse_args(argv)
     cfg = load_dataset_config(a.config)
+    plan = None
     try:
         assign = parse_assign(a.assign)
         exclude = []
@@ -136,25 +193,40 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             if doc.get("project") != cfg.roboflow.project or not doc["near_duplicates"]["computed"]:
                 raise PolicyError("audit is for another project or has no near-duplicate result")
             exclude = [x for g_ in doc["near_duplicates"]["groups"] for x in g_["exclude"]]
-        project = open_project(cfg, load_secret(cfg.roboflow.api_key_env))
-        plan = plan_split(cfg, project.list_images(cfg.audit.page_size), assign, exclude)
+        key = load_secret(cfg.roboflow.api_key_env)
+        project = open_project(cfg, key)
+        images = project.list_images(cfg.audit.page_size)
+        plan = plan_split(cfg, images, assign, exclude)
         now = datetime.now(timezone.utc)
         plan["created_utc"] = now.isoformat(timespec="seconds")
         plan["audit_file"] = Path(a.audit).name if a.audit else None
-        plan["mode"] = "apply" if a.apply else ("apply_exclusions_only" if a.apply_exclusions_only else "dry_run")
-        log = []
-        if a.apply or a.apply_exclusions_only:
-            log = apply_plan(cfg, project, plan, exclusions_only=a.apply_exclusions_only)
+        plan["mode"] = ("apply" if a.apply else "apply_exclusions_only" if a.apply_exclusions_only
+                        else f"probe{a.probe}" if a.probe is not None else "dry_run")
+        r = cfg.roboflow
+        uploader = RoboflowUploader(api_url=r.api_url, workspace=r.workspace, project=r.project, api_key=key,
+                                    timeout_s=r.upload_timeout_s)
+        log, error = [], None
+        if a.apply or a.apply_exclusions_only or a.probe is not None:
+            try:
+                log = apply_plan(cfg, project, plan, exclusions_only=a.apply_exclusions_only, uploader=uploader,
+                                 images=images, cache_dir=REPO / cfg.paths.image_cache_dir, probe=a.probe)
+            except PolicyError as e:
+                error = str(e)
         plan["applied"] = log
+        plan["error"] = error
         out = REPO / cfg.paths.split_dir / f"split_{now.strftime('%Y%m%dT%H%M%SZ')}_{plan['mode']}.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         write_json_atomic(out, plan)
+        if error:
+            raise PolicyError(error + f" (manifest: {out})")
     except PolicyError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 3
     print(f"plan: {out}")
     print(f"after: {plan['match_splits_after']}; moves {plan['n_moves']}; exclusions {plan['n_exclude']}; "
           f"skipped {len(plan['skipped'])}; applied {len(log)} changes")
+    for entry in log:
+        print(f"  {entry}")
     return 0
 
 

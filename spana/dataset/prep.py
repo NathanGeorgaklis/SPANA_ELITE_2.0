@@ -44,8 +44,8 @@ def evenly_spaced(items: Sequence, k: int) -> list:
     return [items[i] for i in sorted({int(round(i * (n - 1) / (k - 1))) for i in range(k)})]
 
 
-def load_image(project: RoboflowProject, img: ProjectImage, cache_dir: Path) -> np.ndarray:
-    """Original pixels of a project image, verified against the sha256 recorded at upload. Raises SkipFrame."""
+def verified_image_file(project: RoboflowProject, img: ProjectImage, cache_dir: Path) -> Path:
+    """Local copy of a project image's original bytes, verified against the sha256 recorded at upload."""
     sha = img.metadata.get("image_sha256")
     if not isinstance(sha, str) or len(sha) != 64:
         raise SkipFrame("no image_sha256 recorded at upload (cannot verify the bytes)")
@@ -66,6 +66,12 @@ def load_image(project: RoboflowProject, img: ProjectImage, cache_dir: Path) -> 
         tmp = cached.with_suffix(".part")
         tmp.write_bytes(data)
         tmp.replace(cached)
+    return cached
+
+
+def load_image(project: RoboflowProject, img: ProjectImage, cache_dir: Path) -> np.ndarray:
+    """Original pixels of a project image, verified against the sha256 recorded at upload. Raises SkipFrame."""
+    data = verified_image_file(project, img, cache_dir).read_bytes()
     frame = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
     if frame is None:
         raise SkipFrame("image does not decode")

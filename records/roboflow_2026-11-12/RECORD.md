@@ -175,3 +175,16 @@ read.** DEV and EVAL not involved.
 - **Version settings:** colour-changing augmentations are refused by the config loader.
 - **Tests:** `tests/test_roboflow_prep.py` (19) and `tests/test_roboflow_dataset.py` (25) pass. Full suite:
   170 passed, 3 skipped.
+
+## 2026-11-13: split-move probe support (Nathan chose M001 as valid, option (a): re-upload probe)
+- **Why this is a committed tool:** an ad-hoc probe script on the Mac was blocked by its safety classifier. That
+  is correct under the project rules: every change to Roboflow goes through committed, tested code.
+- **New move method:** `splits.move_method: reupload` re-uploads each frame's identical, sha-verified bytes with the
+  new split, keeping the same name, tags and metadata.
+- **Probe:** `tools/roboflow_split.py --probe N`, with `N <= splits.probe_max` (1), moves only the first planned
+  frame and verifies it:
+  - the upload must return the same image id;
+  - a fresh listing must show the new split.
+  - Otherwise the run stops, and the manifest records what happened.
+- **Full moves:** `--apply` needs `move_method: reupload`. That is only set after a successful probe.
+- **Tests:** 48 dataset tests pass (4 new for moves and probes); full suite 174 passed, 3 skipped.

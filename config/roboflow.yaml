@@ -75,7 +75,8 @@ audit:
 splits:
   assignable: [train, valid]   # a TRAIN-licensed match goes wholly to train or wholly to valid; never test
   excluded_tag: "excluded:near-duplicate"
-  move_method: none            # Roboflow's API cannot move single images between splits; see RECORD (2026-11-13)
+  move_method: none            # no split-change API in Roboflow; "reupload" only after a --probe proves it (RECORD)
+  probe_max: 1                 # --probe moves at most this many frames, then verifies
 
 # Pre-labelling: pretrained general COCO detector, commercial-use licence. NOT a Universe dataset / model.
 # coco/36 is what Roboflow's own inference server resolves the alias "rfdetr-base" to

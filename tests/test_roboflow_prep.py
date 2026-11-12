@@ -95,7 +95,8 @@ class ConfigTests(unittest.TestCase):
             lambda d: d["version"].update(augmentations=["brightness"]),
             lambda d: d["version"].update(resize_format="Squash"),
             lambda d: d["splits"].update(assignable=["train", "valid", "test"]),
-            lambda d: d["splits"].update(move_method="reupload"),
+            lambda d: d["splits"].update(move_method="delete"),
+            lambda d: d["splits"].update(probe_max=0),
             lambda d: d["review"].update(reviewed_tag="prelabel:v1"),
             lambda d: d["audit"].update(phash_hamming_max=65),
         ]
@@ -172,6 +173,98 @@ class SplitTests(unittest.TestCase):
         log = roboflow_split.apply_plan(self.cfg, proj, plan, exclusions_only=True)
         self.assertEqual(proj.tag_calls, [("id001", ("excluded:near-duplicate",), ())])
         self.assertEqual(len(log), 1)
+
+
+class FakeUploader:
+    """Mimics Roboflow re-upload of identical bytes: same id back; `honour_split` decides whether the split changes."""
+
+    def __init__(self, project, honour_split=True, new_id=False):
+        self.project, self.honour, self.new_id, self.calls = project, honour_split, new_id, []
+
+    def single_upload(self, *, image_path, split, batch_name, tag_names, metadata, num_retry_uploads):
+        self.calls.append((Path(image_path).name, split, tuple(tag_names), metadata))
+        name = Path(image_path).name
+        idx = next(k for k, i in enumerate(self.project.images) if i.name == name)
+        old = self.project.images[idx]
+        if self.new_id:
+            return {"image": {"id": "NEW", "duplicate": False}}
+        if self.honour:
+            self.project.images[idx] = ProjectImage(**{**old.__dict__, "split": split})
+        return {"image": {"id": old.id, "duplicate": True}}
+
+
+class MoveTests(unittest.TestCase):
+    def setUp(self):
+        self.td = tempfile.TemporaryDirectory()
+        self.cache = Path(self.td.name)
+        self.images = [img(i, "M1") for i in range(3)] + [img(10 + i, "M2") for i in range(2)]
+        for i in self.images:                                   # verified cache: bytes whose sha is recorded
+            (self.cache / f"{i.id}.jpg").write_bytes(b"jpeg-bytes")
+        import hashlib
+        sha = hashlib.sha256(b"jpeg-bytes").hexdigest()
+        self.images = [ProjectImage(**{**i.__dict__, "metadata": dict(i.metadata, image_sha256=sha)})
+                       for i in self.images]
+
+    def tearDown(self):
+        self.td.cleanup()
+
+    def _plan(self, cfg):
+        return roboflow_split.plan_split(cfg, self.images, {"M1": "valid"})
+
+    def test_probe_moves_one_frame_and_verifies(self):
+        cfg = make_cfg()
+        proj = FakeProject(self.images)
+        up = FakeUploader(proj)
+        log = roboflow_split.apply_plan(cfg, proj, self._plan(cfg), exclusions_only=False, uploader=up,
+                                        images=self.images, cache_dir=self.cache, probe=1)
+        self.assertEqual(len(up.calls), 1)
+        name, split, tags, meta = up.calls[0]
+        self.assertEqual((name, split), ("M1_f0000000.jpg", "valid"))
+        self.assertEqual(tags, self.images[0].tags)                  # same tags and metadata as the original
+        self.assertEqual(meta, self.images[0].metadata)
+        self.assertEqual(log[0]["split_after"], "valid")
+        self.assertEqual(log[0]["action"], "probe_move")
+        with self.assertRaisesRegex(PolicyError, "probe_max"):
+            roboflow_split.apply_plan(cfg, proj, self._plan(cfg), exclusions_only=False, uploader=up,
+                                      images=self.images, cache_dir=self.cache, probe=2)
+
+    def test_split_not_honoured_or_new_id_fails_closed(self):
+        cfg = make_cfg()
+        proj = FakeProject(self.images)
+        with self.assertRaisesRegex(PolicyError, "did not move"):
+            roboflow_split.apply_plan(cfg, proj, self._plan(cfg), exclusions_only=False,
+                                      uploader=FakeUploader(proj, honour_split=False), images=self.images,
+                                      cache_dir=self.cache, probe=1)
+        with self.assertRaisesRegex(PolicyError, "returned id"):
+            roboflow_split.apply_plan(cfg, proj, self._plan(cfg), exclusions_only=False,
+                                      uploader=FakeUploader(proj, new_id=True), images=self.images,
+                                      cache_dir=self.cache, probe=1)
+
+    def test_full_apply_needs_reupload_method_and_keeps_matches_whole(self):
+        cfg = make_cfg()
+        proj = FakeProject(self.images)
+        with self.assertRaisesRegex(PolicyError, "move_method: none"):
+            roboflow_split.apply_plan(cfg, proj, self._plan(cfg), exclusions_only=False, uploader=FakeUploader(proj),
+                                      images=self.images, cache_dir=self.cache)
+        cfg = make_cfg(lambda d: d["splits"].update(move_method="reupload"))
+        log = roboflow_split.apply_plan(cfg, proj, self._plan(cfg), exclusions_only=False,
+                                        uploader=FakeUploader(proj), images=self.images, cache_dir=self.cache)
+        self.assertEqual(len(log), 3)
+        splits = {}
+        for i in proj.images:
+            splits.setdefault(i.metadata["match_id"], set()).add(i.split)
+        self.assertEqual(splits, {"M1": {"valid"}, "M2": {"train"}})
+
+    def test_unverifiable_bytes_refused(self):
+        cfg = make_cfg()
+        (self.cache / f"{self.images[0].id}.jpg").write_bytes(b"tampered")
+        proj = FakeProject(self.images)
+        proj.fetch_image = mock.Mock(side_effect=RoboflowApiError("image bytes do not match the sha256"))
+        up = FakeUploader(proj)
+        with self.assertRaisesRegex(PolicyError, "cannot verify"):
+            roboflow_split.apply_plan(cfg, proj, self._plan(cfg), exclusions_only=False, uploader=up,
+                                      images=self.images, cache_dir=self.cache, probe=1)
+        self.assertEqual(up.calls, [])
 
 
 def resp(preds, w=64, h=36):
