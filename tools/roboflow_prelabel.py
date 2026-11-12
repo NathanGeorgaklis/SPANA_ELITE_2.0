@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import time
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -142,7 +143,9 @@ def run_prelabel(cfg: DatasetConfig, project, infer, images: List[ProjectImage],
     """`infer(jpeg_bytes) -> raw response`; `load(img) -> BGR frame` (raises SkipFrame). Returns the log document."""
     chosen, skipped = select(cfg, images, limit=limit, match=match, confirm_full_run=confirm_full_run)
     entries, dropped_all = [], Counter()
-    for img in chosen:
+    for k, img in enumerate(chosen):
+        if k and cfg.prelabel.min_interval_s:
+            time.sleep(cfg.prelabel.min_interval_s)
         e = {"id": img.id, "name": img.name, "match_id": match_tag(img),
              "frame_index": img.metadata.get("frame_index"), "boxes_per_class": {}, "n_boxes": 0,
              "below_threshold": {}, "status": None, "reason": None}
@@ -179,7 +182,8 @@ def run_prelabel(cfg: DatasetConfig, project, infer, images: List[ProjectImage],
         entries.append(e)
     per_class = Counter()
     for e in entries:
-        per_class.update(e["boxes_per_class"])
+        if e["status"] == "labelled":            # only boxes that were actually saved
+            per_class.update(e["boxes_per_class"])
     status = Counter(e["status"] for e in entries)
     return {"schema": LOG_SCHEMA, "schema_version": LOG_SCHEMA_VERSION,
             "model_id": cfg.prelabel.model_id, "model_licence": cfg.prelabel.model_licence,
@@ -188,7 +192,8 @@ def run_prelabel(cfg: DatasetConfig, project, infer, images: List[ProjectImage],
             "entries": entries, "not_selected_skips": skipped,
             "summary": {"selected": len(chosen), "status": dict(sorted(status.items())),
                         "boxes_per_class": dict(sorted(per_class.items())),
-                        "frames_with_ball": sum(e["boxes_per_class"].get("ball", 0) > 0 for e in entries),
+                        "frames_with_ball": sum(e["status"] == "labelled" and e["boxes_per_class"].get("ball", 0) > 0
+                                                for e in entries),
                         "dropped_model_labels": dict(sorted(dropped_all.items())),
                         "skip_reasons": dict(sorted(Counter(s["reason"] for s in skipped).items()))}}
 

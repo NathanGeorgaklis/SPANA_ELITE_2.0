@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Iterator, List, Optional, Tuple
 
 from ..secrets import redact
+from .ratelimit import call_with_429_retry
 
 SEARCH_FIELDS = ["id", "name", "split", "tags", "url", "annotations", "width", "height", "user_metadata"]
 
@@ -80,23 +81,26 @@ def to_project_image(hit: dict, project: str) -> ProjectImage:
 
 
 class RoboflowProject:
-    def __init__(self, *, api_url: str, workspace: str, project: str, api_key: str, timeout_s: float, session=None):
+    def __init__(self, *, api_url: str, workspace: str, project: str, api_key: str, timeout_s: float, session=None,
+                 rate_limit_retries: int = 0, rate_limit_wait_s: float = 1.0, sleep=time.sleep):
         import requests
         self._base = api_url.rstrip("/")
         self.workspace, self.project = workspace, project
         self._key = api_key
         self._timeout = timeout_s
         self._session = session if session is not None else requests.Session()
+        self._retries, self._wait, self._sleep = rate_limit_retries, rate_limit_wait_s, sleep
 
     def _err(self, text: str) -> RoboflowApiError:
         return RoboflowApiError(redact(text, self._key)[:500])
 
     def _call(self, method: str, url: str, **kw):
-        try:
-            r = self._session.request(method, url, timeout=self._timeout, **kw)
-        except Exception as e:
-            raise self._err(f"{method} failed: {type(e).__name__}: {e}") from None
-        return r
+        def send():
+            try:
+                return self._session.request(method, url, timeout=self._timeout, **kw)
+            except Exception as e:
+                raise self._err(f"{method} failed: {type(e).__name__}: {e}") from None
+        return call_with_429_retry(send, self._retries, self._wait, sleep=self._sleep)
 
     def _json(self, r, ok=(200,)) -> dict:
         if r.status_code not in ok:

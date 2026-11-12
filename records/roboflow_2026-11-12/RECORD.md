@@ -262,3 +262,25 @@ read.** DEV and EVAL not involved.
   reviewed frame's annotation from `GET /{ws}/{project}/images/{id}`; checked live, it returns `annotation.boxes`
   with a label per box.
 - **Tests:** dataset tests 52 pass; full suite 178 passed, 3 skipped.
+
+## 2026-11-13: Nathan approved: sample looks very good, tag exclusions, full pre-label, move M001
+- **M001 move blocked:** `tools.roboflow_split --assign valid=TRAIN_M001_MORETON_CITY --apply` (permanently
+  deletes and re-uploads 299 frames) was refused by the Mac's auto-mode safety check. It was not retried. Nathan
+  runs it himself.
+- **Exclusions applied:** 24 frames tagged `excluded:near-duplicate` (manifest
+  `records/roboflow_splits/split_20261112T202247Z_apply_exclusions_only.json`, sha256 `caf4cdc6…`).
+  - Tagging before the move is safe: the move re-uploads each frame with its current tags.
+- **Full pre-label runs (M002 and M003, in parallel) hit Roboflow's rate limit:**
+  - M002: 16 labelled, 254 failed. M003: 10 labelled, 279 failed. All failures were HTTP 429 on the platform API.
+  - Because each frame is tagged before its labels are saved, failed frames got no tag and no annotation.
+    Roboflow shows exactly 46 `prelabel:v1` frames (20 sample + 26), so no frame is half done and a re-run picks the
+    rest up.
+  - Logs `prelabel_20261112T202308Z.json` (sha256 `118cd406…`) and `prelabel_20261112T202318Z.json`
+    (sha256 `cb1186fe…`).
+  - Their `boxes_per_class` totals also count frames that were not saved.
+- **Fixes:**
+  - Every Roboflow platform call and upload retries HTTP 429, honouring Retry-After, else
+    `rate_limit_wait_s` × attempt (`roboflow.rate_limit_retries` 6, `rate_limit_wait_s` 10).
+  - Pre-labelling pauses `prelabel.min_interval_s` (1 s) between frames. Run one pre-label process at a time.
+  - The summary counts boxes only on frames whose labels were saved.
+- **Tests:** dataset tests 54 pass; full suite 180 passed, 3 skipped.

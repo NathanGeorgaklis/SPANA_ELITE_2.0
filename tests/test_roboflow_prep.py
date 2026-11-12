@@ -38,6 +38,7 @@ def make_cfg(mutate=None):
     d["licensed_matches"] = [lm("M1"), lm("M2"), lm("M_UNCONF", confirmed=False), lm("M_EVAL", "eval")]
     d["splits"].update(move_method="none", verify_wait_s=0.0)     # tests switch moves on explicitly; no real waits
     d["audit"].update(search_wait_s=0.0)
+    d["prelabel"].update(min_interval_s=0.0)
     if mutate:
         mutate(d)
     return dataset_config_from_dict(d)
@@ -419,6 +420,23 @@ class PrelabelTests(unittest.TestCase):
                                              load=lambda i: np.zeros((36, 64, 3), np.uint8), render_dir=None)
         self.assertEqual(doc["entries"][0]["status"], "skipped")
 
+    def test_summary_counts_only_saved_frames(self):
+        images = [img(1), img(2)]
+        proj = FakeProject(images)
+        calls = {"n": 0}
+
+        def flaky(image_id, add=(), remove=()):
+            calls["n"] += 1
+            if image_id == "id002":
+                raise RoboflowApiError("HTTP 429: Too Many Requests")
+        proj.update_tags = flaky
+        doc = roboflow_prelabel.run_prelabel(self.cfg, proj, mock.Mock(return_value=resp([p(10, 10, 4, 10, 0.9, "person")])),
+                                             images, limit=2, match=None, confirm_full_run=False,
+                                             load=lambda i: np.zeros((36, 64, 3), np.uint8), render_dir=None)
+        self.assertEqual(doc["summary"]["status"], {"failed": 1, "labelled": 1})
+        self.assertEqual(doc["summary"]["boxes_per_class"], {"ball": 0, "player": 1})
+        self.assertEqual(len(proj.ann_calls), 1)               # tag failed -> no annotation saved for id002
+
     def test_match_filter(self):
         doc, _, _ = self._run([img(1, "M1"), img(2, "M2")], match="M2")
         self.assertEqual([e["match_id"] for e in doc["entries"]], ["M2"])
@@ -572,6 +590,26 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(self._proj(session).get_image_annotation("i1"), (True, ("player", "ball")))
         args, _ = session.request.call_args
         self.assertEqual(args, ("GET", "https://api.invalid/ws/proj/images/i1"))
+
+    def test_rate_limit_retry_and_redaction(self):
+        sleeps = []
+        session = mock.Mock()
+        busy = mock.Mock(status_code=429, text=f"slow down {SECRET}", headers={"Retry-After": "3"})
+        ok = mock.Mock(status_code=200, json=mock.Mock(return_value={"success": True}))
+        session.request.side_effect = [busy, busy, ok]
+        pr = RoboflowProject(api_url="https://api.invalid", workspace="ws", project="proj", api_key=SECRET,
+                             timeout_s=5, session=session, rate_limit_retries=3, rate_limit_wait_s=10,
+                             sleep=sleeps.append)
+        pr.update_tags("i1", add=["x"])
+        self.assertEqual(sleeps, [3.0, 3.0])                       # Retry-After honoured
+        session.request.side_effect = [busy] * 4
+        sleeps.clear()
+        with self.assertRaisesRegex(RoboflowApiError, "429") as cm:
+            pr.update_tags("i1", add=["x"])
+        self.assertEqual(len(sleeps), 3)
+        self.assertNotIn(SECRET, str(cm.exception))
+        from spana.dataset.ratelimit import retry_after_s
+        self.assertEqual(retry_after_s(mock.Mock(headers={}), 2, 10.0), 20.0)
 
     def test_batch_calls(self):
         session = mock.Mock()

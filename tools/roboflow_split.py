@@ -38,7 +38,7 @@ from typing import Dict, List, Optional, Sequence
 
 from spana.artifacts import write_json_atomic
 from spana.dataset.config import DatasetConfig, PolicyError, load_dataset_config, match_of
-from spana.dataset.prep import SkipFrame, list_all, match_tag, open_project, sort_key, verified_image_file
+from spana.dataset.prep import SkipFrame, list_all, open_uploader, match_tag, open_project, sort_key, verified_image_file
 from spana.dataset.upload import RoboflowUploader
 from spana.dataset.rf_project import IncompleteListing, ProjectImage
 from spana.secrets import load_secret
@@ -282,8 +282,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if a.restore:
         key = load_secret(cfg.roboflow.api_key_env)
         r = cfg.roboflow
-        uploader = RoboflowUploader(api_url=r.api_url, workspace=r.workspace, project=r.project, api_key=key,
-                                    timeout_s=r.upload_timeout_s)
+        uploader = open_uploader(cfg, key)
         try:
             log = restore(cfg, open_project(cfg, key), uploader, json.loads(Path(a.restore).read_text()),
                           REPO / cfg.paths.image_cache_dir)
@@ -311,8 +310,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         plan["mode"] = ("apply" if a.apply else "apply_exclusions_only" if a.apply_exclusions_only
                         else f"probe{a.probe}" if a.probe is not None else "dry_run")
         r = cfg.roboflow
-        uploader = RoboflowUploader(api_url=r.api_url, workspace=r.workspace, project=r.project, api_key=key,
-                                    timeout_s=r.upload_timeout_s)
+        uploader = open_uploader(cfg, key)
         log, error = [], None
         if a.apply or a.apply_exclusions_only or a.probe is not None:
             try:

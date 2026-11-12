@@ -47,6 +47,8 @@ class RoboflowSection:
     dev_split_name: str       # Roboflow split that receives SPANA DEV matches (EVAL has none on purpose)
     upload_retries: int
     upload_timeout_s: float
+    rate_limit_retries: int     # HTTP 429: retry this many times (Retry-After honoured, else rate_limit_wait_s x attempt)
+    rate_limit_wait_s: float
 
     def validate(self) -> None:
         for n in ("workspace", "project", "api_key_env", "project_type", "train_split_name", "dev_split_name"):
@@ -56,6 +58,8 @@ class RoboflowSection:
             raise ConfigError("roboflow: train and dev must map to different Roboflow splits")
         _pos_int("roboflow.upload_retries", self.upload_retries, allow_zero=True)
         _pos("roboflow.upload_timeout_s", self.upload_timeout_s)
+        _pos_int("roboflow.rate_limit_retries", self.rate_limit_retries, allow_zero=True)
+        _pos("roboflow.rate_limit_wait_s", self.rate_limit_wait_s)
         u = urlparse(self.api_url)
         if u.scheme != "https" or not u.hostname:
             raise ConfigError("roboflow.api_url must be an https URL")
@@ -174,6 +178,7 @@ class PrelabelSection:
     class_thresholds: Tuple[str, ...]  # "spana_class:min_score", one per auto-labelled class
     tag: str                           # tag added to every pre-labelled frame
     sample_size: int                   # largest run allowed without the explicit full-run confirmation
+    min_interval_s: float              # pause between frames (Roboflow rate limits the platform API)
     add_to_dataset: bool               # false: pre-labels wait in their batch until reviewed
 
     def validate(self) -> None:
@@ -188,6 +193,8 @@ class PrelabelSection:
         _unit("prelabel.iou", self.iou)
         _pos("prelabel.timeout_s", self.timeout_s)
         _pos_int("prelabel.sample_size", self.sample_size)
+        if self.min_interval_s < 0:
+            raise ConfigError("prelabel.min_interval_s must be >= 0")
 
 
 @dataclass(frozen=True)
