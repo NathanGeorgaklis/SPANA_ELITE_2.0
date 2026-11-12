@@ -93,3 +93,18 @@ read.** DEV and EVAL not involved.
   - M001 `2475f26c…4c58`
   - M002 `62d91f7e…707e`
   - M003 `3db10eb1…da50`
+
+## Update 2026-11-12: Roboflow SDK replaced by a direct REST upload client
+- **Finding: the SDK cannot run beside the engine on Nathan's Mac.** The Mac `.venv` is Python 3.9.6 and
+  roboflow >= 1.3 requires Python >= 3.10. The last release for 3.9, 1.2.16, pins
+  `opencv-python-headless==4.10.0.84`, which would downgrade the engine's OpenCV 5.0.
+- **Change:** new `spana/dataset/upload.py` calls the REST endpoint the SDK itself uses:
+  - `POST https://api.roboflow.com/dataset/<project>/upload`, multipart `file` / `name` / `split` / `metadata`,
+    with `batch` and `tag` as query parameters;
+  - the API requires the key in the query string, so every error text is redacted;
+  - retries apply only on network errors and 5xx;
+  - before uploading, `GET /<workspace>/<project>` checks the key can read the project and that its type is
+    `object-detection`; otherwise it fails closed.
+- `roboflow` removed from requirements. New config keys: `roboflow.api_url`, `roboflow.project_type` and
+  `roboflow.upload_timeout_s`.
+- Tests: 25 dataset tests passed; full suite 151 passed, 3 skipped, run with the SDK uninstalled.

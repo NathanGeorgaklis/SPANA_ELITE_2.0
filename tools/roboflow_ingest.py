@@ -40,8 +40,13 @@ DEFAULT_CONFIG = REPO / "config" / "roboflow.yaml"
 
 
 def open_project(cfg: DatasetConfig, api_key: str):
-    from roboflow import Roboflow  # imported only for real uploads; tests inject a fake project
-    return Roboflow(api_key=api_key).workspace(cfg.roboflow.workspace).project(cfg.roboflow.project)
+    """Upload client for the configured project; fails closed unless the key can read it and its type matches."""
+    from spana.dataset.upload import RoboflowUploader
+    r = cfg.roboflow
+    up = RoboflowUploader(api_url=r.api_url, workspace=r.workspace, project=r.project, api_key=api_key,
+                          timeout_s=r.upload_timeout_s)
+    up.check_project(r.project_type)
+    return up
 
 
 def upload_one(project, image_path: Path, *, roboflow_split: str, batch_name: str, tags, metadata: dict,

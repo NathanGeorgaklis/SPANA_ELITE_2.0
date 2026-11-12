@@ -35,17 +35,24 @@ class RoboflowSection:
     workspace: str
     project: str
     api_key_env: str          # name of the environment variable holding the private API key (never the key)
+    api_url: str              # REST API base (project checks, uploads)
+    project_type: str         # expected project type; uploads refuse any other
     train_split_name: str     # Roboflow split that receives SPANA TRAIN matches
     dev_split_name: str       # Roboflow split that receives SPANA DEV matches (EVAL has none on purpose)
     upload_retries: int
+    upload_timeout_s: float
 
     def validate(self) -> None:
-        for n in ("workspace", "project", "api_key_env", "train_split_name", "dev_split_name"):
+        for n in ("workspace", "project", "api_key_env", "project_type", "train_split_name", "dev_split_name"):
             if not getattr(self, n).strip():
                 raise ConfigError(f"roboflow.{n} must be non-empty")
         if self.train_split_name == self.dev_split_name:
             raise ConfigError("roboflow: train and dev must map to different Roboflow splits")
         _pos_int("roboflow.upload_retries", self.upload_retries, allow_zero=True)
+        _pos("roboflow.upload_timeout_s", self.upload_timeout_s)
+        u = urlparse(self.api_url)
+        if u.scheme != "https" or not u.hostname:
+            raise ConfigError("roboflow.api_url must be an https URL")
 
 
 @dataclass(frozen=True)

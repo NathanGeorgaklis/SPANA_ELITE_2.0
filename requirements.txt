@@ -3,8 +3,7 @@ opencv-python-headless>=4.9
 scipy>=1.11
 PyYAML>=6.0
 onnxruntime>=1.17
-# detection dataset (Roboflow upload; hosted / local inference via plain HTTP, see spana/detection/roboflow_backend.py)
-roboflow>=1.7.3
+# detection dataset: Roboflow REST API via requests (no SDK; see spana/dataset/upload.py)
 python-dotenv>=1.0
 requests>=2.31
 # tests only

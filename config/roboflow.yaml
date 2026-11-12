@@ -9,9 +9,12 @@ roboflow:
   workspace: nathans-workspace-9brdc
   project: spana-elite
   api_key_env: ROBOFLOW_API_KEY
+  api_url: https://api.roboflow.com   # REST API for project checks and uploads
+  project_type: object-detection   # uploads refuse a project of any other type
   train_split_name: train    # Roboflow split receiving SPANA TRAIN matches
   dev_split_name: valid      # Roboflow split receiving SPANA DEV matches. EVAL has no Roboflow split: never uploaded
   upload_retries: 2
+  upload_timeout_s: 120.0
 
 # Detection classes. Team, identity and shirt number belong to other modules.
 classes: [player, goalkeeper, referee, ball]

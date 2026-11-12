@@ -20,6 +20,7 @@ from spana.config import ConfigError
 from spana.dataset.config import PolicyError, authorize, dataset_config_from_dict, load_dataset_config
 from spana.dataset.manifest import ManifestError, validate_manifest
 from spana.dataset.sampling import FrameSignal, scan_signals, select_frames
+from spana.dataset.upload import RoboflowUploader, UploadError
 from spana.detection.roboflow_backend import HttpInferenceClient, RoboflowDetector, RoboflowError
 from spana.records import Detection
 from spana.secrets import SecretError, load_secret
@@ -111,6 +112,7 @@ class ConfigTests(unittest.TestCase):
         d = raw(); d["licensed_matches"] = [dict(match("X", "train", True), third_party_processing_confirmed="yes")]
         bad.append(d)
         d = raw(); d["schema_version"] = "0.1.0"; bad.append(d)
+        d = raw(); d["roboflow"]["api_url"] = "http://api.roboflow.com"; bad.append(d)
         for b in bad:
             with self.assertRaises(ConfigError):
                 dataset_config_from_dict(b)
@@ -369,6 +371,67 @@ class AdapterTests(unittest.TestCase):
         session.post.side_effect = ConnectionError(f"https://x?api_key={SECRET}")
         with self.assertRaises(RoboflowError) as cm:
             c.infer(b"jpg", model_id="m/1", confidence=0.3, iou=0.5)
+        self.assertNotIn(SECRET, str(cm.exception))
+
+
+class UploaderTests(unittest.TestCase):
+    """REST upload client: request shape, duplicate handling, retries, project check, key never in error text."""
+
+    def _up(self, session):
+        return RoboflowUploader(api_url="https://api.example.invalid", workspace="ws", project="proj",
+                                api_key=SECRET, timeout_s=5.0, session=session)
+
+    def test_request_shape_and_response(self):
+        with tempfile.TemporaryDirectory() as td:
+            img = Path(td) / "M_f0000001.jpg"
+            img.write_bytes(b"jpegbytes")
+            s = mock.Mock()
+            s.post.return_value = mock.Mock(status_code=200, json=lambda: {"success": True, "id": "abc"})
+            res = self._up(s).single_upload(image_path=str(img), split="train", batch_name="b",
+                                            tag_names=["match:M", "split:train"], metadata={"frame_index": 1})
+            self.assertEqual(res, {"image": {"id": "abc", "duplicate": False}})
+            (url,), kw = s.post.call_args
+            self.assertEqual(url, "https://api.example.invalid/dataset/proj/upload")
+            self.assertEqual(kw["params"], {"api_key": SECRET, "batch": "b", "tag": ["match:M", "split:train"]})
+            self.assertEqual(kw["data"]["split"], "train")
+            self.assertEqual(json.loads(kw["data"]["metadata"]), {"frame_index": 1})
+            self.assertEqual(kw["files"]["file"], ("M_f0000001.jpg", b"jpegbytes", "image/jpeg"))
+            s.post.return_value = mock.Mock(status_code=200, json=lambda: {"duplicate": True, "id": "abc"})
+            res = self._up(s).single_upload(image_path=str(img), split="train", batch_name="b", tag_names=[])
+            self.assertTrue(res["image"]["duplicate"])
+
+    def test_retries_then_redacted_failure(self):
+        with tempfile.TemporaryDirectory() as td:
+            img = Path(td) / "a.jpg"
+            img.write_bytes(b"x")
+            s = mock.Mock()
+            s.post.side_effect = ConnectionError(f"https://api.example.invalid/x?api_key={SECRET}")
+            with mock.patch("spana.dataset.upload.time.sleep"):
+                with self.assertRaises(UploadError) as cm:
+                    self._up(s).single_upload(image_path=str(img), split="train", batch_name="b", tag_names=[],
+                                              num_retry_uploads=2)
+            self.assertEqual(s.post.call_count, 3)
+            self.assertNotIn(SECRET, str(cm.exception))
+            s = mock.Mock()
+            s.post.return_value = mock.Mock(status_code=400, json=lambda: {"error": f"bad {SECRET}"})
+            with self.assertRaises(UploadError) as cm:
+                self._up(s).single_upload(image_path=str(img), split="train", batch_name="b", tag_names=[])
+            self.assertEqual(s.post.call_count, 1)                    # client errors are not retried
+            self.assertNotIn(SECRET, str(cm.exception))
+
+    def test_check_project_fails_closed(self):
+        s = mock.Mock()
+        s.get.return_value = mock.Mock(status_code=200, json=lambda: {"project": {"id": "ws/proj",
+                                                                                 "type": "object-detection"}})
+        self.assertEqual(self._up(s).check_project("object-detection")["id"], "ws/proj")
+        (url,), kw = s.get.call_args
+        self.assertEqual(url, "https://api.example.invalid/ws/proj")
+        s.get.return_value = mock.Mock(status_code=200, json=lambda: {"project": {"type": "classification"}})
+        with self.assertRaises(UploadError):
+            self._up(s).check_project("object-detection")
+        s.get.return_value = mock.Mock(status_code=401, text=f"denied {SECRET}")
+        with self.assertRaises(UploadError) as cm:
+            self._up(s).check_project("object-detection")
         self.assertNotIn(SECRET, str(cm.exception))
 
 
