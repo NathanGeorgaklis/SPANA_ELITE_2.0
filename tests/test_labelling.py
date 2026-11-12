@@ -195,6 +195,7 @@ class BenchmarkTool(unittest.TestCase):
 
     def test_benchmark_scores_against_frozen_labels(self):
         import subprocess
+        import sys
         import yaml
         from tests.synth import CONFIG_PATH
         from tests.test_detection_camera import constant_onnx, write_record
@@ -209,7 +210,7 @@ class BenchmarkTool(unittest.TestCase):
         record = write_record(td, td / "m.onnx")
         raw = yaml.safe_load(open(CONFIG_PATH)); raw["detection"]["tiling_enabled"] = False
         cfg = td / "cfg.yaml"; cfg.write_text(yaml.safe_dump(raw))
-        run = lambda *a: subprocess.run(["python3", "-m", *a], check=True, capture_output=True)  # noqa: E731
+        run = lambda *a: subprocess.run([sys.executable, "-m", *a], check=True, capture_output=True)  # noqa: E731
         run("spana.cli", "detect", "--video", str(video), "--config", str(cfg), "--model-record", str(record),
             "--out", str(td / "d.json"))
         run("spana.cli", "track", "--video", str(video), "--config", str(cfg), "--detections", str(td / "d.json"),
