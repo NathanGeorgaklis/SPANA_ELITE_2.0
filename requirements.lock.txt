@@ -2,6 +2,12 @@ numpy==2.5.3
 onnx==1.23.2
 onnxruntime==1.29.0
 pytest==9.1.1
+python-dotenv==1.2.3
 PyYAML==6.0.3
+requests==2.34.2
+roboflow==1.7.3
 scipy==1.18.1
-# opencv (cv2) 5.0.0 present in the build environment (not pip-managed)
+opencv-python-headless==5.0.0.93
+# (cv2 5.0.0; was present outside pip, now pip-managed because roboflow requires opencv-python-headless>=4.10)
+# inference-sdk deliberately NOT installed: 1.8.4 pins numpy<2.4 and opencv-python<=4.13 (non-headless),
+# which would downgrade numpy 2.5.3 and shadow OpenCV 5.0 (records/roboflow_2026-11-12/RECORD.md)

@@ -1,0 +1,59 @@
+# SPANA detection dataset + Roboflow connection (loader: spana/dataset/config.py; fails closed like default.yaml).
+# CALIBRATION STATUS: sampling and baseline values are initial engineering priors, NOT tuned. Any change must be
+# derived on DEV data only (never EVAL) and recorded with evidence.
+# Secrets: the API key is NEVER in this file. It is read from the environment variable named in roboflow.api_key_env
+# (or the gitignored .env; template .env.example).
+schema_version: "1.0.0"
+
+roboflow:
+  workspace: nathans-workspace-9brdc
+  project: spana-elite
+  api_key_env: ROBOFLOW_API_KEY
+  train_split_name: train    # Roboflow split receiving SPANA TRAIN matches
+  dev_split_name: valid      # Roboflow split receiving SPANA DEV matches. EVAL has no Roboflow split: never uploaded
+  upload_retries: 2
+
+# Detection classes. Team, identity and shirt number belong to other modules.
+classes: [player, goalkeeper, referee, ball]
+
+# Split the inference / baseline tools operate on. Only "dev" is accepted by the loader.
+split: dev
+
+sampling:
+  interval_s: 2.0              # one regular frame every 2 s
+  max_frames_per_video: 300    # cap per video; excess thinned evenly (deterministic, no randomness)
+  analysis_step_s: 0.2         # motion / cut signals computed at 5 Hz
+  analysis_width_px: 320       # compute-only downscale for the signals
+  motion_threshold: 0.06       # mean |grey change| (0..1) between analysis frames counted as heavy motion
+  cut_hist_distance: 0.55      # same prior as camera.cut_hist_distance in default.yaml
+  event_min_gap_s: 1.0         # extra motion / cut frames at least 1 s apart
+  jpeg_quality: 95
+
+# Pretrained detector for a BASELINE MEASUREMENT ON DEV ONLY (test use; not shipped, not trained on).
+# Roboflow Universe: roboflow-jvuqo/football-players-detection-3zvbc, version 11 (YOLOv8x, 1280 px input),
+# dataset licence CC BY 4.0, classes ball/goalkeeper/player/referee. See records/roboflow_2026-11-12/RECORD.md.
+baseline:
+  model_id: football-players-detection-3zvbc/11
+  api_url: https://serverless.roboflow.com   # hosted = third-party processing; a local inference server keeps frames here
+  confidence: 0.25             # untuned prior; not to be tuned until the baseline has been reviewed
+  iou: 0.50                    # untuned prior (NMS IoU)
+  timeout_s: 60.0
+  class_map: ["player:player", "goalkeeper:goalkeeper", "referee:referee", "ball:ball"]
+  render_samples: 6
+  histogram_bins: 10
+
+# Inference servers on these hosts keep frames on this machine (no third-party processing).
+local_api_hosts: [localhost, 127.0.0.1]
+
+# Allow-list of licensed matches. A match belongs to exactly ONE split; DEV and EVAL come from different matches.
+# Upload / hosted inference also needs third_party_processing_confirmed: true (Nathan confirms per licence).
+licensed_matches:
+  - match_id: TRAIN_M001_MORETON_CITY
+    split: train
+    permission: "written permission dated 2026-11-03 (records/reid_train/TRAIN_M001_STATUS.md)"
+    third_party_processing_confirmed: false   # pending Nathan's confirmation that the licence covers Roboflow
+
+paths:
+  manifest_dir: records/roboflow_uploads   # upload manifests (committed; no footage, no secrets)
+  frames_dir: runs/roboflow_frames         # extracted frames + dry-run manifests (gitignored)
+  baseline_dir: runs/roboflow_baseline     # baseline outputs (gitignored)

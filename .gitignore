@@ -11,3 +11,7 @@ __pycache__/
 *.onnx
 *.pt
 runs/
+# secrets: the real .env never goes in Git (template: .env.example)
+.env
+.env.*
+!.env.example
