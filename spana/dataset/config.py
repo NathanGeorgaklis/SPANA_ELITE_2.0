@@ -14,16 +14,22 @@ import hashlib
 import json
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 import yaml
 
 from ..config import ConfigError, _pos, _pos_int, _unit, typed_from_dict
 
-DATASET_CONFIG_SCHEMA_VERSION = "1.0.0"
+DATASET_CONFIG_SCHEMA_VERSION = "1.1.0"
 SPLITS = ("train", "dev", "eval")
 UPLOADABLE_SPLITS = ("train", "dev")
+ROBOFLOW_SPLITS = ("train", "valid", "test")
+RESIZE_FORMATS = ("Stretch to", "Fill (with center crop) in", "Fit within", "Fit (reflect edges) in",
+                  "Fit (black edges) in", "Fit (white edges) in")
+# Version augmentations SPANA allows: geometric only. Anything that changes pixel colours (hue, saturation, brightness,
+# exposure, grayscale, contrast, camera gain, ...) is refused: kit colour is used later for team classification.
+GEOMETRIC_AUGMENTATIONS = ("flip_horizontal",)
 
 
 class PolicyError(PermissionError):
@@ -113,10 +119,103 @@ class LicensedMatch:
 
 
 @dataclass(frozen=True)
+class AuditSection:
+    phash_hamming_max: int     # two frames are near-duplicates when their 64-bit pHashes differ in <= this many bits
+    page_size: int             # images per search page
+    fetch_timeout_s: float
+
+    def validate(self) -> None:
+        if not 0 <= self.phash_hamming_max <= 64:
+            raise ConfigError("audit.phash_hamming_max must be in [0, 64]")
+        _pos_int("audit.page_size", self.page_size)
+        _pos("audit.fetch_timeout_s", self.fetch_timeout_s)
+
+
+@dataclass(frozen=True)
+class SplitsSection:
+    assignable: Tuple[str, ...]   # Roboflow splits a TRAIN-licensed match may be assigned to (whole match only)
+    excluded_tag: str             # near-duplicate frames get this tag; never deleted; versions filter it out
+    move_method: str              # how a match is moved between Roboflow splits; "none" = refuse (see tools/roboflow_split.py)
+
+    def validate(self) -> None:
+        if not self.assignable or any(s not in ROBOFLOW_SPLITS for s in self.assignable):
+            raise ConfigError(f"splits.assignable must be a non-empty subset of {ROBOFLOW_SPLITS}")
+        if "test" in self.assignable:
+            raise ConfigError("splits.assignable must not contain 'test' (held-out testing is EVAL's job)")
+        if not self.excluded_tag.strip():
+            raise ConfigError("splits.excluded_tag must be non-empty")
+        if self.move_method not in ("none",):
+            raise ConfigError("splits.move_method: only 'none' is implemented (Roboflow has no per-image split API)")
+
+
+@dataclass(frozen=True)
+class PrelabelSection:
+    model_id: str                      # pretrained general detector (commercial-use licence); "<project>/<version>"
+    model_licence: str                 # recorded in every prelabel log
+    api_url: str
+    request_confidence: float          # sent to the server; must be <= every class threshold
+    iou: float
+    timeout_s: float
+    class_map: Tuple[str, ...]         # "model_label:spana_class"; unmapped labels are dropped and counted
+    class_thresholds: Tuple[str, ...]  # "spana_class:min_score", one per auto-labelled class
+    tag: str                           # tag added to every pre-labelled frame
+    sample_size: int                   # largest run allowed without the explicit full-run confirmation
+    add_to_dataset: bool               # false: pre-labels wait in their batch until reviewed
+
+    def validate(self) -> None:
+        if self.model_id.count("/") != 1 or any(not part for part in self.model_id.split("/")):
+            raise ConfigError("prelabel.model_id must look like '<project>/<version>'")
+        if not self.model_licence.strip() or not self.tag.strip():
+            raise ConfigError("prelabel.model_licence and prelabel.tag must be non-empty")
+        u = urlparse(self.api_url)
+        if u.scheme not in ("http", "https") or not u.hostname:
+            raise ConfigError("prelabel.api_url must be an http(s) URL")
+        _unit("prelabel.request_confidence", self.request_confidence)
+        _unit("prelabel.iou", self.iou)
+        _pos("prelabel.timeout_s", self.timeout_s)
+        _pos_int("prelabel.sample_size", self.sample_size)
+
+
+@dataclass(frozen=True)
+class ReviewSection:
+    reviewed_tag: str     # a human sets this tag on a frame after checking / correcting its labels
+
+    def validate(self) -> None:
+        if not self.reviewed_tag.strip():
+            raise ConfigError("review.reviewed_tag must be non-empty")
+
+
+@dataclass(frozen=True)
+class VersionSection:
+    auto_orient: bool
+    resize_width: int
+    resize_height: int
+    resize_format: str
+    augmentations: Tuple[str, ...]    # subset of GEOMETRIC_AUGMENTATIONS; colour-changing ones are refused
+
+    def validate(self) -> None:
+        for n in ("resize_width", "resize_height"):
+            v = getattr(self, n)
+            if not 1 <= v <= 2048:
+                raise ConfigError(f"version.{n} must be in [1, 2048]")
+        if self.resize_format not in RESIZE_FORMATS:
+            raise ConfigError(f"version.resize_format must be one of {RESIZE_FORMATS}")
+        bad = [a for a in self.augmentations if a not in GEOMETRIC_AUGMENTATIONS]
+        if bad:
+            raise ConfigError(f"version.augmentations {bad} refused: only {GEOMETRIC_AUGMENTATIONS} are allowed "
+                              "(no colour-changing augmentation; kit colour matters for team classification)")
+
+
+@dataclass(frozen=True)
 class PathsSection:
     manifest_dir: str    # upload manifests (records; committed)
     frames_dir: str      # extracted frames and dry-run manifests (run outputs; not committed)
     baseline_dir: str    # baseline detections, summaries and annotated samples (run outputs; not committed)
+    audit_dir: str       # dataset audits (records; committed; no pixels)
+    split_dir: str       # split-assignment manifests (records; committed)
+    prelabel_dir: str    # pre-label logs (records; committed; no pixels)
+    render_dir: str      # annotated pre-label renders for visual review (run outputs; not committed)
+    image_cache_dir: str  # verified copies of project images (run outputs; not committed)
 
 
 @dataclass(frozen=True)
@@ -129,6 +228,11 @@ class DatasetConfig:
     baseline: BaselineSection
     local_api_hosts: Tuple[str, ...]
     licensed_matches: Tuple[LicensedMatch, ...]
+    audit: AuditSection
+    splits: SplitsSection
+    prelabel: PrelabelSection
+    review: ReviewSection
+    version: VersionSection
     paths: PathsSection
 
     def validate(self) -> None:
@@ -152,6 +256,23 @@ class DatasetConfig:
             if label in seen_labels:
                 raise ConfigError(f"baseline.class_map: label {label!r} mapped twice")
             seen_labels.add(label)
+        targets = set()
+        for entry in self.prelabel.class_map:
+            label, sep, target = entry.partition(":")
+            if not sep or not label or target not in self.classes:
+                raise ConfigError(f"prelabel.class_map entry {entry!r}: expected 'model_label:<one of classes>'")
+            targets.add(target)
+        if len({e.partition(":")[0] for e in self.prelabel.class_map}) != len(self.prelabel.class_map):
+            raise ConfigError("prelabel.class_map: a model label is mapped twice")
+        thresholds = self.prelabel_thresholds()
+        if set(thresholds) != targets:
+            raise ConfigError(f"prelabel.class_thresholds must give exactly one threshold per auto-labelled class "
+                              f"{sorted(targets)}, got {sorted(thresholds)}")
+        if any(self.prelabel.request_confidence > t for t in thresholds.values()):
+            raise ConfigError("prelabel.request_confidence must be <= every prelabel.class_thresholds value")
+        tags = [self.splits.excluded_tag, self.prelabel.tag, self.review.reviewed_tag]
+        if len(set(tags)) != len(tags):
+            raise ConfigError("splits.excluded_tag, prelabel.tag and review.reviewed_tag must differ")
         ids = [m.match_id for m in self.licensed_matches]
         if len(set(ids)) != len(ids):
             raise ConfigError("licensed_matches: a match_id is listed twice (a match belongs to one split)")
@@ -160,6 +281,22 @@ class DatasetConfig:
                 raise ConfigError("licensed_matches: match_id and permission must be non-empty")
             if m.split not in SPLITS:
                 raise ConfigError(f"licensed_matches[{m.match_id}].split must be one of {SPLITS}")
+
+    def prelabel_class_map(self) -> dict:
+        return dict(e.split(":", 1) for e in self.prelabel.class_map)
+
+    def prelabel_thresholds(self) -> dict:
+        out = {}
+        for entry in self.prelabel.class_thresholds:
+            cls, sep, val = entry.rpartition(":")
+            try:
+                t = float(val)
+            except ValueError:
+                raise ConfigError(f"prelabel.class_thresholds entry {entry!r}: expected 'class:number'") from None
+            if not sep or cls not in self.classes or not 0.0 <= t <= 1.0 or cls in out:
+                raise ConfigError(f"prelabel.class_thresholds entry {entry!r}: expected '<class>:<0..1>', once per class")
+            out[cls] = t
+        return out
 
     def class_map(self) -> dict:
         return dict(e.split(":", 1) for e in self.baseline.class_map)
@@ -214,3 +351,30 @@ def authorize(cfg: DatasetConfig, match_id: str, split: str, *, third_party: boo
         raise PolicyError(f"refused: the licence for {match_id!r} is not confirmed to cover third-party processing "
                           "(licensed_matches[].third_party_processing_confirmed is false)")
     return entry
+
+
+def match_of(cfg: DatasetConfig, tags, metadata: dict) -> Tuple[Optional[LicensedMatch], Optional[str]]:
+    """(licensed match, None) when a project image may be used at all, else (None, reason). Used by pre-labelling,
+    split assignment and version generation: the allow-list applies to every step, not only to upload."""
+    match_tags = sorted(t[len("match:"):] for t in tags if t.startswith("match:"))
+    split_tags = sorted(t[len("split:"):] for t in tags if t.startswith("split:"))
+    if not match_tags:
+        return None, "no match:<id> tag"
+    if len(match_tags) > 1:
+        return None, f"several match tags {match_tags}"
+    mid = match_tags[0]
+    if "eval" in split_tags:
+        return None, "tagged split:eval (EVAL is never used here)"
+    md = (metadata or {}).get("match_id")
+    if md is not None and md != mid:
+        return None, f"metadata match_id {md!r} disagrees with tag match:{mid}"
+    entry = next((m for m in cfg.licensed_matches if m.match_id == mid), None)
+    if entry is None:
+        return None, f"match {mid!r} is not on the licensed_matches allow-list"
+    if entry.split == "eval":
+        return None, f"match {mid!r} is registered as EVAL"
+    if split_tags and split_tags != [entry.split]:
+        return None, f"split tags {split_tags} disagree with the allow-list split {entry.split!r}"
+    if not entry.third_party_processing_confirmed:
+        return None, f"match {mid!r}: third-party processing not confirmed"
+    return entry, None

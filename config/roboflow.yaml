@@ -3,7 +3,7 @@
 # derived on DEV data only (never EVAL) and recorded with evidence.
 # Secrets: the API key is NEVER in this file. It is read from the environment variable named in roboflow.api_key_env
 # (or the gitignored .env; template .env.example).
-schema_version: "1.0.0"
+schema_version: "1.1.0"
 
 roboflow:
   workspace: nathans-workspace-9brdc
@@ -65,7 +65,51 @@ licensed_matches:
     permission: "written permission dated 2026-11-04 (records/reid_train/TRAIN_M003_STATUS.md)"
     third_party_processing_confirmed: true
 
+# --- dataset preparation for detector v1 (tools/roboflow_audit.py, roboflow_split.py, roboflow_prelabel.py,
+#     roboflow_progress.py, roboflow_version.py). Every tool applies the licensed_matches allow-list to every frame.
+audit:
+  phash_hamming_max: 4         # untuned prior: 64-bit DCT pHash; <= 4 differing bits = near-duplicate frame
+  page_size: 250
+  fetch_timeout_s: 60.0
+
+splits:
+  assignable: [train, valid]   # a TRAIN-licensed match goes wholly to train or wholly to valid; never test
+  excluded_tag: "excluded:near-duplicate"
+  move_method: none            # Roboflow's API cannot move single images between splits; see RECORD (2026-11-13)
+
+# Pre-labelling: pretrained general COCO detector, commercial-use licence. NOT a Universe dataset / model.
+# coco/36 is what Roboflow's own inference server resolves the alias "rfdetr-base" to
+# (inference 1.8.4, inference/models/aliases.py): RF-DETR base, COCO-pretrained, Apache-2.0.
+prelabel:
+  model_id: coco/36
+  model_licence: "RF-DETR base COCO-pretrained (Apache-2.0); hosted by Roboflow (alias rfdetr-base)"
+  api_url: https://serverless.roboflow.com
+  request_confidence: 0.30     # server-side floor; per-class thresholds below decide what is kept
+  iou: 0.50
+  timeout_s: 90.0
+  class_map: ["person:player", "sports ball:ball"]   # goalkeeper / referee come from human review only
+  class_thresholds: ["player:0.50", "ball:0.85"]     # untuned priors; ball high: a missed ball beats a wrong ball box
+  tag: "prelabel:v1"
+  sample_size: 20              # larger runs need --confirm-full-run (Nathan's go-ahead)
+  add_to_dataset: false        # pre-labels stay in their batch until reviewed
+
+review:
+  reviewed_tag: reviewed
+
+# Dataset version (tools/roboflow_version.py). No colour-changing augmentation: kit colour matters later.
+version:
+  auto_orient: true
+  resize_width: 1280
+  resize_height: 1280
+  resize_format: "Fit (black edges) in"   # keeps aspect ratio; small players / ball are not squashed
+  augmentations: []
+
 paths:
   manifest_dir: records/roboflow_uploads   # upload manifests (committed; no footage, no secrets)
   frames_dir: runs/roboflow_frames         # extracted frames + dry-run manifests (gitignored)
   baseline_dir: runs/roboflow_baseline     # baseline outputs (gitignored)
+  audit_dir: records/roboflow_audit        # dataset audits (committed; no pixels)
+  split_dir: records/roboflow_splits       # split-assignment manifests (committed)
+  prelabel_dir: records/roboflow_prelabel  # pre-label logs (committed; no pixels)
+  render_dir: runs/roboflow_prelabel       # annotated pre-label renders (gitignored)
+  image_cache_dir: runs/roboflow_cache     # verified copies of project images (gitignored)
