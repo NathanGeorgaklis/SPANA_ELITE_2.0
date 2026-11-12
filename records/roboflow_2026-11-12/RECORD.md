@@ -108,3 +108,33 @@ read.** DEV and EVAL not involved.
 - `roboflow` removed from requirements. New config keys: `roboflow.api_url`, `roboflow.project_type` and
   `roboflow.upload_timeout_s`.
 - Tests: 25 dataset tests passed; full suite 151 passed, 3 skipped, run with the SDK uninstalled.
+
+## Update 2026-11-12: TRAIN frames uploaded (M001, M002, M003)
+- **Approval:** Nathan approved the upload after the dry runs.
+- **Where it ran:** on Nathan's Mac, repo at commit `6c068c8`, `.venv` with Python 3.9.6, numpy 2.0.2,
+  OpenCV 5.0.0, requests 2.32.5 and python-dotenv 1.2.1. Tests there: 150 passed, 4 skipped.
+- **Inputs:** H.264 transcodes of the 10-minute windows (50:00–60:00). Each sha256 was checked against its
+  status record before use:
+  - M001 `2475f26c…4c58`;
+  - M002 `62d91f7e…707e`;
+  - M003 `3db10eb1…da50`.
+- **Result:** 300 frames per match, 900 in total.
+  - All 900 uploaded: 0 failed, 0 duplicates.
+  - All in Roboflow split `train`.
+  - Tagged `match:<id>` and `split:train`, with metadata for match, split, frame index, time, video sha256
+    and image sha256.
+- **Checks:**
+  - Each upload selected exactly the same frames, with identical image bytes, as its dry run, so sampling is
+    deterministic on real footage.
+  - Each manifest validates, has 300 distinct upload ids, and contains neither the key nor local folder paths.
+  - Roboflow image search: 300 images per match tag, 900 with `split:train`.
+- **Manifests** (`records/roboflow_uploads/`):
+  - `TRAIN_M001_MORETON_CITY__train__20261112T120617Z.json` sha256 `21cd380242c5b5e42411d1bf98a1ce46150eda2c4245aa5c75d2cf4f3233b19a`
+  - `TRAIN_M002_EASTERN_SUBURBS__train__20261112T120732Z.json` sha256 `2f58ccebf03540c06fad1308304506c79208330df442dfbba041f0ab8631eece`
+  - `TRAIN_M003_SYDNEY_OLYMPIC__train__20261112T120726Z.json` sha256 `641bba6083d253d552d64cbf6897826a3d49e4da0964f1d16b8fe1ab6c3ccc0b`
+- **Sampling mix:**
+  - M001: 155 interval and 163 motion frames.
+  - M002: 283 interval, 17 motion and 2 cut frames.
+  - M003: 131 interval and 181 motion frames.
+  - The motion threshold (0.06) is still an untuned prior; calibrate it on DEV only.
+- **Not labelled yet.** No DEV or EVAL frames were uploaded.
