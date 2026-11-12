@@ -138,3 +138,40 @@ read.** DEV and EVAL not involved.
   - M003: 131 interval and 181 motion frames.
   - The motion threshold (0.06) is still an untuned prior; calibrate it on DEV only.
 - **Not labelled yet.** No DEV or EVAL frames were uploaded.
+
+## 2026-11-13: dataset preparation for detector v1 (code; sample pending)
+- **Pre-label model:** `coco/36`, i.e. RF-DETR base COCO-pretrained, Apache-2.0.
+  - It is the id Roboflow's own inference server (`inference` 1.8.4, `inference/models/aliases.py`) resolves the
+    alias `rfdetr-base` to.
+  - Not a Universe dataset or model.
+  - The hosted endpoint answers `POST https://serverless.roboflow.com/coco/36` with the base64 image as the body;
+    confidence and overlap are fractions.
+  - The JSON route `/infer/object_detection` returns 404 on the hosted endpoint, so the DEV-baseline adapter was
+    switched to the per-model route. The baseline had never run, so no result changes.
+- **Image bytes:** on Nathan's Mac, each image's `url` (`original.jpg`) returned exactly the bytes uploaded
+  (sha256 equal to `user_metadata.image_sha256`). Every tool verifies this before using pixels.
+  - The cloud container cannot reach source.roboflow.com, so networked steps run on the Mac.
+- **Splits: Roboflow's API cannot move single images between splits.**
+  - The only mechanism is a random, ratio-based rebalance (`datasets_rebalance_splits`), which would split
+    matches across splits.
+  - `tools/roboflow_split.py` therefore:
+    - plans the match-level assignment and writes the before/after manifest;
+    - applies near-duplicate exclusion tags;
+    - refuses `--apply` whenever a move is needed (`splits.move_method: none`). Nothing is changed in that case.
+- **Licence gate (`match_of`):** applied to every frame by pre-labelling, split assignment, progress and version
+  generation. It checks:
+  - exactly one match tag;
+  - the match is on the allow-list and not EVAL;
+  - split tags agree with the allow-list;
+  - `metadata.match_id` agrees with the tag;
+  - third-party processing is confirmed.
+- **Version gate:** refuses to generate a version if:
+  - any pre-labelled frame is unreviewed;
+  - any frame in the Dataset is unreviewed;
+  - a frame fails the gate;
+  - a match is in two splits;
+  - there is a test split;
+  - train or valid is empty.
+- **Version settings:** colour-changing augmentations are refused by the config loader.
+- **Tests:** `tests/test_roboflow_prep.py` (19) and `tests/test_roboflow_dataset.py` (25) pass. Full suite:
+  170 passed, 3 skipped.
