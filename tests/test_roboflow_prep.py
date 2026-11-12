@@ -36,6 +36,8 @@ def lm(mid, split="train", confirmed=True):
 def make_cfg(mutate=None):
     d = raw()
     d["licensed_matches"] = [lm("M1"), lm("M2"), lm("M_UNCONF", confirmed=False), lm("M_EVAL", "eval")]
+    d["splits"].update(move_method="none", verify_wait_s=0.0)     # tests switch moves on explicitly; no real waits
+    d["audit"].update(search_wait_s=0.0)
     if mutate:
         mutate(d)
     return dataset_config_from_dict(d)
@@ -56,7 +58,7 @@ class FakeProject:
         self.tag_calls, self.ann_calls, self.gen_calls = [], [], []
         self.annotate_result = "saved"
 
-    def list_images(self, page_size):
+    def list_images(self, page_size, attempts=1, wait_s=0.0):
         return list(self.images)
 
     def update_tags(self, image_id, add=(), remove=()):
@@ -495,6 +497,12 @@ class AuditProgressTests(unittest.TestCase):
                   img(2, tags=("prelabel:v1",), annotated=True, classes=("player",)),
                   img(3, tags=("excluded:near-duplicate",)), img(4, "M2", "valid")]
         doc = roboflow_progress.progress(cfg, images)
+        reader = {"id001": (True, ("player", "player", "ball")), "id002": (True, ("player", "referee"))}
+        doc2 = roboflow_progress.progress(cfg, [img(1, tags=("prelabel:v1", "reviewed")), img(2, tags=("prelabel:v1",)),
+                                                img(3)], annotation_of=lambda i: reader[i])
+        self.assertEqual(doc2["matches"]["M1"]["boxes_annotated"], {"player": 3, "goalkeeper": 0, "referee": 1,
+                                                                    "ball": 1})
+        self.assertEqual(doc2["matches"]["M1"]["annotated"], 2)
         m1 = doc["matches"]["M1"]
         self.assertEqual((m1["frames"], m1["prelabelled"], m1["reviewed"], m1["prelabelled_not_reviewed"],
                           m1["excluded"]), (3, 2, 1, 1, 1))
@@ -545,6 +553,25 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(annotation_classes(None), (False, ()))
         self.assertEqual(annotation_classes([{"class": "ball"}]), (True, ("ball",)))
         self.assertEqual(annotation_classes({"boxes": [{"label": "player"}]}), (True, ("player",)))
+
+    def test_listing_retries_search_lag(self):
+        full = {"results": [{"id": "a", "name": "a.jpg", "tags": []}, {"id": "b", "name": "b.jpg", "tags": []}],
+                "total": 2}
+        short = {"results": [{"id": "a", "name": "a.jpg", "tags": []}], "total": 2}
+        session = mock.Mock()
+        session.request.side_effect = [mock.Mock(status_code=200, json=mock.Mock(return_value=pg)) for pg in (short, full)]
+        self.assertEqual([i.id for i in self._proj(session).list_images(250, attempts=2, wait_s=0)], ["a", "b"])
+        session.request.side_effect = [mock.Mock(status_code=200, json=mock.Mock(return_value=short))] * 2
+        with self.assertRaisesRegex(RoboflowApiError, "1 of 2"):
+            self._proj(session).list_images(250, attempts=2, wait_s=0)
+
+    def test_image_annotation_reader(self):
+        session = mock.Mock()
+        session.request.return_value = mock.Mock(status_code=200, json=mock.Mock(return_value={"image": {
+            "annotation": {"key": "x.jpg", "boxes": [{"label": "player"}, {"label": "ball"}]}}}))
+        self.assertEqual(self._proj(session).get_image_annotation("i1"), (True, ("player", "ball")))
+        args, _ = session.request.call_args
+        self.assertEqual(args, ("GET", "https://api.invalid/ws/proj/images/i1"))
 
     def test_batch_calls(self):
         session = mock.Mock()

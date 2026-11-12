@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from dataclasses import dataclass, field
 from typing import Dict, Iterator, List, Optional, Tuple
 
@@ -28,6 +29,10 @@ SEARCH_FIELDS = ["id", "name", "split", "tags", "url", "annotations", "width", "
 
 class RoboflowApiError(RuntimeError):
     pass
+
+
+class IncompleteListing(RoboflowApiError):
+    """The search returned fewer results than its total (index not yet consistent after a write)."""
 
 
 @dataclass(frozen=True)
@@ -120,16 +125,34 @@ class RoboflowProject:
             if not token or not results:
                 total = j.get("total")
                 if isinstance(total, int) and seen < total:
-                    raise RoboflowApiError(f"search stopped after {seen} of {total} results")
+                    raise IncompleteListing(f"search stopped after {seen} of {total} results")
                 return
 
-    def list_images(self, page_size: int) -> List[ProjectImage]:
-        """Every image of the project, sorted by id (deterministic)."""
-        out = {}
-        for hit in self.search(f"project:{self.project}", page_size):
-            img = to_project_image(hit, self.project)
-            out[img.id] = img
-        return [out[k] for k in sorted(out)]
+    def list_images(self, page_size: int, attempts: int = 1, wait_s: float = 0.0) -> List[ProjectImage]:
+        """Every image of the project, sorted by id (deterministic). The search index lags writes, so a listing
+        shorter than its reported total is retried up to `attempts` times before failing (closed)."""
+        for attempt in range(attempts):
+            try:
+                out = {}
+                for hit in self.search(f"project:{self.project}", page_size):
+                    img = to_project_image(hit, self.project)
+                    out[img.id] = img
+                return [out[k] for k in sorted(out)]
+            except IncompleteListing:
+                if attempt == attempts - 1:
+                    raise
+                time.sleep(wait_s)
+        raise IncompleteListing("unreachable")
+
+    def get_image_annotation(self, image_id: str) -> Tuple[bool, Tuple[str, ...]]:
+        """(annotated, class name per box) from GET /{workspace}/{project}/images/{id}. Search results omit
+        annotations of images that are not in the Dataset yet, so progress reporting reads them here."""
+        j = self._json(self._call("GET", f"{self._base}/{self.workspace}/{self.project}/images/{image_id}",
+                                  params={"api_key": self._key}))
+        img = j.get("image")
+        if not isinstance(img, dict):
+            raise RoboflowApiError("unexpected image response")
+        return annotation_classes(img.get("annotation"))
 
     def update_tags(self, image_id: str, add: List[str] = (), remove: List[str] = ()) -> None:
         body = {}

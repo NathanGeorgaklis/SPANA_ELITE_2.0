@@ -30,7 +30,7 @@ import numpy as np
 
 from spana.artifacts import write_json_atomic
 from spana.dataset.config import DatasetConfig, PolicyError, load_dataset_config, match_of
-from spana.dataset.prep import SkipFrame, evenly_spaced, load_image, match_tag, open_project, sort_key
+from spana.dataset.prep import SkipFrame, evenly_spaced, list_all, load_image, match_tag, open_project, sort_key
 from spana.dataset.rf_project import ProjectImage, RoboflowApiError
 from spana.detection.roboflow_backend import HttpInferenceClient, RoboflowError
 from spana.secrets import load_secret
@@ -225,7 +225,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     stamp = now.strftime("%Y%m%dT%H%M%SZ")
     cache = REPO / cfg.paths.image_cache_dir
     try:
-        doc = run_prelabel(cfg, project, infer, project.list_images(cfg.audit.page_size),
+        doc = run_prelabel(cfg, project, infer, list_all(cfg, project),
                            limit=None if a.all else a.limit, match=a.match, confirm_full_run=a.confirm_full_run,
                            load=lambda img: load_image(project, img, cache), render_dir=REPO / cfg.paths.render_dir / stamp)
     except PolicyError as e:

@@ -22,7 +22,7 @@ from typing import List, Optional, Sequence
 from spana.artifacts import write_json_atomic
 from spana.dataset.config import DatasetConfig, load_dataset_config, match_of
 from spana.dataset.phash import near_duplicate_groups, phash, phash_hex
-from spana.dataset.prep import SkipFrame, load_image, match_tag, open_project, sort_key
+from spana.dataset.prep import SkipFrame, list_all, load_image, match_tag, open_project, sort_key
 from spana.dataset.rf_project import ProjectImage
 from spana.secrets import load_secret
 
@@ -104,7 +104,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     a = ap.parse_args(argv)
     cfg = load_dataset_config(a.config)
     project = open_project(cfg, load_secret(cfg.roboflow.api_key_env))
-    images = project.list_images(cfg.audit.page_size)
+    images = list_all(cfg, project)
     cache = REPO / cfg.paths.image_cache_dir
     now = datetime.now(timezone.utc)
     doc = audit(cfg, images, load=lambda img: load_image(project, img, cache), with_phash=not a.no_phash)

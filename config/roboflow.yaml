@@ -71,13 +71,17 @@ audit:
   phash_hamming_max: 2         # 64-bit DCT pHash; <= 2 differing bits = near-duplicate. Was 4: too loose (Nathan, 2026-11-13)
   page_size: 250
   fetch_timeout_s: 60.0
+  search_attempts: 4           # Roboflow's search index lags writes (899 of 900 seen right after a move)
+  search_wait_s: 10.0
 
 splits:
   assignable: [train, valid]   # a TRAIN-licensed match goes wholly to train or wholly to valid; never test
   excluded_tag: "excluded:near-duplicate"
-  move_method: none            # no split-change API; plain re-upload does NOT move splits (probed 2026-11-13);
-                               # "delete_reupload" only after a successful --probe (RECORD)
+  move_method: delete_reupload # no split-change API; plain re-upload does NOT move splits; delete + re-upload
+                               # probed OK on M001 f0000000 2026-11-13 (RECORD)
   probe_max: 1                 # --probe moves at most this many frames, then verifies
+  verify_attempts: 6           # post-move checks retried (search lags writes)
+  verify_wait_s: 10.0
 
 # Pre-labelling: pretrained general COCO detector, commercial-use licence. NOT a Universe dataset / model.
 # coco/36 is what Roboflow's own inference server resolves the alias "rfdetr-base" to

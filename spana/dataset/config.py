@@ -123,8 +123,13 @@ class AuditSection:
     phash_hamming_max: int     # two frames are near-duplicates when their 64-bit pHashes differ in <= this many bits
     page_size: int             # images per search page
     fetch_timeout_s: float
+    search_attempts: int       # the search index lags writes: a listing shorter than its total is retried
+    search_wait_s: float
 
     def validate(self) -> None:
+        _pos_int("audit.search_attempts", self.search_attempts)
+        if self.search_wait_s < 0:
+            raise ConfigError("audit.search_wait_s must be >= 0")
         if not 0 <= self.phash_hamming_max <= 64:
             raise ConfigError("audit.phash_hamming_max must be in [0, 64]")
         _pos_int("audit.page_size", self.page_size)
@@ -138,6 +143,8 @@ class SplitsSection:
     move_method: str              # "none" = refuse moves; "delete_reupload" = remove from Roboflow, upload again with
                                   #   the new split (identical, sha-verified bytes; restore file written first)
     probe_max: int                # --probe may move at most this many frames (to test a move method first)
+    verify_attempts: int          # post-move checks are retried this often (search lags writes) before failing
+    verify_wait_s: float
 
     def validate(self) -> None:
         if not self.assignable or any(s not in ROBOFLOW_SPLITS for s in self.assignable):
@@ -150,6 +157,9 @@ class SplitsSection:
             raise ConfigError("splits.move_method must be 'none' or 'delete_reupload' (plain re-upload does not move "
                               "splits: probed 2026-11-13)")
         _pos_int("splits.probe_max", self.probe_max)
+        _pos_int("splits.verify_attempts", self.verify_attempts)
+        if self.verify_wait_s < 0:
+            raise ConfigError("splits.verify_wait_s must be >= 0")
 
 
 @dataclass(frozen=True)

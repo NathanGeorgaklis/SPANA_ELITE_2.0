@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import List, Optional, Sequence
 
 from spana.dataset.config import DatasetConfig, PolicyError, load_dataset_config, match_of
-from spana.dataset.prep import match_tag, open_project
+from spana.dataset.prep import list_all, match_tag, open_project
 from spana.dataset.rf_project import ProjectImage
 from spana.secrets import load_secret
 
@@ -90,7 +90,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     project = open_project(cfg, load_secret(cfg.roboflow.api_key_env))
     settings = version_settings(cfg)
     try:
-        ready = check_ready(cfg, project.list_images(cfg.audit.page_size))
+        ready = check_ready(cfg, list_all(cfg, project))
     except PolicyError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 3

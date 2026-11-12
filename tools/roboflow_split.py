@@ -30,6 +30,7 @@ import argparse
 import hashlib
 import json
 import sys
+import time
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,9 +38,9 @@ from typing import Dict, List, Optional, Sequence
 
 from spana.artifacts import write_json_atomic
 from spana.dataset.config import DatasetConfig, PolicyError, load_dataset_config, match_of
-from spana.dataset.prep import SkipFrame, match_tag, open_project, sort_key, verified_image_file
+from spana.dataset.prep import SkipFrame, list_all, match_tag, open_project, sort_key, verified_image_file
 from spana.dataset.upload import RoboflowUploader
-from spana.dataset.rf_project import ProjectImage
+from spana.dataset.rf_project import IncompleteListing, ProjectImage
 from spana.secrets import load_secret
 
 REPO = Path(__file__).resolve().parent.parent
@@ -143,8 +144,25 @@ def upload_frames(cfg: DatasetConfig, uploader, frames: List[dict]) -> List[dict
     return log
 
 
+def retry_check(cfg: DatasetConfig, check) -> None:
+    """Run `check()` (raises PolicyError while the state is not yet as expected) up to splits.verify_attempts times,
+    waiting splits.verify_wait_s between attempts: Roboflow's search index lags writes."""
+    for attempt in range(cfg.splits.verify_attempts):
+        try:
+            check()
+            return
+        except (PolicyError, IncompleteListing):
+            if attempt == cfg.splits.verify_attempts - 1:
+                raise
+            time.sleep(cfg.splits.verify_wait_s)
+
+
 def verify_uploaded(cfg: DatasetConfig, project, frames: List[dict], log: List[dict]) -> None:
-    listing = project.list_images(cfg.audit.page_size)
+    retry_check(cfg, lambda: _verify_uploaded_once(cfg, project, frames, log))
+
+
+def _verify_uploaded_once(cfg: DatasetConfig, project, frames: List[dict], log: List[dict]) -> None:
+    listing = list_all(cfg, project)
     by_name: Dict[str, List[ProjectImage]] = defaultdict(list)
     for i in listing:
         by_name[i.name].append(i)
@@ -199,10 +217,12 @@ def move_frames(cfg: DatasetConfig, project, uploader, plan: dict, images: List[
                 raise PolicyError(f"stopped: batch {move_name!r} holds {target['images']} images, expected {len(ids)} "
                                   "(nothing deleted)")
         project.delete_batch(target["id"], permanent=True)
-    still = {i.id for i in project.list_images(cfg.audit.page_size)} & {f["old_id"] for f in frames}
-    if still:
-        raise PolicyError(f"stopped: {len(still)} frames still in the project after the batch delete; nothing "
-                          f"uploaded. Restore file: {restore_path}")
+    def gone():
+        still = {i.id for i in list_all(cfg, project)} & {f["old_id"] for f in frames}
+        if still:
+            raise PolicyError(f"stopped: {len(still)} frames still in the project after the batch delete; nothing "
+                              f"uploaded. Restore file: {restore_path}")
+    retry_check(cfg, gone)
     log = upload_frames(cfg, uploader, frames)          # 4. upload with the new split
     verify_uploaded(cfg, project, frames, log)          # 5. exactly once, new split, same bytes
     return log
@@ -210,7 +230,7 @@ def move_frames(cfg: DatasetConfig, project, uploader, plan: dict, images: List[
 
 def restore(cfg: DatasetConfig, project, uploader, restore_doc: dict, cache_dir: Path) -> List[dict]:
     """Re-upload every frame of a restore file that is missing from the project, then verify."""
-    present = {i.name for i in project.list_images(cfg.audit.page_size)}
+    present = {i.name for i in list_all(cfg, project)}
     todo = [dict(f, file=str(cache_dir / f["cached_file"])) for f in restore_doc["frames"] if f["name"] not in present]
     for f in todo:
         if not Path(f["file"]).is_file() or hashlib.sha256(Path(f["file"]).read_bytes()).hexdigest() != f["sha256"]:
@@ -283,7 +303,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             exclude = [x for g_ in doc["near_duplicates"]["groups"] for x in g_["exclude"]]
         key = load_secret(cfg.roboflow.api_key_env)
         project = open_project(cfg, key)
-        images = project.list_images(cfg.audit.page_size)
+        images = list_all(cfg, project)
         plan = plan_split(cfg, images, assign, exclude)
         now = datetime.now(timezone.utc)
         plan["created_utc"] = now.isoformat(timespec="seconds")
@@ -300,8 +320,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 log = apply_plan(cfg, project, plan, exclusions_only=a.apply_exclusions_only, uploader=uploader,
                                  images=images, cache_dir=REPO / cfg.paths.image_cache_dir, probe=a.probe,
                                  restore_path=REPO / cfg.paths.split_dir / f"restore_{stamp}.json", stamp=stamp)
-            except PolicyError as e:
-                error = str(e)
+            except Exception as e:   # any failure: record it in the manifest, then exit non-zero (fail closed)
+                error = f"{type(e).__name__}: {e}"
         plan["applied"] = log
         plan["error"] = error
         out = REPO / cfg.paths.split_dir / f"split_{now.strftime('%Y%m%dT%H%M%SZ')}_{plan['mode']}.json"

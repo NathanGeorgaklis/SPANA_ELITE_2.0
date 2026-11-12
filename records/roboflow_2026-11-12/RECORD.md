@@ -230,3 +230,35 @@ read.** DEV and EVAL not involved.
 - **Audit threshold:** `audit.phash_hamming_max` 4 → 2, at Nathan's request after the 4-bit audit linked frames
   minutes apart. The audit is re-run with the new value.
 - **Tests:** dataset tests (25 + 25) pass; full suite 176 passed, 3 skipped.
+
+## 2026-11-13: results on Nathan's Mac (commit `9380526`)
+- **Audit (Hamming ≤ 2)** `records/roboflow_audit/audit_20261112T195344Z.json` (sha256 `9c02a8ce…c7f3`):
+  - 13 groups, 24 frames to exclude: M001 3, M002 20, M003 1.
+  - Pair distances: 6 at 0 bits, 30 at 2 bits.
+  - Mostly consecutive regular frames 2 s apart. The largest group is 10 frames of M002 within 18 s, a static
+    shot.
+  - Exclusions not applied yet.
+- **delete_reupload probe (M001 f0000000) worked:**
+  - Old id `PhuHQ4Zj…` was removed with its own one-frame batch.
+  - Re-uploaded as new id `dGpLC8iE…` in split `valid`, with the same sha256, tags and metadata. Exactly one copy.
+  - Project total stays 900 (899 train, 1 valid). Batches: M001 train 299, M001 valid 1.
+  - Restore file `records/roboflow_splits/restore_20261112T195427Z.json`.
+  - The tool's final check raised "search stopped after 899 of 900": Roboflow's search index lags writes. The state
+    was verified separately afterwards.
+  - Because that error was not a PolicyError, no split manifest was written for this run.
+  - Fixes:
+    - listings and post-move checks retry (`audit.search_attempts` / `search_wait_s`, `splits.verify_attempts` /
+      `verify_wait_s`);
+    - any error during a split run is now written to its manifest.
+  - `move_method` is set to `delete_reupload`.
+- **Pre-label sample (coco/36, RF-DETR base COCO):** 10 frames each from M002 and M003, evenly spaced.
+  - Logs: `records/roboflow_prelabel/prelabel_20261112T195536Z.json` (sha256 `8cf5ada6…`) and
+    `prelabel_20261112T195607Z.json` (sha256 `495a796c…`).
+  - All 20 labelled: 232 player boxes (M002 115, M003 117), 0 ball boxes.
+  - Ball detections below the 0.85 threshold: 25 (M002 7, M003 18).
+  - Dropped COCO labels: bench 28, chair 26, car 12, truck 2, couch 1.
+  - Checked via the API: image `buQN0GpB…` holds 16 `player` boxes, as logged, and carries `prelabel:v1`.
+- **Search omits annotations** of images that are not in the Dataset. Progress therefore reads each pre-labelled or
+  reviewed frame's annotation from `GET /{ws}/{project}/images/{id}`; checked live, it returns `annotation.boxes`
+  with a label per box.
+- **Tests:** dataset tests 52 pass; full suite 178 passed, 3 skipped.

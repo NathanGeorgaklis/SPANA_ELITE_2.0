@@ -22,6 +22,11 @@ def open_project(cfg: DatasetConfig, api_key: str) -> RoboflowProject:
                            timeout_s=cfg.audit.fetch_timeout_s)
 
 
+def list_all(cfg: DatasetConfig, project) -> list:
+    """Full project listing with the configured retries for search-index lag."""
+    return project.list_images(cfg.audit.page_size, attempts=cfg.audit.search_attempts, wait_s=cfg.audit.search_wait_s)
+
+
 def match_tag(img: ProjectImage) -> Optional[str]:
     m = [t[len("match:"):] for t in img.tags if t.startswith("match:")]
     return m[0] if len(m) == 1 else None
