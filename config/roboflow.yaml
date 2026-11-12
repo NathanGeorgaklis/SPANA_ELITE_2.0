@@ -48,10 +48,19 @@ local_api_hosts: [localhost, 127.0.0.1]
 # Allow-list of licensed matches. A match belongs to exactly ONE split; DEV and EVAL come from different matches.
 # Upload / hosted inference also needs third_party_processing_confirmed: true (Nathan confirms per licence).
 licensed_matches:
+  # Third-party processing (Roboflow upload + hosted inference) confirmed by Nathan on 2026-11-12.
   - match_id: TRAIN_M001_MORETON_CITY
     split: train
     permission: "written permission dated 2026-11-03 (records/reid_train/TRAIN_M001_STATUS.md)"
-    third_party_processing_confirmed: false   # pending Nathan's confirmation that the licence covers Roboflow
+    third_party_processing_confirmed: true
+  - match_id: TRAIN_M002_EASTERN_SUBURBS
+    split: train
+    permission: "written permission dated 2026-11-04 (records/reid_train/TRAIN_M002_STATUS.md)"
+    third_party_processing_confirmed: true
+  - match_id: TRAIN_M003_SYDNEY_OLYMPIC
+    split: train
+    permission: "written permission dated 2026-11-04 (records/reid_train/TRAIN_M003_STATUS.md)"
+    third_party_processing_confirmed: true
 
 paths:
   manifest_dir: records/roboflow_uploads   # upload manifests (committed; no footage, no secrets)

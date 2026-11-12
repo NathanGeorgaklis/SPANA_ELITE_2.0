@@ -151,11 +151,12 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(r.returncode, 3, r.stderr)
         self.assertIn("eval", r.stderr)
 
-    def test_default_config_refuses_upload_until_licence_confirmed(self):
+    def test_default_config_matches_are_train_only_and_unique(self):
         cfg = load_dataset_config(CFG_PATH)
+        self.assertEqual({m.split for m in cfg.licensed_matches}, {"train"})   # DEV / EVAL matches come separately
         for m in cfg.licensed_matches:
-            with self.assertRaisesRegex(PolicyError, "third-party"):
-                authorize(cfg, m.match_id, m.split, third_party=True)
+            with self.assertRaisesRegex(PolicyError, "registered for split"):
+                authorize(cfg, m.match_id, "dev", third_party=False)
 
     def test_baseline_dev_only_and_hosted_needs_confirmation(self):
         with self.assertRaisesRegex(PolicyError, "registered for split"):

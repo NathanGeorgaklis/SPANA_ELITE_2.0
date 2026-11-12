@@ -81,3 +81,15 @@ read.** DEV and EVAL not involved.
    - `python -m tools.roboflow_ingest --video … --match-id … --split train --dry-run` (review the frames);
    - the same command without `--dry-run`;
    - `python -m tools.dev.roboflow_baseline --video DEV --match-id …`.
+
+## Update 2026-11-12: licence confirmed
+- Nathan confirmed the licences cover third-party processing (Roboflow upload and hosted inference).
+- Nathan confirmed TRAIN_M002_EASTERN_SUBURBS and TRAIN_M003_SYDNEY_OLYMPIC are covered by written permission
+  (dated 2026-11-04, per their status records).
+- Allow-list: M001, M002 and M003, all split train, `third_party_processing_confirmed: true`.
+- Still no DEV match: the baseline cannot run until a DEV clip + match_id is given.
+- Videos to ingest: the H.264 transcodes in `Downloads/SPANA_reid/TRAIN_M00x/work/`. These are the 10-minute
+  windows. Each transcode's sha256 must equal its status record before upload:
+  - M001 `2475f26c…4c58`
+  - M002 `62d91f7e…707e`
+  - M003 `3db10eb1…da50`
