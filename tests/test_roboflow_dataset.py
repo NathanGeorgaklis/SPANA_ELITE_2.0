@@ -2,6 +2,7 @@
 detector adapter and the DEV baseline. No network: the Roboflow project and inference client are fakes."""
 from __future__ import annotations
 
+import base64
 import copy
 import json
 import os
@@ -354,16 +355,15 @@ class AdapterTests(unittest.TestCase):
             with self.assertRaises(RoboflowError):
                 det.detect(self.frame)
 
-    def test_http_client_key_in_body_never_in_url_or_errors(self):
+    def test_http_client_request_shape_and_redaction(self):
         session = mock.Mock()
         session.post.return_value = mock.Mock(status_code=200, json=lambda: {"predictions": []})
         c = HttpInferenceClient("https://example.invalid/", SECRET, 5.0, session=session)
         c.infer(b"jpg", model_id="m/1", confidence=0.3, iou=0.5)
         (url,), kw = session.post.call_args
-        self.assertEqual(url, "https://example.invalid/infer/object_detection")
-        self.assertNotIn(SECRET, url)
-        self.assertEqual(kw["json"]["api_key"], SECRET)
-        self.assertEqual((kw["json"]["confidence"], kw["json"]["iou_threshold"]), (0.3, 0.5))
+        self.assertEqual(url, "https://example.invalid/m/1")
+        self.assertEqual(kw["params"], {"api_key": SECRET, "confidence": 0.3, "overlap": 0.5})
+        self.assertEqual(base64.b64decode(kw["data"]), b"jpg")
         session.post.return_value = mock.Mock(status_code=401, text=f"bad key {SECRET}")
         with self.assertRaises(RoboflowError) as cm:
             c.infer(b"jpg", model_id="m/1", confidence=0.3, iou=0.5)
@@ -372,7 +372,8 @@ class AdapterTests(unittest.TestCase):
         with self.assertRaises(RoboflowError) as cm:
             c.infer(b"jpg", model_id="m/1", confidence=0.3, iou=0.5)
         self.assertNotIn(SECRET, str(cm.exception))
-
+        with self.assertRaises(RoboflowError):
+            c.infer(b"jpg", model_id="../x", confidence=0.3, iou=0.5)
 
 class UploaderTests(unittest.TestCase):
     """REST upload client: request shape, duplicate handling, retries, project check, key never in error text."""

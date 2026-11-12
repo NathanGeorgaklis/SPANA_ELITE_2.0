@@ -4,10 +4,12 @@ Outputs SPANA `Detection` records only (box in source pixels, score, class index
 no vendor objects and no football logic leave this module. Model id, thresholds and the label -> class map come from
 config/roboflow.yaml.
 
-Transport: POST {api_url}/infer/object_detection with a JSON body (the key travels in the body, never in the URL,
-so it cannot end up in access logs or error messages). The same API is served by Roboflow's hosted endpoint and by a
-local inference server. `inference-sdk` is not used: it pins numpy<2.4 and the non-headless opencv-python, which
-conflicts with the engine's pinned numpy / OpenCV (see records/roboflow_2026-11-12/RECORD.md).
+Transport: POST {api_url}/{model_id}?api_key=...&confidence=...&overlap=... with the base64 JPEG as the body. This
+is the route Roboflow's hosted endpoint (serverless.roboflow.com) and a local inference server both serve; the
+JSON route /infer/object_detection returns 404 on the hosted endpoint (checked 2026-11-13). confidence and overlap
+are fractions in [0, 1] (checked: confidence 0.3 -> lowest returned score 0.31). The API takes the key as a query
+parameter, so every error text is redacted. `inference-sdk` is not used: it pins numpy<2.4 and the non-headless
+opencv-python, which conflicts with the engine's pinned numpy / OpenCV (records/roboflow_2026-11-12/RECORD.md).
 """
 from __future__ import annotations
 
@@ -34,17 +36,21 @@ class InferenceClient(Protocol):
 class HttpInferenceClient:
     def __init__(self, api_url: str, api_key: str, timeout_s: float, session=None):
         import requests  # local import: tests inject a fake session or a fake client
-        self._url = api_url.rstrip("/") + "/infer/object_detection"
+        self._base = api_url.rstrip("/")
         self._key = api_key
         self._timeout = timeout_s
         self._session = session if session is not None else requests.Session()
 
     def infer(self, image_jpeg: bytes, *, model_id: str, confidence: float, iou: float) -> dict:
-        body = {"model_id": model_id, "api_key": self._key, "confidence": confidence, "iou_threshold": iou,
-                "image": {"type": "base64", "value": base64.b64encode(image_jpeg).decode("ascii")}}
+        if not model_id or model_id.startswith("/") or ".." in model_id:
+            raise RoboflowError(f"invalid model_id {model_id!r}")
+        params = {"api_key": self._key, "confidence": confidence, "overlap": iou}
         try:
-            r = self._session.post(self._url, json=body, timeout=self._timeout)
-        except Exception as e:  # network errors may echo request details: never let the key through
+            r = self._session.post(f"{self._base}/{model_id}", params=params,
+                                   data=base64.b64encode(image_jpeg).decode("ascii"),
+                                   headers={"Content-Type": "application/x-www-form-urlencoded"},
+                                   timeout=self._timeout)
+        except Exception as e:  # network errors may echo the request URL, which carries the key
             raise RoboflowError(redact(f"inference request failed: {type(e).__name__}: {e}", self._key)) from None
         if r.status_code != 200:
             raise RoboflowError(redact(f"inference HTTP {r.status_code}: {r.text[:300]}", self._key))
