@@ -383,3 +383,18 @@ Branch `claude/prelabel-v2` (from `claude/nifty-carson-j51h2l`; `main` has none 
 - Open: the tag-write quota that produced the 1956 s Retry-After is unknown; a larger run may hit it again.
   Not run: v2 on any frame outside the 20; the remaining 183 `prelabel:v1` frames are untouched.
   Full suite: 212 passed, 4 skipped.
+
+### 2026-11-13: v2 migration of the remaining 183 `prelabel:v1` frames (approved by Nathan: "Migrate the 183")
+- Command: `python -m tools.roboflow_prelabel --migrate --all --confirm-full-run --approved-sample
+  records/roboflow_prelabel/prelabel_20261113T075828Z.json`. Selected 183 (only frames tagged `prelabel:v1`),
+  183 labelled, 0 failed, 366 writes, no HTTP 429.
+- Per match: M002 173 frames, 1991 players kept, 0 dropped off-pitch, 95 balls in 86 frames, 8 ball boxes dropped.
+  M003 10 frames, 96 players kept, 20 dropped off-pitch, 7 balls in 7 frames, 1 ball box dropped.
+- Read back per image (GET images/{id}) after the run: 183 / 183 tagged `prelabel:v2`, none `prelabel:v1`,
+  2189 boxes, box count equal to the log for every frame. The search index still listed 4 M003 frames as
+  `prelabel:v1` minutes after the run (index lag; the per-image read is authoritative).
+- Project totals by direct read + listing: 202 `prelabel:v2` (M002 182, M003 20), 1 `excluded:blur`, 0 `reviewed`.
+- Log `prelabel_20261113T082430Z.json` (sha256 9fca429118abbb9b...), backup
+  `backups/backup_20261113T082430Z.json` (b41c5a001f19dd0a..., 183 frames, v1 annotations).
+  Renders `runs/roboflow_prelabel/20261113T082430Z/` (not committed).
+- Not checked visually: the 95 M002 ball boxes of this run (the sample found 1 ball in 9 M002 frames).
