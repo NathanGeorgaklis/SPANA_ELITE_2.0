@@ -371,15 +371,97 @@ class MigrationTests(unittest.TestCase):
         doc = run(self.cfg, proj, self.images, migrate=True, write_backup=lambda d: {"path": "b.json"},
                   infer=mock.Mock(return_value=resp([p(10, 10, 4, 10, 0.9, "person")])))
         self.assertEqual(doc["entries"][0]["status"], "failed")
-        self.assertIn("read-back", doc["entries"][0]["reason"])
+        self.assertIn("old pre-label kept", doc["entries"][0]["reason"])
         self.assertIn("prelabel:v1", proj.tags["id001"])
         self.assertNotIn("prelabel:v2", proj.tags["id001"])
+
+    def test_same_classes_but_old_boxes_on_server_is_a_mismatch(self):
+        images = [img(1, tags=("prelabel:v1",), annotated=True)]
+        proj = FakeProject(images)
+        proj.annotation["id001"] = {"boxes": [{"label": "player", "x": 50, "y": 20, "width": 4, "height": 10}]}
+        real_save = proj.save_annotation
+
+        def save_but_keep(image_id, **kw):          # server says "saved" but keeps the old boxes
+            real_save(image_id, **kw)
+            proj.annotation[image_id] = {"boxes": [{"label": "player", "x": 50, "y": 20, "width": 4, "height": 10}]}
+            return "saved"
+        proj.save_annotation = save_but_keep
+        doc = run(self.cfg, proj, images, migrate=True, write_backup=lambda d: {"path": "b.json"})
+        self.assertEqual(doc["entries"][0]["status"], "failed")
+        self.assertIn("read-back", doc["entries"][0]["reason"])
+        self.assertIn("prelabel:v1", proj.tags["id001"])
+
 
     def test_v1_frames_need_migrate(self):
         doc = run(self.cfg, FakeProject(self.images), self.images)
         reasons = {s["id"]: s["reason"] for s in doc["not_selected_skips"]}
         self.assertIn("--migrate", reasons["id001"])
         self.assertIn("reviewed", reasons["id002"])
+
+
+class ReviewFixTests(unittest.TestCase):
+    """Regressions from the code review of the first v2 commit."""
+
+    def setUp(self):
+        self.cfg = make_cfg()
+
+    def test_annotated_outside_dataset_is_seen_on_refresh(self):
+        images = [img(1)]                           # search listing: not annotated (search omits it)
+        proj = FakeProject(images)
+        proj.annotation["id001"] = {"boxes": [{"label": "referee"}]}    # human labels on the server
+        doc = run(self.cfg, proj, images)
+        self.assertEqual(doc["entries"][0]["status"], "skipped")
+        self.assertIn("already annotated", doc["entries"][0]["reason"])
+        self.assertEqual(writes(proj), [])
+
+    def test_unexpected_error_fails_one_frame_and_run_continues(self):
+        images = [img(1), img(2)]
+
+        def load(i):
+            if i.id == "id001":
+                raise cv2.error("decoder exploded")
+            return sharp()
+        doc = run(self.cfg, FakeProject(images), images, load=load)
+        self.assertEqual([e["status"] for e in doc["entries"]], ["failed", "labelled"])
+
+    def test_render_failure_does_not_fail_a_written_frame(self):
+        images = [img(1)]
+        with mock.patch.object(pl, "render", side_effect=RuntimeError("no display")):
+            import tempfile
+            from pathlib import Path
+            with tempfile.TemporaryDirectory() as d:
+                doc = run(self.cfg, FakeProject(images), images, render_dir=Path(d))
+        self.assertEqual(doc["entries"][0]["status"], "labelled")
+        self.assertIn("no display", doc["entries"][0]["render_error"])
+
+    def test_reviewed_during_inference_blocks_the_write(self):
+        images = [img(1)]
+        proj = FakeProject(images)
+
+        def infer(jpg):
+            proj.tags["id001"].add("reviewed")      # a reviewer tags it while the model runs
+            return resp([p(10, 10, 4, 10, 0.9, "person")])
+        doc = run(self.cfg, proj, images, infer=infer)
+        self.assertEqual(doc["entries"][0]["status"], "skipped")
+        self.assertEqual(writes(proj), [])
+
+    def test_oversize_full_frame_ball_cannot_swallow_a_tile_ball(self):
+        cfg = cfg_with(ball_tiling={"enabled": True, "tile_px": 64, "overlap_frac": 0.25, "merge_iou": 0.3},
+                       ball_max_size_frac=0.1)
+        frame = sharp(120, 200)
+        windows = iter([(0, 0, 200, 120)] + tiles(200, 120, 64, 0.25))
+
+        def infer(jpg):
+            x1, y1, x2, y2 = next(windows)
+            if (x2 - x1, y2 - y1) == (200, 120):     # full frame: one huge high-score "ball" (an overlay)
+                return resp([p(55, 55, 40, 40, 0.99, "sports ball")], w=200, h=120)
+            preds = [p(55 - x1, 55 - y1, 6, 6, 0.8, "sports ball")] if x1 + 3 <= 55 <= x2 - 3 and y1 + 3 <= 55 <= y2 - 3 else []
+            return resp(preds, w=x2 - x1, h=y2 - y1)
+        boxes, info = pl.detect(cfg, frame, infer)
+        balls = [b for b in boxes if b["class"] == "ball"]
+        self.assertEqual(len(balls), 1)
+        self.assertAlmostEqual(balls[0]["box"][2] - balls[0]["box"][0], 6.0)
+        self.assertEqual(len(info["too_big"]), 1)
 
 
 if __name__ == "__main__":

@@ -48,7 +48,7 @@ from spana.dataset.config import DatasetConfig, PolicyError, load_dataset_config
 from spana.dataset.guard import GuardedProject
 from spana.dataset.prefilter import blur_score, bottom_centre, grass_mask, merge_boxes, on_grass, tiles
 from spana.dataset.prep import SkipFrame, evenly_spaced, list_all, load_image, match_tag, open_project, sort_key
-from spana.dataset.rf_project import ProjectImage, RoboflowApiError, annotation_classes
+from spana.dataset.rf_project import ProjectImage, RoboflowApiError
 from spana.detection.roboflow_backend import HttpInferenceClient, RoboflowError
 from spana.secrets import load_secret
 
@@ -60,6 +60,7 @@ BACKUP_SCHEMA = "spana.roboflow_annotation_backup"
 DIAG_SCHEMA = "spana.roboflow_ball_diagnostic"
 _PALETTE = [(60, 200, 60), (0, 165, 255), (230, 60, 230), (0, 255, 255)]
 _DROPPED = (60, 60, 230)
+VERIFY_TOL_PX = 1.5   # read-back box centre / size tolerance: YOLO text keeps 6 decimals of the normalised values
 
 
 # --------------------------------------------------------------------------------------------------- selection ---
@@ -209,11 +210,15 @@ def detect(cfg: DatasetConfig, frame: np.ndarray, infer: Callable[[bytes], dict]
     Player boxes are always the full-frame ones (settings unchanged by tiling). -> (boxes, info)."""
     h, w = frame.shape[:2]
     boxes, dropped, below = map_predictions(cfg, infer(_jpeg(frame)), w, h)
-    info = {"dropped_model_labels": dropped, "below_threshold": below, "tiles": 0, "ball_merged": 0}
+    boxes, too_big = ball_size_filter(cfg, h, boxes)       # before merging: an oversize box must not absorb a ball
+    info = {"dropped_model_labels": dropped, "below_threshold": below, "tiles": 0, "ball_merged": 0,
+            "too_big": too_big}
     t = cfg.prelabel.ball_tiling
     if t.enabled:
         ball = cfg.prelabel.ball_class
         tiled, info["tiles"] = tiled_ball_boxes(cfg, frame, infer, t.tile_px)
+        tiled, big = ball_size_filter(cfg, h, tiled)
+        info["too_big"] += big
         balls = [dict(b, source="full") for b in boxes if b["class"] == ball] + tiled
         merged, info["ball_merged"] = merge_boxes(balls, t.merge_iou)
         boxes = [b for b in boxes if b["class"] != ball] + merged
@@ -299,10 +304,21 @@ def backup_annotations(guard: GuardedProject, chosen: List[ProjectImage]) -> dic
 def _verify_saved(guard: GuardedProject, image_id: str, boxes: List[dict]) -> None:
     if guard.dry_run:
         return
-    annotated, classes = annotation_classes(guard.get_image(image_id).get("annotation"))
-    if sorted(classes) != sorted(b["class"] for b in boxes):
-        raise RoboflowApiError(f"read-back mismatch: server has {dict(Counter(classes))}, "
-                               f"expected {dict(Counter(b['class'] for b in boxes))}")
+    ann = guard.get_image(image_id).get("annotation") or {}
+    got = ann.get("boxes") if isinstance(ann, dict) else None
+    if not isinstance(got, list):
+        got = []
+    try:
+        have = sorted((str(g["label"]), float(g["x"]), float(g["y"]), float(g["width"]), float(g["height"]))
+                      for g in got)
+    except (KeyError, TypeError, ValueError):
+        raise RoboflowApiError("read-back: unexpected annotation box shape") from None
+    want = sorted((b["class"], (b["box"][0] + b["box"][2]) / 2, (b["box"][1] + b["box"][3]) / 2,
+                   b["box"][2] - b["box"][0], b["box"][3] - b["box"][1]) for b in boxes)
+    if len(have) != len(want) or any(h[0] != w[0] or max(abs(a - c) for a, c in zip(h[1:], w[1:])) > VERIFY_TOL_PX
+                                     for h, w in zip(have, want)):
+        raise RoboflowApiError(f"read-back mismatch: server has {dict(Counter(h[0] for h in have))}, "
+                               f"expected {dict(Counter(w[0] for w in want))} (classes or box positions differ)")
 
 
 def _write_labels(cfg: DatasetConfig, guard: GuardedProject, img: ProjectImage, boxes: List[dict], w: int, h: int,
@@ -318,8 +334,10 @@ def _write_labels(cfg: DatasetConfig, guard: GuardedProject, img: ProjectImage, 
         return
     # migrate: the frame is still marked by its old tag until the new annotation is verified on the server
     content, labelmap = yolo_annotation(cfg, boxes, w, h)
-    guard.save_annotation(img.id, name=Path(img.name).stem + ".txt", content=content, labelmap=labelmap,
-                          add_to_dataset=cfg.prelabel.add_to_dataset, overwrite=True)
+    res = guard.save_annotation(img.id, name=Path(img.name).stem + ".txt", content=content, labelmap=labelmap,
+                                add_to_dataset=cfg.prelabel.add_to_dataset, overwrite=True)
+    if res != "saved":
+        raise RoboflowApiError(f"overwrite not applied ({res}); old pre-label kept")
     _verify_saved(guard, img.id, boxes)
     guard.update_tags(img.id, add=add_tags, remove=old)
 
@@ -340,7 +358,13 @@ def process_frame(cfg: DatasetConfig, guard: GuardedProject, infer, img: Project
     e["blur_score"] = round(blur_score(frame, b.analysis_width_px), 2)
     e["blurred"] = e["blur_score"] < b.laplacian_var_min
     note = f"blur {e['blur_score']:.0f}"
+    def recheck():
+        """Re-read the image right before the first write (inference can take a while)."""
+        r = eligibility(cfg, guard.refresh(img.id), migrate=migrate)
+        if r:
+            raise SkipFrame(f"changed during processing: {r}")
     if e["blurred"]:
+        recheck()
         if migrate:                                   # old labels are cleared (after the backup), then tags swapped
             _write_labels(cfg, guard, img, [], w, h, migrate=True, add_tags=[b.excluded_tag])
         else:
@@ -350,9 +374,9 @@ def process_frame(cfg: DatasetConfig, guard: GuardedProject, infer, img: Project
         note += " EXCLUDED (blur)"
     else:
         boxes, info = detect(cfg, frame, infer)
-        boxes, too_big = ball_size_filter(cfg, h, boxes)
         boxes, dropped = grass_filter(cfg, frame, boxes)
-        dropped = too_big + dropped
+        dropped = info["too_big"] + dropped
+        recheck()
         e.update(below_threshold=dict(sorted(info["below_threshold"].items())), tiles=info["tiles"],
                  ball_merged=info["ball_merged"], dropped_model_labels=dict(sorted(info["dropped_model_labels"].items())))
         e["boxes"], e["dropped_boxes"] = boxes, dropped
@@ -368,8 +392,12 @@ def process_frame(cfg: DatasetConfig, guard: GuardedProject, infer, img: Project
     e["players_dropped"] = sum(x["class"] != ball for x in dropped)
     e["balls_dropped"] = sum(x["class"] == ball for x in dropped)
     if render_dir is not None:
-        render_dir.mkdir(parents=True, exist_ok=True)
-        cv2.imwrite(str(render_dir / img.name), render(frame, boxes, dropped, note))
+        try:
+            render_dir.mkdir(parents=True, exist_ok=True)
+            if not cv2.imwrite(str(render_dir / img.name), render(frame, boxes, dropped, note)):
+                raise OSError("imwrite returned false")
+        except Exception as ex:                      # the frame's writes are done: record, do not fail it
+            e["render_error"] = f"{type(ex).__name__}: {ex}"[:200]
     return e
 
 
@@ -402,6 +430,9 @@ def run_prelabel(cfg: DatasetConfig, project, infer, images: List[ProjectImage],
             e = {"id": img.id, "name": img.name, "match_id": match_tag(img), "status": "refused", "reason": str(ex)}
         except (RoboflowError, RoboflowApiError) as ex:
             e = {"id": img.id, "name": img.name, "match_id": match_tag(img), "status": "failed", "reason": str(ex)[:300]}
+        except Exception as ex:                      # anything else fails this frame only; the run and its log go on
+            e = {"id": img.id, "name": img.name, "match_id": match_tag(img), "status": "failed",
+                 "reason": f"{type(ex).__name__}: {ex}"[:300]}
         entries.append(e)
     return {"schema": LOG_SCHEMA, "schema_version": LOG_SCHEMA_VERSION,
             "model_id": cfg.prelabel.model_id, "model_licence": cfg.prelabel.model_licence,

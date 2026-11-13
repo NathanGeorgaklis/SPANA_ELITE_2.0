@@ -298,3 +298,63 @@ read.** DEV and EVAL not involved.
   - full pre-label of M002 and M003, one at a time;
   - the M001 move;
   - then pre-label M001.
+
+## 2026-11-13: pre-label v2 (Nathan: re-label v2 replacing v1)
+Roles: Data / Licensing Steward; Player Detection Engineer; Lead Engineer; QA / Regression Engineer.
+Branch `claude/prelabel-v2` (from `claude/nifty-carson-j51h2l`; `main` has none of the Roboflow tooling).
+
+### Licence gate and the 20-frame stop (diagnosed before any change)
+- **ROOT CAUSE (M002/M003 labelled, M001 not):** the gate worked as configured. `licensed_matches` lists M001, M002
+  and M003, all `third_party_processing_confirmed: true` (commit `af4cbca`, Nathan confirmed 2026-11-12). Nathan
+  re-confirmed on 2026-11-13 that the config is right. M001 was never selected because every run passed
+  `--match TRAIN_M002…` or `--match TRAIN_M003…`: M001 was held back for its move to `valid`, which is still blocked.
+- **ROOT CAUSE (did not stop at 20):** `prelabel.sample_size` only capped `--limit`; a bare `--confirm-full-run`
+  bypassed it with no link to a reviewed sample. Full runs with that flag: 2026-11-12 20:23Z (M002, M003) and
+  2026-11-13 04:57Z (PID 12236, `--all --confirm-full-run --match TRAIN_M002_EASTERN_SUBURBS`, still running when
+  v2 work started; Nathan chose to let it finish). It explains 46 -> 196 `prelabel:v1` frames.
+- **FAILING LAYER:** run control in `tools/roboflow_prelabel.py` `select()`; licence data, not gate code. Gap: the
+  allow-list was checked at selection only, not again at each write.
+- **FIX:** `spana/dataset/guard.py` `GuardedProject`: every write re-reads the image and re-checks `match_of` and the
+  reviewed tag immediately before writing. Beyond `sample_size`: `--confirm-full-run` AND `--approved-sample <log>`
+  of a written (not dry-run) v2 sample whose `prelabel_config_sha256` equals the current one.
+- **Regression found while switching the tag to v2:** `roboflow_version` / `roboflow_progress` only knew
+  `prelabel.tag`, so unreviewed `prelabel:v1` frames would have passed the version gate. Both now use
+  `prelabel_tags()` (current + superseded) and `excluded_tags()` (near-duplicate + blur).
+
+### Ball recall (20 v1 sample frames: M002 10, M003 10)
+- `--diagnose-ball` (read-only), raw ball scores before any threshold, top 3 per frame and pass:
+  `records/roboflow_prelabel/ball_diagnostic_20261113T052348Z.json` (sha256 `c73df0b7…`).
+  - Full frame: best score median 0.35, 0 frames >= 0.85, 7 >= 0.5.
+  - 640 px tiles: median 0.48, 0 >= 0.85, 9 >= 0.5. 320 px tiles: median 0.56, 2 >= 0.85, 13 >= 0.5.
+- Visual check of the top candidates: the full-frame top candidate is the real ball in ~11/20 frames (scores
+  0.32-0.79; mostly M003 daylight). M002 night frames: ball 5-8 px, rarely the top candidate at any scale. Tiles add
+  ~0.05-0.15 to true balls and also raise false positives (broadcast logo overlay, 44 px, 0.46-0.67).
+- **Verdict:** mainly a threshold problem (0.85 above every true-ball score), plus a resolution limit on small balls.
+- **Nathan's choice:** ball threshold 0.50, ball-only tiling 640 px / 25 % overlap / NMS merge (IoU 0.30 or centre
+  containment), ball boxes larger than 4 % of frame height dropped and logged. Player threshold unchanged (0.50).
+  Dry-run preview (`prelabel_20261113T053035Z_dryrun.json`, sha256 `eb94a545…`, before the size cap): 11 balls in
+  9 frames = 8 real, 2 logo (removed by the cap), 1 doubtful.
+
+### Blur gate and grass filter
+- Variance of Laplacian on a 640 px-wide grey copy. 900 cached TRAIN frames: p1 340, p5 448, p50 1098. Sharp
+  low-texture frames score 220-260, so the prior is 200 (Nathan): catches strong blur only (1/20 samples, M002
+  f17160); some panning blur (~417) passes.
+- Grass mask (HSV range, closing, components >= 2 % of area, dilation 1 % of height). First dry run
+  (`prelabel_20261113T052832Z_dryrun.json`, sha256 `cd7e45c0…`): 10 player boxes dropped; 6 spectators in the stand
+  (right) and 4 occluded on-pitch players whose box bottom lay on another player's kit (wrong).
+  - Fix: `grass.convex_hull: true` (each grass component filled to its hull). Offline re-check on the same boxes:
+    the 4 occluded players kept, the 6 spectators still dropped. Regression test
+    `GrassFilterTests.test_without_hull_the_occluded_player_would_be_lost`.
+  - Limitation: bench / sideline staff standing on grass inside the hull are not removed by this rule.
+
+### Tests
+- `tests/test_roboflow_prelabel_v2.py` (27, mocked client): allow-list on every write path, reviewed frames,
+  mid-run changes, stop at sample size and approval hash, dry run writes nothing, blur gate, grass filter on a
+  synthetic frame, tile coverage and merge without duplicate balls, ball / player thresholds independent, size cap,
+  backup before any change, failed read-back keeps `prelabel:v1`.
+- Code review of the first v2 commit (5 findings, all fixed, each with a regression test in `ReviewFixTests`):
+  the guard's refresh now also reads the annotation state (search omits it outside the Dataset), so a frame a human
+  already labelled is never tagged; any unexpected per-frame error fails that frame only; a render error cannot fail
+  a frame that was already written; the image is re-read immediately before its first write; migration requires
+  `saved` and compares box positions on read-back; the ball size cap runs before the tile merge.
+  Full suite: 212 passed, 4 skipped.

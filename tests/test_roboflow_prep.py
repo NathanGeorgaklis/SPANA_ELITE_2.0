@@ -85,8 +85,14 @@ class FakeProject:
         self.ann_calls.append((image_id, name, content, labelmap, add_to_dataset))
         self.events.append(("save_annotation", image_id, overwrite))
         if self.annotate_result == "saved" and (overwrite or not self.annotation.get(image_id)):
-            self.annotation[image_id] = {"boxes": [{"label": labelmap[ln.split()[0]]}
-                                                   for ln in content.splitlines() if ln.strip()]}
+            i = next(x for x in self.images if x.id == image_id)
+            boxes = []
+            for ln in content.splitlines():
+                if ln.strip():
+                    c, x, y, w, h = ln.split()
+                    boxes.append({"label": labelmap[c], "x": float(x) * i.width, "y": float(y) * i.height,
+                                  "width": float(w) * i.width, "height": float(h) * i.height})
+            self.annotation[image_id] = {"boxes": boxes}
         return self.annotate_result
 
     def generate_version(self, settings):

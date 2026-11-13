@@ -14,7 +14,7 @@ from dataclasses import replace
 from typing import Dict, Iterable, List, Optional
 
 from .config import DatasetConfig, PolicyError, match_of
-from .rf_project import ProjectImage
+from .rf_project import ProjectImage, annotation_classes
 
 
 class GuardedProject:
@@ -34,11 +34,13 @@ class GuardedProject:
         return self._project.fetch_image(url, expected_sha256)
 
     def refresh(self, image_id: str) -> ProjectImage:
-        """Re-read one image's tags and metadata from the server (fails closed if the image is unknown here)."""
+        """Re-read one image's tags, metadata and annotation state from the server (unknown image: refused)."""
         img = self._known(image_id)
         raw = self._project.get_image(image_id)
         md = raw.get("metadata") if isinstance(raw.get("metadata"), dict) else img.metadata
-        img = replace(img, tags=tuple(sorted(str(t) for t in raw.get("tags") or [])), metadata=dict(md))
+        annotated, classes = annotation_classes(raw.get("annotation"))   # search omits it outside the Dataset
+        img = replace(img, tags=tuple(sorted(str(t) for t in raw.get("tags") or [])), metadata=dict(md),
+                      annotated=annotated, classes=classes)
         self._images[image_id] = img
         self._fresh.add(image_id)
         return img
