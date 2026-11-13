@@ -434,6 +434,8 @@ def run_prelabel(cfg: DatasetConfig, project, infer, images: List[ProjectImage],
             e = {"id": img.id, "name": img.name, "match_id": match_tag(img), "status": "failed",
                  "reason": f"{type(ex).__name__}: {ex}"[:300]}
         entries.append(e)
+        print(f"[{k + 1}/{len(chosen)}] {e['name']}: {e['status']}" + (f" ({e['reason']})" if e.get('reason') else ""),
+              file=sys.stderr, flush=True)
     return {"schema": LOG_SCHEMA, "schema_version": LOG_SCHEMA_VERSION,
             "model_id": cfg.prelabel.model_id, "model_licence": cfg.prelabel.model_licence,
             "prelabel_config": cfg.to_dict()["prelabel"], "prelabel_config_sha256": cfg.section_sha256("prelabel"),

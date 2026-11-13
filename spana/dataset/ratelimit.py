@@ -1,6 +1,7 @@
 """HTTP 429 handling shared by the Roboflow clients: wait (Retry-After if given, else base x attempt) and retry."""
 from __future__ import annotations
 
+import sys
 import time
 from typing import Callable
 
@@ -21,6 +22,9 @@ def call_with_429_retry(send: Callable, retries: int, base_wait_s: float, sleep=
     for attempt in range(1, retries + 1):
         if getattr(r, "status_code", None) != 429:
             return r
-        sleep(retry_after_s(r, attempt, base_wait_s))
+        wait = retry_after_s(r, attempt, base_wait_s)
+        print(f"HTTP 429: waiting {wait:.0f}s (retry {attempt}/{retries}, Retry-After="
+              f"{getattr(r, 'headers', {}).get('Retry-After')!r})", file=sys.stderr, flush=True)
+        sleep(wait)
         r = send()
     return r
