@@ -99,10 +99,17 @@ class RoboflowProject:
 
     def _call(self, method: str, url: str, **kw):
         def send():
-            try:
-                return self._session.request(method, url, timeout=self._timeout, **kw)
-            except Exception as e:
-                raise self._err(f"{method} failed: {type(e).__name__}: {e}") from None
+            import requests
+            for attempt in (0, 1):
+                try:
+                    return self._session.request(method, url, timeout=self._timeout, **kw)
+                except requests.exceptions.ConnectionError as e:
+                    # a pooled connection left idle (e.g. through a long 429 wait) is dropped by the server: send
+                    # once more on a fresh one. Every call made here is idempotent.
+                    if attempt:
+                        raise self._err(f"{method} failed: {type(e).__name__}: {e}") from None
+                except Exception as e:
+                    raise self._err(f"{method} failed: {type(e).__name__}: {e}") from None
         return call_with_429_retry(send, self._retries, self._wait, sleep=self._sleep, max_wait_s=self._max_wait)
 
     def _json(self, r, ok=(200,)) -> dict:

@@ -267,6 +267,12 @@ def yolo_annotation(cfg: DatasetConfig, boxes: List[dict], width: int, height: i
     return "\n".join(lines) + "\n", {str(i): c for i, c in enumerate(cfg.classes)}
 
 
+def empty_voc_annotation(filename: str, width: int, height: int) -> str:
+    """Pascal VOC annotation with no objects: replaces an image's boxes with nothing."""
+    return (f"<annotation><filename>{filename}</filename><size><width>{width}</width><height>{height}</height>"
+            "<depth>3</depth></size></annotation>\n")
+
+
 def render(frame: np.ndarray, boxes: List[dict], dropped: Sequence[dict] = (), note: str = "") -> np.ndarray:
     out = frame.copy()
     for b in dropped:
@@ -333,8 +339,11 @@ def _write_labels(cfg: DatasetConfig, guard: GuardedProject, img: ProjectImage, 
                 raise SkipFrame("already annotated on the server (kept, not overwritten)")
         return
     # migrate: the frame is still marked by its old tag until the new annotation is verified on the server
-    content, labelmap = yolo_annotation(cfg, boxes, w, h)
-    res = guard.save_annotation(img.id, name=Path(img.name).stem + ".txt", content=content, labelmap=labelmap,
+    if boxes:
+        name, (content, labelmap) = Path(img.name).stem + ".txt", yolo_annotation(cfg, boxes, w, h)
+    else:                                             # the API rejects an empty Darknet TXT (HTTP 400, 2026-11-13)
+        name, content, labelmap = Path(img.name).stem + ".xml", empty_voc_annotation(img.name, w, h), None
+    res = guard.save_annotation(img.id, name=name, content=content, labelmap=labelmap,
                                 add_to_dataset=cfg.prelabel.add_to_dataset, overwrite=True)
     if res != "saved":
         raise RoboflowApiError(f"overwrite not applied ({res}); old pre-label kept")

@@ -368,6 +368,10 @@ class AdapterTests(unittest.TestCase):
         with self.assertRaises(RoboflowError) as cm:
             c.infer(b"jpg", model_id="m/1", confidence=0.3, iou=0.5)
         self.assertNotIn(SECRET, str(cm.exception))
+        import requests                                  # regression 2026-11-13: stale connection retried once
+        session.post.side_effect = [requests.exceptions.ConnectionError("aborted"),
+                                    mock.Mock(status_code=200, json=lambda: {"predictions": []})]
+        self.assertEqual(c.infer(b"jpg", model_id="m/1", confidence=0.3, iou=0.5), {"predictions": []})
         session.post.side_effect = ConnectionError(f"https://x?api_key={SECRET}")
         with self.assertRaises(RoboflowError) as cm:
             c.infer(b"jpg", model_id="m/1", confidence=0.3, iou=0.5)

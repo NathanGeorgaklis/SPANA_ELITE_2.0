@@ -199,6 +199,9 @@ class BlurGateTests(unittest.TestCase):
         self.assertEqual(doc["entries"][0]["status"], "excluded_blur")
         self.assertEqual(proj.annotation["id001"], {"boxes": []})
         self.assertEqual(proj.tags["id001"], {"match:M1", "split:train", "excluded:blur"})
+        # regression 2026-11-13: an empty Darknet TXT is rejected by the API; boxes are cleared with an object-less VOC
+        _, name, content, labelmap, _ = proj.ann_calls[-1]
+        self.assertTrue(name.endswith(".xml") and "<object>" not in content and "<annotation>" in content)
         self.assertEqual(backups[0]["frames"][0]["annotation"], {"boxes": [{"label": "player"}]})
 
 

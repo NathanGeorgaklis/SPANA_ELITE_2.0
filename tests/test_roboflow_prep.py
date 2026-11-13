@@ -87,7 +87,9 @@ class FakeProject:
         if self.annotate_result == "saved" and (overwrite or not self.annotation.get(image_id)):
             i = next(x for x in self.images if x.id == image_id)
             boxes = []
-            for ln in content.splitlines():
+            if name.endswith(".txt") and not content.strip():      # the real API: HTTP 400 InvalidAnnotationFormat
+                raise RoboflowApiError("HTTP 400: Unrecognized annotation format.")
+            for ln in ([] if name.endswith(".xml") else content.splitlines()):
                 if ln.strip():
                     c, x, y, w, h = ln.split()
                     boxes.append({"label": labelmap[c], "x": float(x) * i.width, "y": float(y) * i.height,
@@ -645,6 +647,14 @@ class ClientTests(unittest.TestCase):
         self.assertNotIn(SECRET, str(cm.exception))
         from spana.dataset.ratelimit import retry_after_s
         self.assertEqual(retry_after_s(mock.Mock(headers={}), 2, 10.0), 20.0)
+        # regression 2026-11-13: a pooled connection dropped while idle is retried once on a fresh one
+        import requests
+        session.request.side_effect = [requests.exceptions.ConnectionError("aborted"), ok]
+        pr.update_tags("i1", add=["x"])
+        session.request.side_effect = [requests.exceptions.ConnectionError(f"aborted {SECRET}")] * 2
+        with self.assertRaises(RoboflowApiError) as cm:
+            pr.update_tags("i1", add=["x"])
+        self.assertNotIn(SECRET, str(cm.exception))
         # regression 2026-11-13: a Retry-After longer than the old fixed 300 s cap is waited out in full
         long = mock.Mock(headers={"Retry-After": "1956"})
         self.assertEqual(retry_after_s(long, 1, 10.0, 3600.0), 1956.0)

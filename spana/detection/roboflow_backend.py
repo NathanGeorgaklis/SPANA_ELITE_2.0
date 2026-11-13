@@ -45,13 +45,19 @@ class HttpInferenceClient:
         if not model_id or model_id.startswith("/") or ".." in model_id:
             raise RoboflowError(f"invalid model_id {model_id!r}")
         params = {"api_key": self._key, "confidence": confidence, "overlap": iou}
-        try:
-            r = self._session.post(f"{self._base}/{model_id}", params=params,
-                                   data=base64.b64encode(image_jpeg).decode("ascii"),
-                                   headers={"Content-Type": "application/x-www-form-urlencoded"},
-                                   timeout=self._timeout)
-        except Exception as e:  # network errors may echo the request URL, which carries the key
-            raise RoboflowError(redact(f"inference request failed: {type(e).__name__}: {e}", self._key)) from None
+        import requests
+        for attempt in (0, 1):
+            try:
+                r = self._session.post(f"{self._base}/{model_id}", params=params,
+                                       data=base64.b64encode(image_jpeg).decode("ascii"),
+                                       headers={"Content-Type": "application/x-www-form-urlencoded"},
+                                       timeout=self._timeout)
+                break
+            except requests.exceptions.ConnectionError as e:   # stale idle connection: once more on a fresh one
+                if attempt:
+                    raise RoboflowError(redact(f"inference request failed: {type(e).__name__}: {e}", self._key)) from None
+            except Exception as e:  # network errors may echo the request URL, which carries the key
+                raise RoboflowError(redact(f"inference request failed: {type(e).__name__}: {e}", self._key)) from None
         if r.status_code != 200:
             raise RoboflowError(redact(f"inference HTTP {r.status_code}: {r.text[:300]}", self._key))
         try:
