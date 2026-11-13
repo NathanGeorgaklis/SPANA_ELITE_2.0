@@ -422,3 +422,27 @@ Branch `claude/prelabel-v2` (from `claude/nifty-carson-j51h2l`; `main` has none 
   edge) and the referee is boxed as `player`; both are left for the human review.
 - Still eligible (never pre-labelled, not excluded): M002 87, M003 269, M001 297 (M001 held until its move to
   `valid`). Not run beyond this sample.
+
+### 2026-11-14: v2 on the remaining never-labelled M002 / M003 frames (approved by Nathan: "yes please")
+- `python -m tools.roboflow_prelabel --all --confirm-full-run --approved-sample
+  records/roboflow_prelabel/prelabel_20261113T180008Z.json --match <M002 | M003>`; M001 not run.
+- M002 (`prelabel_20261113T180242Z.json`): 87 selected, 86 labelled, 1 no_boxes (f0033816), 908 players kept,
+  1 dropped off-pitch, 55 balls in 44 frames.
+- M003 (`prelabel_20261113T181125Z.json`): 269 selected, 268 labelled, 1 failed (f0009138, inference HTTP 503
+  "could not acquire model manager lock"; nothing written), 2720 players kept, 89 dropped off-pitch in 28 frames,
+  137 balls in 131 frames, 86 ball boxes dropped (82 size cap, 4 off-pitch). The failed frame was re-run alone
+  (`--limit 1`, `prelabel_20261113T200502Z.json`): labelled.
+- Log sha256 (first 16): 180242Z 23648ba15757850c; 181125Z 84eef4f7b65e61a5; 200502Z 89608d94f5876436; 
+- Read back per image after the runs: 356 / 356 tagged `prelabel:v2`, box count equal to the logs (963 + 2857 + 5).
+- Rate limit: tag writes returned HTTP 429 with Retry-After 5079 s at M003 frame 190; the run waited 3600 s then
+  1478 s and resumed without a failure (the dropped-connection retry held). Two short 429s (2 s, 5 s) earlier.
+- Checked by eye (not every frame):
+  - M003 f0010746 and f0004548 renders: all dropped players are spectators in the stand. Two people at the
+    pitch-side wall in f0010746 are kept as `player` (known limitation: staff on / beside the grass).
+  - M002 f0027000 render: the one dropped player is a real player cut by the bottom-right frame corner
+    (wrong drop), and two of its three ball boxes are false (0.59, 0.52).
+  - Ball sheets `runs/roboflow_prelabel/ball_sheets/full2/`: M003 sheet 1 (48 boxes) all look like the ball
+    (f0005040 doubtful); M002 sheet 1 (48 boxes) mostly the ball, plus about ten boxes on spare balls and a pale
+    round object at the pitch-side fence (f0033108-f0034080) and two tiny false boxes. Sheets M002_2, M003_2 and
+    M003_3 were not opened.
+- Project state: M002 279 and M003 299 frames `prelabel:v2`; M001 297 frames never pre-labelled.
