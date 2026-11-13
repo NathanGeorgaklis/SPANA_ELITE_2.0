@@ -46,10 +46,11 @@ def version_settings(cfg: DatasetConfig) -> dict:
 def check_ready(cfg: DatasetConfig, images: List[ProjectImage]) -> dict:
     """Raises PolicyError listing every reason the version must not be generated; returns counts otherwise."""
     problems = []
-    unreviewed = [i.name for i in images if cfg.prelabel.tag in i.tags and cfg.review.reviewed_tag not in i.tags]
+    unreviewed = [i.name for i in images if any(t in i.tags for t in cfg.prelabel_tags())
+                  and cfg.review.reviewed_tag not in i.tags]
     if unreviewed:
         problems.append(f"{len(unreviewed)} pre-labelled frames are not reviewed (e.g. {unreviewed[:3]})")
-    version_imgs = [i for i in images if i.in_dataset and cfg.splits.excluded_tag not in i.tags]
+    version_imgs = [i for i in images if i.in_dataset and not any(t in i.tags for t in cfg.excluded_tags())]
     not_reviewed = [i.name for i in version_imgs if cfg.review.reviewed_tag not in i.tags]
     if not_reviewed:
         problems.append(f"{len(not_reviewed)} frames in the Dataset are not tagged {cfg.review.reviewed_tag!r} "

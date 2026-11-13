@@ -30,7 +30,7 @@ def progress(cfg: DatasetConfig, images: List[ProjectImage], annotation_of=None)
     splits = defaultdict(Counter)
     gate = Counter()
     for img in images:
-        if annotation_of is not None and (img.annotated or cfg.prelabel.tag in img.tags
+        if annotation_of is not None and (img.annotated or any(t in img.tags for t in cfg.prelabel_tags())
                                           or cfg.review.reviewed_tag in img.tags):
             annotated, cls = annotation_of(img.id)
             img = ProjectImage(**{**img.__dict__, "annotated": annotated, "classes": cls})
@@ -40,8 +40,8 @@ def progress(cfg: DatasetConfig, images: List[ProjectImage], annotation_of=None)
         mid = match_tag(img) or "(no match tag)"
         r = rows[mid]
         r["frames"] += 1
-        excluded = cfg.splits.excluded_tag in img.tags
-        pre = cfg.prelabel.tag in img.tags
+        excluded = any(t in img.tags for t in cfg.excluded_tags())
+        pre = any(t in img.tags for t in cfg.prelabel_tags())
         rev = cfg.review.reviewed_tag in img.tags
         r["excluded"] += excluded
         r["prelabelled"] += pre

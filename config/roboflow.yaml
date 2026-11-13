@@ -3,7 +3,7 @@
 # derived on DEV data only (never EVAL) and recorded with evidence.
 # Secrets: the API key is NEVER in this file. It is read from the environment variable named in roboflow.api_key_env
 # (or the gitignored .env; template .env.example).
-schema_version: "1.1.0"
+schema_version: "1.2.0"
 
 roboflow:
   workspace: nathans-workspace-9brdc
@@ -96,11 +96,39 @@ prelabel:
   iou: 0.50
   timeout_s: 90.0
   class_map: ["person:player", "sports ball:ball"]   # goalkeeper / referee come from human review only
-  class_thresholds: ["player:0.50", "ball:0.85"]     # untuned priors; ball high: a missed ball beats a wrong ball box
-  tag: "prelabel:v1"
-  sample_size: 20              # larger runs need --confirm-full-run (Nathan's go-ahead)
+  class_thresholds: ["player:0.50", "ball:0.50"]     # player: untuned prior (unchanged since v1). ball 0.85 -> 0.50
+                               # (Nathan, 2026-11-13): true balls score 0.32-0.79 on the 20 v1 sample frames (RECORD)
+  tag: "prelabel:v2"
+  superseded_tags: ["prelabel:v1"]   # v1 frames are only touched by --migrate (annotation backed up first)
+  ball_class: ball
+  ball_max_size_frac: 0.04     # true balls 10-16 px at 720 p; the 44 px broadcast logo was the only false positive
+  sample_size: 20              # hard cap without --confirm-full-run; a full run also needs --approved-sample <log>
+                               # of a sample run made with this exact prelabel section (config sha256 must match)
   min_interval_s: 1.0          # pause between frames; run one pre-label process at a time
   add_to_dataset: false        # pre-labels stay in their batch until reviewed
+  blur:                        # variance of Laplacian on a grey copy resized to analysis_width_px
+    analysis_width_px: 640
+    laplacian_var_min: 200.0   # untuned prior from 900 TRAIN frames (RECORD 2026-11-13): catches only strong
+                               # blur; low-texture sharp frames score ~220-260, so a higher value excludes sharp frames
+    excluded_tag: "excluded:blur"
+  grass:                       # PRE-LABELS ONLY: drop boxes whose bottom-centre is outside the frame's grass mask
+    enabled: true
+    hsv_lower: [30, 40, 30]    # untuned prior (OpenCV HSV: H 0..179)
+    hsv_upper: [90, 255, 255]
+    close_frac: 0.03           # fraction of frame height: closes over pitch lines, players and shadows
+    min_component_frac: 0.02   # fraction of frame area: ignores small green patches (signs, shirts, hedges)
+    convex_hull: true          # without it, 4 of 10 drops on the v2 sample were occluded on-pitch players (RECORD)
+    dilate_frac: 0.01          # fraction of frame height: feet on the grass edge stay inside
+    apply_to: [player, ball]
+  ball_tiling:                 # ball class only; player inference is never tiled
+    enabled: true              # --diagnose-ball 2026-11-13: tiles raise true-ball scores (M002 ball is 5-8 px)
+    tile_px: 640
+    overlap_frac: 0.25
+    merge_iou: 0.30
+  ball_diagnostic:             # --diagnose-ball: read-only, nothing written to Roboflow
+    request_confidence: 0.01
+    top_k: 3
+    tile_px_candidates: [640, 320]
 
 review:
   reviewed_tag: reviewed
@@ -122,3 +150,4 @@ paths:
   prelabel_dir: records/roboflow_prelabel  # pre-label logs (committed; no pixels)
   render_dir: runs/roboflow_prelabel       # annotated pre-label renders (gitignored)
   image_cache_dir: runs/roboflow_cache     # verified copies of project images (gitignored)
+  prelabel_backup_dir: records/roboflow_prelabel/backups   # annotations saved before replacement (committed)

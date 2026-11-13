@@ -21,7 +21,7 @@ import yaml
 
 from ..config import ConfigError, _pos, _pos_int, _unit, typed_from_dict
 
-DATASET_CONFIG_SCHEMA_VERSION = "1.1.0"
+DATASET_CONFIG_SCHEMA_VERSION = "1.2.0"
 SPLITS = ("train", "dev", "eval")
 UPLOADABLE_SPLITS = ("train", "dev")
 ROBOFLOW_SPLITS = ("train", "valid", "test")
@@ -167,6 +167,77 @@ class SplitsSection:
 
 
 @dataclass(frozen=True)
+class BlurGateSection:
+    """Variance of the Laplacian on a grey copy resized to a fixed width (so the score does not depend on the
+    frame's resolution). A frame scoring below the minimum is tagged and never pre-labelled."""
+    analysis_width_px: int
+    laplacian_var_min: float           # 0 disables the gate
+    excluded_tag: str
+
+    def validate(self) -> None:
+        _pos_int("prelabel.blur.analysis_width_px", self.analysis_width_px)
+        if self.laplacian_var_min < 0:
+            raise ConfigError("prelabel.blur.laplacian_var_min must be >= 0")
+        if not self.excluded_tag.strip():
+            raise ConfigError("prelabel.blur.excluded_tag must be non-empty")
+
+
+@dataclass(frozen=True)
+class GrassFilterSection:
+    """Pre-labels only (never the runtime detector): a box whose bottom-centre point lies outside the frame's grass
+    mask is dropped and logged. Sizes are fractions of the frame height / area (resolution independent)."""
+    enabled: bool
+    hsv_lower: Tuple[int, ...]         # OpenCV HSV (H 0..179, S/V 0..255)
+    hsv_upper: Tuple[int, ...]
+    close_frac: float                  # closing kernel (fills lines, players, shadows) as a fraction of frame height
+    min_component_frac: float          # grass components smaller than this fraction of the frame area are ignored
+    convex_hull: bool                  # fill each grass component to its convex hull: players standing on the pitch
+                                       # (holes / notches in the grass, incl. occluded players) stay inside
+    dilate_frac: float                 # final dilation as a fraction of frame height (feet stand on the grass edge)
+    apply_to: Tuple[str, ...]          # classes the filter applies to
+
+    def validate(self) -> None:
+        for n in ("hsv_lower", "hsv_upper"):
+            v = getattr(self, n)
+            if len(v) != 3 or not (0 <= v[0] <= 179 and 0 <= v[1] <= 255 and 0 <= v[2] <= 255):
+                raise ConfigError(f"prelabel.grass.{n} must be [H 0..179, S 0..255, V 0..255]")
+        if any(lo > hi for lo, hi in zip(self.hsv_lower, self.hsv_upper)):
+            raise ConfigError("prelabel.grass.hsv_lower must be <= hsv_upper per channel")
+        for n in ("close_frac", "min_component_frac", "dilate_frac"):
+            _unit(f"prelabel.grass.{n}", getattr(self, n))
+
+
+@dataclass(frozen=True)
+class BallTilingSection:
+    """Optional second pass for the ball class only: overlapping tiles at native resolution, mapped back to frame
+    coordinates and merged with the full-frame ball boxes by NMS (one box per ball). Players are never tiled."""
+    enabled: bool
+    tile_px: int
+    overlap_frac: float                # overlap between neighbouring tiles, fraction of tile_px
+    merge_iou: float                   # ball boxes overlapping more than this are one ball (highest score kept)
+
+    def validate(self) -> None:
+        _pos_int("prelabel.ball_tiling.tile_px", self.tile_px)
+        if not 0.0 <= self.overlap_frac < 1.0:
+            raise ConfigError("prelabel.ball_tiling.overlap_frac must be in [0, 1)")
+        _unit("prelabel.ball_tiling.merge_iou", self.merge_iou)
+
+
+@dataclass(frozen=True)
+class BallDiagnosticSection:
+    """--diagnose-ball: raw ball scores before any class threshold (read-only; nothing is written to Roboflow)."""
+    request_confidence: float          # server-side floor for the diagnostic request only
+    top_k: int                         # scores logged per frame and pass
+    tile_px_candidates: Tuple[int, ...]  # tile sizes measured besides the full frame (overlap: ball_tiling)
+
+    def validate(self) -> None:
+        _unit("prelabel.ball_diagnostic.request_confidence", self.request_confidence)
+        _pos_int("prelabel.ball_diagnostic.top_k", self.top_k)
+        for t in self.tile_px_candidates:
+            _pos_int("prelabel.ball_diagnostic.tile_px_candidates[]", t)
+
+
+@dataclass(frozen=True)
 class PrelabelSection:
     model_id: str                      # pretrained general detector (commercial-use licence); "<project>/<version>"
     model_licence: str                 # recorded in every prelabel log
@@ -177,9 +248,17 @@ class PrelabelSection:
     class_map: Tuple[str, ...]         # "model_label:spana_class"; unmapped labels are dropped and counted
     class_thresholds: Tuple[str, ...]  # "spana_class:min_score", one per auto-labelled class
     tag: str                           # tag added to every pre-labelled frame
+    superseded_tags: Tuple[str, ...]   # older pre-label tags; such frames are only touched by --migrate (backup first)
+    ball_class: str                    # the class the ball-only tiling pass and diagnostic act on
+    ball_max_size_frac: float          # a ball box whose longer side exceeds this fraction of the frame height is
+                                       # dropped and logged (static overlays / logos); a missed ball beats a wrong one
     sample_size: int                   # largest run allowed without the explicit full-run confirmation
     min_interval_s: float              # pause between frames (Roboflow rate limits the platform API)
     add_to_dataset: bool               # false: pre-labels wait in their batch until reviewed
+    blur: BlurGateSection
+    grass: GrassFilterSection
+    ball_tiling: BallTilingSection
+    ball_diagnostic: BallDiagnosticSection
 
     def validate(self) -> None:
         if self.model_id.count("/") != 1 or any(not part for part in self.model_id.split("/")):
@@ -195,6 +274,12 @@ class PrelabelSection:
         _pos_int("prelabel.sample_size", self.sample_size)
         if self.min_interval_s < 0:
             raise ConfigError("prelabel.min_interval_s must be >= 0")
+        if not 0.0 < self.ball_max_size_frac <= 1.0:
+            raise ConfigError("prelabel.ball_max_size_frac must be in (0, 1]")
+        if self.tag in self.superseded_tags:
+            raise ConfigError("prelabel.tag must not be one of prelabel.superseded_tags")
+        for sec in (self.blur, self.grass, self.ball_tiling, self.ball_diagnostic):
+            sec.validate()
 
 
 @dataclass(frozen=True)
@@ -237,6 +322,7 @@ class PathsSection:
     prelabel_dir: str    # pre-label logs (records; committed; no pixels)
     render_dir: str      # annotated pre-label renders for visual review (run outputs; not committed)
     image_cache_dir: str  # verified copies of project images (run outputs; not committed)
+    prelabel_backup_dir: str  # annotation backups written before any pre-label is replaced (records; committed)
 
 
 @dataclass(frozen=True)
@@ -291,9 +377,16 @@ class DatasetConfig:
                               f"{sorted(targets)}, got {sorted(thresholds)}")
         if any(self.prelabel.request_confidence > t for t in thresholds.values()):
             raise ConfigError("prelabel.request_confidence must be <= every prelabel.class_thresholds value")
-        tags = [self.splits.excluded_tag, self.prelabel.tag, self.review.reviewed_tag]
+        tags = [self.splits.excluded_tag, self.prelabel.tag, self.review.reviewed_tag, self.prelabel.blur.excluded_tag,
+                *self.prelabel.superseded_tags]
         if len(set(tags)) != len(tags):
-            raise ConfigError("splits.excluded_tag, prelabel.tag and review.reviewed_tag must differ")
+            raise ConfigError("splits.excluded_tag, prelabel.tag, prelabel.superseded_tags, prelabel.blur.excluded_tag "
+                              "and review.reviewed_tag must all differ")
+        if self.prelabel.ball_class not in targets:
+            raise ConfigError(f"prelabel.ball_class {self.prelabel.ball_class!r} must be an auto-labelled class")
+        unknown = [c for c in self.prelabel.grass.apply_to if c not in targets]
+        if unknown:
+            raise ConfigError(f"prelabel.grass.apply_to {unknown}: not auto-labelled classes")
         ids = [m.match_id for m in self.licensed_matches]
         if len(set(ids)) != len(ids):
             raise ConfigError("licensed_matches: a match_id is listed twice (a match belongs to one split)")
@@ -302,6 +395,14 @@ class DatasetConfig:
                 raise ConfigError("licensed_matches: match_id and permission must be non-empty")
             if m.split not in SPLITS:
                 raise ConfigError(f"licensed_matches[{m.match_id}].split must be one of {SPLITS}")
+
+    def prelabel_tags(self) -> Tuple[str, ...]:
+        """Every pre-label tag, current and superseded: such a frame holds machine labels until it is reviewed."""
+        return (self.prelabel.tag, *self.prelabel.superseded_tags)
+
+    def excluded_tags(self) -> Tuple[str, ...]:
+        """Tags that keep a frame out of pre-labelling and out of any version."""
+        return (self.splits.excluded_tag, self.prelabel.blur.excluded_tag)
 
     def prelabel_class_map(self) -> dict:
         return dict(e.split(":", 1) for e in self.prelabel.class_map)

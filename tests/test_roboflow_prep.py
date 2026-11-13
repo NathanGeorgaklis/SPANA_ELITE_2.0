@@ -39,6 +39,9 @@ def make_cfg(mutate=None):
     d["splits"].update(move_method="none", verify_wait_s=0.0)     # tests switch moves on explicitly; no real waits
     d["audit"].update(search_wait_s=0.0)
     d["prelabel"].update(min_interval_s=0.0)
+    d["prelabel"]["grass"]["enabled"] = False                    # v2 filters are switched on per test
+    d["prelabel"]["ball_tiling"]["enabled"] = False
+    d["prelabel"]["ball_max_size_frac"] = 1.0
     if mutate:
         mutate(d)
     return dataset_config_from_dict(d)
@@ -54,19 +57,36 @@ def img(i, mid="M1", split="train", tags=(), in_dataset=False, annotated=False, 
 
 
 class FakeProject:
+    """Mocked Roboflow project: records every call in `events`; get_image serves current tags / annotation."""
     def __init__(self, images=()):
         self.images = list(images)
         self.tag_calls, self.ann_calls, self.gen_calls = [], [], []
         self.annotate_result = "saved"
+        self.events = []
+        self.tags = {i.id: set(i.tags) for i in self.images}
+        self.annotation = {i.id: ({"boxes": [{"label": c} for c in i.classes]} if i.annotated else None)
+                           for i in self.images}
+
+    def get_image(self, image_id):
+        self.events.append(("get_image", image_id))
+        i = next(x for x in self.images if x.id == image_id)
+        return {"id": image_id, "tags": sorted(self.tags[image_id]), "metadata": dict(i.metadata),
+                "annotation": self.annotation[image_id]}
 
     def list_images(self, page_size, attempts=1, wait_s=0.0):
         return list(self.images)
 
     def update_tags(self, image_id, add=(), remove=()):
         self.tag_calls.append((image_id, tuple(add), tuple(remove)))
+        self.events.append(("update_tags", image_id, tuple(add), tuple(remove)))
+        self.tags[image_id] = (self.tags.get(image_id, set()) | set(add)) - set(remove)
 
-    def save_annotation(self, image_id, *, name, content, labelmap, add_to_dataset):
+    def save_annotation(self, image_id, *, name, content, labelmap, add_to_dataset, overwrite=False):
         self.ann_calls.append((image_id, name, content, labelmap, add_to_dataset))
+        self.events.append(("save_annotation", image_id, overwrite))
+        if self.annotate_result == "saved" and (overwrite or not self.annotation.get(image_id)):
+            self.annotation[image_id] = {"boxes": [{"label": labelmap[ln.split()[0]]}
+                                                   for ln in content.splitlines() if ln.strip()]}
         return self.annotate_result
 
     def generate_version(self, settings):
@@ -80,7 +100,9 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(c.prelabel_class_map(), {"person": "player", "sports ball": "ball"})
         thr = c.prelabel_thresholds()
         self.assertEqual(set(thr), {"player", "ball"})
-        self.assertGreater(thr["ball"], thr["player"])          # a missed ball beats a wrong ball box
+        self.assertEqual(thr["player"], 0.50)                   # player settings unchanged since v1
+        self.assertLessEqual(c.prelabel.request_confidence, thr["ball"])
+        self.assertIn("prelabel:v1", c.prelabel_tags())         # superseded pre-labels still count as unreviewed
         self.assertNotIn("goalkeeper", c.prelabel_class_map().values())
         self.assertNotIn("referee", c.prelabel_class_map().values())
         self.assertEqual(c.version.augmentations, ())
@@ -323,6 +345,11 @@ class MoveTests(unittest.TestCase):
             self._apply(cfg, proj, up, probe=1)
         self.assertEqual((up.calls, proj.created, proj.deleted), ([], [], []))
 
+def sharp(h=36, w=64):
+    """Textured frame: far above any blur threshold."""
+    return np.random.default_rng(0).integers(0, 255, (h, w, 3), dtype=np.uint8)
+
+
 def resp(preds, w=64, h=36):
     return {"image": {"width": w, "height": h}, "predictions": preds}
 
@@ -359,7 +386,7 @@ class PrelabelTests(unittest.TestCase):
 
     def _run(self, images, **kw):
         proj = FakeProject(images)
-        frame = np.zeros((36, 64, 3), np.uint8)
+        frame = sharp()
         infer = mock.Mock(return_value=resp([p(10, 10, 4, 10, 0.9, "person"), p(30, 30, 2, 2, 0.95, "sports ball")]))
         args = dict(limit=20, match=None, confirm_full_run=False, load=lambda i: frame, render_dir=None)
         args.update(kw)
@@ -368,7 +395,7 @@ class PrelabelTests(unittest.TestCase):
 
     def test_gate_skips_and_logging(self):
         images = [img(1), img(2, mid="M_OTHER"), img(3, tags=("excluded:near-duplicate",)),
-                  img(4, annotated=True), img(5, tags=("prelabel:v1",)), img(6, mid="M_EVAL"), img(7)]
+                  img(4, annotated=True), img(5, tags=("prelabel:v2",)), img(6, mid="M_EVAL"), img(7)]
         doc, proj, infer = self._run(images)
         self.assertEqual([e["id"] for e in doc["entries"]], ["id001", "id007"])
         self.assertEqual(infer.call_count, 2)
@@ -384,7 +411,7 @@ class PrelabelTests(unittest.TestCase):
         self.assertEqual(doc["summary"]["boxes_per_class"], {"ball": 2, "player": 2})
         # tag before annotation, never overwrite, not added to the Dataset before review
         self.assertEqual([c[0] for c in proj.tag_calls], ["id001", "id007"])
-        self.assertTrue(all(c[1] == ("prelabel:v1",) for c in proj.tag_calls))
+        self.assertTrue(all(c[1] == (self.cfg.prelabel.tag,) for c in proj.tag_calls))
         self.assertTrue(all(c[4] is False for c in proj.ann_calls))
         self.assertTrue(all(set(c[3].values()) == set(self.cfg.classes) for c in proj.ann_calls))
 
@@ -400,24 +427,26 @@ class PrelabelTests(unittest.TestCase):
             self._run(images, limit=self.cfg.prelabel.sample_size + 1)
         with self.assertRaisesRegex(PolicyError, "confirm-full-run"):
             self._run(images, limit=None)
-        doc, _, _ = self._run(images, limit=None, confirm_full_run=True)
+        with self.assertRaisesRegex(PolicyError, "approved-sample"):
+            self._run(images, limit=None, confirm_full_run=True)
+        doc, _, _ = self._run(images, limit=None, confirm_full_run=True, approved_sample=doc)
         self.assertEqual(doc["summary"]["selected"], 60)
 
     def test_skipped_frames_and_server_conflict(self):
         def load(i):
             if i.id == "id001":
                 raise SkipFrame("image bytes do not match the sha256 recorded at upload")
-            return np.zeros((36, 64, 3), np.uint8)
+            return sharp()
         doc, proj, infer = self._run([img(1), img(2)], load=load)
         st = {e["id"]: (e["status"], e["reason"]) for e in doc["entries"]}
         self.assertEqual(st["id001"][0], "skipped")
         self.assertIn("sha256", st["id001"][1])
         self.assertEqual(st["id002"][0], "labelled")
-        proj = FakeProject()
+        proj = FakeProject([img(1)])
         proj.annotate_result = "already_annotated"
         doc = roboflow_prelabel.run_prelabel(self.cfg, proj, mock.Mock(return_value=resp([p(10, 10, 4, 10, 0.9, "person")])),
                                              [img(1)], limit=1, match=None, confirm_full_run=False,
-                                             load=lambda i: np.zeros((36, 64, 3), np.uint8), render_dir=None)
+                                             load=lambda i: sharp(), render_dir=None)
         self.assertEqual(doc["entries"][0]["status"], "skipped")
 
     def test_summary_counts_only_saved_frames(self):
@@ -432,7 +461,7 @@ class PrelabelTests(unittest.TestCase):
         proj.update_tags = flaky
         doc = roboflow_prelabel.run_prelabel(self.cfg, proj, mock.Mock(return_value=resp([p(10, 10, 4, 10, 0.9, "person")])),
                                              images, limit=2, match=None, confirm_full_run=False,
-                                             load=lambda i: np.zeros((36, 64, 3), np.uint8), render_dir=None)
+                                             load=lambda i: sharp(), render_dir=None)
         self.assertEqual(doc["summary"]["status"], {"failed": 1, "labelled": 1})
         self.assertEqual(doc["summary"]["boxes_per_class"], {"ball": 0, "player": 1})
         self.assertEqual(len(proj.ann_calls), 1)               # tag failed -> no annotation saved for id002
@@ -585,7 +614,7 @@ class ClientTests(unittest.TestCase):
 
     def test_image_annotation_reader(self):
         session = mock.Mock()
-        session.request.return_value = mock.Mock(status_code=200, json=mock.Mock(return_value={"image": {
+        session.request.return_value = mock.Mock(status_code=200, json=mock.Mock(return_value={"image": {"id": "i1",
             "annotation": {"key": "x.jpg", "boxes": [{"label": "player"}, {"label": "ball"}]}}}))
         self.assertEqual(self._proj(session).get_image_annotation("i1"), (True, ("player", "ball")))
         args, _ = session.request.call_args

@@ -3,6 +3,7 @@
   list images     POST {api}/{workspace}/search/v1            RoboQL "project:<slug>", paged by continuationToken
   edit tags       POST {api}/{workspace}/images/{id}/metadata  {"addTags": [...], "removeTags": [...]}
   save annotation POST {api}/dataset/{project}/annotate/{id}   ?name=&overwrite=&addToDataset=  {"annotationFile", "labelmap"}
+  read one image  GET  {api}/{workspace}/{project}/images/{id} tags, metadata and annotation (boxes) of one image
   fetch pixels    GET  the image's `url` (original bytes; checked against the sha256 recorded at upload)
   new version     POST {api}/{workspace}/{project}/generate    {"preprocessing": ..., "augmentation": ...}
 
@@ -148,15 +149,20 @@ class RoboflowProject:
                 time.sleep(wait_s)
         raise IncompleteListing("unreachable")
 
-    def get_image_annotation(self, image_id: str) -> Tuple[bool, Tuple[str, ...]]:
-        """(annotated, class name per box) from GET /{workspace}/{project}/images/{id}. Search results omit
-        annotations of images that are not in the Dataset yet, so progress reporting reads them here."""
+    def get_image(self, image_id: str) -> dict:
+        """Raw image record from GET /{workspace}/{project}/images/{id} (tags, metadata, annotation, split, ...).
+        Fails closed on an unexpected shape or an id that differs from the one asked for."""
         j = self._json(self._call("GET", f"{self._base}/{self.workspace}/{self.project}/images/{image_id}",
                                   params={"api_key": self._key}))
         img = j.get("image")
-        if not isinstance(img, dict):
+        if not isinstance(img, dict) or str(img.get("id")) != image_id or not isinstance(img.get("tags", []), list):
             raise RoboflowApiError("unexpected image response")
-        return annotation_classes(img.get("annotation"))
+        return img
+
+    def get_image_annotation(self, image_id: str) -> Tuple[bool, Tuple[str, ...]]:
+        """(annotated, class name per box) of one image. Search results omit annotations of images that are not in
+        the Dataset yet, so progress reporting reads them here."""
+        return annotation_classes(self.get_image(image_id).get("annotation"))
 
     def update_tags(self, image_id: str, add: List[str] = (), remove: List[str] = ()) -> None:
         body = {}
@@ -170,9 +176,12 @@ class RoboflowProject:
                               params={"api_key": self._key}, json=body))
 
     def save_annotation(self, image_id: str, *, name: str, content: str, labelmap: Optional[Dict[str, str]],
-                        add_to_dataset: bool) -> str:
-        """Never overwrites: returns "saved" or "already_annotated" (an existing annotation is kept)."""
+                        add_to_dataset: bool, overwrite: bool = False) -> str:
+        """Returns "saved", or "already_annotated" when an annotation exists and overwrite is False (it is kept).
+        overwrite=True replaces it: only the pre-label migration uses that, after writing a backup."""
         params = {"api_key": self._key, "name": name, "addToDataset": "true" if add_to_dataset else "false"}
+        if overwrite:
+            params["overwrite"] = "true"
         r = self._call("POST", f"{self._base}/dataset/{self.project}/annotate/{image_id}", params=params,
                        data=json.dumps({"annotationFile": content, "labelmap": labelmap}),
                        headers={"Content-Type": "application/json"})
