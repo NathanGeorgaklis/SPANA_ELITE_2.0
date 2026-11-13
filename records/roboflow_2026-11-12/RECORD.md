@@ -408,3 +408,17 @@ Branch `claude/prelabel-v2` (from `claude/nifty-carson-j51h2l`; `main` has none 
   the dark background. M003: 14 of 15 look right; f0016140 (12x7 px white streak, 0.58) is doubtful.
 - No threshold change: real balls also score 0.53-0.60, so raising the ball threshold would remove as many real
   balls as doubtful ones. The doubtful boxes are left for the human review.
+
+### 2026-11-14: v2 sample on never-labelled frames (10 per match, approved by Nathan: "run the sample")
+- `python -m tools.roboflow_prelabel --limit 10 --match <M002 | M003>` (evenly spaced over the eligible frames).
+- M002 (`prelabel_20261113T175902Z.json`, sha256 ae2b8cc4cadb1a50...): 9 labelled, 1 no_boxes, 88 players kept,
+  0 dropped off-pitch, 9 balls in 7 frames. f0034728 is a broadcast transition graphic (no play visible): it got
+  no boxes and the `prelabel:v2` tag; there is no rule that excludes non-play frames.
+- M003 (`prelabel_20261113T180008Z.json`, sha256 c4a412c29eaca50d...): 10 labelled, 106 players kept, 1 dropped off-pitch (a spectator,
+  f0000552), 4 balls in 4 frames, 2 ball boxes dropped by the size cap (broadcast logo).
+- Ball crops checked on contact sheets (`runs/roboflow_prelabel/ball_sheets/sample2/`): the 13 boxes look like
+  footballs; M002 f0032280 has two (at least one is a spare ball beside the pitch).
+- Seen on the M003 f0000552 render: some players are not boxed (below the 0.50 threshold or cut by the frame
+  edge) and the referee is boxed as `player`; both are left for the human review.
+- Still eligible (never pre-labelled, not excluded): M002 87, M003 269, M001 297 (M001 held until its move to
+  `valid`). Not run beyond this sample.
