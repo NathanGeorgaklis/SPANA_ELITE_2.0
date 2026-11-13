@@ -398,3 +398,13 @@ Branch `claude/prelabel-v2` (from `claude/nifty-carson-j51h2l`; `main` has none 
   `backups/backup_20261113T082430Z.json` (b41c5a001f19dd0a..., 183 frames, v1 annotations).
   Renders `runs/roboflow_prelabel/20261113T082430Z/` (not committed).
 - Not checked visually: the 95 M002 ball boxes of this run (the sample found 1 ball in 9 M002 frames).
+
+### 2026-11-13: visual check of the v2 ball boxes (contact sheets)
+- `python -m tools.roboflow_ball_sheet` on the three v2 logs (offline; reads logs and the image cache only).
+  Sheets in `runs/roboflow_prelabel/ball_sheets/` (not committed): M002 96 boxes, M003 15 boxes.
+- M002, judged from the crops: 2 clear false positives (f0005880 drink-bottle crate 0.54; f0009960 a boot next to
+  the real ball 0.53), about 10 doubtful (4-8 px, score 0.52-0.64, e.g. f0008880, f0010800 x2, f0011040, f0013440,
+  f0019320, f0021720, f0021960), the remaining ~84 look like the match ball, including balls in the air against
+  the dark background. M003: 14 of 15 look right; f0016140 (12x7 px white streak, 0.58) is doubtful.
+- No threshold change: real balls also score 0.53-0.60, so raising the ball threshold would remove as many real
+  balls as doubtful ones. The doubtful boxes are left for the human review.
