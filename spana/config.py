@@ -15,7 +15,7 @@ import json
 import math
 from dataclasses import dataclass, fields
 from pathlib import Path
-from typing import Any, Mapping, Type, TypeVar, get_type_hints
+from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_hints
 
 import yaml
 
@@ -228,27 +228,40 @@ def _build(cls: Type[T], data: Any, where: str) -> T:
     kwargs = {}
     for n in names:
         t, v, path = hints[n], data[n], f"{where}.{n}" if where else n
-        if dataclasses.is_dataclass(t):
-            kwargs[n] = _build(t, v, path)
-        elif t is float:
-            if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
-                raise ConfigError(f"{path}: expected a finite number")
-            kwargs[n] = float(v)
-        elif t is int:
-            if isinstance(v, bool) or not isinstance(v, int):
-                raise ConfigError(f"{path}: expected an integer")
-            kwargs[n] = v
-        elif t is bool:
-            if not isinstance(v, bool):
-                raise ConfigError(f"{path}: expected true/false")
-            kwargs[n] = v
-        elif t is str:
-            if not isinstance(v, str):
-                raise ConfigError(f"{path}: expected a string")
-            kwargs[n] = v
-        else:  # pragma: no cover - guarded by the dataclass definitions above
-            raise ConfigError(f"{path}: unsupported type {t}")
+        kwargs[n] = _value(t, v, path)
     return cls(**kwargs)
+
+
+def _value(t: Any, v: Any, path: str) -> Any:
+    """One typed value. Supports the scalar types, nested dataclasses and homogeneous tuples (``Tuple[X, ...]``,
+    written as YAML lists)."""
+    if get_origin(t) is tuple:
+        args = get_args(t)
+        if len(args) != 2 or args[1] is not Ellipsis:  # pragma: no cover - guarded by the dataclass definitions
+            raise ConfigError(f"{path}: only Tuple[X, ...] is supported")
+        if not isinstance(v, list):
+            raise ConfigError(f"{path}: expected a list")
+        return tuple(_value(args[0], item, f"{path}[{i}]") for i, item in enumerate(v))
+    if dataclasses.is_dataclass(t):
+        return _build(t, v, path)
+    if t is float:
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
+            raise ConfigError(f"{path}: expected a finite number")
+        return float(v)
+    elif t is int:
+        if isinstance(v, bool) or not isinstance(v, int):
+            raise ConfigError(f"{path}: expected an integer")
+        return v
+    elif t is bool:
+        if not isinstance(v, bool):
+            raise ConfigError(f"{path}: expected true/false")
+        return v
+    elif t is str:
+        if not isinstance(v, str):
+            raise ConfigError(f"{path}: expected a string")
+        return v
+    else:  # pragma: no cover - guarded by the dataclass definitions above
+        raise ConfigError(f"{path}: unsupported type {t}")
 
 
 def config_from_dict(data: Mapping[str, Any]) -> SpanaConfig:
@@ -285,3 +298,8 @@ def _pos(name: str, v: float) -> None:
 def _pos_int(name: str, v: int, allow_zero: bool = False) -> None:
     if v < 0 or (v == 0 and not allow_zero):
         raise ConfigError(f"{name} must be a {'non-negative' if allow_zero else 'positive'} integer, got {v}")
+
+
+def typed_from_dict(cls: Type[T], data: Any, where: str = "") -> T:
+    """Build any config dataclass with the same fail-closed rules as the main config (used by other config files)."""
+    return _build(cls, data, where)

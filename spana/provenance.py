@@ -9,7 +9,7 @@ from importlib import metadata
 from pathlib import Path
 from typing import Dict, Optional, Sequence
 
-_PACKAGES = ("numpy", "opencv-python", "opencv-python-headless", "scipy", "onnxruntime", "PyYAML")
+_PACKAGES = ("numpy", "opencv-python", "opencv-python-headless", "scipy", "onnxruntime", "PyYAML", "requests", "python-dotenv")
 
 
 def git_state(repo_dir: Path) -> Dict[str, Optional[str]]:

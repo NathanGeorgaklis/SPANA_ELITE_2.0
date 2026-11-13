@@ -1,0 +1,155 @@
+# SPANA detection dataset + Roboflow connection (loader: spana/dataset/config.py; fails closed like default.yaml).
+# CALIBRATION STATUS: sampling and baseline values are initial engineering priors, NOT tuned. Any change must be
+# derived on DEV data only (never EVAL) and recorded with evidence.
+# Secrets: the API key is NEVER in this file. It is read from the environment variable named in roboflow.api_key_env
+# (or the gitignored .env; template .env.example).
+schema_version: "1.2.0"
+
+roboflow:
+  workspace: nathans-workspace-9brdc
+  project: spana-elite
+  api_key_env: ROBOFLOW_API_KEY
+  api_url: https://api.roboflow.com   # REST API for project checks and uploads
+  project_type: object-detection   # uploads refuse a project of any other type
+  train_split_name: train    # Roboflow split receiving SPANA TRAIN matches
+  dev_split_name: valid      # Roboflow split receiving SPANA DEV matches. EVAL has no Roboflow split: never uploaded
+  upload_retries: 2
+  upload_timeout_s: 120.0
+  rate_limit_retries: 6           # HTTP 429 seen 2026-11-13 with two parallel pre-label runs
+  rate_limit_wait_s: 10.0         # used when the server sends no Retry-After (x attempt number)
+  rate_limit_max_wait_s: 3600.0   # cap on one wait. Tag writes returned Retry-After 1956 s on 2026-11-13; the old
+                                  # fixed 300 s cap re-sent inside the window and was refused every time
+
+# Detection classes. Team, identity and shirt number belong to other modules.
+classes: [player, goalkeeper, referee, ball]
+
+# Split the inference / baseline tools operate on. Only "dev" is accepted by the loader.
+split: dev
+
+sampling:
+  interval_s: 2.0              # one regular frame every 2 s
+  max_frames_per_video: 300    # cap per video; excess thinned evenly (deterministic, no randomness)
+  analysis_step_s: 0.2         # motion / cut signals computed at 5 Hz
+  analysis_width_px: 320       # compute-only downscale for the signals
+  motion_threshold: 0.06       # mean |grey change| (0..1) between analysis frames counted as heavy motion
+  cut_hist_distance: 0.55      # same prior as camera.cut_hist_distance in default.yaml
+  event_min_gap_s: 1.0         # extra motion / cut frames at least 1 s apart
+  jpeg_quality: 95
+
+# Pretrained detector for a BASELINE MEASUREMENT ON DEV ONLY (test use; not shipped, not trained on).
+# Roboflow Universe: roboflow-jvuqo/football-players-detection-3zvbc, version 11 (YOLOv8x, 1280 px input),
+# dataset licence CC BY 4.0, classes ball/goalkeeper/player/referee. See records/roboflow_2026-11-12/RECORD.md.
+baseline:
+  model_id: football-players-detection-3zvbc/11
+  api_url: https://serverless.roboflow.com   # hosted = third-party processing; a local inference server keeps frames here
+  confidence: 0.25             # untuned prior; not to be tuned until the baseline has been reviewed
+  iou: 0.50                    # untuned prior (NMS IoU)
+  timeout_s: 60.0
+  class_map: ["player:player", "goalkeeper:goalkeeper", "referee:referee", "ball:ball"]
+  render_samples: 6
+  histogram_bins: 10
+
+# Inference servers on these hosts keep frames on this machine (no third-party processing).
+local_api_hosts: [localhost, 127.0.0.1]
+
+# Allow-list of licensed matches. A match belongs to exactly ONE split; DEV and EVAL come from different matches.
+# Upload / hosted inference also needs third_party_processing_confirmed: true (Nathan confirms per licence).
+licensed_matches:
+  # Third-party processing (Roboflow upload + hosted inference) confirmed by Nathan on 2026-11-12.
+  - match_id: TRAIN_M001_MORETON_CITY
+    split: train
+    permission: "written permission dated 2026-11-03 (records/reid_train/TRAIN_M001_STATUS.md)"
+    third_party_processing_confirmed: true
+  - match_id: TRAIN_M002_EASTERN_SUBURBS
+    split: train
+    permission: "written permission dated 2026-11-04 (records/reid_train/TRAIN_M002_STATUS.md)"
+    third_party_processing_confirmed: true
+  - match_id: TRAIN_M003_SYDNEY_OLYMPIC
+    split: train
+    permission: "written permission dated 2026-11-04 (records/reid_train/TRAIN_M003_STATUS.md)"
+    third_party_processing_confirmed: true
+
+# --- dataset preparation for detector v1 (tools/roboflow_audit.py, roboflow_split.py, roboflow_prelabel.py,
+#     roboflow_progress.py, roboflow_version.py). Every tool applies the licensed_matches allow-list to every frame.
+audit:
+  phash_hamming_max: 2         # 64-bit DCT pHash; <= 2 differing bits = near-duplicate. Was 4: too loose (Nathan, 2026-11-13)
+  page_size: 250
+  fetch_timeout_s: 60.0
+  search_attempts: 4           # Roboflow's search index lags writes (899 of 900 seen right after a move)
+  search_wait_s: 10.0
+
+splits:
+  assignable: [train, valid]   # a TRAIN-licensed match goes wholly to train or wholly to valid; never test
+  excluded_tag: "excluded:near-duplicate"
+  move_method: delete_reupload # no split-change API; plain re-upload does NOT move splits; delete + re-upload
+                               # probed OK on M001 f0000000 2026-11-13 (RECORD)
+  probe_max: 1                 # --probe moves at most this many frames, then verifies
+  verify_attempts: 6           # post-move checks retried (search lags writes)
+  verify_wait_s: 10.0
+
+# Pre-labelling: pretrained general COCO detector, commercial-use licence. NOT a Universe dataset / model.
+# coco/36 is what Roboflow's own inference server resolves the alias "rfdetr-base" to
+# (inference 1.8.4, inference/models/aliases.py): RF-DETR base, COCO-pretrained, Apache-2.0.
+prelabel:
+  model_id: coco/36
+  model_licence: "RF-DETR base COCO-pretrained (Apache-2.0); hosted by Roboflow (alias rfdetr-base)"
+  api_url: https://serverless.roboflow.com
+  request_confidence: 0.30     # server-side floor; per-class thresholds below decide what is kept
+  iou: 0.50
+  timeout_s: 90.0
+  class_map: ["person:player", "sports ball:ball"]   # goalkeeper / referee come from human review only
+  class_thresholds: ["player:0.50", "ball:0.50"]     # player: untuned prior (unchanged since v1). ball 0.85 -> 0.50
+                               # (Nathan, 2026-11-13): true balls score 0.32-0.79 on the 20 v1 sample frames (RECORD)
+  tag: "prelabel:v2"
+  superseded_tags: ["prelabel:v1"]   # v1 frames are only touched by --migrate (annotation backed up first)
+  ball_class: ball
+  ball_max_size_frac: 0.04     # true balls 10-16 px at 720 p; the 44 px broadcast logo was the only false positive
+  sample_size: 20              # hard cap without --confirm-full-run; a full run also needs --approved-sample <log>
+                               # of a sample run made with this exact prelabel section (config sha256 must match)
+  min_interval_s: 1.0          # pause between frames; run one pre-label process at a time
+  add_to_dataset: false        # pre-labels stay in their batch until reviewed
+  blur:                        # variance of Laplacian on a grey copy resized to analysis_width_px
+    analysis_width_px: 640
+    laplacian_var_min: 200.0   # untuned prior from 900 TRAIN frames (RECORD 2026-11-13): catches only strong
+                               # blur; low-texture sharp frames score ~220-260, so a higher value excludes sharp frames
+    excluded_tag: "excluded:blur"
+  grass:                       # PRE-LABELS ONLY: drop boxes whose bottom-centre is outside the frame's grass mask
+    enabled: true
+    hsv_lower: [30, 40, 30]    # untuned prior (OpenCV HSV: H 0..179)
+    hsv_upper: [90, 255, 255]
+    close_frac: 0.03           # fraction of frame height: closes over pitch lines, players and shadows
+    min_component_frac: 0.02   # fraction of frame area: ignores small green patches (signs, shirts, hedges)
+    convex_hull: true          # without it, 4 of 10 drops on the v2 sample were occluded on-pitch players (RECORD)
+    dilate_frac: 0.01          # fraction of frame height: feet on the grass edge stay inside
+    apply_to: [player, ball]
+  ball_tiling:                 # ball class only; player inference is never tiled
+    enabled: true              # --diagnose-ball 2026-11-13: tiles raise true-ball scores (M002 ball is 5-8 px)
+    tile_px: 640
+    overlap_frac: 0.25
+    merge_iou: 0.30
+  ball_diagnostic:             # --diagnose-ball: read-only, nothing written to Roboflow
+    request_confidence: 0.01
+    top_k: 3
+    tile_px_candidates: [640, 320]
+
+review:
+  reviewed_tag: reviewed
+
+# Dataset version (tools/roboflow_version.py). No colour-changing augmentation: kit colour matters later.
+version:
+  auto_orient: true
+  resize_width: 1280
+  resize_height: 1280
+  resize_format: "Fit (black edges) in"   # keeps aspect ratio; small players / ball are not squashed
+  augmentations: []
+
+paths:
+  manifest_dir: records/roboflow_uploads   # upload manifests (committed; no footage, no secrets)
+  frames_dir: runs/roboflow_frames         # extracted frames + dry-run manifests (gitignored)
+  baseline_dir: runs/roboflow_baseline     # baseline outputs (gitignored)
+  audit_dir: records/roboflow_audit        # dataset audits (committed; no pixels)
+  split_dir: records/roboflow_splits       # split-assignment manifests (committed)
+  prelabel_dir: records/roboflow_prelabel  # pre-label logs (committed; no pixels)
+  render_dir: runs/roboflow_prelabel       # annotated pre-label renders (gitignored)
+  image_cache_dir: runs/roboflow_cache     # verified copies of project images (gitignored)
+  prelabel_backup_dir: records/roboflow_prelabel/backups   # annotations saved before replacement (committed)

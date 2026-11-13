@@ -34,6 +34,9 @@ python -m spana.cli track  --video match.mp4 --config config/default.yaml --dete
 python tools/fetch_model.py models/yolox_s.json   # downloads weights, verifies sha256
 python -m pytest tests -q
 python -m tools.qa_scenarios                      # QA metrics table (transfers, switches, fragments ...)
+# detection dataset (Roboflow; config/roboflow.yaml; API key in .env, see .env.example)
+python -m tools.roboflow_ingest --video M.mp4 --match-id ID --split {train,dev} [--dry-run]   # eval always refused
+python -m tools.dev.roboflow_baseline --video DEV.mp4 --match-id ID   # DEV-only pretrained-detector baseline
 ```
 
 A model record (`ModelRecord` in `spana/detection/onnx_backend.py`) pins name, source, exact version, sha256,
