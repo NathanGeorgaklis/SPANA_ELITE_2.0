@@ -358,3 +358,28 @@ Branch `claude/prelabel-v2` (from `claude/nifty-carson-j51h2l`; `main` has none 
   a frame that was already written; the image is re-read immediately before its first write; migration requires
   `saved` and compares box positions on read-back; the ball size cap runs before the tile merge.
   Full suite: 212 passed, 4 skipped.
+
+### 2026-11-13: v2 sample migration (20 frames) result
+- Server state after the run (read back per image): 19 frames `prelabel:v2`, 1 frame `excluded:blur`
+  (M002 f0017160, blur 151.68 < 200, 0 boxes), 0 `prelabel:v1`, 0 `reviewed`. 226 boxes = 217 player + 9 ball.
+- Per match: M002 10 frames: 9 labelled, 1 excluded (blur), 106 players kept, 0 dropped off-pitch, 1 ball in 1 frame.
+  M003 10 frames: 10 labelled, 111 players kept, 6 dropped off-pitch (spectators, f0012120), 8 balls in 8 frames,
+  2 ball boxes dropped by the size cap (44-45 px broadcast logo).
+- Logs: `prelabel_20261113T072316Z.json` (sha256 cdddc729255c55b6..., 17 labelled, 3 failed closed) and
+  `prelabel_20261113T075828Z.json` (33dedd19f2e80ef6..., the 3 retried: 2 labelled, 1 excluded blur).
+  Renders: `runs/roboflow_prelabel/20261113T072316Z/`, `.../20261113T075828Z/` (not committed).
+- Backups: `backups/backup_20261113T054224Z.json` (a6a3440525e31fb5...) is the true v1 backup of all 20 frames
+  (232 boxes). `072130Z`, `072316Z` and `075828Z` were written by later attempts; the first sample frame
+  (M002 f0000000) already held v2 boxes under a v1 tag in those.
+- Failures on the way, each failed closed (v1 tag kept) and has a regression test:
+  1. ROOT CAUSE: tag writes returned HTTP 429 with Retry-After 1956 s; the wait was capped at a fixed 300 s, so
+     every retry landed inside the window. LAYER: `spana/dataset/ratelimit.py`. FIX: cap from config
+     `roboflow.rate_limit_max_wait_s` (3600); waits and per-frame progress are printed to stderr.
+  2. ROOT CAUSE: pooled HTTP connections dropped by the server during the 31 min wait; the next request on each
+     (project API, inference API) timed out. LAYER: HTTP clients. FIX: one re-send on ConnectionError.
+  3. ROOT CAUSE: the annotate API rejects an empty Darknet TXT (HTTP 400 InvalidAnnotationFormat). LAYER:
+     `_write_labels` migrate path. FIX: boxes are cleared with an object-less Pascal VOC file; verified on the
+     server (0 boxes).
+- Open: the tag-write quota that produced the 1956 s Retry-After is unknown; a larger run may hit it again.
+  Not run: v2 on any frame outside the 20; the remaining 183 `prelabel:v1` frames are untouched.
+  Full suite: 212 passed, 4 skipped.
