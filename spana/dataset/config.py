@@ -49,6 +49,7 @@ class RoboflowSection:
     upload_timeout_s: float
     rate_limit_retries: int     # HTTP 429: retry this many times (Retry-After honoured, else rate_limit_wait_s x attempt)
     rate_limit_wait_s: float
+    rate_limit_max_wait_s: float   # longest single wait; must cover the server's Retry-After window
 
     def validate(self) -> None:
         for n in ("workspace", "project", "api_key_env", "project_type", "train_split_name", "dev_split_name"):
@@ -60,6 +61,7 @@ class RoboflowSection:
         _pos("roboflow.upload_timeout_s", self.upload_timeout_s)
         _pos_int("roboflow.rate_limit_retries", self.rate_limit_retries, allow_zero=True)
         _pos("roboflow.rate_limit_wait_s", self.rate_limit_wait_s)
+        _pos("roboflow.rate_limit_max_wait_s", self.rate_limit_max_wait_s)
         u = urlparse(self.api_url)
         if u.scheme != "https" or not u.hostname:
             raise ConfigError("roboflow.api_url must be an https URL")

@@ -83,7 +83,8 @@ def to_project_image(hit: dict, project: str) -> ProjectImage:
 
 class RoboflowProject:
     def __init__(self, *, api_url: str, workspace: str, project: str, api_key: str, timeout_s: float, session=None,
-                 rate_limit_retries: int = 0, rate_limit_wait_s: float = 1.0, sleep=time.sleep):
+                 rate_limit_retries: int = 0, rate_limit_wait_s: float = 1.0, sleep=time.sleep,
+                 rate_limit_max_wait_s: float = 300.0):
         import requests
         self._base = api_url.rstrip("/")
         self.workspace, self.project = workspace, project
@@ -91,6 +92,7 @@ class RoboflowProject:
         self._timeout = timeout_s
         self._session = session if session is not None else requests.Session()
         self._retries, self._wait, self._sleep = rate_limit_retries, rate_limit_wait_s, sleep
+        self._max_wait = rate_limit_max_wait_s
 
     def _err(self, text: str) -> RoboflowApiError:
         return RoboflowApiError(redact(text, self._key)[:500])
@@ -101,7 +103,7 @@ class RoboflowProject:
                 return self._session.request(method, url, timeout=self._timeout, **kw)
             except Exception as e:
                 raise self._err(f"{method} failed: {type(e).__name__}: {e}") from None
-        return call_with_429_retry(send, self._retries, self._wait, sleep=self._sleep)
+        return call_with_429_retry(send, self._retries, self._wait, sleep=self._sleep, max_wait_s=self._max_wait)
 
     def _json(self, r, ok=(200,)) -> dict:
         if r.status_code not in ok:

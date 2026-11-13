@@ -645,6 +645,16 @@ class ClientTests(unittest.TestCase):
         self.assertNotIn(SECRET, str(cm.exception))
         from spana.dataset.ratelimit import retry_after_s
         self.assertEqual(retry_after_s(mock.Mock(headers={}), 2, 10.0), 20.0)
+        # regression 2026-11-13: a Retry-After longer than the old fixed 300 s cap is waited out in full
+        long = mock.Mock(headers={"Retry-After": "1956"})
+        self.assertEqual(retry_after_s(long, 1, 10.0, 3600.0), 1956.0)
+        self.assertEqual(retry_after_s(long, 1, 10.0, 600.0), 600.0)
+        session.request.side_effect = [mock.Mock(status_code=429, text="", headers={"Retry-After": "1956"}), ok]
+        sleeps.clear()
+        RoboflowProject(api_url="https://api.invalid", workspace="ws", project="proj", api_key=SECRET, timeout_s=5,
+                        session=session, rate_limit_retries=3, rate_limit_wait_s=10, sleep=sleeps.append,
+                        rate_limit_max_wait_s=3600.0).update_tags("i1", add=["x"])
+        self.assertEqual(sleeps, [1956.0])
 
     def test_batch_calls(self):
         session = mock.Mock()

@@ -17,6 +17,8 @@ roboflow:
   upload_timeout_s: 120.0
   rate_limit_retries: 6           # HTTP 429 seen 2026-11-13 with two parallel pre-label runs
   rate_limit_wait_s: 10.0         # used when the server sends no Retry-After (x attempt number)
+  rate_limit_max_wait_s: 3600.0   # cap on one wait. Tag writes returned Retry-After 1956 s on 2026-11-13; the old
+                                  # fixed 300 s cap re-sent inside the window and was refused every time
 
 # Detection classes. Team, identity and shirt number belong to other modules.
 classes: [player, goalkeeper, referee, ball]

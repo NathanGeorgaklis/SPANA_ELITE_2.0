@@ -26,7 +26,8 @@ class UploadError(RuntimeError):
 
 class RoboflowUploader:
     def __init__(self, *, api_url: str, workspace: str, project: str, api_key: str, timeout_s: float,
-                 session=None, rate_limit_retries: int = 0, rate_limit_wait_s: float = 1.0):
+                 session=None, rate_limit_retries: int = 0, rate_limit_wait_s: float = 1.0,
+                 rate_limit_max_wait_s: float = 300.0):
         import requests  # local import keeps the dependency at the edge
         self._base = api_url.rstrip("/")
         self._workspace = workspace
@@ -35,6 +36,7 @@ class RoboflowUploader:
         self._timeout = timeout_s
         self._session = session if session is not None else requests.Session()
         self._rl_retries, self._rl_wait = rate_limit_retries, rate_limit_wait_s
+        self._rl_max_wait = rate_limit_max_wait_s
 
     def _err(self, text: str) -> UploadError:
         return UploadError(redact(text, self._key)[:500])
@@ -71,7 +73,7 @@ class RoboflowUploader:
                 r = call_with_429_retry(
                     lambda: self._session.post(url, params=params, data=form,
                                                files={"file": (p.name, data, "image/jpeg")}, timeout=self._timeout),
-                    self._rl_retries, self._rl_wait)
+                    self._rl_retries, self._rl_wait, max_wait_s=self._rl_max_wait)
             except Exception as e:   # network error: retry; the message may contain the URL with the key
                 last = self._err(f"{type(e).__name__}: {e}")
                 continue
