@@ -60,6 +60,29 @@ class AdapterTests(unittest.TestCase):
             RoboflowDetector.from_detector_config(make_cfg(), SECRET, client=FakeClient([]))
 
 
+class SmokeTests(unittest.TestCase):
+    def test_dev_only_and_nothing_sent_when_refused(self):
+        from tools import detector_smoke
+        cfg = make_cfg(lambda d: (d["detector"].update(model_id="proj/2"),
+                                  d["licensed_matches"].extend([
+                                      {"match_id": "M_DEV", "split": "dev", "permission": "t",
+                                       "third_party_processing_confirmed": True},
+                                      {"match_id": "M_DEV_UNCONF", "split": "dev", "permission": "t",
+                                       "third_party_processing_confirmed": False}])))
+        frame = np.zeros((36, 64, 3), np.uint8)
+        client = FakeClient([{"x": 10, "y": 10, "width": 4, "height": 4, "confidence": 0.9, "class": "ball"}])
+        det = RoboflowDetector.from_detector_config(cfg, SECRET, client=client)
+        for mid, want in (("M1", "registered for split"), ("M_EVAL", "registered for split"),
+                          ("M_NOPE", "not in licensed_matches"), ("M_DEV_UNCONF", "third-party")):
+            with self.assertRaisesRegex(PolicyError, want):
+                detector_smoke.run_smoke(cfg, frame, mid, detector=det)
+        self.assertEqual(client.calls, [])                                       # refused before any request
+        summary, out = detector_smoke.run_smoke(cfg, frame, "M_DEV", detector=det)
+        self.assertEqual(summary["detections"]["ball"], 1)
+        self.assertEqual(out.shape, frame.shape)
+        self.assertEqual(len(client.calls), 1)
+
+
 class EvalTests(unittest.TestCase):
     def setUp(self):
         self.cfg = cfg_with_model(render_frames=3, worst_per_class=1)
