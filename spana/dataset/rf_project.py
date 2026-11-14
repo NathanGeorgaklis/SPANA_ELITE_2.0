@@ -8,6 +8,7 @@
   new version     POST {api}/{workspace}/{project}/generate    {"preprocessing": ..., "augmentation": ...}
 
   list batches    GET  {api}/{workspace}/{project}/batches
+  batch images    GET  {api}/{workspace}/{project}/annotation-batches/{id}/images?limit=&after=  (probed 2026-11-14)
   new batch       POST {api}/{workspace}/{project}/annotation-batches  {"sourceBatchId", "imageIds", "name"}
   delete batch    DELETE {api}/{workspace}/{project}/annotation-batches/{id}?permanent=true|false
 
@@ -230,6 +231,27 @@ class RoboflowProject:
                 raise RoboflowApiError("unexpected batch entry in response")
             out.append({"id": str(b["id"]), "name": str(b["name"]), "images": b["images"]})
         return out
+
+    def batch_image_ids(self, batch_id: str, page_size: int = 200) -> List[str]:
+        """Ids of every image in one upload batch (paged by nextPageToken -> after). Fails closed on an unknown
+        response shape or a page that adds nothing."""
+        out: List[str] = []
+        token = None
+        while True:
+            params = {"api_key": self._key, "limit": page_size}
+            if token:
+                params["after"] = token
+            j = self._json(self._call("GET", f"{self._base}/{self.workspace}/{self.project}/annotation-batches/"
+                                             f"{batch_id}/images", params=params))
+            ids = j.get("imageIds")
+            if not isinstance(ids, list) or any(not isinstance(i, str) for i in ids):
+                raise RoboflowApiError("unexpected batch image list response")
+            out += ids
+            token = j.get("nextPageToken")
+            if not token:
+                return out
+            if not ids:
+                raise RoboflowApiError("batch image list: empty page with a continuation token")
 
     def create_batch(self, source_batch_id: str, image_ids: List[str], name: str) -> None:
         self._json(self._call("POST", f"{self._base}/{self.workspace}/{self.project}/annotation-batches",

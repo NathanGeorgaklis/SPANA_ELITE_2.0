@@ -241,6 +241,9 @@ class BatchProject(FakeProject):
         names = sorted(set(self.batch_of.values()))
         return [{"id": f"B:{n}", "name": n, "images": sum(v == n for v in self.batch_of.values())} for n in names]
 
+    def batch_image_ids(self, batch_id):
+        return sorted(i for i, b in self.batch_of.items() if b == batch_id[2:])
+
     def create_batch(self, source_batch_id, image_ids, name):
         self.created.append((source_batch_id, tuple(image_ids), name))
         for i in image_ids:
@@ -339,11 +342,29 @@ class MoveTests(unittest.TestCase):
         m2 = [i for i in self.images if i.metadata["match_id"] == "M2"]
         proj.batch_of[m1[0].id] = "spana_other"            # same batch size as the frames to move (3), wrong members:
         proj.batch_of[m2[0].id] = "spana_M1_train"         # one M1 frame is elsewhere, one M2 frame sits in M1's batch
-        proj.batch_of["stray"] = "spana_other"             # and the batches do not account for the listing
         with self.assertRaises((PolicyError, AssertionError)):
             self._apply(cfg, proj, FakeUploader(proj))
         self.assertNotIn("spana_M1_train", proj.deleted)                        # the M2 frame was not deleted
         self.assertEqual(len([i for i in proj.images if i.metadata["match_id"] == "M2"]), 2)
+
+    def test_only_assigned_leaves_other_matches_where_they_are_and_reports_them(self):
+        """2026-11-14: a frame of another match turned up in valid while one match was being assigned. It must not
+        be deleted + re-uploaded as a side effect; it is reported."""
+        cfg = make_cfg(lambda d: d["splits"].update(move_method="delete_reupload"))
+        images = [ProjectImage(**{**i.__dict__, "split": "valid"}) if i.id == self.images[4].id else i
+                  for i in self.images]
+        proj = BatchProject(images)
+        plan = roboflow_split.plan_split(cfg, proj.images, {"M1": "valid"}, only_assigned=True)
+        self.assertEqual(plan["unassigned_split_conflicts"], {"M2": ["train", "valid"]})
+        self.assertEqual([r["name"] for r in plan["rows"] if r["move"]], [i.name for i in images[:3]])
+        log = roboflow_split.apply_plan(cfg, proj, plan, exclusions_only=False, uploader=FakeUploader(proj),
+                                        images=list(proj.images), cache_dir=self.cache, restore_path=self.restore,
+                                        stamp="S")
+        self.assertEqual(len(log), 3)
+        self.assertEqual(proj.deleted, ["spana_M1_train"])
+        self.assertEqual(sorted(i.split for i in proj.images if i.metadata["match_id"] == "M2"), ["train", "valid"])
+        with_default = roboflow_split.plan_split(cfg, images, {"M1": "valid"})
+        self.assertEqual(sum(r["move"] for r in with_default["rows"]), 4)       # default: also moves the M2 frame
 
     def test_annotated_frame_is_never_deleted_and_reuploaded(self):
         cfg = make_cfg(lambda d: d["splits"].update(move_method="delete_reupload"))
@@ -728,6 +749,14 @@ class ClientTests(unittest.TestCase):
         session.request.return_value = mock.Mock(status_code=200, json=mock.Mock(return_value={"image": {"id": "i1"}}))
         slow.get_image("i1")
         self.assertEqual(session.request.call_args[1]["timeout"], 5)       # everything else keeps the short one
+        pages = [{"imageIds": ["a", "b"], "nextPageToken": "T"}, {"imageIds": ["c"], "nextPageToken": None}]
+        session.request.side_effect = [mock.Mock(status_code=200, json=mock.Mock(return_value=x)) for x in pages]
+        self.assertEqual(pr.batch_image_ids("b1"), ["a", "b", "c"])
+        self.assertEqual(session.request.call_args[0], ("GET", "https://api.invalid/ws/proj/annotation-batches/b1/images"))
+        self.assertEqual(session.request.call_args[1]["params"]["after"], "T")
+        session.request.side_effect = [mock.Mock(status_code=200, json=mock.Mock(return_value={"images": 3}))]
+        with self.assertRaises(RoboflowApiError):
+            pr.batch_image_ids("b1")
 
     def test_save_never_overwrites_and_errors_are_redacted(self):
         session = mock.Mock()
