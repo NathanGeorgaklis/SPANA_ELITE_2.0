@@ -236,6 +236,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             out.parent.mkdir(parents=True, exist_ok=True)
             write_json_atomic(out, doc)
         error = None
+        save()                                   # the computed flags are on disk before the first write
         if a.apply:
             guard = GuardedProject(cfg, project, images)
             try:
