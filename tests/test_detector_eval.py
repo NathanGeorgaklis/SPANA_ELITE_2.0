@@ -57,7 +57,8 @@ class AdapterTests(unittest.TestCase):
 
     def test_no_trained_model_configured(self):
         with self.assertRaisesRegex(RoboflowError, "model_id is empty"):
-            RoboflowDetector.from_detector_config(make_cfg(), SECRET, client=FakeClient([]))
+            RoboflowDetector.from_detector_config(make_cfg(lambda d: d["detector"].update(model_id="")), SECRET,
+                                                  client=FakeClient([]))
 
 
 class SmokeTests(unittest.TestCase):

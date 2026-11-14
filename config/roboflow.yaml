@@ -214,7 +214,7 @@ detector:
                                # (median 13 px, 5th percentile 9 px; preflight 2026-11-14)
   online_augmentations: [flip_horizontal]   # Roboflow's default for this model; no colour-changing step
   flip_probability: 0.5
-  model_id: ""                 # filled in when training has finished
+  model_id: nathans-workspace-9brdc/spana-elite-2-rfdetr-medium-t1   # detector v1: training 9b0b72177c37bc0cd3aa, 2026-11-14
   api_url: https://serverless.roboflow.com   # hosted = third-party processing; a local inference server keeps frames here
   confidence: 0.50             # untuned prior; not to be tuned until Nathan has reviewed the v1 results
   iou: 0.50                    # untuned prior (overlap sent with each request)
