@@ -65,7 +65,8 @@ class PreflightTests(unittest.TestCase):
         pf.check_labels(self.cfg, e)
 
     def test_ball_too_small_at_version_size(self):
-        cfg = make_cfg(lambda d: d["version"].update(resize_width=320, resize_height=320))
+        cfg = make_cfg(lambda d: (d["version"].update(resize_width=320, resize_height=320),
+                                  d["detector"].update(input_resolution=320)))
         self.fails(good(), "below preflight.ball_min_version_px", cfg)          # 12 px * 0.25 = 3 px < 4
         cfg = make_cfg(lambda d: d["version"].update(resize_format="Stretch to"))
         self.fails(good(), "does not keep the aspect ratio", cfg)
@@ -98,6 +99,9 @@ class PreflightTests(unittest.TestCase):
                        lambda d: d["preflight"].update(split_matches=["train:M1", "valid:M1"]),
                        lambda d: d["preflight"].update(ball_size_buckets_px=[12.0, 8.0]),
                        lambda d: d["preflight"].update(ball_quantile=1.5),
+                       lambda d: d["detector"].update(input_resolution=640),          # would shrink the ball
+                       lambda d: d["detector"].update(online_augmentations=["hue"]),
+                       lambda d: d["detector"].update(model_id="spana-elite"),
                        lambda d: d["preflight"].pop("ball_min_version_px")):
             with self.assertRaises(ConfigError):
                 make_cfg(mutate)

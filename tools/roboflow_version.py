@@ -1,7 +1,12 @@
-"""Step 6: generate a Roboflow dataset version for detector training. NOT RUN YET (code only).
+"""Step 6: generate a Roboflow dataset version for detector training.
 
     python -m tools.roboflow_version [--config config/roboflow.yaml]            # checks + prints settings
-    python -m tools.roboflow_version --generate                                  # actually generates
+    python -m tools.roboflow_version --generate --preflight <preflight record>   # actually generates
+    python -m tools.roboflow_version --record N --preflight <preflight record>   # checks version N, writes manifest
+
+--generate and --record need a passed record of tools/roboflow_preflight.py made under the current version and
+preflight config and agreeing with the live project listing. The manifest (paths.version_dir/version_<N>.json)
+is written only when the server's split sizes, preprocessing and augmentation equal what was asked for.
 
 Settings from config (version section): auto-orient, resize (width, height, format), images carrying an
 excluded tag (near-duplicate, blur) filtered out, and only geometric augmentations (none by default; colour-changing augmentation
@@ -17,12 +22,14 @@ Refuses (nothing is generated) if any of these holds:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import List, Optional, Sequence
 
+from spana.artifacts import write_json_atomic
 from spana.dataset.config import DatasetConfig, PolicyError, load_dataset_config, match_of
 from spana.dataset.prep import list_all, match_tag, open_project
 from spana.dataset.rf_project import ProjectImage
@@ -87,22 +94,87 @@ def check_ready(cfg: DatasetConfig, images: List[ProjectImage]) -> dict:
             "match_splits": {m: sorted(s)[0] for m, s in sorted(splits_per_match.items())}}
 
 
+def load_preflight(cfg: DatasetConfig, path: Path, ready: dict) -> dict:
+    """A passed preflight record made under the current version / preflight config and matching the live listing."""
+    doc = json.loads(Path(path).read_text())
+    problems = []
+    if doc.get("kind") != "spana.roboflow_preflight" or doc.get("passed") is not True:
+        problems.append("it is not a passed preflight record")
+    if doc.get("config_sha256") != {n: cfg.section_sha256(n) for n in ("version", "preflight")}:
+        problems.append("it was made under another version / preflight config")
+    if doc.get("gate") != ready:
+        problems.append(f"the project changed since: preflight {doc.get('gate')}, now {ready}")
+    if problems:
+        raise PolicyError(f"refused: preflight record {Path(path).name}: " + "; ".join(problems))
+    return doc
+
+
+def server_preprocessing(pre: Optional[dict]) -> dict:
+    """The server's saved preprocessing in the shape it was asked for. Tag filters come back as
+    {"tags": {tag: {"omit": true}}} (seen 2026-11-14); any other saved filter shape is left as it is, so it differs."""
+    pre = dict(pre or {})
+    tags = (pre.get("filter-tags") or {}).get("tags") if isinstance(pre.get("filter-tags"), dict) else None
+    if isinstance(tags, dict) and all(v == {"omit": True} for v in tags.values()):
+        pre["filter-tags"] = {t: False for t in tags}
+    return pre
+
+
+def build_manifest(cfg: DatasetConfig, number: int, server: dict, settings: dict, preflight: dict,
+                   preflight_sha256: str) -> dict:
+    """Manifest of a generated version, checked against what was asked for. Fails closed on any difference."""
+    v = server.get("version") or {}
+    splits = {k: int(n) for k, n in (v.get("splits") or {}).items() if int(n)}
+    copies = 1 + (int(bool(settings["augmentation"])))        # Roboflow's default: 2 outputs per train image
+    want = dict(preflight["gate"]["splits"])
+    want["train"] = want["train"] * copies
+    problems = []
+    if v.get("generating"):
+        problems.append("the version is still generating")
+    if splits != want:
+        problems.append(f"split sizes {splits} differ from the preflight frames {want}")
+    if server_preprocessing(v.get("preprocessing")) != settings["preprocessing"]:
+        problems.append(f"preprocessing on the server {v.get('preprocessing')} differs from {settings['preprocessing']}")
+    if (v.get("augmentation") or {}) != settings["augmentation"]:
+        problems.append(f"augmentation on the server {v.get('augmentation')} differs from {settings['augmentation']}")
+    if problems:
+        raise PolicyError(f"version {number} does not match what was asked for:\n  - " + "\n  - ".join(problems))
+    return {"kind": "spana.roboflow_version", "project": cfg.roboflow.project, "version": number,
+            "version_id": v.get("id"), "images": v.get("images"), "splits": splits, "settings": settings,
+            "config_sha256": preflight["config_sha256"], "preflight_created_utc": preflight["created_utc"],
+            "preflight_sha256": preflight_sha256, "labels_file": preflight["labels_file"],
+            "labels_sha256": preflight["labels_sha256"], "match_splits": preflight["gate"]["match_splits"],
+            "boxes": preflight["stats"]["boxes"]}
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--config", default=str(DEFAULT_CONFIG))
+    ap.add_argument("--preflight", help="passed record of tools/roboflow_preflight.py (needed to generate / record)")
     ap.add_argument("--generate", action="store_true", help="generate the version (otherwise only check)")
+    ap.add_argument("--record", type=int, metavar="N", help="check generated version N and write its manifest")
     a = ap.parse_args(argv)
     cfg = load_dataset_config(a.config)
     project = open_project(cfg, load_secret(cfg.roboflow.api_key_env))
     settings = version_settings(cfg)
     try:
         ready = check_ready(cfg, list_all(cfg, project))
+        print(json.dumps({"ready": ready, "settings": settings}, indent=1, sort_keys=True))
+        if a.generate or a.record is not None:
+            if not a.preflight:
+                raise PolicyError("refused: --generate / --record need --preflight <passed preflight record>")
+            preflight = load_preflight(cfg, Path(a.preflight), ready)
+        if a.generate:
+            print(json.dumps(project.generate_version(settings), indent=1, sort_keys=True))
+        if a.record is not None:
+            manifest = build_manifest(cfg, a.record, project.get_version(a.record), settings, preflight,
+                                      hashlib.sha256(Path(a.preflight).read_bytes()).hexdigest())
+            path = REPO / cfg.paths.version_dir / f"version_{a.record}.json"
+            write_json_atomic(path, manifest)
+            print(json.dumps(manifest, indent=1, sort_keys=True))
+            print(f"manifest: {path}")
     except PolicyError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 3
-    print(json.dumps({"ready": ready, "settings": settings}, indent=1, sort_keys=True))
-    if a.generate:
-        print(json.dumps(project.generate_version(settings), indent=1, sort_keys=True))
     return 0
 
 

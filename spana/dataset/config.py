@@ -438,6 +438,33 @@ class PreflightSection:
 
 
 @dataclass(frozen=True)
+class DetectorSection:
+    """Detector training on Roboflow (one model per dataset version)."""
+    dataset_version: int               # generated version the model is trained on (records: version_<N>.json)
+    model_type: str                    # Roboflow training model id
+    checkpoint: str                    # starting weights
+    epochs: int
+    input_resolution: int              # square training input, pixels; must equal the version's resize (no downscale)
+    online_augmentations: Tuple[str, ...]   # subset of GEOMETRIC_AUGMENTATIONS applied during training
+    flip_probability: float
+    model_id: str                      # "<project>/<version>" of the trained model; "" until training has finished
+
+    def validate(self) -> None:
+        _pos_int("detector.dataset_version", self.dataset_version)
+        _pos_int("detector.epochs", self.epochs)
+        _pos_int("detector.input_resolution", self.input_resolution)
+        _unit("detector.flip_probability", self.flip_probability)
+        if not self.model_type.strip() or not self.checkpoint.strip():
+            raise ConfigError("detector.model_type and detector.checkpoint must be non-empty")
+        bad = [a for a in self.online_augmentations if a not in GEOMETRIC_AUGMENTATIONS]
+        if bad:
+            raise ConfigError(f"detector.online_augmentations {bad} refused: only {GEOMETRIC_AUGMENTATIONS} are "
+                              "allowed (no colour-changing augmentation)")
+        if self.model_id and (self.model_id.count("/") != 1 or not all(self.model_id.split("/"))):
+            raise ConfigError("detector.model_id must be '' or look like '<project>/<version>'")
+
+
+@dataclass(frozen=True)
 class PathsSection:
     manifest_dir: str    # upload manifests (records; committed)
     frames_dir: str      # extracted frames and dry-run manifests (run outputs; not committed)
@@ -469,6 +496,7 @@ class DatasetConfig:
     review_flags: ReviewFlagsSection
     version: VersionSection
     preflight: PreflightSection
+    detector: DetectorSection
     paths: PathsSection
 
     def validate(self) -> None:
@@ -516,6 +544,9 @@ class DatasetConfig:
         unknown = [c for c in self.prelabel.grass.apply_to if c not in targets]
         if unknown:
             raise ConfigError(f"prelabel.grass.apply_to {unknown}: not auto-labelled classes")
+        if self.detector.input_resolution != max(self.version.resize_width, self.version.resize_height):
+            raise ConfigError("detector.input_resolution must equal the version resize (the ball must not be "
+                              "downscaled between the version and the model input)")
         ids = [m.match_id for m in self.licensed_matches]
         if len(set(ids)) != len(ids):
             raise ConfigError("licensed_matches: a match_id is listed twice (a match belongs to one split)")

@@ -566,6 +566,36 @@ class VersionTests(unittest.TestCase):
         self.assertNotIn("grayscale", s["preprocessing"])
         self.assertNotIn("contrast", s["preprocessing"])
 
+    def test_generate_needs_matching_preflight_and_manifest_checks_the_server(self):
+        ready = roboflow_version.check_ready(self.cfg, self.ready_images())
+        settings = roboflow_version.version_settings(self.cfg)
+        pre = {"kind": "spana.roboflow_preflight", "passed": True, "gate": ready, "created_utc": "T",
+               "config_sha256": {n: self.cfg.section_sha256(n) for n in ("version", "preflight")},
+               "labels_file": "labels_T.json", "labels_sha256": "0" * 64, "stats": {"boxes": {}}}
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "preflight.json"
+            for bad, want in ((dict(pre, passed=False), "not a passed"), (dict(pre, config_sha256={}), "another"),
+                              (dict(pre, gate=dict(ready, images=99)), "project changed")):
+                path.write_text(json.dumps(bad))
+                with self.assertRaisesRegex(PolicyError, want):
+                    roboflow_version.load_preflight(self.cfg, path, ready)
+            path.write_text(json.dumps(pre))
+            self.assertEqual(roboflow_version.load_preflight(self.cfg, path, ready), pre)
+        saved = dict(settings["preprocessing"],
+                     **{"filter-tags": {"tags": {t: {"omit": True} for t in settings["preprocessing"]["filter-tags"]}}})
+        server = {"version": {"id": "w/p/1", "images": 5, "splits": {"train": 3, "valid": 2, "test": 0},
+                              "generating": False, "preprocessing": saved, "augmentation": {}}}
+        m = roboflow_version.build_manifest(self.cfg, 1, server, settings, pre, "f" * 64)
+        self.assertEqual((m["version"], m["splits"], m["labels_sha256"]), (1, {"train": 3, "valid": 2}, "0" * 64))
+        for change, want in (({"splits": {"train": 3, "valid": 1}}, "split sizes"),
+                             ({"splits": {"train": 3, "valid": 2, "test": 1}}, "split sizes"),
+                             ({"generating": True}, "still generating"),
+                             ({"augmentation": {"hue": {"degrees": 10}}}, "augmentation"),
+                             ({"preprocessing": dict(saved, grayscale=True)}, "preprocessing")):
+            with self.assertRaisesRegex(PolicyError, want):
+                roboflow_version.build_manifest(self.cfg, 1, {"version": dict(server["version"], **change)},
+                                                settings, pre, "f" * 64)
+
     def test_refusals(self):
         imgs = self.ready_images()
         unrev = copy.copy(imgs)

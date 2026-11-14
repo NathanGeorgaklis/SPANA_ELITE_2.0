@@ -191,6 +191,18 @@ preflight:
   ball_quantile: 0.05          # the 5th-percentile ball short side, scaled to the version size ...
   ball_min_version_px: 4.0     # ... must stay at least this wide ("several pixels"), else the version is refused
 
+# Detector training on Roboflow. One model per dataset version; changing anything here means a new training run.
+detector:
+  dataset_version: 1           # records/roboflow_version/version_1.json
+  model_type: rfdetr-medium    # the named RF-DETR model Roboflow's training tool defaults to for detection (Apache-2.0)
+  checkpoint: COCO             # COCO-pretrained starting weights
+  epochs: 100                  # Roboflow's default for this model (early stopping on, patience 15)
+  input_resolution: 1280       # = version resize: frames are 1280 px wide, so the ball keeps its source size
+                               # (median 13 px, 5th percentile 9 px; preflight 2026-11-14)
+  online_augmentations: [flip_horizontal]   # Roboflow's default for this model; no colour-changing step
+  flip_probability: 0.5
+  model_id: ""                 # filled in when training has finished
+
 paths:
   manifest_dir: records/roboflow_uploads   # upload manifests (committed; no footage, no secrets)
   frames_dir: runs/roboflow_frames         # extracted frames + dry-run manifests (gitignored)
