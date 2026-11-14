@@ -1,24 +1,30 @@
-# SPANA Elite 2.0 — instructions for Claude sessions
+# SPANA ELITE 2.0 — Claude Code rules
 
-## Persistence (mandatory)
-- The source of truth is GitHub: https://github.com/NathanGeorgaklis/SPANA_ELITE_2.0 (branch `main`).
-- Every code, config, test, tool or record change is committed AND pushed to this repo before a task is reported
-  done — and before any long-running job, so work is never only in a session workspace.
-- After pushing, verify the remote: `git fetch origin && git status -sb` must show no ahead/behind, or compare a
-  fresh clone's per-file sha256 with the working tree.
-- Never leave code only in chat, /tmp, a notebook or terminal history. Footage, model weights and run outputs are
-  not committed (see .gitignore); their hashes and the commands that produce them are.
-- Commit messages end with the session attribution lines provided by the environment.
+Read docs/STATUS.md, docs/DECISIONS.md and docs/INTERFACES.md at the start of every session.
 
-## Project rules (summary; Nathan's full rules apply)
-- Generic only: no player, team, kit, clip, frame, timestamp, venue or match-specific logic. Seconds and
-  body-height units; thresholds in config/default.yaml.
-- Diagnose the first failing layer before changing code; smallest generic fix; one regression test per failure.
-- Fail closed: UNKNOWN / LOST / new uncertain track over a confident wrong answer.
-- DEV and EVAL strictly separate: never inspect, tune on or score EVAL without Nathan's explicit approval.
-- Human labels are frozen (tools/freeze_labels.py) before any inference is scored against them; never edited.
-- Route work through the specialist roles and start replies with "AGENTS USED:".
+## Your job
+Implement CODE TASKs. Each task: one owner layer, one commit, pushed.
+If a task conflicts with DECISIONS.md or these rules, stop and say so. Don't improvise.
 
-## Layout
-`spana/` engine · `config/` · `tests/` (python -m pytest tests -q) · `tools/` · `records/` stage and validation
-records · `data/labels/` frozen DEV labels · `models/` pinned model records (weights via tools/fetch_model.py).
+## Workflow
+reproduce → confirm first failing layer → smallest generic fix → targeted test
+→ adjacent-layer check → commit + push → update STATUS.md (+ DECISIONS.md if a decision was made)
+→ output CODE REPORT (format below).
+
+## Hard rules
+- No hard-coded players/teams/numbers/kits/venues/timestamps/frames/clips/angles.
+- Thresholds in config/ only.
+- Fail closed (UNKNOWN/LOST/ABSTAIN). No identity switching on uncertainty.
+- Stats from validated events only. Clips from validated events only.
+- Never touch EVAL data without explicit approval.
+- No full-match runs unless the task says so.
+
+## CODE REPORT
+CODE REPORT: <title>
+COMMIT: <hash> on <branch>
+FINDING:
+CHANGE:
+TESTS: targeted | adjacent | full
+EVIDENCE:
+REMAINING:
+STATUS.md UPDATED: yes/no
