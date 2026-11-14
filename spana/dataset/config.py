@@ -21,7 +21,7 @@ import yaml
 
 from ..config import ConfigError, _pos, _pos_int, _unit, typed_from_dict
 
-DATASET_CONFIG_SCHEMA_VERSION = "1.3.0"
+DATASET_CONFIG_SCHEMA_VERSION = "1.4.0"
 SPLITS = ("train", "dev", "eval")
 UPLOADABLE_SPLITS = ("train", "dev")
 ROBOFLOW_SPLITS = ("train", "valid", "test")
@@ -406,6 +406,38 @@ class VersionSection:
 
 
 @dataclass(frozen=True)
+class PreflightSection:
+    """Read-only checks before a version is generated (tools/roboflow_preflight.py)."""
+    split_matches: Tuple[str, ...]        # "<roboflow split>:<match_id>": the only matches a split may hold, and
+                                          #   each listed pair must be present
+    ball_small_px: float                  # report the share of ball boxes whose short side is below this (source px)
+    ball_size_buckets_px: Tuple[float, ...]   # ascending short-side bucket edges (source px) for size reports
+    ball_quantile: float                  # this quantile of the ball short side, scaled to the version size ...
+    ball_min_version_px: float            # ... must be at least this many pixels, else the version is refused
+
+    def validate(self) -> None:
+        pairs = [e.partition(":") for e in self.split_matches]
+        if not pairs or any(not sep or s not in ROBOFLOW_SPLITS or not m.strip() for s, sep, m in pairs):
+            raise ConfigError(f"preflight.split_matches entries must be '<one of {ROBOFLOW_SPLITS}>:<match_id>'")
+        mids = [m for _, _, m in pairs]
+        if len(set(mids)) != len(mids):
+            raise ConfigError("preflight.split_matches: a match is listed twice (a match belongs to one split)")
+        if any(s == "test" for s, _, _ in pairs):
+            raise ConfigError("preflight.split_matches must not use 'test' (held-out testing is EVAL's job)")
+        _pos("preflight.ball_small_px", self.ball_small_px)
+        _pos("preflight.ball_min_version_px", self.ball_min_version_px)
+        b = self.ball_size_buckets_px
+        if not b or any(v <= 0 for v in b) or list(b) != sorted(set(b)):
+            raise ConfigError("preflight.ball_size_buckets_px must be ascending, distinct and > 0")
+        if not 0.0 <= self.ball_quantile <= 1.0:
+            raise ConfigError("preflight.ball_quantile must be in [0, 1]")
+
+    def expected(self) -> dict:
+        """{match_id: roboflow split}"""
+        return {m: s for s, _, m in (e.partition(":") for e in self.split_matches)}
+
+
+@dataclass(frozen=True)
 class PathsSection:
     manifest_dir: str    # upload manifests (records; committed)
     frames_dir: str      # extracted frames and dry-run manifests (run outputs; not committed)
@@ -417,6 +449,7 @@ class PathsSection:
     image_cache_dir: str  # verified copies of project images (run outputs; not committed)
     prelabel_backup_dir: str  # annotation backups written before any pre-label is replaced (records; committed)
     review_dir: str      # review-flag run logs (records; committed; no pixels)
+    version_dir: str     # preflight records, label snapshots and version manifests (records; committed; no pixels)
 
 
 @dataclass(frozen=True)
@@ -435,6 +468,7 @@ class DatasetConfig:
     review: ReviewSection
     review_flags: ReviewFlagsSection
     version: VersionSection
+    preflight: PreflightSection
     paths: PathsSection
 
     def validate(self) -> None:
@@ -590,7 +624,10 @@ def match_of(cfg: DatasetConfig, tags, metadata: dict) -> Tuple[Optional[License
         return None, f"match {mid!r} is not on the licensed_matches allow-list"
     if entry.split == "eval":
         return None, f"match {mid!r} is registered as EVAL"
-    if split_tags and split_tags != [entry.split]:
+    # A split tag names the licence split, or (TRAIN-licensed matches only) the Roboflow split the whole match was
+    # assigned to: one of splits.assignable, which never contains "test". Anything else fails closed.
+    allowed = {entry.split} | (set(cfg.splits.assignable) if entry.split == "train" else set())
+    if split_tags and (len(split_tags) != 1 or split_tags[0] not in allowed):
         return None, f"split tags {split_tags} disagree with the allow-list split {entry.split!r}"
     if not entry.third_party_processing_confirmed:
         return None, f"match {mid!r}: third-party processing not confirmed"

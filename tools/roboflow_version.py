@@ -3,8 +3,8 @@
     python -m tools.roboflow_version [--config config/roboflow.yaml]            # checks + prints settings
     python -m tools.roboflow_version --generate                                  # actually generates
 
-Settings from config (version section): auto-orient, resize (width, height, format), images tagged
-splits.excluded_tag filtered out, and only geometric augmentations (none by default; colour-changing augmentation
+Settings from config (version section): auto-orient, resize (width, height, format), images carrying an
+excluded tag (near-duplicate, blur) filtered out, and only geometric augmentations (none by default; colour-changing augmentation
 is refused by the config loader because kit colour matters for team classification). Splits are used as they are:
 no rebalance.
 
@@ -36,11 +36,16 @@ def version_settings(cfg: DatasetConfig) -> dict:
     v = cfg.version
     pre = {"auto-orient": v.auto_orient,
            "resize": {"width": v.resize_width, "height": v.resize_height, "format": v.resize_format},
-           "filter-tags": {cfg.splits.excluded_tag: False}}
+           "filter-tags": {t: False for t in cfg.excluded_tags()}}
     aug = {}
     if "flip_horizontal" in v.augmentations:
         aug["flip"] = {"horizontal": True, "vertical": False}
     return {"preprocessing": pre, "augmentation": aug}
+
+
+def version_images(cfg: DatasetConfig, images: List[ProjectImage]) -> List[ProjectImage]:
+    """Frames that enter a version: in the Dataset and carrying no excluded tag (the version filters those out)."""
+    return [i for i in images if i.in_dataset and not any(t in i.tags for t in cfg.excluded_tags())]
 
 
 def check_ready(cfg: DatasetConfig, images: List[ProjectImage]) -> dict:
@@ -50,7 +55,7 @@ def check_ready(cfg: DatasetConfig, images: List[ProjectImage]) -> dict:
                   and cfg.review.reviewed_tag not in i.tags]
     if unreviewed:
         problems.append(f"{len(unreviewed)} pre-labelled frames are not reviewed (e.g. {unreviewed[:3]})")
-    version_imgs = [i for i in images if i.in_dataset and not any(t in i.tags for t in cfg.excluded_tags())]
+    version_imgs = version_images(cfg, images)
     not_reviewed = [i.name for i in version_imgs if cfg.review.reviewed_tag not in i.tags]
     if not_reviewed:
         problems.append(f"{len(not_reviewed)} frames in the Dataset are not tagged {cfg.review.reviewed_tag!r} "

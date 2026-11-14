@@ -218,6 +218,11 @@ class RoboflowProject:
         return self._json(self._call("POST", f"{self._base}/{self.workspace}/{self.project}/generate",
                                      params={"api_key": self._key}, json=settings))
 
+    def get_version(self, number: int) -> dict:
+        """Raw record of one dataset version (GET /{workspace}/{project}/{number}); read-only."""
+        return self._json(self._call("GET", f"{self._base}/{self.workspace}/{self.project}/{int(number)}",
+                                     params={"api_key": self._key}))
+
     def list_batches(self) -> List[dict]:
         """[{"id", "name", "images"}] for the project's upload batches. Fails closed on an unknown response shape."""
         j = self._json(self._call("GET", f"{self._base}/{self.workspace}/{self.project}/batches",

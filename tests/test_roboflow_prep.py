@@ -36,6 +36,7 @@ def lm(mid, split="train", confirmed=True):
 def make_cfg(mutate=None):
     d = raw()
     d["licensed_matches"] = [lm("M1"), lm("M2"), lm("M_UNCONF", confirmed=False), lm("M_EVAL", "eval")]
+    d["preflight"]["split_matches"] = ["train:M1", "valid:M2"]
     d["splits"].update(move_method="none", verify_wait_s=0.0)     # tests switch moves on explicitly; no real waits
     d["audit"].update(search_wait_s=0.0)
     d["prelabel"].update(min_interval_s=0.0)
@@ -156,6 +157,12 @@ class GateTests(unittest.TestCase):
             self.assertIn(want.split()[0], reason)
         i = img(1, tags=("split:eval",))
         self.assertIn("eval", match_of(self.cfg, i.tags, i.metadata)[1])
+        # a TRAIN-licensed match may carry the tag of the Roboflow split it was assigned to; nothing else
+        i = ProjectImage(**{**img(1).__dict__, "tags": ("match:M1", "split:valid")})
+        self.assertIsNotNone(match_of(self.cfg, i.tags, i.metadata)[0])
+        for bad in (("split:test",), ("split:dev",), ("split:train", "split:valid")):
+            i = ProjectImage(**{**img(1).__dict__, "tags": ("match:M1", *bad)})
+            self.assertIn("disagree", match_of(self.cfg, i.tags, i.metadata)[1])
         i = img(1, tags=("match:M2",))
         self.assertIn("several match tags", match_of(self.cfg, i.tags, i.metadata)[1])
         i = img(1)
@@ -552,7 +559,8 @@ class VersionTests(unittest.TestCase):
         self.assertEqual(s["preprocessing"]["resize"], {"width": self.cfg.version.resize_width,
                                                         "height": self.cfg.version.resize_height,
                                                         "format": self.cfg.version.resize_format})
-        self.assertEqual(s["preprocessing"]["filter-tags"], {self.cfg.splits.excluded_tag: False})
+        self.assertEqual(s["preprocessing"]["filter-tags"],
+                         {self.cfg.splits.excluded_tag: False, self.cfg.prelabel.blur.excluded_tag: False})
         colour = {"hue", "saturation", "brightness", "exposure", "rgrayscale", "camera-gain", "noise", "blur"}
         self.assertFalse(colour & set(s["augmentation"]))
         self.assertNotIn("grayscale", s["preprocessing"])
