@@ -58,6 +58,12 @@ class PreflightTests(unittest.TestCase):
         self.fails(e + [entry(6, "M_OTHER", "valid")], "holds")
         self.fails([entry(1, boxes=[("player", 30.0)]), e[2]], "no 'ball' box in the train split")
 
+    def test_platform_test_frames_keep_their_match_tag_and_do_not_count_as_a_split(self):
+        e = good() + [entry(8, "M2", "test", split_tags=["valid"])]
+        out = pf.check_labels(self.cfg, e)
+        self.assertEqual(out["frames"], {"test": 1, "train": 2, "valid": 1})
+        self.fails(good() + [entry(8, "M2", "test")], "split:<name> tag")           # tagged split:test
+
     def test_border_rounding_is_tolerated(self):
         e = good()
         e.append(entry(7, boxes=[]))

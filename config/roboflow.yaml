@@ -177,6 +177,10 @@ version:
   resize_height: 1280
   resize_format: "Fit (black edges) in"   # keeps aspect ratio; small players / ball are not squashed
   augmentations: []
+  platform_test_frames: 2      # Roboflow refuses to train a version with fewer than 2 test images
+                               # (insufficient_split_images, 2026-11-14). Exactly this many frames of the valid
+                               # match sit in "test" (Nathan, 2026-11-14). They are never scored: held-out testing
+                               # stays EVAL's job. 0 = nothing may be in test
 
 # Read-only checks before a version is generated (tools/roboflow_preflight.py). Nothing is written to Roboflow.
 preflight:

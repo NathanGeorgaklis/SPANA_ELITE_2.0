@@ -391,12 +391,16 @@ class VersionSection:
     resize_height: int
     resize_format: str
     augmentations: Tuple[str, ...]    # subset of GEOMETRIC_AUGMENTATIONS; colour-changing ones are refused
+    platform_test_frames: int         # frames the "test" split must hold, exactly (0 = none allowed). The training
+                                      #   platform refuses a version without test images; these are never scored and
+                                      #   must come from a match that preflight.split_matches does not put in train
 
     def validate(self) -> None:
         for n in ("resize_width", "resize_height"):
             v = getattr(self, n)
             if not 1 <= v <= 2048:
                 raise ConfigError(f"version.{n} must be in [1, 2048]")
+        _pos_int("version.platform_test_frames", self.platform_test_frames, allow_zero=True)
         if self.resize_format not in RESIZE_FORMATS:
             raise ConfigError(f"version.resize_format must be one of {RESIZE_FORMATS}")
         bad = [a for a in self.augmentations if a not in GEOMETRIC_AUGMENTATIONS]

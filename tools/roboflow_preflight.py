@@ -98,9 +98,14 @@ def check_labels(cfg: DatasetConfig, entries: List[dict]) -> dict:
     moved = [e["name"] for e in entries if e["record_split"] != e["split"]]
     if moved:
         problems.append(f"frames whose split differs between the listing and the image record: {some(moved)}")
-    mistagged = [e["name"] for e in entries if e["split_tags"] != [e["split"]]]
+    expected = pf.expected()
+
+    def home(e):       # the split a frame's tag must name: its own, or for a platform test frame its match's split
+        return expected.get(e["match_id"]) if e["split"] == "test" else e["split"]
+    mistagged = [e["name"] for e in entries if e["split_tags"] != [home(e)]]
     if mistagged:
-        problems.append(f"frames whose split:<name> tag is not exactly their Roboflow split: {some(mistagged)}")
+        problems.append(f"frames whose split:<name> tag is not exactly their Roboflow split (platform test frames: "
+                        f"their match's split): {some(mistagged)}")
     counts: Dict[str, Counter] = defaultdict(Counter)
     frames: Counter = Counter()
     empty: Counter = Counter()
@@ -128,10 +133,10 @@ def check_labels(cfg: DatasetConfig, entries: List[dict]) -> dict:
         problems.append(f"boxes with a class outside {list(cfg.classes)}: {some(bad_class)}")
     if bad_box:
         problems.append(f"empty boxes or boxes outside the frame: {some(bad_box)}")
-    expected = pf.expected()
     seen = defaultdict(set)
     for e in entries:
-        seen[e["split"]].add(e["match_id"])
+        if e["split"] != "test":               # platform test frames: counted and limited by the version gate
+            seen[e["split"]].add(e["match_id"])
     for split in sorted(set(seen) | set(expected.values())):
         want = {m for m, s in expected.items() if s == split}
         if seen.get(split, set()) != want:

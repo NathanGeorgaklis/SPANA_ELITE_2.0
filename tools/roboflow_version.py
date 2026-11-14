@@ -16,7 +16,9 @@ no rebalance.
 Refuses (nothing is generated) if any of these holds:
   * a frame tagged prelabel.tag has no review.reviewed_tag, or a frame in the Dataset is not reviewed;
   * a frame that would enter the version fails the licence gate (allow-list, EVAL, tag consistency);
-  * a match has frames in more than one split, or a frame is in the "test" split;
+  * a match has frames in more than one split, or the "test" split does not hold exactly
+    version.platform_test_frames frames, all from a match that does not train (they exist only because the
+    training platform refuses a version without test images; they are never scored);
   * the valid (or train) split of the version would be empty.
 """
 from __future__ import annotations
@@ -74,17 +76,27 @@ def check_ready(cfg: DatasetConfig, images: List[ProjectImage]) -> dict:
             gate[reason] += 1
     if gate:
         problems.append(f"frames failing the licence gate would enter the version: {dict(gate)}")
+    # version.platform_test_frames frames sit in "test" only because the training platform demands test images.
+    # They are not a split of their match: never scored, and never from a match that trains.
+    token = [i for i in version_imgs if i.split == "test"]
+    expected = cfg.preflight.expected()
     splits_per_match = defaultdict(set)
     for i in images:
         mid = match_tag(i)
-        if mid is not None and cfg.splits.excluded_tag not in i.tags:
+        if mid is not None and cfg.splits.excluded_tag not in i.tags and i not in token:
             splits_per_match[mid].add(i.split)
     multi = {m: sorted(s) for m, s in splits_per_match.items() if len(s) > 1}
     if multi:
         problems.append(f"matches in several splits: {multi}")
     counts = Counter(i.split for i in version_imgs)
-    if counts.get("test"):
-        problems.append(f"{counts['test']} frames are in the test split (held-out testing is EVAL's job)")
+    if len(token) != cfg.version.platform_test_frames:
+        problems.append(f"{len(token)} frames are in the test split, version.platform_test_frames allows exactly "
+                        f"{cfg.version.platform_test_frames} (held-out testing is EVAL's job)")
+    from_train = sorted({str(match_tag(i)) for i in token
+                         if expected.get(match_tag(i), cfg.roboflow.train_split_name) == cfg.roboflow.train_split_name})
+    if from_train:
+        problems.append(f"test frames come from {from_train}: only a match that preflight.split_matches puts outside "
+                        "train may lend frames to test")
     for need in ("train", "valid"):
         if not counts.get(need):
             problems.append(f"the {need} split of the version would be empty")

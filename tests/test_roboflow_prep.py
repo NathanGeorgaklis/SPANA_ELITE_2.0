@@ -37,6 +37,7 @@ def make_cfg(mutate=None):
     d = raw()
     d["licensed_matches"] = [lm("M1"), lm("M2"), lm("M_UNCONF", confirmed=False), lm("M_EVAL", "eval")]
     d["preflight"]["split_matches"] = ["train:M1", "valid:M2"]
+    d["version"]["platform_test_frames"] = 0                      # switched on per test
     d["splits"].update(move_method="none", verify_wait_s=0.0)     # tests switch moves on explicitly; no real waits
     d["audit"].update(search_wait_s=0.0)
     d["prelabel"].update(min_interval_s=0.0)
@@ -595,6 +596,23 @@ class VersionTests(unittest.TestCase):
             with self.assertRaisesRegex(PolicyError, want):
                 roboflow_version.build_manifest(self.cfg, 1, {"version": dict(server["version"], **change)},
                                                 settings, pre, "f" * 64)
+
+    def test_platform_test_frames_exact_count_and_never_from_a_training_match(self):
+        rev = ("reviewed",)
+        cfg = make_cfg(lambda d: d["version"].update(platform_test_frames=2))
+        imgs = self.ready_images()
+        token = [img(30 + k, "M2", "test", rev, in_dataset=True, annotated=True) for k in range(3)]
+        out = roboflow_version.check_ready(cfg, imgs + token[:2])
+        self.assertEqual(out["splits"], {"test": 2, "train": 3, "valid": 2})
+        self.assertEqual(out["match_splits"], {"M1": "train", "M2": "valid"})     # test is not a split of M2
+        for bad in (imgs, imgs + token[:1], imgs + token):
+            with self.assertRaisesRegex(PolicyError, "allows exactly 2"):
+                roboflow_version.check_ready(cfg, bad)
+        from_train = [img(40 + k, "M1", "test", rev, in_dataset=True, annotated=True) for k in range(2)]
+        with self.assertRaisesRegex(PolicyError, "only a match that preflight.split_matches puts outside train"):
+            roboflow_version.check_ready(cfg, imgs + from_train)
+        with self.assertRaisesRegex(PolicyError, "allows exactly 0"):               # default: nothing in test
+            roboflow_version.check_ready(self.cfg, imgs + token[:2])
 
     def test_refusals(self):
         imgs = self.ready_images()
