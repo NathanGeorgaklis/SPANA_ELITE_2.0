@@ -91,6 +91,20 @@ class RoboflowDetector:
         return cls(client=client, model_id=b.model_id, class_names=cfg.classes, class_map=cfg.class_map(),
                    confidence=b.confidence, iou=b.iou, jpeg_quality=cfg.sampling.jpeg_quality)
 
+    @classmethod
+    def from_detector_config(cls, cfg, api_key: str, client: Optional[InferenceClient] = None,
+                             confidence: Optional[float] = None) -> "RoboflowDetector":
+        """The project's own trained detector (config `detector` section). Its labels are the configured classes.
+        `confidence` overrides the operating confidence (evaluation asks for a low floor)."""
+        d = cfg.detector
+        if not d.model_id:
+            raise RoboflowError("detector.model_id is empty: no trained model is configured")
+        client = client or HttpInferenceClient(d.api_url, api_key, d.timeout_s)
+        return cls(client=client, model_id=d.model_id, class_names=cfg.classes,
+                   class_map={c: c for c in cfg.classes},
+                   confidence=d.confidence if confidence is None else confidence, iou=d.iou,
+                   jpeg_quality=cfg.sampling.jpeg_quality)
+
     @property
     def model_id(self) -> dict:
         return {"backend": "roboflow", "model_id": self._model_id, "confidence": self._confidence, "iou": self._iou}

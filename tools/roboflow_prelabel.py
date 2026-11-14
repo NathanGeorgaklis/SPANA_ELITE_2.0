@@ -1,7 +1,7 @@
 """Step 4: pre-label project frames with a pretrained general detector, as annotations for HUMAN REVIEW (v2).
 
     python -m tools.roboflow_prelabel --diagnose-ball --ids-from LOG [LOG ...]       # read-only ball score check
-    python -m tools.roboflow_prelabel --limit 20 [--match MATCH_ID]                  # sample (<= prelabel.sample_size)
+    python -m tools.roboflow_prelabel --limit 20 [--match MATCH_ID] [--require-split valid]   # sample (<= sample_size)
     python -m tools.roboflow_prelabel --migrate --limit 20 --ids-from LOG [LOG ...]  # replace older pre-labels
     python -m tools.roboflow_prelabel --all --confirm-full-run --approved-sample SAMPLE_LOG   # after Nathan's go-ahead
 
@@ -21,7 +21,8 @@ Per frame:
   * blur gate: variance of Laplacian < prelabel.blur.laplacian_var_min -> tagged prelabel.blur.excluded_tag, no labels;
   * full-frame inference (players and ball, thresholds per class), optional ball-only tiled pass merged by NMS;
   * ball boxes larger than prelabel.ball_max_size_frac x frame height are dropped + logged;
-  * grass filter: a box (prelabel.grass.apply_to) whose bottom-centre is outside the grass mask is dropped + logged;
+  * grass filter: a box (prelabel.grass.apply_to) whose bottom-centre is outside the grass mask is dropped + logged,
+    unless its bottom edge is at the frame's bottom border (foot point not observed): then it is kept + logged;
   * --migrate: every selected frame's current annotation is backed up to paths.prelabel_backup_dir BEFORE any write;
     the annotation is then overwritten (empty for blurred / box-less frames), read back and compared, and only then
     is the superseded tag swapped for prelabel.tag in one call.
@@ -46,7 +47,8 @@ import numpy as np
 from spana.artifacts import read_json, write_json_atomic
 from spana.dataset.config import DatasetConfig, PolicyError, load_dataset_config, match_of
 from spana.dataset.guard import GuardedProject
-from spana.dataset.prefilter import blur_score, bottom_centre, grass_mask, merge_boxes, on_grass, tiles
+from spana.dataset.prefilter import (blur_score, bottom_centre, foot_unobserved, grass_mask, merge_boxes, on_grass,
+                                     tiles)
 from spana.dataset.prep import SkipFrame, evenly_spaced, list_all, load_image, match_tag, open_project, sort_key
 from spana.dataset.rf_project import ProjectImage, RoboflowApiError
 from spana.detection.roboflow_backend import HttpInferenceClient, RoboflowError
@@ -108,8 +110,10 @@ def check_approved_sample(cfg: DatasetConfig, doc: Optional[dict]) -> None:
 
 def select(cfg: DatasetConfig, images: List[ProjectImage], *, limit: Optional[int], match: Optional[str],
            confirm_full_run: bool, migrate: bool = False, ids: Optional[Sequence[str]] = None,
-           approved_sample: Optional[dict] = None):
-    """-> (selected images, skipped [{id, name, reason}]). Raises PolicyError for a run larger than allowed."""
+           approved_sample: Optional[dict] = None, require_split: Optional[str] = None):
+    """-> (selected images, skipped [{id, name, reason}]). Raises PolicyError for a run larger than allowed, and,
+    with require_split, when any frame of a selected match is not in that Roboflow split (a match is assigned to
+    a split as a whole before it is labelled)."""
     if limit is not None and limit <= 0:
         raise PolicyError("--limit must be positive")
     if limit is None or limit > cfg.prelabel.sample_size:
@@ -130,6 +134,13 @@ def select(cfg: DatasetConfig, images: List[ProjectImage], *, limit: Optional[in
         else:
             eligible.append(img)
     chosen = eligible if limit is None else evenly_spaced(eligible, limit)
+    if require_split is not None:
+        for mid in sorted({match_tag(i) for i in chosen}):
+            other = Counter(i.split for i in images if match_tag(i) == mid and i.split != require_split)
+            if other:
+                raise PolicyError(f"refused: --require-split {require_split}: match {mid} has frames in "
+                                  f"{dict(sorted(other.items(), key=str))}. Assign the whole match first "
+                                  "(tools/roboflow_split.py); nothing was written")
     return chosen, skipped
 
 
@@ -241,19 +252,23 @@ def ball_size_filter(cfg: DatasetConfig, frame_height: int, boxes: List[dict]):
 
 
 def grass_filter(cfg: DatasetConfig, frame: np.ndarray, boxes: List[dict]):
-    """-> (kept, dropped [{class, box, score, reason}]). Pre-labels only."""
+    """-> (kept, dropped [{class, box, score, reason}]). Pre-labels only. A box cut by the frame's bottom border has
+    no observed foot point: it is kept whatever the mask says, with the reason under its "grass_note" key."""
     g = cfg.prelabel.grass
     if not g.enabled:
         return list(boxes), []
     mask = grass_mask(frame, g)
     kept, dropped = [], []
     for b in boxes:
-        if b["class"] in g.apply_to and not on_grass(mask, b["box"]):
+        if b["class"] not in g.apply_to or on_grass(mask, b["box"]):
+            kept.append(b)
+        elif foot_unobserved(b["box"], frame.shape[0], g.frame_edge_margin_frac):
+            kept.append(dict(b, grass_note="kept: foot point not observed (bottom edge at the frame border); "
+                                           "bottom-centre is outside the grass mask"))
+        else:
             x, y = bottom_centre(b["box"])
             dropped.append({"class": b["class"], "box": b["box"], "score": b["score"],
                             "reason": f"bottom-centre ({x:.1f}, {y:.1f}) outside grass mask"})
-        else:
-            kept.append(b)
     return kept, dropped
 
 
@@ -355,7 +370,7 @@ def process_frame(cfg: DatasetConfig, guard: GuardedProject, infer, img: Project
                   render_dir: Optional[Path]) -> dict:
     e = {"id": img.id, "name": img.name, "match_id": match_tag(img), "frame_index": img.metadata.get("frame_index"),
          "status": None, "reason": None, "blur_score": None, "blurred": None, "boxes_per_class": {}, "n_boxes": 0,
-         "players_kept": 0, "players_dropped": 0, "balls": 0, "balls_dropped": 0, "ball_merged": 0, "tiles": 0,
+         "players_kept": 0, "players_dropped": 0, "kept_foot_unobserved": 0, "balls": 0, "balls_dropped": 0, "ball_merged": 0, "tiles": 0,
          "below_threshold": {}, "dropped_boxes": [], "boxes": []}
     fresh = guard.refresh(img.id)                    # current tags: a frame reviewed / tagged mid-run is left alone
     reason = eligibility(cfg, fresh, migrate=migrate)
@@ -400,6 +415,7 @@ def process_frame(cfg: DatasetConfig, guard: GuardedProject, infer, img: Project
     e["players_kept"] = sum(x["class"] != ball for x in boxes)
     e["players_dropped"] = sum(x["class"] != ball for x in dropped)
     e["balls_dropped"] = sum(x["class"] == ball for x in dropped)
+    e["kept_foot_unobserved"] = sum("grass_note" in x for x in boxes)
     if render_dir is not None:
         try:
             render_dir.mkdir(parents=True, exist_ok=True)
@@ -413,12 +429,13 @@ def process_frame(cfg: DatasetConfig, guard: GuardedProject, infer, img: Project
 def run_prelabel(cfg: DatasetConfig, project, infer, images: List[ProjectImage], *, limit: Optional[int],
                  match: Optional[str], confirm_full_run: bool, load, render_dir: Optional[Path],
                  migrate: bool = False, ids: Optional[Sequence[str]] = None, approved_sample: Optional[dict] = None,
-                 write_backup: Optional[Callable[[dict], dict]] = None, dry_run: bool = False) -> dict:
+                 write_backup: Optional[Callable[[dict], dict]] = None, dry_run: bool = False,
+                 require_split: Optional[str] = None) -> dict:
     """`infer(jpeg_bytes) -> raw response`; `load(img) -> BGR frame` (raises SkipFrame); `write_backup(doc) -> path`
     (required with migrate; called BEFORE any write). Every write goes through GuardedProject. dry_run: every check
     and inference runs, nothing is written to Roboflow and no backup is written. Returns the log."""
     chosen, skipped = select(cfg, images, limit=limit, match=match, confirm_full_run=confirm_full_run,
-                             migrate=migrate, ids=ids, approved_sample=approved_sample)
+                             migrate=migrate, ids=ids, approved_sample=approved_sample, require_split=require_split)
     guard = GuardedProject(cfg, project, images, dry_run=dry_run)
     backup = None
     if migrate and chosen:
@@ -450,6 +467,7 @@ def run_prelabel(cfg: DatasetConfig, project, infer, images: List[ProjectImage],
             "prelabel_config": cfg.to_dict()["prelabel"], "prelabel_config_sha256": cfg.section_sha256("prelabel"),
             "request": {"limit": limit, "match": match, "confirm_full_run": confirm_full_run, "migrate": migrate,
                         "dry_run": dry_run, "ids": list(ids) if ids is not None else None,
+                        "require_split": require_split,
                         "approved_sample_sha256": (approved_sample or {}).get("_sha256")},
             "backup": backup, "writes": len(guard.writes),
             "entries": entries, "not_selected_skips": skipped,
@@ -466,6 +484,7 @@ def summarize(cfg: DatasetConfig, entries: List[dict], skipped: List[dict], drop
         if e["status"] in done:                         # only frames whose writes completed
             m["players_kept"] += e["players_kept"]
             m["players_dropped_off_pitch"] += e["players_dropped"]
+            m["kept_foot_unobserved"] += e["kept_foot_unobserved"]
             m["balls"] += e["balls"]
             m["balls_dropped"] += e["balls_dropped"]
             m["frames_with_ball"] += e["balls"] > 0
@@ -495,6 +514,9 @@ def summary_text(doc: dict) -> str:
                          f"{' BLURRED' if e['blurred'] else ''}")
             for d in e["dropped_boxes"]:
                 lines.append(f"      dropped {d['class']} {d['box']} {d['score']:.2f}: {d['reason']}")
+            for b in e["boxes"]:
+                if "grass_note" in b:
+                    lines.append(f"      {b['class']} {b['box']} {b['score']:.2f}: {b['grass_note']}")
         else:
             lines.append(f"  {e['name']}: {e['status']} ({e['reason']})")
     lines.append("per match:")
@@ -574,6 +596,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--dry-run", action="store_true", help="run every check and inference; write nothing")
     ap.add_argument("--confirm-full-run", action="store_true")
     ap.add_argument("--approved-sample", help="sample log Nathan reviewed (needed beyond prelabel.sample_size)")
+    ap.add_argument("--require-split", help="refuse unless every frame of each selected match is in this "
+                                            "Roboflow split (e.g. valid)")
     ap.add_argument("--config", default=str(DEFAULT_CONFIG))
     a = ap.parse_args(argv)
     cfg = load_dataset_config(a.config)
@@ -617,7 +641,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                            list_all(cfg, project), limit=None if a.all else a.limit, match=a.match,
                            confirm_full_run=a.confirm_full_run, load=load,
                            render_dir=REPO / cfg.paths.render_dir / stamp, migrate=a.migrate, ids=ids,
-                           approved_sample=approved, write_backup=write_backup, dry_run=a.dry_run)
+                           approved_sample=approved, write_backup=write_backup, dry_run=a.dry_run,
+                           require_split=a.require_split)
     except PolicyError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 3

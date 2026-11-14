@@ -3,7 +3,7 @@
 # derived on DEV data only (never EVAL) and recorded with evidence.
 # Secrets: the API key is NEVER in this file. It is read from the environment variable named in roboflow.api_key_env
 # (or the gitignored .env; template .env.example).
-schema_version: "1.2.0"
+schema_version: "1.4.0"
 
 roboflow:
   workspace: nathans-workspace-9brdc
@@ -68,6 +68,15 @@ licensed_matches:
     split: train
     permission: "written permission dated 2026-11-04 (records/reid_train/TRAIN_M003_STATUS.md)"
     third_party_processing_confirmed: true
+  # DEV matches, added at Nathan's instruction on 2026-11-14; third-party processing confirmed by Nathan the same day.
+  - match_id: DEV_G1_SYDNEY_UNITED_APIA
+    split: dev
+    permission: "written permission dated 2026-10-31 (records/dev_permissions/DEV_PERMISSIONS_2026-11-14.md)"
+    third_party_processing_confirmed: true
+  - match_id: DEV_G2_NWS_SPIRIT_SD_RAIDERS
+    split: dev
+    permission: "written permission dated 2026-10-31 (records/dev_permissions/DEV_PERMISSIONS_2026-11-14.md)"
+    third_party_processing_confirmed: true
 
 # --- dataset preparation for detector v1 (tools/roboflow_audit.py, roboflow_split.py, roboflow_prelabel.py,
 #     roboflow_progress.py, roboflow_version.py). Every tool applies the licensed_matches allow-list to every frame.
@@ -86,6 +95,8 @@ splits:
   probe_max: 1                 # --probe moves at most this many frames, then verifies
   verify_attempts: 6           # post-move checks retried (search lags writes)
   verify_wait_s: 10.0
+  batch_timeout_s: 600.0       # batch create / delete act on hundreds of images in one call; making a 299-frame
+                               # batch ran past the 60 s audit.fetch_timeout_s on 2026-11-13 (nothing was changed)
 
 # Pre-labelling: pretrained general COCO detector, commercial-use licence. NOT a Universe dataset / model.
 # coco/36 is what Roboflow's own inference server resolves the alias "rfdetr-base" to
@@ -121,6 +132,11 @@ prelabel:
     min_component_frac: 0.02   # fraction of frame area: ignores small green patches (signs, shirts, hedges)
     convex_hull: true          # without it, 4 of 10 drops on the v2 sample were occluded on-pitch players (RECORD)
     dilate_frac: 0.01          # fraction of frame height: feet on the grass edge stay inside
+    frame_edge_margin_frac: 0.005   # fraction of frame height (3.6 px at 720 p). A box whose bottom edge is this close
+                               # to the frame's bottom border is cut by the frame: foot point not observed, so it is
+                               # kept and logged, never dropped on grass evidence (a real player was dropped, RECORD
+                               # 2026-11-14). Untuned prior: detector boxes are clipped to the frame, so a cut box
+                               # ends on the border itself
     apply_to: [player, ball]
   ball_tiling:                 # ball class only; player inference is never tiled
     enabled: true              # --diagnose-ball 2026-11-13: tiles raise true-ball scores (M002 ball is 5-8 px)
@@ -135,6 +151,34 @@ prelabel:
 review:
   reviewed_tag: reviewed
 
+# Review-priority tags on pre-labelled frames (tools/roboflow_review_flags.py). Tags only: annotations are never
+# changed. A flag means "look here first", not "this box is wrong". All values are untuned priors read off the
+# M002 / M003 v2 pre-labels (RECORD 2026-11-14); sizes are fractions of the frame height.
+review_flags:
+  ball_static:                 # ball fixed in the scene across consecutive sampled frames while the camera moves
+    tag: "review:ball-static"
+    max_gap_s: 2.5             # regular frames are 2 s apart (sampling.interval_s)
+    max_shift_frac: 0.007      # 5 px at 720 p. Scene-fixed balls: residual 0.3-3.2 px; balls in play: > 6 px
+    min_camera_shift_frac: 0.02   # 14 px at 720 p. Below it a still ball cannot be told from a still camera
+    max_features: 2000
+    min_inliers: 30            # consistent background matches needed for a camera estimate (seen: 380-920)
+    ransac_reproj_frac: 0.004  # 3 px at 720 p
+    box_pad_frac: 0.006        # annotated boxes (players, balls) are masked out of the background, padded by this
+  ball_offpitch:
+    tag: "review:ball-offpitch"
+  ball_tiny:
+    tag: "review:ball-tiny"
+    min_size_frac: 0.008       # 5.8 px at 720 p. M002 true balls are 5-8 px; the smallest false box was 4 x 5 px
+  player_edge:
+    tag: "review:player-edge"
+    band_frac: 0.02            # 14 px at 720 p inside the grass mask's outer boundary, or outside the mask
+  dense:
+    tag: "review:dense"
+    pair_iou_min: 0.30
+    min_pairs: 2
+  write_batch_size: 25         # the run log is saved after every batch of tag writes (resume point)
+  min_interval_s: 1.0          # pause between tag writes; the tag endpoint is rate limited (RECORD 2026-11-13)
+
 # Dataset version (tools/roboflow_version.py). No colour-changing augmentation: kit colour matters later.
 version:
   auto_orient: true
@@ -142,6 +186,52 @@ version:
   resize_height: 1280
   resize_format: "Fit (black edges) in"   # keeps aspect ratio; small players / ball are not squashed
   augmentations: []
+  platform_test_frames: 2      # Roboflow refuses to train a version with fewer than 2 test images
+                               # (insufficient_split_images, 2026-11-14). Exactly this many frames of the valid
+                               # match sit in "test" (Nathan, 2026-11-14). They are never scored: held-out testing
+                               # stays EVAL's job. 0 = nothing may be in test
+
+# Read-only checks before a version is generated (tools/roboflow_preflight.py). Nothing is written to Roboflow.
+preflight:
+  # The only matches each Roboflow split may hold (Nathan, 2026-11-14). All three are TRAIN-licensed matches; the
+  # "valid" split is a held-out TRAIN match used for model selection. It is not SPANA DEV and not EVAL.
+  split_matches:
+    - "train:TRAIN_M002_EASTERN_SUBURBS"
+    - "train:TRAIN_M003_SYDNEY_OLYMPIC"
+    - "valid:TRAIN_M001_MORETON_CITY"
+  ball_small_px: 16.0          # report the share of ball boxes with a short side below this (source pixels)
+  ball_size_buckets_px: [8.0, 12.0, 16.0, 24.0]   # short-side bucket edges for size reports (source pixels)
+  ball_quantile: 0.05          # the 5th-percentile ball short side, scaled to the version size ...
+  ball_min_version_px: 4.0     # ... must stay at least this wide ("several pixels"), else the version is refused
+
+# Detector training on Roboflow. One model per dataset version; changing anything here means a new training run.
+detector:
+  dataset_version: 2           # records/roboflow_version/version_2.json (version 1: no test frames, untrainable)
+  model_type: rfdetr-medium    # the named RF-DETR model Roboflow's training tool defaults to for detection (Apache-2.0)
+  checkpoint: COCO             # COCO-pretrained starting weights
+  epochs: 100                  # Roboflow's default for this model (early stopping on, patience 15)
+  input_resolution: 1280       # = version resize: frames are 1280 px wide, so the ball keeps its source size
+                               # (median 13 px, 5th percentile 9 px; preflight 2026-11-14)
+  online_augmentations: [flip_horizontal]   # Roboflow's default for this model; no colour-changing step
+  flip_probability: 0.5
+  model_id: nathans-workspace-9brdc/spana-elite-2-rfdetr-medium-t1   # detector v1: training 9b0b72177c37bc0cd3aa, 2026-11-14
+  api_url: https://serverless.roboflow.com   # hosted = third-party processing; a local inference server keeps frames here
+  confidence: 0.50             # untuned prior; not to be tuned until Nathan has reviewed the v1 results
+  iou: 0.50                    # untuned prior (overlap sent with each request)
+  timeout_s: 90.0
+
+# Scoring the detector against the frozen labels of the valid split (tools/detector_eval.py). The valid split is a
+# held-out TRAIN match: it is not SPANA DEV and not EVAL. Nothing here is tuned.
+detector_eval:
+  split: valid
+  request_confidence: 0.01     # low floor so mAP sees the whole precision / recall curve
+  match_iou: 0.50
+  size_recall_class: ball
+  size_recall_ious: [0.50, 0.25]   # 0.25 as well: one pixel of offset costs a 9 px box a lot of IoU
+  render_frames: 20
+  worst_classes: [ball, player]
+  worst_per_class: 5
+  min_interval_s: 0.0
 
 paths:
   manifest_dir: records/roboflow_uploads   # upload manifests (committed; no footage, no secrets)
@@ -153,3 +243,7 @@ paths:
   render_dir: runs/roboflow_prelabel       # annotated pre-label renders (gitignored)
   image_cache_dir: runs/roboflow_cache     # verified copies of project images (gitignored)
   prelabel_backup_dir: records/roboflow_prelabel/backups   # annotations saved before replacement (committed)
+  review_dir: records/roboflow_review      # review-flag run logs (committed; no pixels)
+  detector_record_dir: records/detector_v1 # detector evaluation records (committed; no pixels)
+  detector_render_dir: runs/detector_v1    # annotated evaluation frames, cached predictions (gitignored)
+  version_dir: records/roboflow_version    # preflight records, label snapshots, version manifests (committed; no pixels)

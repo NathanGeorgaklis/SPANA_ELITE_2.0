@@ -9,6 +9,8 @@ Plan (always written to paths.split_dir as a before/after manifest):
   * refused: an EVAL match (allow-list or split:eval tag), a match not on the allow-list, an assigned match with no
     frames, an empty valid split.
   * frames the licence gate rejects are not moved and are listed with the reason.
+  * --only-assigned: frames of matches not named in --assign are never moved; such a match found outside "train"
+    or in several splits is reported (unassigned_split_conflicts) and left as it is.
   * near-duplicates from the audit (`--audit`) get splits.excluded_tag. They are never deleted.
 Default is a dry run (manifest only). --apply-exclusions-only adds the exclusion tags. --apply also performs the
 split moves, only with splits.move_method "delete_reupload"; with "none" it refuses whenever a move is planned and
@@ -17,8 +19,9 @@ would split matches), and re-uploading identical bytes keeps the old split (prob
   1. every frame's original bytes are fetched and verified against the sha256 recorded at upload;
   2. a restore file (paths.split_dir/restore_<stamp>.json: name, sha, tags, metadata, target split, cached file) is
      written BEFORE anything is deleted; `--restore FILE` re-uploads any listed frame missing from the project;
-  3. the frames are removed with their upload batch (the match's whole batch when it holds exactly those frames,
-     else a new batch made of just those frames), permanently, and the listing must no longer show them;
+  3. the frames are removed with their upload batch (the match's own batch when it holds exactly those frames,
+     else a new batch made of just those frames), permanently, and the listing must no longer show them; a frame
+     that has an annotation is refused before anything changes (a re-upload does not carry labels);
   4. each frame is uploaded again with the new split, same name, tags and metadata;
   5. the listing must show each name exactly once, in the new split, with the same image sha256.
 Any failed check stops the run with an error (fail closed) and the manifest records what happened.
@@ -64,8 +67,10 @@ def parse_assign(values: Sequence[str]) -> Dict[str, str]:
 
 
 def plan_split(cfg: DatasetConfig, images: List[ProjectImage], assign: Dict[str, str],
-               exclude_ids: Sequence[str] = ()) -> dict:
-    """Pure planning + policy checks. Raises PolicyError; never returns a plan that splits a match."""
+               exclude_ids: Sequence[str] = (), only_assigned: bool = False) -> dict:
+    """Pure planning + policy checks. Raises PolicyError; never returns a plan that splits a match.
+    only_assigned: frames of matches not named in `assign` are left where they are (never moved); a match found
+    in a split other than the default, or in several, is listed under `unassigned_split_conflicts` instead."""
     if DEFAULT_SPLIT not in cfg.splits.assignable:
         raise PolicyError(f"splits.assignable must contain {DEFAULT_SPLIT!r}")
     by_match: Dict[str, List[ProjectImage]] = defaultdict(list)
@@ -94,13 +99,17 @@ def plan_split(cfg: DatasetConfig, images: List[ProjectImage], assign: Dict[str,
             skipped.append({"id": img.id, "name": img.name, "reason": reason, "split": img.split})
             continue
         after = assign.get(entry.match_id, DEFAULT_SPLIT)
+        if only_assigned and entry.match_id not in assign:
+            after = img.split
         rows.append({"id": img.id, "name": img.name, "match_id": entry.match_id, "before": img.split,
                      "after": after, "move": img.split != after, "exclude": img.id in exclude,
                      "already_excluded": cfg.splits.excluded_tag in img.tags})
     after_splits = defaultdict(set)
     for r in rows:
         after_splits[r["match_id"]].add(r["after"])
-    split_matches = sorted(m for m, s in after_splits.items() if len(s) != 1)
+    conflicts = {m: sorted(s, key=str) for m, s in sorted(after_splits.items())
+                 if m not in assign and s != {DEFAULT_SPLIT}} if only_assigned else {}
+    split_matches = sorted(m for m, s in after_splits.items() if len(s) != 1 and m not in conflicts)
     if split_matches:   # cannot happen by construction; checked anyway (fail closed)
         raise PolicyError(f"plan would put matches {split_matches} in several splits")
     for split in set(assign.values()):
@@ -110,7 +119,9 @@ def plan_split(cfg: DatasetConfig, images: List[ProjectImage], assign: Dict[str,
     counts = Counter((r["match_id"], r["after"]) for r in rows)
     return {"schema": SPLIT_SCHEMA, "schema_version": SPLIT_SCHEMA_VERSION, "assign": dict(sorted(assign.items())),
             "default_split": DEFAULT_SPLIT, "excluded_tag": cfg.splits.excluded_tag,
-            "match_splits_after": {m: sorted(s)[0] for m, s in sorted(after_splits.items())},
+            "only_assigned": only_assigned, "unassigned_split_conflicts": conflicts,
+            "match_splits_after": {m: sorted(s, key=str)[0] if len(s) == 1 else sorted(s, key=str)
+                                   for m, s in sorted(after_splits.items())},
             "counts_after": [{"match_id": m, "split": s, "n": n} for (m, s), n in sorted(counts.items())],
             "n_moves": sum(r["move"] for r in rows), "n_exclude": sum(r["exclude"] for r in rows),
             "exclude_ids_not_in_plan": unknown_excl, "rows": rows, "skipped": skipped}
@@ -185,6 +196,9 @@ def move_frames(cfg: DatasetConfig, project, uploader, plan: dict, images: List[
     frames = []
     for r in rows:                                      # 1. verify every frame's bytes before touching anything
         img = by_id[r["id"]]
+        if project.get_image(img.id).get("annotation"):   # a re-upload carries tags and metadata, not labels
+            raise PolicyError(f"refused: {img.name} has an annotation, which a delete + re-upload would lose. "
+                              "Nothing was changed")
         try:
             src = verified_image_file(project, img, cache_dir)
         except SkipFrame as e:
@@ -199,14 +213,17 @@ def move_frames(cfg: DatasetConfig, project, uploader, plan: dict, images: List[
                        "old_batch": f"spana_{r['match_id']}_{spana_split}",
                        "batch_name": f"spana_{r['match_id']}_{spana_split}_{r['after']}"})
     write_restore(restore_path, frames)                 # 2. restore file before any deletion
-    per_match_total = Counter(i.metadata.get("match_id") for i in images)
     groups: Dict[str, List[dict]] = defaultdict(list)
     for f in frames:
         groups[f["old_batch"]].append(f)
     for batch_name, fs in sorted(groups.items()):       # 3. remove with the batch, permanently
         src = _find_batch(project, batch_name)
         ids = [f["old_id"] for f in fs]
-        whole = len(ids) == src["images"] == per_match_total[fs[0]["match_id"]]
+        # When the batch holds exactly these frames (its image ids are read from the server and compared) it is
+        # deleted as it is: no new batch has to be made. Frames of the match moved earlier, e.g. by a probe, sit
+        # in their own batch. Making a new batch of 299 frames timed out on 2026-11-13 (RECORD 2026-11-14).
+        # A probe (limit) always uses its own batch.
+        whole = limit is None and sorted(project.batch_image_ids(src["id"])) == sorted(ids)
         if whole:
             target = src
         else:
@@ -270,6 +287,8 @@ def apply_plan(cfg: DatasetConfig, project, plan: dict, *, exclusions_only: bool
 def main(argv: Optional[Sequence[str]] = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--assign", action="append", default=[], help="<split>=<match_id>, e.g. valid=MATCH_ID")
+    ap.add_argument("--only-assigned", action="store_true",
+                    help="never move frames of matches not named in --assign; report their split conflicts instead")
     ap.add_argument("--audit", help="audit JSON whose near-duplicate groups are excluded")
     ap.add_argument("--config", default=str(DEFAULT_CONFIG))
     g = ap.add_mutually_exclusive_group()
@@ -303,7 +322,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         key = load_secret(cfg.roboflow.api_key_env)
         project = open_project(cfg, key)
         images = list_all(cfg, project)
-        plan = plan_split(cfg, images, assign, exclude)
+        plan = plan_split(cfg, images, assign, exclude, only_assigned=a.only_assigned)
         now = datetime.now(timezone.utc)
         plan["created_utc"] = now.isoformat(timespec="seconds")
         plan["audit_file"] = Path(a.audit).name if a.audit else None
@@ -331,6 +350,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(f"ERROR: {e}", file=sys.stderr)
         return 3
     print(f"plan: {out}")
+    if plan["unassigned_split_conflicts"]:
+        print(f"NOT MOVED (matches not named in --assign, found outside {DEFAULT_SPLIT!r} or in several splits): "
+              f"{plan['unassigned_split_conflicts']}")
     print(f"after: {plan['match_splits_after']}; moves {plan['n_moves']}; exclusions {plan['n_exclude']}; "
           f"skipped {len(plan['skipped'])}; applied {len(log)} changes")
     for entry in log:

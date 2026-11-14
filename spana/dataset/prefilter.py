@@ -65,6 +65,12 @@ def on_grass(mask: np.ndarray, box: Sequence[float]) -> bool:
     return bool(mask[yi, xi])
 
 
+def foot_unobserved(box: Sequence[float], frame_height: int, margin_frac: float) -> bool:
+    """True when the box's bottom edge lies within margin_frac x frame height of the frame's bottom border: the body
+    is cut by the frame, so its bottom-centre is not a foot / ground-contact point and says nothing about the grass."""
+    return float(box[3]) >= frame_height * (1.0 - margin_frac)
+
+
 def tiles(width: int, height: int, tile_px: int, overlap_frac: float) -> List[Tuple[int, int, int, int]]:
     """Overlapping (x1, y1, x2, y2) windows covering the whole frame, deterministic, edge tiles flush with the
     border. A dimension no larger than tile_px gets one window."""

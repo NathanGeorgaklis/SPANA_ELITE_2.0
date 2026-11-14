@@ -36,6 +36,8 @@ def lm(mid, split="train", confirmed=True):
 def make_cfg(mutate=None):
     d = raw()
     d["licensed_matches"] = [lm("M1"), lm("M2"), lm("M_UNCONF", confirmed=False), lm("M_EVAL", "eval")]
+    d["preflight"]["split_matches"] = ["train:M1", "valid:M2"]
+    d["version"]["platform_test_frames"] = 0                      # switched on per test
     d["splits"].update(move_method="none", verify_wait_s=0.0)     # tests switch moves on explicitly; no real waits
     d["audit"].update(search_wait_s=0.0)
     d["prelabel"].update(min_interval_s=0.0)
@@ -156,6 +158,12 @@ class GateTests(unittest.TestCase):
             self.assertIn(want.split()[0], reason)
         i = img(1, tags=("split:eval",))
         self.assertIn("eval", match_of(self.cfg, i.tags, i.metadata)[1])
+        # a TRAIN-licensed match may carry the tag of the Roboflow split it was assigned to; nothing else
+        i = ProjectImage(**{**img(1).__dict__, "tags": ("match:M1", "split:valid")})
+        self.assertIsNotNone(match_of(self.cfg, i.tags, i.metadata)[0])
+        for bad in (("split:test",), ("split:dev",), ("split:train", "split:valid")):
+            i = ProjectImage(**{**img(1).__dict__, "tags": ("match:M1", *bad)})
+            self.assertIn("disagree", match_of(self.cfg, i.tags, i.metadata)[1])
         i = img(1, tags=("match:M2",))
         self.assertIn("several match tags", match_of(self.cfg, i.tags, i.metadata)[1])
         i = img(1)
@@ -241,6 +249,9 @@ class BatchProject(FakeProject):
         names = sorted(set(self.batch_of.values()))
         return [{"id": f"B:{n}", "name": n, "images": sum(v == n for v in self.batch_of.values())} for n in names]
 
+    def batch_image_ids(self, batch_id):
+        return sorted(i for i, b in self.batch_of.items() if b == batch_id[2:])
+
     def create_batch(self, source_batch_id, image_ids, name):
         self.created.append((source_batch_id, tuple(image_ids), name))
         for i in image_ids:
@@ -317,6 +328,60 @@ class MoveTests(unittest.TestCase):
         for i in proj.images:
             splits.setdefault(i.metadata["match_id"], set()).add(i.split)
         self.assertEqual(splits, {"M1": {"valid"}, "M2": {"train"}})
+
+    def test_full_move_after_a_probe_deletes_the_match_batch_without_making_a_new_one(self):
+        """2026-11-13: one frame was already in valid (probe), so the match's batch held 299 of its 300 frames; the
+        tool then made a new 299-frame batch, and that call timed out. The batch holds exactly the frames to move."""
+        cfg = make_cfg(lambda d: d["splits"].update(move_method="delete_reupload"))
+        proj = BatchProject(self.images)
+        self._apply(make_cfg(), proj, FakeUploader(proj), probe=1)             # the probe: own batch, 1 frame
+        proj.created.clear(), proj.deleted.clear()
+        log = self._apply(cfg, proj, FakeUploader(proj))
+        self.assertEqual(proj.created, [])                                      # no new batch
+        self.assertEqual(proj.deleted, ["spana_M1_train"])
+        self.assertEqual(len(log), 2)
+        self.assertEqual({i.split for i in proj.images if i.metadata["match_id"] == "M1"}, {"valid"})
+        self.assertEqual({i.split for i in proj.images if i.metadata["match_id"] == "M2"}, {"train"})
+
+    def test_batch_that_does_not_hold_exactly_the_frames_is_never_deleted_whole(self):
+        cfg = make_cfg(lambda d: d["splits"].update(move_method="delete_reupload"))
+        proj = BatchProject(self.images)
+        m1 = [i for i in self.images if i.metadata["match_id"] == "M1"]
+        m2 = [i for i in self.images if i.metadata["match_id"] == "M2"]
+        proj.batch_of[m1[0].id] = "spana_other"            # same batch size as the frames to move (3), wrong members:
+        proj.batch_of[m2[0].id] = "spana_M1_train"         # one M1 frame is elsewhere, one M2 frame sits in M1's batch
+        with self.assertRaises((PolicyError, AssertionError)):
+            self._apply(cfg, proj, FakeUploader(proj))
+        self.assertNotIn("spana_M1_train", proj.deleted)                        # the M2 frame was not deleted
+        self.assertEqual(len([i for i in proj.images if i.metadata["match_id"] == "M2"]), 2)
+
+    def test_only_assigned_leaves_other_matches_where_they_are_and_reports_them(self):
+        """2026-11-14: a frame of another match turned up in valid while one match was being assigned. It must not
+        be deleted + re-uploaded as a side effect; it is reported."""
+        cfg = make_cfg(lambda d: d["splits"].update(move_method="delete_reupload"))
+        images = [ProjectImage(**{**i.__dict__, "split": "valid"}) if i.id == self.images[4].id else i
+                  for i in self.images]
+        proj = BatchProject(images)
+        plan = roboflow_split.plan_split(cfg, proj.images, {"M1": "valid"}, only_assigned=True)
+        self.assertEqual(plan["unassigned_split_conflicts"], {"M2": ["train", "valid"]})
+        self.assertEqual([r["name"] for r in plan["rows"] if r["move"]], [i.name for i in images[:3]])
+        log = roboflow_split.apply_plan(cfg, proj, plan, exclusions_only=False, uploader=FakeUploader(proj),
+                                        images=list(proj.images), cache_dir=self.cache, restore_path=self.restore,
+                                        stamp="S")
+        self.assertEqual(len(log), 3)
+        self.assertEqual(proj.deleted, ["spana_M1_train"])
+        self.assertEqual(sorted(i.split for i in proj.images if i.metadata["match_id"] == "M2"), ["train", "valid"])
+        with_default = roboflow_split.plan_split(cfg, images, {"M1": "valid"})
+        self.assertEqual(sum(r["move"] for r in with_default["rows"]), 4)       # default: also moves the M2 frame
+
+    def test_annotated_frame_is_never_deleted_and_reuploaded(self):
+        cfg = make_cfg(lambda d: d["splits"].update(move_method="delete_reupload"))
+        proj = BatchProject(self.images)
+        proj.annotation[self.images[1].id] = {"boxes": [{"label": "player"}]}
+        up = FakeUploader(proj)
+        with self.assertRaisesRegex(PolicyError, "has an annotation"):
+            self._apply(cfg, proj, up)
+        self.assertEqual((up.calls, proj.created, proj.deleted), ([], [], []))
 
     def test_fail_closed_cases(self):
         cfg = make_cfg()
@@ -495,11 +560,59 @@ class VersionTests(unittest.TestCase):
         self.assertEqual(s["preprocessing"]["resize"], {"width": self.cfg.version.resize_width,
                                                         "height": self.cfg.version.resize_height,
                                                         "format": self.cfg.version.resize_format})
-        self.assertEqual(s["preprocessing"]["filter-tags"], {self.cfg.splits.excluded_tag: False})
+        self.assertEqual(s["preprocessing"]["filter-tags"],
+                         {self.cfg.splits.excluded_tag: False, self.cfg.prelabel.blur.excluded_tag: False})
         colour = {"hue", "saturation", "brightness", "exposure", "rgrayscale", "camera-gain", "noise", "blur"}
         self.assertFalse(colour & set(s["augmentation"]))
         self.assertNotIn("grayscale", s["preprocessing"])
         self.assertNotIn("contrast", s["preprocessing"])
+
+    def test_generate_needs_matching_preflight_and_manifest_checks_the_server(self):
+        ready = roboflow_version.check_ready(self.cfg, self.ready_images())
+        settings = roboflow_version.version_settings(self.cfg)
+        pre = {"kind": "spana.roboflow_preflight", "passed": True, "gate": ready, "created_utc": "T",
+               "config_sha256": {n: self.cfg.section_sha256(n) for n in ("version", "preflight")},
+               "labels_file": "labels_T.json", "labels_sha256": "0" * 64, "stats": {"boxes": {}}}
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "preflight.json"
+            for bad, want in ((dict(pre, passed=False), "not a passed"), (dict(pre, config_sha256={}), "another"),
+                              (dict(pre, gate=dict(ready, images=99)), "project changed")):
+                path.write_text(json.dumps(bad))
+                with self.assertRaisesRegex(PolicyError, want):
+                    roboflow_version.load_preflight(self.cfg, path, ready)
+            path.write_text(json.dumps(pre))
+            self.assertEqual(roboflow_version.load_preflight(self.cfg, path, ready), pre)
+        saved = dict(settings["preprocessing"],
+                     **{"filter-tags": {"tags": {t: {"omit": True} for t in settings["preprocessing"]["filter-tags"]}}})
+        server = {"version": {"id": "w/p/1", "images": 5, "splits": {"train": 3, "valid": 2, "test": 0},
+                              "generating": False, "preprocessing": saved, "augmentation": {}}}
+        m = roboflow_version.build_manifest(self.cfg, 1, server, settings, pre, "f" * 64)
+        self.assertEqual((m["version"], m["splits"], m["labels_sha256"]), (1, {"train": 3, "valid": 2}, "0" * 64))
+        for change, want in (({"splits": {"train": 3, "valid": 1}}, "split sizes"),
+                             ({"splits": {"train": 3, "valid": 2, "test": 1}}, "split sizes"),
+                             ({"generating": True}, "still generating"),
+                             ({"augmentation": {"hue": {"degrees": 10}}}, "augmentation"),
+                             ({"preprocessing": dict(saved, grayscale=True)}, "preprocessing")):
+            with self.assertRaisesRegex(PolicyError, want):
+                roboflow_version.build_manifest(self.cfg, 1, {"version": dict(server["version"], **change)},
+                                                settings, pre, "f" * 64)
+
+    def test_platform_test_frames_exact_count_and_never_from_a_training_match(self):
+        rev = ("reviewed",)
+        cfg = make_cfg(lambda d: d["version"].update(platform_test_frames=2))
+        imgs = self.ready_images()
+        token = [img(30 + k, "M2", "test", rev, in_dataset=True, annotated=True) for k in range(3)]
+        out = roboflow_version.check_ready(cfg, imgs + token[:2])
+        self.assertEqual(out["splits"], {"test": 2, "train": 3, "valid": 2})
+        self.assertEqual(out["match_splits"], {"M1": "train", "M2": "valid"})     # test is not a split of M2
+        for bad in (imgs, imgs + token[:1], imgs + token):
+            with self.assertRaisesRegex(PolicyError, "allows exactly 2"):
+                roboflow_version.check_ready(cfg, bad)
+        from_train = [img(40 + k, "M1", "test", rev, in_dataset=True, annotated=True) for k in range(2)]
+        with self.assertRaisesRegex(PolicyError, "only a match that preflight.split_matches puts outside train"):
+            roboflow_version.check_ready(cfg, imgs + from_train)
+        with self.assertRaisesRegex(PolicyError, "allows exactly 0"):               # default: nothing in test
+            roboflow_version.check_ready(self.cfg, imgs + token[:2])
 
     def test_refusals(self):
         imgs = self.ready_images()
@@ -684,6 +797,22 @@ class ClientTests(unittest.TestCase):
         pr.create_batch("b1", ["i1"], "move")
         args, kw = session.request.call_args
         self.assertEqual(kw["json"], {"sourceBatchId": "b1", "imageIds": ["i1"], "name": "move"})
+        self.assertEqual(kw["timeout"], 5)                       # default: the client's timeout
+        slow = RoboflowProject(api_url="https://api.invalid", workspace="ws", project="proj", api_key=SECRET,
+                               timeout_s=5, session=session, batch_timeout_s=600.0)
+        slow.delete_batch("b1", permanent=True)
+        self.assertEqual(session.request.call_args[1]["timeout"], 600.0)   # batch calls get the long timeout
+        session.request.return_value = mock.Mock(status_code=200, json=mock.Mock(return_value={"image": {"id": "i1"}}))
+        slow.get_image("i1")
+        self.assertEqual(session.request.call_args[1]["timeout"], 5)       # everything else keeps the short one
+        pages = [{"imageIds": ["a", "b"], "nextPageToken": "T"}, {"imageIds": ["c"], "nextPageToken": None}]
+        session.request.side_effect = [mock.Mock(status_code=200, json=mock.Mock(return_value=x)) for x in pages]
+        self.assertEqual(pr.batch_image_ids("b1"), ["a", "b", "c"])
+        self.assertEqual(session.request.call_args[0], ("GET", "https://api.invalid/ws/proj/annotation-batches/b1/images"))
+        self.assertEqual(session.request.call_args[1]["params"]["after"], "T")
+        session.request.side_effect = [mock.Mock(status_code=200, json=mock.Mock(return_value={"images": 3}))]
+        with self.assertRaises(RoboflowApiError):
+            pr.batch_image_ids("b1")
 
     def test_save_never_overwrites_and_errors_are_redacted(self):
         session = mock.Mock()

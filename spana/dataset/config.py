@@ -21,7 +21,7 @@ import yaml
 
 from ..config import ConfigError, _pos, _pos_int, _unit, typed_from_dict
 
-DATASET_CONFIG_SCHEMA_VERSION = "1.2.0"
+DATASET_CONFIG_SCHEMA_VERSION = "1.4.0"
 SPLITS = ("train", "dev", "eval")
 UPLOADABLE_SPLITS = ("train", "dev")
 ROBOFLOW_SPLITS = ("train", "valid", "test")
@@ -151,8 +151,10 @@ class SplitsSection:
     probe_max: int                # --probe may move at most this many frames (to test a move method first)
     verify_attempts: int          # post-move checks are retried this often (search lags writes) before failing
     verify_wait_s: float
+    batch_timeout_s: float        # read timeout of the batch create / delete calls (hundreds of images per call)
 
     def validate(self) -> None:
+        _pos("splits.batch_timeout_s", self.batch_timeout_s)
         if not self.assignable or any(s not in ROBOFLOW_SPLITS for s in self.assignable):
             raise ConfigError(f"splits.assignable must be a non-empty subset of {ROBOFLOW_SPLITS}")
         if "test" in self.assignable:
@@ -196,6 +198,9 @@ class GrassFilterSection:
     convex_hull: bool                  # fill each grass component to its convex hull: players standing on the pitch
                                        # (holes / notches in the grass, incl. occluded players) stay inside
     dilate_frac: float                 # final dilation as a fraction of frame height (feet stand on the grass edge)
+    frame_edge_margin_frac: float      # a box whose bottom edge is within this fraction of the frame height of the
+                                       # frame's bottom border is cut by the frame: its foot point is not observed,
+                                       # so it is never dropped on grass evidence (kept, reason logged)
     apply_to: Tuple[str, ...]          # classes the filter applies to
 
     def validate(self) -> None:
@@ -205,7 +210,7 @@ class GrassFilterSection:
                 raise ConfigError(f"prelabel.grass.{n} must be [H 0..179, S 0..255, V 0..255]")
         if any(lo > hi for lo, hi in zip(self.hsv_lower, self.hsv_upper)):
             raise ConfigError("prelabel.grass.hsv_lower must be <= hsv_upper per channel")
-        for n in ("close_frac", "min_component_frac", "dilate_frac"):
+        for n in ("close_frac", "min_component_frac", "dilate_frac", "frame_edge_margin_frac"):
             _unit(f"prelabel.grass.{n}", getattr(self, n))
 
 
@@ -294,24 +299,211 @@ class ReviewSection:
 
 
 @dataclass(frozen=True)
+class BallStaticFlag:
+    """A ball box that stays at the same place in the scene between two consecutive sampled frames of one match
+    while the camera moves (camera motion estimated from background features): likely a spare ball."""
+    tag: str
+    max_gap_s: float               # the two frames are at most this far apart (metadata timestamp_s)
+    max_shift_frac: float          # residual between the camera-carried ball centre and the next frame's ball box
+                                   # centre, fraction of frame height
+    min_camera_shift_frac: float   # the camera moved the ball's position by at least this fraction of frame height
+    max_features: int              # ORB features per frame (outside annotated boxes)
+    min_inliers: int               # fewer consistent matches: no camera estimate, no flag
+    ransac_reproj_frac: float      # RANSAC inlier distance, fraction of frame height
+    box_pad_frac: float            # annotated boxes are padded by this fraction of frame height before masking
+
+    def validate(self) -> None:
+        _pos("review_flags.ball_static.max_gap_s", self.max_gap_s)
+        for n in ("max_shift_frac", "min_camera_shift_frac", "ransac_reproj_frac", "box_pad_frac"):
+            _unit(f"review_flags.ball_static.{n}", getattr(self, n))
+        _pos_int("review_flags.ball_static.max_features", self.max_features)
+        _pos_int("review_flags.ball_static.min_inliers", self.min_inliers)
+
+
+@dataclass(frozen=True)
+class BallOffpitchFlag:
+    tag: str                       # ball box whose centre is outside the grass mask (prelabel.grass settings)
+
+    def validate(self) -> None:
+        pass
+
+
+@dataclass(frozen=True)
+class BallTinyFlag:
+    tag: str
+    min_size_frac: float           # a ball box whose longer side is below this fraction of the frame height
+
+    def validate(self) -> None:
+        _unit("review_flags.ball_tiny.min_size_frac", self.min_size_frac)
+
+
+@dataclass(frozen=True)
+class PlayerEdgeFlag:
+    tag: str
+    band_frac: float               # foot point within this fraction of the frame height of the grass mask's outer
+                                   # boundary (or outside the mask)
+
+    def validate(self) -> None:
+        _unit("review_flags.player_edge.band_frac", self.band_frac)
+
+
+@dataclass(frozen=True)
+class DenseFlag:
+    tag: str
+    pair_iou_min: float            # two person boxes overlap "heavily" from this IoU
+    min_pairs: int                 # frames with at least this many such pairs are flagged
+
+    def validate(self) -> None:
+        _unit("review_flags.dense.pair_iou_min", self.pair_iou_min)
+        _pos_int("review_flags.dense.min_pairs", self.min_pairs)
+
+
+@dataclass(frozen=True)
+class ReviewFlagsSection:
+    """Review-priority tags for pre-labelled frames (tools/roboflow_review_flags.py). Tags only: annotations are
+    never changed. A flag orders human review; it does not say a box is wrong."""
+    ball_static: BallStaticFlag
+    ball_offpitch: BallOffpitchFlag
+    ball_tiny: BallTinyFlag
+    player_edge: PlayerEdgeFlag
+    dense: DenseFlag
+    write_batch_size: int          # tag writes per batch; the run log is saved after every batch (resume point)
+    min_interval_s: float          # pause between tag writes
+
+    def flags(self) -> dict:
+        """{flag name: tag}."""
+        return {n: getattr(self, n).tag for n in ("ball_static", "ball_offpitch", "ball_tiny", "player_edge", "dense")}
+
+    def validate(self) -> None:
+        for name, tag in self.flags().items():
+            if not tag.strip() or tag.startswith(("match:", "split:")):
+                raise ConfigError(f"review_flags.{name}.tag must be non-empty and not a match: / split: tag")
+            getattr(self, name).validate()
+        _pos_int("review_flags.write_batch_size", self.write_batch_size)
+        if self.min_interval_s < 0:
+            raise ConfigError("review_flags.min_interval_s must be >= 0")
+
+
+@dataclass(frozen=True)
 class VersionSection:
     auto_orient: bool
     resize_width: int
     resize_height: int
     resize_format: str
     augmentations: Tuple[str, ...]    # subset of GEOMETRIC_AUGMENTATIONS; colour-changing ones are refused
+    platform_test_frames: int         # frames the "test" split must hold, exactly (0 = none allowed). The training
+                                      #   platform refuses a version without test images; these are never scored and
+                                      #   must come from a match that preflight.split_matches does not put in train
 
     def validate(self) -> None:
         for n in ("resize_width", "resize_height"):
             v = getattr(self, n)
             if not 1 <= v <= 2048:
                 raise ConfigError(f"version.{n} must be in [1, 2048]")
+        _pos_int("version.platform_test_frames", self.platform_test_frames, allow_zero=True)
         if self.resize_format not in RESIZE_FORMATS:
             raise ConfigError(f"version.resize_format must be one of {RESIZE_FORMATS}")
         bad = [a for a in self.augmentations if a not in GEOMETRIC_AUGMENTATIONS]
         if bad:
             raise ConfigError(f"version.augmentations {bad} refused: only {GEOMETRIC_AUGMENTATIONS} are allowed "
                               "(no colour-changing augmentation; kit colour matters for team classification)")
+
+
+@dataclass(frozen=True)
+class PreflightSection:
+    """Read-only checks before a version is generated (tools/roboflow_preflight.py)."""
+    split_matches: Tuple[str, ...]        # "<roboflow split>:<match_id>": the only matches a split may hold, and
+                                          #   each listed pair must be present
+    ball_small_px: float                  # report the share of ball boxes whose short side is below this (source px)
+    ball_size_buckets_px: Tuple[float, ...]   # ascending short-side bucket edges (source px) for size reports
+    ball_quantile: float                  # this quantile of the ball short side, scaled to the version size ...
+    ball_min_version_px: float            # ... must be at least this many pixels, else the version is refused
+
+    def validate(self) -> None:
+        pairs = [e.partition(":") for e in self.split_matches]
+        if not pairs or any(not sep or s not in ROBOFLOW_SPLITS or not m.strip() for s, sep, m in pairs):
+            raise ConfigError(f"preflight.split_matches entries must be '<one of {ROBOFLOW_SPLITS}>:<match_id>'")
+        mids = [m for _, _, m in pairs]
+        if len(set(mids)) != len(mids):
+            raise ConfigError("preflight.split_matches: a match is listed twice (a match belongs to one split)")
+        if any(s == "test" for s, _, _ in pairs):
+            raise ConfigError("preflight.split_matches must not use 'test' (held-out testing is EVAL's job)")
+        _pos("preflight.ball_small_px", self.ball_small_px)
+        _pos("preflight.ball_min_version_px", self.ball_min_version_px)
+        b = self.ball_size_buckets_px
+        if not b or any(v <= 0 for v in b) or list(b) != sorted(set(b)):
+            raise ConfigError("preflight.ball_size_buckets_px must be ascending, distinct and > 0")
+        if not 0.0 <= self.ball_quantile <= 1.0:
+            raise ConfigError("preflight.ball_quantile must be in [0, 1]")
+
+    def expected(self) -> dict:
+        """{match_id: roboflow split}"""
+        return {m: s for s, _, m in (e.partition(":") for e in self.split_matches)}
+
+
+@dataclass(frozen=True)
+class DetectorSection:
+    """Detector training on Roboflow (one model per dataset version)."""
+    dataset_version: int               # generated version the model is trained on (records: version_<N>.json)
+    model_type: str                    # Roboflow training model id
+    checkpoint: str                    # starting weights
+    epochs: int
+    input_resolution: int              # square training input, pixels; must equal the version's resize (no downscale)
+    online_augmentations: Tuple[str, ...]   # subset of GEOMETRIC_AUGMENTATIONS applied during training
+    flip_probability: float
+    model_id: str                      # "<project>/<version>" of the trained model; "" until training has finished
+    api_url: str                       # inference server; a host in local_api_hosts keeps frames on this machine
+    confidence: float                  # operating confidence of the adapter
+    iou: float                         # NMS overlap sent with each request
+    timeout_s: float
+
+    def validate(self) -> None:
+        u = urlparse(self.api_url)
+        if u.scheme not in ("http", "https") or not u.hostname:
+            raise ConfigError("detector.api_url must be an http(s) URL")
+        _unit("detector.confidence", self.confidence)
+        _unit("detector.iou", self.iou)
+        _pos("detector.timeout_s", self.timeout_s)
+        _pos_int("detector.dataset_version", self.dataset_version)
+        _pos_int("detector.epochs", self.epochs)
+        _pos_int("detector.input_resolution", self.input_resolution)
+        _unit("detector.flip_probability", self.flip_probability)
+        if not self.model_type.strip() or not self.checkpoint.strip():
+            raise ConfigError("detector.model_type and detector.checkpoint must be non-empty")
+        bad = [a for a in self.online_augmentations if a not in GEOMETRIC_AUGMENTATIONS]
+        if bad:
+            raise ConfigError(f"detector.online_augmentations {bad} refused: only {GEOMETRIC_AUGMENTATIONS} are "
+                              "allowed (no colour-changing augmentation)")
+        if self.model_id and (self.model_id.count("/") != 1 or not all(self.model_id.split("/"))):
+            raise ConfigError("detector.model_id must be '' or look like '<project>/<version>'")
+
+
+@dataclass(frozen=True)
+class DetectorEvalSection:
+    """Scoring detector.model_id against the frozen labels of one Roboflow split (tools/detector_eval.py)."""
+    split: str                         # Roboflow split scored; never "test" (held-out testing is EVAL's job)
+    request_confidence: float          # low floor so the precision / recall curve behind mAP is complete
+    match_iou: float                   # IoU for precision, recall, confusion and worst-frame ranking
+    size_recall_class: str             # class whose recall is reported by box size (preflight buckets)
+    size_recall_ious: Tuple[float, ...]
+    render_frames: int                 # annotated frames written for review
+    worst_classes: Tuple[str, ...]     # for each: the frames with the most missed + false boxes are rendered
+    worst_per_class: int
+    min_interval_s: float              # pause between inference requests
+
+    def validate(self) -> None:
+        if self.split not in ROBOFLOW_SPLITS or self.split == "test":
+            raise ConfigError("detector_eval.split must be 'train' or 'valid' (held-out testing is EVAL's job)")
+        _unit("detector_eval.request_confidence", self.request_confidence)
+        _unit("detector_eval.match_iou", self.match_iou)
+        if not self.size_recall_ious or any(not 0 < v <= 1 for v in self.size_recall_ious):
+            raise ConfigError("detector_eval.size_recall_ious must be non-empty values in (0, 1]")
+        _pos_int("detector_eval.render_frames", self.render_frames, allow_zero=True)
+        _pos_int("detector_eval.worst_per_class", self.worst_per_class, allow_zero=True)
+        if len(self.worst_classes) * self.worst_per_class > self.render_frames:
+            raise ConfigError("detector_eval: worst frames requested exceed render_frames")
+        if self.min_interval_s < 0:
+            raise ConfigError("detector_eval.min_interval_s must be >= 0")
 
 
 @dataclass(frozen=True)
@@ -325,6 +517,10 @@ class PathsSection:
     render_dir: str      # annotated pre-label renders for visual review (run outputs; not committed)
     image_cache_dir: str  # verified copies of project images (run outputs; not committed)
     prelabel_backup_dir: str  # annotation backups written before any pre-label is replaced (records; committed)
+    review_dir: str      # review-flag run logs (records; committed; no pixels)
+    detector_record_dir: str   # detector evaluation records (committed; no pixels)
+    detector_render_dir: str   # annotated evaluation frames and cached predictions (run outputs; not committed)
+    version_dir: str     # preflight records, label snapshots and version manifests (records; committed; no pixels)
 
 
 @dataclass(frozen=True)
@@ -341,7 +537,11 @@ class DatasetConfig:
     splits: SplitsSection
     prelabel: PrelabelSection
     review: ReviewSection
+    review_flags: ReviewFlagsSection
     version: VersionSection
+    preflight: PreflightSection
+    detector: DetectorSection
+    detector_eval: DetectorEvalSection
     paths: PathsSection
 
     def validate(self) -> None:
@@ -380,15 +580,23 @@ class DatasetConfig:
         if any(self.prelabel.request_confidence > t for t in thresholds.values()):
             raise ConfigError("prelabel.request_confidence must be <= every prelabel.class_thresholds value")
         tags = [self.splits.excluded_tag, self.prelabel.tag, self.review.reviewed_tag, self.prelabel.blur.excluded_tag,
-                *self.prelabel.superseded_tags]
+                *self.prelabel.superseded_tags, *self.review_flags.flags().values()]
         if len(set(tags)) != len(tags):
-            raise ConfigError("splits.excluded_tag, prelabel.tag, prelabel.superseded_tags, prelabel.blur.excluded_tag "
-                              "and review.reviewed_tag must all differ")
+            raise ConfigError("splits.excluded_tag, prelabel.tag, prelabel.superseded_tags, prelabel.blur.excluded_tag, "
+                              "review.reviewed_tag and the review_flags tags must all differ")
         if self.prelabel.ball_class not in targets:
             raise ConfigError(f"prelabel.ball_class {self.prelabel.ball_class!r} must be an auto-labelled class")
         unknown = [c for c in self.prelabel.grass.apply_to if c not in targets]
         if unknown:
             raise ConfigError(f"prelabel.grass.apply_to {unknown}: not auto-labelled classes")
+        e = self.detector_eval
+        if e.size_recall_class not in self.classes or any(c not in self.classes for c in e.worst_classes):
+            raise ConfigError("detector_eval.size_recall_class / worst_classes must be configured classes")
+        if e.request_confidence > self.detector.confidence:
+            raise ConfigError("detector_eval.request_confidence must be <= detector.confidence")
+        if self.detector.input_resolution != max(self.version.resize_width, self.version.resize_height):
+            raise ConfigError("detector.input_resolution must equal the version resize (the ball must not be "
+                              "downscaled between the version and the model input)")
         ids = [m.match_id for m in self.licensed_matches]
         if len(set(ids)) != len(ids):
             raise ConfigError("licensed_matches: a match_id is listed twice (a match belongs to one split)")
@@ -497,7 +705,10 @@ def match_of(cfg: DatasetConfig, tags, metadata: dict) -> Tuple[Optional[License
         return None, f"match {mid!r} is not on the licensed_matches allow-list"
     if entry.split == "eval":
         return None, f"match {mid!r} is registered as EVAL"
-    if split_tags and split_tags != [entry.split]:
+    # A split tag names the licence split, or (TRAIN-licensed matches only) the Roboflow split the whole match was
+    # assigned to: one of splits.assignable, which never contains "test". Anything else fails closed.
+    allowed = {entry.split} | (set(cfg.splits.assignable) if entry.split == "train" else set())
+    if split_tags and (len(split_tags) != 1 or split_tags[0] not in allowed):
         return None, f"split tags {split_tags} disagree with the allow-list split {entry.split!r}"
     if not entry.third_party_processing_confirmed:
         return None, f"match {mid!r}: third-party processing not confirmed"
