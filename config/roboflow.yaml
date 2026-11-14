@@ -68,6 +68,15 @@ licensed_matches:
     split: train
     permission: "written permission dated 2026-11-04 (records/reid_train/TRAIN_M003_STATUS.md)"
     third_party_processing_confirmed: true
+  # DEV matches, added at Nathan's instruction on 2026-11-14; third-party processing confirmed by Nathan the same day.
+  - match_id: DEV_G1_SYDNEY_UNITED_APIA
+    split: dev
+    permission: "written permission dated 2026-10-31 (records/dev_permissions/DEV_PERMISSIONS_2026-11-14.md)"
+    third_party_processing_confirmed: true
+  - match_id: DEV_G2_NWS_SPIRIT_SD_RAIDERS
+    split: dev
+    permission: "written permission dated 2026-10-31 (records/dev_permissions/DEV_PERMISSIONS_2026-11-14.md)"
+    third_party_processing_confirmed: true
 
 # --- dataset preparation for detector v1 (tools/roboflow_audit.py, roboflow_split.py, roboflow_prelabel.py,
 #     roboflow_progress.py, roboflow_version.py). Every tool applies the licensed_matches allow-list to every frame.
