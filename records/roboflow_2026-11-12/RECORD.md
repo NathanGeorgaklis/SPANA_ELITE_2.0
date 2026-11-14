@@ -446,3 +446,98 @@ Branch `claude/prelabel-v2` (from `claude/nifty-carson-j51h2l`; `main` has none 
     round object at the pitch-side fence (f0033108-f0034080) and two tiny false boxes. Sheets M002_2, M003_2 and
     M003_3 were not opened.
 - Project state: M002 279 and M003 299 frames `prelabel:v2`; M001 297 frames never pre-labelled.
+
+## 2026-11-14: frame-edge fix, review flags, ball sheets, M001 to `valid` + 20-frame sample
+Branch `claude/review-flags-edge-fix`. Config schema 1.3.0. Tests: 240 passed, 4 skipped.
+
+### Frame-edge fix (pre-labels only)
+- ROOT CAUSE: the grass filter tests a box's bottom-centre. For a body cut by the frame's bottom border that
+  point is kit, not a foot on grass. FAILING LAYER: `grass_filter` (`tools/roboflow_prelabel.py`).
+- EVIDENCE: M002 f0027000, logged drop `player [1221, 599, 1280, 720] 0.8352: bottom-centre (1250.5, 720.0)
+  outside grass mask`. Recomputed on the cached frame: the mask ends at row 695 in that column and at column
+  1238 in the bottom row; the pixels under the "foot" are the red kit (mean HSV 17 / 165 / 150).
+- FIX: `prelabel.grass.frame_edge_margin_frac` 0.005 (3.6 px at 720 p). A box whose bottom edge is that close
+  to the frame's bottom border has no observed foot point: kept, reason logged on the box (`grass_note`) and
+  counted (`kept_foot_unobserved`). Only the bottom border; side and top borders are unchanged.
+- Offline replay (`python -m tools.roboflow_grass_recheck <v2 logs>`, cached images, no API call) over the 578
+  logged frames: grass drops 122 -> 118; 4 boxes now kept, 0 newly dropped. Kept: M002 f0027000 (the player),
+  M003 f0001356 (person at the near touchline), f0007308 and f0012168 (assistant referee). M003 f0010746 and
+  f0004548: 7 drops each, unchanged.
+
+### Server state found during this work (not made by these tools)
+- Roboflow Auto Label jobs were created on the M002 and M003 batches at about 04:28 and 04:30 UTC (annotation
+  board: labeler AUTOLABEL, both jobs in Review). All 600 frames of the two batches were annotated, including
+  the 22 excluded frames. The v2 pre-label boxes were replaced: 577 of 578 frames differ from the v2 logs; the
+  classes now include `referee` (547) and `goalkeeper` (225); 446 ball boxes against 316 logged.
+- The frames still carry `prelabel:v2`, which no longer describes their labels.
+- By 05:20 UTC all 299 M003 pre-labelled frames were tagged `reviewed`. One M003 frame (f0018120) was in split
+  `valid` at 04:49 UTC and back in `train` by 05:20 UTC.
+- The model and licence of that Auto Label run are not recorded here (not known to this session).
+
+### Review flags (`tools/roboflow_review_flags.py`, rules in `spana/dataset/review_flags.py`, config `review_flags`)
+- Tags only, through the write guard; annotations are never changed and no tag is removed.
+- `review:ball-static` is implemented as "same place in the scene while the camera moves": camera motion between
+  consecutive sampled frames is estimated from background ORB features (RANSAC similarity), and a ball whose
+  carried position lands on a ball box in the next frame is flagged. Measured on the v2 logs: scene-fixed balls
+  have a residual of 0.3-3.2 px under camera shifts of 20-180 px; balls in play are above 6 px. A ball at the
+  same image position under a still camera is not flagged (a dead ball looks the same).
+- Run on the annotations as read at 05:11 UTC (`review_flags_20261114T051118Z.json`, then resumed as
+  `review_flags_20261114T052034Z.json`, sha256 ddebd5e6785f4d63):
+
+  | match | frames | flagged | ball-static | ball-offpitch | ball-tiny | player-edge | dense |
+  |---|---|---|---|---|---|---|---|
+  | M001 (20 sample frames) | 20 | 1 | 0 | 0 | 0 | 1 | 0 |
+  | M002 | 279 | 24 | 15 | 0 | 0 | 0 | 10 |
+  | M003 | 299 | 37 | 4 | 14 | 0 | 16 | 10 |
+
+- Tags written: 25 frames (M002 24, M001 1), read back. M003: 0 written; its 37 flagged frames were tagged
+  `reviewed` before the write and are never touched. Their flags are in the log.
+- `ball-tiny` fires on nothing: the smallest ball box now on the server is 6 px (limit 5.8 px).
+- FAILURE during the first `--apply`: ROOT CAUSE the run log was saved with `write_json_atomic`, which refuses to
+  overwrite; the second save raised after 24 tag writes. LAYER: `save()` in the tool. FIX: `save_log` replaces the
+  run's own log (temp file + rename). TEST: `test_log_is_saved_again_after_every_batch`. The run was continued
+  with `--resume`; nothing was written twice.
+- Dry run before it: `review_flags_20261114T043314Z_dryrun.json` (sha256 c26c33b71c1ac69c).
+
+### Ball sheets not opened before (boxes of the v2 logs; `runs/roboflow_prelabel/ball_sheets/`)
+| frame | logged box | judged | on the server at 04:33 UTC |
+|---|---|---|---|
+| M002 f0034080 | 0.63, 17x15 | spare ball at the goalpost | still there (flagged ball-static) |
+| M002 f0034272 | 0.56, 13x11 | boot / glove, not a ball | gone |
+| M003 f0006198 | 0.53, 8x10 | doubtful (white patch at the goal net) | still there |
+| M003 f0006420 | 0.50, 11x8 | flat white mark on a line, not a ball | gone |
+| M003 f0007002 | 0.59, 11x13 | doubtful (faint grey blob) | still there |
+| M003 f0007500 | 0.51, 13x12 | a player's hand, not a ball | gone |
+| M003 f0008334 | 0.83, 16x14 | doubtful (second ball-like blob in the frame) | gone |
+| M003 f0009180 | 0.58, 9x12 | doubtful (small, elongated) | still there |
+| M003 f0015354 | 0.62, 7x7 | doubtful (speck beside a player) | gone |
+| M003 f0015462 | 0.50, 14x15 | doubtful (second ball in the frame) | still there |
+| M003 f0015552 | 0.58, 23x24 | doubtful (second, purple ball in the frame) | still there |
+| M003 f0017682 | 0.55, 6x5 | speck, not a ball | gone |
+The other 84 boxes on the three sheets look like the ball.
+
+### M001 to `valid`
+- Allow-list: `TRAIN_M001_MORETON_CITY` is listed with third-party processing confirmed. Unchanged.
+- ROOT CAUSE of the 2026-11-13 failed move (`split_20261113T054210Z_apply.json`, nothing changed): one frame was
+  already in `valid` (probe), so the tool made a new batch of the other 299 frames first, and that call ran past
+  the 60 s timeout. LAYER: `move_frames` (`tools/roboflow_split.py`).
+- FIX: the match's batch is deleted as it is when its image ids, read from the server
+  (`GET annotation-batches/{id}/images`), equal the frames to move; `splits.batch_timeout_s` 600 for batch calls;
+  a frame with an annotation is refused before anything changes; `--only-assigned` never moves frames of matches
+  not named in `--assign`.
+- Run: `python -m tools.roboflow_split --assign valid=TRAIN_M001_MORETON_CITY --only-assigned --apply`
+  (`split_20261114T045307Z_apply.json`, sha256 f4ce5e27ee5feb21; restore file `restore_20261114T045307Z.json`,
+  sha256 2d7266a9686949fa). 299 frames deleted with their batch and uploaded again; each name exactly once, split
+  `valid`, same sha256, tags and metadata. M001 is 300 / 300 in `valid`; none of its frames had an annotation.
+
+### M001 v2 sample (20 frames; not run further)
+- `python -m tools.roboflow_prelabel --limit 20 --match TRAIN_M001_MORETON_CITY --require-split valid`
+  (`prelabel_20261114T050825Z.json`, sha256 0e8c7668e500f0b0; prelabel config sha256 3fe85cde994ec8ad).
+- 20 labelled, 0 failed: 199 player boxes, 11 ball boxes in 11 frames, 0 dropped, 0 kept by the frame-edge rule.
+- Renders `runs/roboflow_prelabel/20261114T050825Z/`; ball sheet
+  `runs/roboflow_prelabel/ball_sheets/m001_sample/TRAIN_M001_MORETON_CITY_1.jpg`. The 11 ball boxes look like
+  the ball (f0003972 overlaps a boot; f0001980 is a ball in the air).
+- The grass filter does almost nothing on M001: the mask covers 81-100 % of each frame (median 98 %) because the
+  trees behind the ground are green and the convex hull fills the rest. Spectators beside the pitch are boxed as
+  `player` (e.g. f0036120), as are the referee and assistant referees.
+- Remaining: 277 M001 frames never pre-labelled; a full run needs Nathan's go-ahead and this sample's log.

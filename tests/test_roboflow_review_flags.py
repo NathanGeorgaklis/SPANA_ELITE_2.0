@@ -254,6 +254,25 @@ class ToolTests(unittest.TestCase):
         with self.assertRaises(Exception):
             tool.check_resume(other, doc)                                            # settings changed: recompute
 
+    def test_log_is_saved_again_after_every_batch(self):
+        """2026-11-14: the second save of the run log was refused (records never overwrite) and the run crashed
+        after its tags were written. The progress log replaces its own previous state."""
+        import json
+        import tempfile
+        from pathlib import Path
+        images = [img(i, tags=("prelabel:v2",)) for i in range(1, 4)]
+        proj = self._project(images, [self.offpitch] * 3)
+        entries, skipped = self._compute(proj, images)
+        doc = tool.build_doc(self.cfg, entries, skipped, apply=True, match=None)
+        with tempfile.TemporaryDirectory() as td:
+            out = Path(td) / "sub" / "review_flags_x.json"
+            save = lambda: tool.save_log(out, doc)
+            save()                                                   # before the first write
+            tool.apply_tags(self.cfg, GuardedProject(self.cfg, proj, images), entries, save=save)
+            saved = json.loads(out.read_text())
+            self.assertEqual([e["written"] for e in saved["entries"]], ["added"] * 3)
+            self.assertEqual([p.name for p in out.parent.iterdir()], [out.name])     # no temp file left behind
+
     def test_summary_counts_per_match_and_orders_flagged_frames_first(self):
         images = [img(1, tags=("prelabel:v2",)), img(2, tags=("prelabel:v2",)), img(3, tags=("prelabel:v2",)),
                   img(4, mid="M2", tags=("prelabel:v2",))]

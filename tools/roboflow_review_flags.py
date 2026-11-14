@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence
 
-from spana.artifacts import read_json, write_json_atomic
+from spana.artifacts import canonical_bytes, read_json
 from spana.dataset import review_flags as rf
 from spana.dataset.config import DatasetConfig, PolicyError, load_dataset_config, match_of
 from spana.dataset.guard import GuardedProject
@@ -192,6 +192,16 @@ def build_doc(cfg: DatasetConfig, entries: List[dict], skipped: List[dict], *, a
             "entries": entries, "not_selected_skips": skipped, "summary": summarize(cfg, entries, skipped)}
 
 
+def save_log(path: Path, doc: dict) -> None:
+    """Write this run's log, replacing its previous state (it is saved after every batch of tag writes).
+    spana.artifacts.write_json_atomic refuses to overwrite, which is right for finished records and wrong for a
+    progress log: the second save crashed the first --apply run on 2026-11-14."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp")
+    tmp.write_bytes(canonical_bytes(doc))
+    tmp.replace(path)
+
+
 def check_resume(cfg: DatasetConfig, doc: dict) -> None:
     if doc.get("schema") != LOG_SCHEMA or doc.get("schema_version") != LOG_SCHEMA_VERSION:
         raise PolicyError("refused: --resume is not a review-flags log of this version")
@@ -233,8 +243,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
         def save():
             doc["summary"] = summarize(cfg, entries, skipped)
-            out.parent.mkdir(parents=True, exist_ok=True)
-            write_json_atomic(out, doc)
+            save_log(out, doc)
         error = None
         save()                                   # the computed flags are on disk before the first write
         if a.apply:
