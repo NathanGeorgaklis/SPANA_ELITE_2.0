@@ -84,7 +84,7 @@ def to_project_image(hit: dict, project: str) -> ProjectImage:
 class RoboflowProject:
     def __init__(self, *, api_url: str, workspace: str, project: str, api_key: str, timeout_s: float, session=None,
                  rate_limit_retries: int = 0, rate_limit_wait_s: float = 1.0, sleep=time.sleep,
-                 rate_limit_max_wait_s: float = 300.0):
+                 rate_limit_max_wait_s: float = 300.0, batch_timeout_s: Optional[float] = None):
         import requests
         self._base = api_url.rstrip("/")
         self.workspace, self.project = workspace, project
@@ -93,16 +93,19 @@ class RoboflowProject:
         self._session = session if session is not None else requests.Session()
         self._retries, self._wait, self._sleep = rate_limit_retries, rate_limit_wait_s, sleep
         self._max_wait = rate_limit_max_wait_s
+        self._batch_timeout = timeout_s if batch_timeout_s is None else batch_timeout_s   # batch create / delete
 
     def _err(self, text: str) -> RoboflowApiError:
         return RoboflowApiError(redact(text, self._key)[:500])
 
     def _call(self, method: str, url: str, **kw):
+        timeout = kw.pop("timeout", self._timeout)
+
         def send():
             import requests
             for attempt in (0, 1):
                 try:
-                    return self._session.request(method, url, timeout=self._timeout, **kw)
+                    return self._session.request(method, url, timeout=timeout, **kw)
                 except requests.exceptions.ConnectionError as e:
                     # a pooled connection left idle (e.g. through a long 429 wait) is dropped by the server: send
                     # once more on a fresh one. Every call made here is idempotent.
@@ -230,12 +233,13 @@ class RoboflowProject:
 
     def create_batch(self, source_batch_id: str, image_ids: List[str], name: str) -> None:
         self._json(self._call("POST", f"{self._base}/{self.workspace}/{self.project}/annotation-batches",
-                              params={"api_key": self._key},
+                              params={"api_key": self._key}, timeout=self._batch_timeout,
                               json={"sourceBatchId": source_batch_id, "imageIds": list(image_ids), "name": name}),
                    ok=(200, 201))
 
     def delete_batch(self, batch_id: str, *, permanent: bool) -> None:
         """permanent=True deletes the batch's image sources (not only from the project)."""
         self._json(self._call("DELETE", f"{self._base}/{self.workspace}/{self.project}/annotation-batches/{batch_id}",
-                              params={"api_key": self._key, "permanent": "true" if permanent else "false"}),
+                              params={"api_key": self._key, "permanent": "true" if permanent else "false"},
+                              timeout=self._batch_timeout),
                    ok=(200, 202, 204))

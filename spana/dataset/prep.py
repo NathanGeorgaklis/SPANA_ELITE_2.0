@@ -20,7 +20,8 @@ def open_project(cfg: DatasetConfig, api_key: str) -> RoboflowProject:
     r = cfg.roboflow
     return RoboflowProject(api_url=r.api_url, workspace=r.workspace, project=r.project, api_key=api_key,
                            timeout_s=cfg.audit.fetch_timeout_s, rate_limit_retries=r.rate_limit_retries,
-                           rate_limit_wait_s=r.rate_limit_wait_s, rate_limit_max_wait_s=r.rate_limit_max_wait_s)
+                           rate_limit_wait_s=r.rate_limit_wait_s, rate_limit_max_wait_s=r.rate_limit_max_wait_s,
+                           batch_timeout_s=cfg.splits.batch_timeout_s)
 
 
 def open_uploader(cfg: DatasetConfig, api_key: str):

@@ -157,6 +157,19 @@ class RunControlTests(unittest.TestCase):
             run(self.cfg, FakeProject(self.images), self.images, limit=None, confirm_full_run=True,
                 approved_sample=dry)
 
+    def test_require_split_refuses_a_match_with_any_frame_in_another_split(self):
+        """A match is assigned to its split as a whole before labelling: one frame left in train blocks the run."""
+        images = [img(1, split="valid"), img(2, split="valid"), img(3, split="train"), img(4, mid="M2")]
+        proj = FakeProject(images)
+        with self.assertRaisesRegex(PolicyError, "require-split valid.*M1.*train"):
+            run(self.cfg, proj, images, match="M1", require_split="valid")
+        self.assertEqual(writes(proj), [])
+        moved = [img(1, split="valid"), img(2, split="valid"), img(3, split="valid"), img(4, mid="M2")]
+        proj = FakeProject(moved)
+        doc = run(self.cfg, proj, moved, match="M1", require_split="valid")    # M2 (train) is not selected: allowed
+        self.assertEqual(doc["summary"]["status"], {"labelled": 3})
+        self.assertEqual(doc["request"]["require_split"], "valid")
+
     def test_dry_run_writes_nothing(self):
         proj = FakeProject(self.images)
         doc = run(self.cfg, proj, self.images, dry_run=True)

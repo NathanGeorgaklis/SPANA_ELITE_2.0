@@ -17,8 +17,9 @@ would split matches), and re-uploading identical bytes keeps the old split (prob
   1. every frame's original bytes are fetched and verified against the sha256 recorded at upload;
   2. a restore file (paths.split_dir/restore_<stamp>.json: name, sha, tags, metadata, target split, cached file) is
      written BEFORE anything is deleted; `--restore FILE` re-uploads any listed frame missing from the project;
-  3. the frames are removed with their upload batch (the match's whole batch when it holds exactly those frames,
-     else a new batch made of just those frames), permanently, and the listing must no longer show them;
+  3. the frames are removed with their upload batch (the match's own batch when it holds exactly those frames,
+     else a new batch made of just those frames), permanently, and the listing must no longer show them; a frame
+     that has an annotation is refused before anything changes (a re-upload does not carry labels);
   4. each frame is uploaded again with the new split, same name, tags and metadata;
   5. the listing must show each name exactly once, in the new split, with the same image sha256.
 Any failed check stops the run with an error (fail closed) and the manifest records what happened.
@@ -185,6 +186,9 @@ def move_frames(cfg: DatasetConfig, project, uploader, plan: dict, images: List[
     frames = []
     for r in rows:                                      # 1. verify every frame's bytes before touching anything
         img = by_id[r["id"]]
+        if project.get_image(img.id).get("annotation"):   # a re-upload carries tags and metadata, not labels
+            raise PolicyError(f"refused: {img.name} has an annotation, which a delete + re-upload would lose. "
+                              "Nothing was changed")
         try:
             src = verified_image_file(project, img, cache_dir)
         except SkipFrame as e:
@@ -199,14 +203,19 @@ def move_frames(cfg: DatasetConfig, project, uploader, plan: dict, images: List[
                        "old_batch": f"spana_{r['match_id']}_{spana_split}",
                        "batch_name": f"spana_{r['match_id']}_{spana_split}_{r['after']}"})
     write_restore(restore_path, frames)                 # 2. restore file before any deletion
-    per_match_total = Counter(i.metadata.get("match_id") for i in images)
     groups: Dict[str, List[dict]] = defaultdict(list)
     for f in frames:
         groups[f["old_batch"]].append(f)
+    batches = project.list_batches()                    # snapshot before any deletion, for the accounting below
     for batch_name, fs in sorted(groups.items()):       # 3. remove with the batch, permanently
         src = _find_batch(project, batch_name)
         ids = [f["old_id"] for f in fs]
-        whole = len(ids) == src["images"] == per_match_total[fs[0]["match_id"]]
+        # The batch holds exactly these frames when it has as many images as there are frames to move AND every
+        # other project image is accounted for by the other batches (frames of the match moved earlier, e.g. by a
+        # probe, sit in their own batch). Then it is deleted as it is: no new batch has to be made. Making one for
+        # 299 frames timed out on 2026-11-13 (RECORD 2026-11-14). A probe (limit) always uses its own batch.
+        elsewhere = sum(b["images"] for b in batches if b["id"] != src["id"])
+        whole = limit is None and len(ids) == src["images"] and elsewhere == len(images) - len(ids)
         if whole:
             target = src
         else:

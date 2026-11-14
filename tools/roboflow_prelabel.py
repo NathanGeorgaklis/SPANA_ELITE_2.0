@@ -1,7 +1,7 @@
 """Step 4: pre-label project frames with a pretrained general detector, as annotations for HUMAN REVIEW (v2).
 
     python -m tools.roboflow_prelabel --diagnose-ball --ids-from LOG [LOG ...]       # read-only ball score check
-    python -m tools.roboflow_prelabel --limit 20 [--match MATCH_ID]                  # sample (<= prelabel.sample_size)
+    python -m tools.roboflow_prelabel --limit 20 [--match MATCH_ID] [--require-split valid]   # sample (<= sample_size)
     python -m tools.roboflow_prelabel --migrate --limit 20 --ids-from LOG [LOG ...]  # replace older pre-labels
     python -m tools.roboflow_prelabel --all --confirm-full-run --approved-sample SAMPLE_LOG   # after Nathan's go-ahead
 
@@ -110,8 +110,10 @@ def check_approved_sample(cfg: DatasetConfig, doc: Optional[dict]) -> None:
 
 def select(cfg: DatasetConfig, images: List[ProjectImage], *, limit: Optional[int], match: Optional[str],
            confirm_full_run: bool, migrate: bool = False, ids: Optional[Sequence[str]] = None,
-           approved_sample: Optional[dict] = None):
-    """-> (selected images, skipped [{id, name, reason}]). Raises PolicyError for a run larger than allowed."""
+           approved_sample: Optional[dict] = None, require_split: Optional[str] = None):
+    """-> (selected images, skipped [{id, name, reason}]). Raises PolicyError for a run larger than allowed, and,
+    with require_split, when any frame of a selected match is not in that Roboflow split (a match is assigned to
+    a split as a whole before it is labelled)."""
     if limit is not None and limit <= 0:
         raise PolicyError("--limit must be positive")
     if limit is None or limit > cfg.prelabel.sample_size:
@@ -132,6 +134,13 @@ def select(cfg: DatasetConfig, images: List[ProjectImage], *, limit: Optional[in
         else:
             eligible.append(img)
     chosen = eligible if limit is None else evenly_spaced(eligible, limit)
+    if require_split is not None:
+        for mid in sorted({match_tag(i) for i in chosen}):
+            other = Counter(i.split for i in images if match_tag(i) == mid and i.split != require_split)
+            if other:
+                raise PolicyError(f"refused: --require-split {require_split}: match {mid} has frames in "
+                                  f"{dict(sorted(other.items(), key=str))}. Assign the whole match first "
+                                  "(tools/roboflow_split.py); nothing was written")
     return chosen, skipped
 
 
@@ -420,12 +429,13 @@ def process_frame(cfg: DatasetConfig, guard: GuardedProject, infer, img: Project
 def run_prelabel(cfg: DatasetConfig, project, infer, images: List[ProjectImage], *, limit: Optional[int],
                  match: Optional[str], confirm_full_run: bool, load, render_dir: Optional[Path],
                  migrate: bool = False, ids: Optional[Sequence[str]] = None, approved_sample: Optional[dict] = None,
-                 write_backup: Optional[Callable[[dict], dict]] = None, dry_run: bool = False) -> dict:
+                 write_backup: Optional[Callable[[dict], dict]] = None, dry_run: bool = False,
+                 require_split: Optional[str] = None) -> dict:
     """`infer(jpeg_bytes) -> raw response`; `load(img) -> BGR frame` (raises SkipFrame); `write_backup(doc) -> path`
     (required with migrate; called BEFORE any write). Every write goes through GuardedProject. dry_run: every check
     and inference runs, nothing is written to Roboflow and no backup is written. Returns the log."""
     chosen, skipped = select(cfg, images, limit=limit, match=match, confirm_full_run=confirm_full_run,
-                             migrate=migrate, ids=ids, approved_sample=approved_sample)
+                             migrate=migrate, ids=ids, approved_sample=approved_sample, require_split=require_split)
     guard = GuardedProject(cfg, project, images, dry_run=dry_run)
     backup = None
     if migrate and chosen:
@@ -457,6 +467,7 @@ def run_prelabel(cfg: DatasetConfig, project, infer, images: List[ProjectImage],
             "prelabel_config": cfg.to_dict()["prelabel"], "prelabel_config_sha256": cfg.section_sha256("prelabel"),
             "request": {"limit": limit, "match": match, "confirm_full_run": confirm_full_run, "migrate": migrate,
                         "dry_run": dry_run, "ids": list(ids) if ids is not None else None,
+                        "require_split": require_split,
                         "approved_sample_sha256": (approved_sample or {}).get("_sha256")},
             "backup": backup, "writes": len(guard.writes),
             "entries": entries, "not_selected_skips": skipped,
@@ -585,6 +596,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--dry-run", action="store_true", help="run every check and inference; write nothing")
     ap.add_argument("--confirm-full-run", action="store_true")
     ap.add_argument("--approved-sample", help="sample log Nathan reviewed (needed beyond prelabel.sample_size)")
+    ap.add_argument("--require-split", help="refuse unless every frame of each selected match is in this "
+                                            "Roboflow split (e.g. valid)")
     ap.add_argument("--config", default=str(DEFAULT_CONFIG))
     a = ap.parse_args(argv)
     cfg = load_dataset_config(a.config)
@@ -628,7 +641,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                            list_all(cfg, project), limit=None if a.all else a.limit, match=a.match,
                            confirm_full_run=a.confirm_full_run, load=load,
                            render_dir=REPO / cfg.paths.render_dir / stamp, migrate=a.migrate, ids=ids,
-                           approved_sample=approved, write_backup=write_backup, dry_run=a.dry_run)
+                           approved_sample=approved, write_backup=write_backup, dry_run=a.dry_run,
+                           require_split=a.require_split)
     except PolicyError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 3

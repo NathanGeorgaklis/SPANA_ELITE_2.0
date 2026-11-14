@@ -151,8 +151,10 @@ class SplitsSection:
     probe_max: int                # --probe may move at most this many frames (to test a move method first)
     verify_attempts: int          # post-move checks are retried this often (search lags writes) before failing
     verify_wait_s: float
+    batch_timeout_s: float        # read timeout of the batch create / delete calls (hundreds of images per call)
 
     def validate(self) -> None:
+        _pos("splits.batch_timeout_s", self.batch_timeout_s)
         if not self.assignable or any(s not in ROBOFLOW_SPLITS for s in self.assignable):
             raise ConfigError(f"splits.assignable must be a non-empty subset of {ROBOFLOW_SPLITS}")
         if "test" in self.assignable:

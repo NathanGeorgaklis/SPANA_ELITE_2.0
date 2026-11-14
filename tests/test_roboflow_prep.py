@@ -318,6 +318,42 @@ class MoveTests(unittest.TestCase):
             splits.setdefault(i.metadata["match_id"], set()).add(i.split)
         self.assertEqual(splits, {"M1": {"valid"}, "M2": {"train"}})
 
+    def test_full_move_after_a_probe_deletes_the_match_batch_without_making_a_new_one(self):
+        """2026-11-13: one frame was already in valid (probe), so the match's batch held 299 of its 300 frames; the
+        tool then made a new 299-frame batch, and that call timed out. The batch holds exactly the frames to move."""
+        cfg = make_cfg(lambda d: d["splits"].update(move_method="delete_reupload"))
+        proj = BatchProject(self.images)
+        self._apply(make_cfg(), proj, FakeUploader(proj), probe=1)             # the probe: own batch, 1 frame
+        proj.created.clear(), proj.deleted.clear()
+        log = self._apply(cfg, proj, FakeUploader(proj))
+        self.assertEqual(proj.created, [])                                      # no new batch
+        self.assertEqual(proj.deleted, ["spana_M1_train"])
+        self.assertEqual(len(log), 2)
+        self.assertEqual({i.split for i in proj.images if i.metadata["match_id"] == "M1"}, {"valid"})
+        self.assertEqual({i.split for i in proj.images if i.metadata["match_id"] == "M2"}, {"train"})
+
+    def test_batch_that_does_not_hold_exactly_the_frames_is_never_deleted_whole(self):
+        cfg = make_cfg(lambda d: d["splits"].update(move_method="delete_reupload"))
+        proj = BatchProject(self.images)
+        m1 = [i for i in self.images if i.metadata["match_id"] == "M1"]
+        m2 = [i for i in self.images if i.metadata["match_id"] == "M2"]
+        proj.batch_of[m1[0].id] = "spana_other"            # same batch size as the frames to move (3), wrong members:
+        proj.batch_of[m2[0].id] = "spana_M1_train"         # one M1 frame is elsewhere, one M2 frame sits in M1's batch
+        proj.batch_of["stray"] = "spana_other"             # and the batches do not account for the listing
+        with self.assertRaises((PolicyError, AssertionError)):
+            self._apply(cfg, proj, FakeUploader(proj))
+        self.assertNotIn("spana_M1_train", proj.deleted)                        # the M2 frame was not deleted
+        self.assertEqual(len([i for i in proj.images if i.metadata["match_id"] == "M2"]), 2)
+
+    def test_annotated_frame_is_never_deleted_and_reuploaded(self):
+        cfg = make_cfg(lambda d: d["splits"].update(move_method="delete_reupload"))
+        proj = BatchProject(self.images)
+        proj.annotation[self.images[1].id] = {"boxes": [{"label": "player"}]}
+        up = FakeUploader(proj)
+        with self.assertRaisesRegex(PolicyError, "has an annotation"):
+            self._apply(cfg, proj, up)
+        self.assertEqual((up.calls, proj.created, proj.deleted), ([], [], []))
+
     def test_fail_closed_cases(self):
         cfg = make_cfg()
         proj = BatchProject(self.images)
@@ -684,6 +720,14 @@ class ClientTests(unittest.TestCase):
         pr.create_batch("b1", ["i1"], "move")
         args, kw = session.request.call_args
         self.assertEqual(kw["json"], {"sourceBatchId": "b1", "imageIds": ["i1"], "name": "move"})
+        self.assertEqual(kw["timeout"], 5)                       # default: the client's timeout
+        slow = RoboflowProject(api_url="https://api.invalid", workspace="ws", project="proj", api_key=SECRET,
+                               timeout_s=5, session=session, batch_timeout_s=600.0)
+        slow.delete_batch("b1", permanent=True)
+        self.assertEqual(session.request.call_args[1]["timeout"], 600.0)   # batch calls get the long timeout
+        session.request.return_value = mock.Mock(status_code=200, json=mock.Mock(return_value={"image": {"id": "i1"}}))
+        slow.get_image("i1")
+        self.assertEqual(session.request.call_args[1]["timeout"], 5)       # everything else keeps the short one
 
     def test_save_never_overwrites_and_errors_are_redacted(self):
         session = mock.Mock()

@@ -86,6 +86,8 @@ splits:
   probe_max: 1                 # --probe moves at most this many frames, then verifies
   verify_attempts: 6           # post-move checks retried (search lags writes)
   verify_wait_s: 10.0
+  batch_timeout_s: 600.0       # batch create / delete act on hundreds of images in one call; making a 299-frame
+                               # batch ran past the 60 s audit.fetch_timeout_s on 2026-11-13 (nothing was changed)
 
 # Pre-labelling: pretrained general COCO detector, commercial-use licence. NOT a Universe dataset / model.
 # coco/36 is what Roboflow's own inference server resolves the alias "rfdetr-base" to
