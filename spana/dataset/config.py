@@ -452,8 +452,18 @@ class DetectorSection:
     online_augmentations: Tuple[str, ...]   # subset of GEOMETRIC_AUGMENTATIONS applied during training
     flip_probability: float
     model_id: str                      # "<project>/<version>" of the trained model; "" until training has finished
+    api_url: str                       # inference server; a host in local_api_hosts keeps frames on this machine
+    confidence: float                  # operating confidence of the adapter
+    iou: float                         # NMS overlap sent with each request
+    timeout_s: float
 
     def validate(self) -> None:
+        u = urlparse(self.api_url)
+        if u.scheme not in ("http", "https") or not u.hostname:
+            raise ConfigError("detector.api_url must be an http(s) URL")
+        _unit("detector.confidence", self.confidence)
+        _unit("detector.iou", self.iou)
+        _pos("detector.timeout_s", self.timeout_s)
         _pos_int("detector.dataset_version", self.dataset_version)
         _pos_int("detector.epochs", self.epochs)
         _pos_int("detector.input_resolution", self.input_resolution)
@@ -469,6 +479,34 @@ class DetectorSection:
 
 
 @dataclass(frozen=True)
+class DetectorEvalSection:
+    """Scoring detector.model_id against the frozen labels of one Roboflow split (tools/detector_eval.py)."""
+    split: str                         # Roboflow split scored; never "test" (held-out testing is EVAL's job)
+    request_confidence: float          # low floor so the precision / recall curve behind mAP is complete
+    match_iou: float                   # IoU for precision, recall, confusion and worst-frame ranking
+    size_recall_class: str             # class whose recall is reported by box size (preflight buckets)
+    size_recall_ious: Tuple[float, ...]
+    render_frames: int                 # annotated frames written for review
+    worst_classes: Tuple[str, ...]     # for each: the frames with the most missed + false boxes are rendered
+    worst_per_class: int
+    min_interval_s: float              # pause between inference requests
+
+    def validate(self) -> None:
+        if self.split not in ROBOFLOW_SPLITS or self.split == "test":
+            raise ConfigError("detector_eval.split must be 'train' or 'valid' (held-out testing is EVAL's job)")
+        _unit("detector_eval.request_confidence", self.request_confidence)
+        _unit("detector_eval.match_iou", self.match_iou)
+        if not self.size_recall_ious or any(not 0 < v <= 1 for v in self.size_recall_ious):
+            raise ConfigError("detector_eval.size_recall_ious must be non-empty values in (0, 1]")
+        _pos_int("detector_eval.render_frames", self.render_frames, allow_zero=True)
+        _pos_int("detector_eval.worst_per_class", self.worst_per_class, allow_zero=True)
+        if len(self.worst_classes) * self.worst_per_class > self.render_frames:
+            raise ConfigError("detector_eval: worst frames requested exceed render_frames")
+        if self.min_interval_s < 0:
+            raise ConfigError("detector_eval.min_interval_s must be >= 0")
+
+
+@dataclass(frozen=True)
 class PathsSection:
     manifest_dir: str    # upload manifests (records; committed)
     frames_dir: str      # extracted frames and dry-run manifests (run outputs; not committed)
@@ -480,6 +518,8 @@ class PathsSection:
     image_cache_dir: str  # verified copies of project images (run outputs; not committed)
     prelabel_backup_dir: str  # annotation backups written before any pre-label is replaced (records; committed)
     review_dir: str      # review-flag run logs (records; committed; no pixels)
+    detector_record_dir: str   # detector evaluation records (committed; no pixels)
+    detector_render_dir: str   # annotated evaluation frames and cached predictions (run outputs; not committed)
     version_dir: str     # preflight records, label snapshots and version manifests (records; committed; no pixels)
 
 
@@ -501,6 +541,7 @@ class DatasetConfig:
     version: VersionSection
     preflight: PreflightSection
     detector: DetectorSection
+    detector_eval: DetectorEvalSection
     paths: PathsSection
 
     def validate(self) -> None:
@@ -548,6 +589,11 @@ class DatasetConfig:
         unknown = [c for c in self.prelabel.grass.apply_to if c not in targets]
         if unknown:
             raise ConfigError(f"prelabel.grass.apply_to {unknown}: not auto-labelled classes")
+        e = self.detector_eval
+        if e.size_recall_class not in self.classes or any(c not in self.classes for c in e.worst_classes):
+            raise ConfigError("detector_eval.size_recall_class / worst_classes must be configured classes")
+        if e.request_confidence > self.detector.confidence:
+            raise ConfigError("detector_eval.request_confidence must be <= detector.confidence")
         if self.detector.input_resolution != max(self.version.resize_width, self.version.resize_height):
             raise ConfigError("detector.input_resolution must equal the version resize (the ball must not be "
                               "downscaled between the version and the model input)")

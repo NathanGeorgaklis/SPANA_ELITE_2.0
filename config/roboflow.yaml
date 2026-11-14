@@ -206,6 +206,23 @@ detector:
   online_augmentations: [flip_horizontal]   # Roboflow's default for this model; no colour-changing step
   flip_probability: 0.5
   model_id: ""                 # filled in when training has finished
+  api_url: https://serverless.roboflow.com   # hosted = third-party processing; a local inference server keeps frames here
+  confidence: 0.50             # untuned prior; not to be tuned until Nathan has reviewed the v1 results
+  iou: 0.50                    # untuned prior (overlap sent with each request)
+  timeout_s: 90.0
+
+# Scoring the detector against the frozen labels of the valid split (tools/detector_eval.py). The valid split is a
+# held-out TRAIN match: it is not SPANA DEV and not EVAL. Nothing here is tuned.
+detector_eval:
+  split: valid
+  request_confidence: 0.01     # low floor so mAP sees the whole precision / recall curve
+  match_iou: 0.50
+  size_recall_class: ball
+  size_recall_ious: [0.50, 0.25]   # 0.25 as well: one pixel of offset costs a 9 px box a lot of IoU
+  render_frames: 20
+  worst_classes: [ball, player]
+  worst_per_class: 5
+  min_interval_s: 0.0
 
 paths:
   manifest_dir: records/roboflow_uploads   # upload manifests (committed; no footage, no secrets)
@@ -218,4 +235,6 @@ paths:
   image_cache_dir: runs/roboflow_cache     # verified copies of project images (gitignored)
   prelabel_backup_dir: records/roboflow_prelabel/backups   # annotations saved before replacement (committed)
   review_dir: records/roboflow_review      # review-flag run logs (committed; no pixels)
+  detector_record_dir: records/detector_v1 # detector evaluation records (committed; no pixels)
+  detector_render_dir: runs/detector_v1    # annotated evaluation frames, cached predictions (gitignored)
   version_dir: records/roboflow_version    # preflight records, label snapshots, version manifests (committed; no pixels)
