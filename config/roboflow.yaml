@@ -197,7 +197,7 @@ preflight:
 
 # Detector training on Roboflow. One model per dataset version; changing anything here means a new training run.
 detector:
-  dataset_version: 1           # records/roboflow_version/version_1.json
+  dataset_version: 2           # records/roboflow_version/version_2.json (version 1: no test frames, untrainable)
   model_type: rfdetr-medium    # the named RF-DETR model Roboflow's training tool defaults to for detection (Apache-2.0)
   checkpoint: COCO             # COCO-pretrained starting weights
   epochs: 100                  # Roboflow's default for this model (early stopping on, patience 15)
