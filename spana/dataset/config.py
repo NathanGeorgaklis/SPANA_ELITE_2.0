@@ -21,7 +21,7 @@ import yaml
 
 from ..config import ConfigError, _pos, _pos_int, _unit, typed_from_dict
 
-DATASET_CONFIG_SCHEMA_VERSION = "1.4.0"
+DATASET_CONFIG_SCHEMA_VERSION = "1.5.0"
 SPLITS = ("train", "dev", "eval")
 UPLOADABLE_SPLITS = ("train", "dev")
 ROBOFLOW_SPLITS = ("train", "valid", "test")
@@ -507,6 +507,32 @@ class DetectorEvalSection:
 
 
 @dataclass(frozen=True)
+class DevBenchSection:
+    """DEV generalisation benchmark (tools/dev_bench.py). Its frames live in their own Roboflow project, which no
+    version is ever generated from, so they can never enter training. Evaluation only."""
+    project: str                       # Roboflow project slug; must differ from roboflow.project
+    roboflow_split: str                # split inside the benchmark project ("train" / "valid"; never "test")
+    frames_per_match: int              # frames kept per DEV match, evenly spread over the match after the filters
+    bench_tag: str                     # every benchmark frame carries it; the training version gate refuses it
+    prelabel_tag: str                  # set once detector.model_id's pre-label is saved and read back
+    add_to_dataset: bool               # pre-labels stay in their batch until reviewed (same rule as prelabel)
+    min_interval_s: float              # pause between frames (upload + inference + annotation)
+
+    def validate(self) -> None:
+        if not self.project.strip() or "/" in self.project:
+            raise ConfigError("dev_bench.project must be a project slug")
+        if self.roboflow_split not in ROBOFLOW_SPLITS or self.roboflow_split == "test":
+            raise ConfigError("dev_bench.roboflow_split must be 'train' or 'valid' (held-out testing is EVAL's job)")
+        _pos_int("dev_bench.frames_per_match", self.frames_per_match)
+        for name in ("bench_tag", "prelabel_tag"):
+            t = getattr(self, name)
+            if not t.strip() or t.startswith(("match:", "split:")):
+                raise ConfigError(f"dev_bench.{name} must be non-empty and not a match: / split: tag")
+        if self.min_interval_s < 0:
+            raise ConfigError("dev_bench.min_interval_s must be >= 0")
+
+
+@dataclass(frozen=True)
 class PathsSection:
     manifest_dir: str    # upload manifests (records; committed)
     frames_dir: str      # extracted frames and dry-run manifests (run outputs; not committed)
@@ -521,6 +547,8 @@ class PathsSection:
     detector_record_dir: str   # detector evaluation records (committed; no pixels)
     detector_render_dir: str   # annotated evaluation frames and cached predictions (run outputs; not committed)
     version_dir: str     # preflight records, label snapshots and version manifests (records; committed; no pixels)
+    dev_bench_dir: str   # DEV benchmark manifests (records; committed; no pixels)
+    dev_bench_frames_dir: str   # DEV benchmark candidate frames (run outputs; not committed)
 
 
 @dataclass(frozen=True)
@@ -542,6 +570,7 @@ class DatasetConfig:
     preflight: PreflightSection
     detector: DetectorSection
     detector_eval: DetectorEvalSection
+    dev_bench: DevBenchSection
     paths: PathsSection
 
     def validate(self) -> None:
@@ -580,10 +609,14 @@ class DatasetConfig:
         if any(self.prelabel.request_confidence > t for t in thresholds.values()):
             raise ConfigError("prelabel.request_confidence must be <= every prelabel.class_thresholds value")
         tags = [self.splits.excluded_tag, self.prelabel.tag, self.review.reviewed_tag, self.prelabel.blur.excluded_tag,
-                *self.prelabel.superseded_tags, *self.review_flags.flags().values()]
+                *self.prelabel.superseded_tags, *self.review_flags.flags().values(), self.dev_bench.bench_tag,
+                self.dev_bench.prelabel_tag]
         if len(set(tags)) != len(tags):
             raise ConfigError("splits.excluded_tag, prelabel.tag, prelabel.superseded_tags, prelabel.blur.excluded_tag, "
-                              "review.reviewed_tag and the review_flags tags must all differ")
+                              "review.reviewed_tag, the review_flags tags and the dev_bench tags must all differ")
+        if self.dev_bench.project == self.roboflow.project:
+            raise ConfigError("dev_bench.project must differ from roboflow.project: benchmark frames must never be "
+                              "in the project training versions are generated from")
         if self.prelabel.ball_class not in targets:
             raise ConfigError(f"prelabel.ball_class {self.prelabel.ball_class!r} must be an auto-labelled class")
         unknown = [c for c in self.prelabel.grass.apply_to if c not in targets]

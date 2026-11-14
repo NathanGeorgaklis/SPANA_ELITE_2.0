@@ -3,7 +3,7 @@
 # derived on DEV data only (never EVAL) and recorded with evidence.
 # Secrets: the API key is NEVER in this file. It is read from the environment variable named in roboflow.api_key_env
 # (or the gitignored .env; template .env.example).
-schema_version: "1.4.0"
+schema_version: "1.5.0"
 
 roboflow:
   workspace: nathans-workspace-9brdc
@@ -233,6 +233,20 @@ detector_eval:
   worst_per_class: 5
   min_interval_s: 0.0
 
+# DEV generalisation benchmark (tools/dev_bench.py). Evaluation only: nothing here trains or tunes a model.
+# Frames come from DEV matches on the allow-list only (split dev; EVAL and unlisted matches are refused), sampled with
+# the `sampling` rules, then prelabel.blur and audit.phash_hamming_max applied, then frames_per_match spread evenly over
+# the match. They live in their own project: no version is generated from it, and the training version gate refuses any
+# frame carrying bench_tag. Pre-labels are detector.model_id at detector.confidence / detector.iou, unfiltered.
+dev_bench:
+  project: spana-elite-dev-bench   # created 2026-11-14, private, own annotation group (no shared labels)
+  roboflow_split: valid
+  frames_per_match: 40             # Nathan, 2026-11-14
+  bench_tag: "bench:v1"
+  prelabel_tag: "prelabel:detector-v1"
+  add_to_dataset: false
+  min_interval_s: 1.0
+
 paths:
   manifest_dir: records/roboflow_uploads   # upload manifests (committed; no footage, no secrets)
   frames_dir: runs/roboflow_frames         # extracted frames + dry-run manifests (gitignored)
@@ -247,3 +261,5 @@ paths:
   detector_record_dir: records/detector_v1 # detector evaluation records (committed; no pixels)
   detector_render_dir: runs/detector_v1    # annotated evaluation frames, cached predictions (gitignored)
   version_dir: records/roboflow_version    # preflight records, label snapshots, version manifests (committed; no pixels)
+  dev_bench_dir: records/dev_bench         # DEV benchmark manifests (committed; no pixels)
+  dev_bench_frames_dir: runs/dev_bench     # DEV benchmark candidate frames (gitignored)

@@ -56,3 +56,16 @@ is missed and two coaching staff in the foreground are boxed as player.
 
 ## Not done (waiting for Nathan's review)
 - No threshold tuning, no retraining.
+
+## DEV generalisation benchmark (pending)
+- Roboflow project `spana-elite-dev-bench` created 2026-11-14 (private, object detection, own annotation group
+  `spana-elite-dev-bench`, 0 images). No version is ever generated from it. The training version gate refuses any
+  frame tagged `bench:v1`.
+- Tool `tools/dev_bench.py`: 40 frames per allow-listed DEV match (DEV_G1_SYDNEY_UNITED_APIA,
+  DEV_G2_NWS_SPIRIT_SD_RAIDERS; not Game 3, never EVAL), selected with the same sampling, blur and near-duplicate
+  rules, pre-labelled with detector v1 at detector.confidence / iou 0.50 and no filters, tagged `match:<id>`,
+  `bench:v1`, `prelabel:detector-v1`.
+- Not run yet: the DEV clips and the API key are not in the session that built it. Scoring waits for Nathan's
+  review of the benchmark labels. The DEV vs M001 comparison table goes here after that.
+- Bias to note when scoring: reviewed labels start from detector v1's own boxes, so a detector miss the reviewer
+  does not add is never counted. Review must add missed objects, not only correct the boxes that were drawn.
