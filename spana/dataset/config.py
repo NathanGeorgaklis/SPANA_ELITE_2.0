@@ -21,7 +21,7 @@ import yaml
 
 from ..config import ConfigError, _pos, _pos_int, _unit, typed_from_dict
 
-DATASET_CONFIG_SCHEMA_VERSION = "1.2.0"
+DATASET_CONFIG_SCHEMA_VERSION = "1.3.0"
 SPLITS = ("train", "dev", "eval")
 UPLOADABLE_SPLITS = ("train", "dev")
 ROBOFLOW_SPLITS = ("train", "valid", "test")
@@ -196,6 +196,9 @@ class GrassFilterSection:
     convex_hull: bool                  # fill each grass component to its convex hull: players standing on the pitch
                                        # (holes / notches in the grass, incl. occluded players) stay inside
     dilate_frac: float                 # final dilation as a fraction of frame height (feet stand on the grass edge)
+    frame_edge_margin_frac: float      # a box whose bottom edge is within this fraction of the frame height of the
+                                       # frame's bottom border is cut by the frame: its foot point is not observed,
+                                       # so it is never dropped on grass evidence (kept, reason logged)
     apply_to: Tuple[str, ...]          # classes the filter applies to
 
     def validate(self) -> None:
@@ -205,7 +208,7 @@ class GrassFilterSection:
                 raise ConfigError(f"prelabel.grass.{n} must be [H 0..179, S 0..255, V 0..255]")
         if any(lo > hi for lo, hi in zip(self.hsv_lower, self.hsv_upper)):
             raise ConfigError("prelabel.grass.hsv_lower must be <= hsv_upper per channel")
-        for n in ("close_frac", "min_component_frac", "dilate_frac"):
+        for n in ("close_frac", "min_component_frac", "dilate_frac", "frame_edge_margin_frac"):
             _unit(f"prelabel.grass.{n}", getattr(self, n))
 
 
@@ -294,6 +297,92 @@ class ReviewSection:
 
 
 @dataclass(frozen=True)
+class BallStaticFlag:
+    """A ball box that stays at the same place in the scene between two consecutive sampled frames of one match
+    while the camera moves (camera motion estimated from background features): likely a spare ball."""
+    tag: str
+    max_gap_s: float               # the two frames are at most this far apart (metadata timestamp_s)
+    max_shift_frac: float          # residual between the camera-carried ball centre and the next frame's ball box
+                                   # centre, fraction of frame height
+    min_camera_shift_frac: float   # the camera moved the ball's position by at least this fraction of frame height
+    max_features: int              # ORB features per frame (outside annotated boxes)
+    min_inliers: int               # fewer consistent matches: no camera estimate, no flag
+    ransac_reproj_frac: float      # RANSAC inlier distance, fraction of frame height
+    box_pad_frac: float            # annotated boxes are padded by this fraction of frame height before masking
+
+    def validate(self) -> None:
+        _pos("review_flags.ball_static.max_gap_s", self.max_gap_s)
+        for n in ("max_shift_frac", "min_camera_shift_frac", "ransac_reproj_frac", "box_pad_frac"):
+            _unit(f"review_flags.ball_static.{n}", getattr(self, n))
+        _pos_int("review_flags.ball_static.max_features", self.max_features)
+        _pos_int("review_flags.ball_static.min_inliers", self.min_inliers)
+
+
+@dataclass(frozen=True)
+class BallOffpitchFlag:
+    tag: str                       # ball box whose centre is outside the grass mask (prelabel.grass settings)
+
+    def validate(self) -> None:
+        pass
+
+
+@dataclass(frozen=True)
+class BallTinyFlag:
+    tag: str
+    min_size_frac: float           # a ball box whose longer side is below this fraction of the frame height
+
+    def validate(self) -> None:
+        _unit("review_flags.ball_tiny.min_size_frac", self.min_size_frac)
+
+
+@dataclass(frozen=True)
+class PlayerEdgeFlag:
+    tag: str
+    band_frac: float               # foot point within this fraction of the frame height of the grass mask's outer
+                                   # boundary (or outside the mask)
+
+    def validate(self) -> None:
+        _unit("review_flags.player_edge.band_frac", self.band_frac)
+
+
+@dataclass(frozen=True)
+class DenseFlag:
+    tag: str
+    pair_iou_min: float            # two person boxes overlap "heavily" from this IoU
+    min_pairs: int                 # frames with at least this many such pairs are flagged
+
+    def validate(self) -> None:
+        _unit("review_flags.dense.pair_iou_min", self.pair_iou_min)
+        _pos_int("review_flags.dense.min_pairs", self.min_pairs)
+
+
+@dataclass(frozen=True)
+class ReviewFlagsSection:
+    """Review-priority tags for pre-labelled frames (tools/roboflow_review_flags.py). Tags only: annotations are
+    never changed. A flag orders human review; it does not say a box is wrong."""
+    ball_static: BallStaticFlag
+    ball_offpitch: BallOffpitchFlag
+    ball_tiny: BallTinyFlag
+    player_edge: PlayerEdgeFlag
+    dense: DenseFlag
+    write_batch_size: int          # tag writes per batch; the run log is saved after every batch (resume point)
+    min_interval_s: float          # pause between tag writes
+
+    def flags(self) -> dict:
+        """{flag name: tag}."""
+        return {n: getattr(self, n).tag for n in ("ball_static", "ball_offpitch", "ball_tiny", "player_edge", "dense")}
+
+    def validate(self) -> None:
+        for name, tag in self.flags().items():
+            if not tag.strip() or tag.startswith(("match:", "split:")):
+                raise ConfigError(f"review_flags.{name}.tag must be non-empty and not a match: / split: tag")
+            getattr(self, name).validate()
+        _pos_int("review_flags.write_batch_size", self.write_batch_size)
+        if self.min_interval_s < 0:
+            raise ConfigError("review_flags.min_interval_s must be >= 0")
+
+
+@dataclass(frozen=True)
 class VersionSection:
     auto_orient: bool
     resize_width: int
@@ -325,6 +414,7 @@ class PathsSection:
     render_dir: str      # annotated pre-label renders for visual review (run outputs; not committed)
     image_cache_dir: str  # verified copies of project images (run outputs; not committed)
     prelabel_backup_dir: str  # annotation backups written before any pre-label is replaced (records; committed)
+    review_dir: str      # review-flag run logs (records; committed; no pixels)
 
 
 @dataclass(frozen=True)
@@ -341,6 +431,7 @@ class DatasetConfig:
     splits: SplitsSection
     prelabel: PrelabelSection
     review: ReviewSection
+    review_flags: ReviewFlagsSection
     version: VersionSection
     paths: PathsSection
 
@@ -380,10 +471,10 @@ class DatasetConfig:
         if any(self.prelabel.request_confidence > t for t in thresholds.values()):
             raise ConfigError("prelabel.request_confidence must be <= every prelabel.class_thresholds value")
         tags = [self.splits.excluded_tag, self.prelabel.tag, self.review.reviewed_tag, self.prelabel.blur.excluded_tag,
-                *self.prelabel.superseded_tags]
+                *self.prelabel.superseded_tags, *self.review_flags.flags().values()]
         if len(set(tags)) != len(tags):
-            raise ConfigError("splits.excluded_tag, prelabel.tag, prelabel.superseded_tags, prelabel.blur.excluded_tag "
-                              "and review.reviewed_tag must all differ")
+            raise ConfigError("splits.excluded_tag, prelabel.tag, prelabel.superseded_tags, prelabel.blur.excluded_tag, "
+                              "review.reviewed_tag and the review_flags tags must all differ")
         if self.prelabel.ball_class not in targets:
             raise ConfigError(f"prelabel.ball_class {self.prelabel.ball_class!r} must be an auto-labelled class")
         unknown = [c for c in self.prelabel.grass.apply_to if c not in targets]

@@ -11,7 +11,7 @@ import numpy as np
 
 from spana.dataset.config import PolicyError
 from spana.dataset.guard import GuardedProject
-from spana.dataset.prefilter import blur_score, grass_mask, merge_boxes, on_grass, tiles
+from spana.dataset.prefilter import blur_score, foot_unobserved, grass_mask, merge_boxes, on_grass, tiles
 from tests.test_roboflow_prep import FakeProject, img, make_cfg, p, resp, sharp
 from tools import roboflow_prelabel as pl
 
@@ -247,6 +247,49 @@ class GrassFilterTests(unittest.TestCase):
         cfg = make_cfg()
         kept, dropped = pl.grass_filter(cfg, self.frame, [self.spectator])
         self.assertEqual((len(kept), dropped), (1, []))
+
+    def test_player_cut_by_the_frame_border_is_kept_and_spectator_still_dropped(self):
+        """2026-11-14: a real player cut by the bottom-right frame corner was dropped: the bottom row of a cut box
+        is kit, not a foot on grass. Its foot point is not observed, so grass evidence must not drop it."""
+        f = self.frame.copy()
+        f[150:180, 290:320] = (30, 30, 200)            # kit of a player cut by the bottom-right corner (no feet)
+        cut = {"class": "player", "class_id": 0, "box": [292.0, 120.0, 320.0, 180.0], "score": 0.83}
+        mask = grass_mask(f, self.cfg.prelabel.grass)
+        self.assertFalse(on_grass(mask, cut["box"]))                       # what dropped it before the fix
+        kept, dropped = pl.grass_filter(self.cfg, f, [cut, self.spectator, self.on_pitch])
+        self.assertEqual([k["box"] for k in kept], [cut["box"], self.on_pitch["box"]])
+        self.assertIn("foot point not observed", kept[0]["grass_note"])   # the reason is logged on the box
+        self.assertNotIn("grass_note", kept[1])
+        self.assertEqual([d["box"] for d in dropped], [self.spectator["box"]])
+
+    def test_frame_edge_rule_is_only_the_bottom_border_within_the_configured_margin(self):
+        side = {"class": "player", "class_id": 0, "box": [300.0, 20.0, 320.0, 50.0], "score": 0.7}   # right border, stand
+        top = {"class": "player", "class_id": 0, "box": [150.0, 0.0, 160.0, 30.0], "score": 0.7}     # top border, stand
+        near = {"class": "player", "class_id": 0, "box": [292.0, 120.0, 320.0, 178.0], "score": 0.8}  # ends 2 px short
+        f = self.frame.copy()
+        f[150:180, 290:320] = (30, 30, 200)
+        kept, dropped = pl.grass_filter(self.cfg, f, [side, top, near])
+        self.assertEqual((kept, len(dropped)), ([], 3))                    # margin 0.005 x 180 px = 0.9 px
+        wide = cfg_with(grass={"enabled": True, "frame_edge_margin_frac": 0.02})   # 3.6 px
+        kept, dropped = pl.grass_filter(wide, f, [side, top, near])
+        self.assertEqual([k["box"] for k in kept], [near["box"]])
+        self.assertTrue(foot_unobserved([0, 0, 10, 720.0], 720, 0.005))
+        self.assertFalse(foot_unobserved([0, 0, 10, 716.0], 720, 0.005))
+
+    def test_kept_cut_player_is_written_and_counted_in_the_log(self):
+        images = [img(1)]
+        f = self.frame.copy()
+        f[150:180, 290:320] = (30, 30, 200)
+        cfg = cfg_with(grass={"enabled": True}, blur={"laplacian_var_min": 0.0})
+        infer = mock.Mock(return_value=resp([p(306, 150, 28, 60, 0.83, "person"), p(206, 47, 12, 24, 0.7, "person")],
+                                            w=320, h=180))
+        proj = FakeProject(images)
+        doc = run(cfg, proj, images, infer=infer, frame=f)
+        e = doc["entries"][0]
+        self.assertEqual((e["players_kept"], e["players_dropped"], e["kept_foot_unobserved"]), (1, 1, 1))
+        self.assertIn("foot point not observed", e["boxes"][0]["grass_note"])
+        self.assertEqual(doc["summary"]["per_match"]["M1"]["kept_foot_unobserved"], 1)
+        self.assertEqual(len(proj.ann_calls[0][2].splitlines()), 1)        # the cut player is in the saved labels
 
 
 class BallTilingTests(unittest.TestCase):

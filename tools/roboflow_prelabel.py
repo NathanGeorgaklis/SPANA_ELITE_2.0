@@ -21,7 +21,8 @@ Per frame:
   * blur gate: variance of Laplacian < prelabel.blur.laplacian_var_min -> tagged prelabel.blur.excluded_tag, no labels;
   * full-frame inference (players and ball, thresholds per class), optional ball-only tiled pass merged by NMS;
   * ball boxes larger than prelabel.ball_max_size_frac x frame height are dropped + logged;
-  * grass filter: a box (prelabel.grass.apply_to) whose bottom-centre is outside the grass mask is dropped + logged;
+  * grass filter: a box (prelabel.grass.apply_to) whose bottom-centre is outside the grass mask is dropped + logged,
+    unless its bottom edge is at the frame's bottom border (foot point not observed): then it is kept + logged;
   * --migrate: every selected frame's current annotation is backed up to paths.prelabel_backup_dir BEFORE any write;
     the annotation is then overwritten (empty for blurred / box-less frames), read back and compared, and only then
     is the superseded tag swapped for prelabel.tag in one call.
@@ -46,7 +47,8 @@ import numpy as np
 from spana.artifacts import read_json, write_json_atomic
 from spana.dataset.config import DatasetConfig, PolicyError, load_dataset_config, match_of
 from spana.dataset.guard import GuardedProject
-from spana.dataset.prefilter import blur_score, bottom_centre, grass_mask, merge_boxes, on_grass, tiles
+from spana.dataset.prefilter import (blur_score, bottom_centre, foot_unobserved, grass_mask, merge_boxes, on_grass,
+                                     tiles)
 from spana.dataset.prep import SkipFrame, evenly_spaced, list_all, load_image, match_tag, open_project, sort_key
 from spana.dataset.rf_project import ProjectImage, RoboflowApiError
 from spana.detection.roboflow_backend import HttpInferenceClient, RoboflowError
@@ -241,19 +243,23 @@ def ball_size_filter(cfg: DatasetConfig, frame_height: int, boxes: List[dict]):
 
 
 def grass_filter(cfg: DatasetConfig, frame: np.ndarray, boxes: List[dict]):
-    """-> (kept, dropped [{class, box, score, reason}]). Pre-labels only."""
+    """-> (kept, dropped [{class, box, score, reason}]). Pre-labels only. A box cut by the frame's bottom border has
+    no observed foot point: it is kept whatever the mask says, with the reason under its "grass_note" key."""
     g = cfg.prelabel.grass
     if not g.enabled:
         return list(boxes), []
     mask = grass_mask(frame, g)
     kept, dropped = [], []
     for b in boxes:
-        if b["class"] in g.apply_to and not on_grass(mask, b["box"]):
+        if b["class"] not in g.apply_to or on_grass(mask, b["box"]):
+            kept.append(b)
+        elif foot_unobserved(b["box"], frame.shape[0], g.frame_edge_margin_frac):
+            kept.append(dict(b, grass_note="kept: foot point not observed (bottom edge at the frame border); "
+                                           "bottom-centre is outside the grass mask"))
+        else:
             x, y = bottom_centre(b["box"])
             dropped.append({"class": b["class"], "box": b["box"], "score": b["score"],
                             "reason": f"bottom-centre ({x:.1f}, {y:.1f}) outside grass mask"})
-        else:
-            kept.append(b)
     return kept, dropped
 
 
@@ -355,7 +361,7 @@ def process_frame(cfg: DatasetConfig, guard: GuardedProject, infer, img: Project
                   render_dir: Optional[Path]) -> dict:
     e = {"id": img.id, "name": img.name, "match_id": match_tag(img), "frame_index": img.metadata.get("frame_index"),
          "status": None, "reason": None, "blur_score": None, "blurred": None, "boxes_per_class": {}, "n_boxes": 0,
-         "players_kept": 0, "players_dropped": 0, "balls": 0, "balls_dropped": 0, "ball_merged": 0, "tiles": 0,
+         "players_kept": 0, "players_dropped": 0, "kept_foot_unobserved": 0, "balls": 0, "balls_dropped": 0, "ball_merged": 0, "tiles": 0,
          "below_threshold": {}, "dropped_boxes": [], "boxes": []}
     fresh = guard.refresh(img.id)                    # current tags: a frame reviewed / tagged mid-run is left alone
     reason = eligibility(cfg, fresh, migrate=migrate)
@@ -400,6 +406,7 @@ def process_frame(cfg: DatasetConfig, guard: GuardedProject, infer, img: Project
     e["players_kept"] = sum(x["class"] != ball for x in boxes)
     e["players_dropped"] = sum(x["class"] != ball for x in dropped)
     e["balls_dropped"] = sum(x["class"] == ball for x in dropped)
+    e["kept_foot_unobserved"] = sum("grass_note" in x for x in boxes)
     if render_dir is not None:
         try:
             render_dir.mkdir(parents=True, exist_ok=True)
@@ -466,6 +473,7 @@ def summarize(cfg: DatasetConfig, entries: List[dict], skipped: List[dict], drop
         if e["status"] in done:                         # only frames whose writes completed
             m["players_kept"] += e["players_kept"]
             m["players_dropped_off_pitch"] += e["players_dropped"]
+            m["kept_foot_unobserved"] += e["kept_foot_unobserved"]
             m["balls"] += e["balls"]
             m["balls_dropped"] += e["balls_dropped"]
             m["frames_with_ball"] += e["balls"] > 0
@@ -495,6 +503,9 @@ def summary_text(doc: dict) -> str:
                          f"{' BLURRED' if e['blurred'] else ''}")
             for d in e["dropped_boxes"]:
                 lines.append(f"      dropped {d['class']} {d['box']} {d['score']:.2f}: {d['reason']}")
+            for b in e["boxes"]:
+                if "grass_note" in b:
+                    lines.append(f"      {b['class']} {b['box']} {b['score']:.2f}: {b['grass_note']}")
         else:
             lines.append(f"  {e['name']}: {e['status']} ({e['reason']})")
     lines.append("per match:")
