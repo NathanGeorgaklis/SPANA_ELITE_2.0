@@ -1,12 +1,13 @@
 # STATUS
 
-As of 2026-11-14 (main fb7a1fd = detector v1 merged, PR #2, + this change). Full suite: `python -m pytest tests -q`
-→ 275 passed, 3 skipped (Python 3.13, pinned requirements.lock.txt).
+As of 2026-11-15 (branch claude/nifty-cori-ddgace: DEV benchmark uploaded). Full suite: `python -m pytest tests -q`
+→ 275 passed, 4 skipped (Nathan's Mac, Python 3.9 .venv; the Linux container with Chromium runs one more
+Playwright test).
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
 |---|---|---|---|---|
-| player detection | PARTIAL | `spana/detection/` (`onnx_backend.py`, `postprocess.py`, `tiling.py`, `roboflow_backend.py`, `base.py`) | `tests/test_detection_camera.py`, `tests/test_merge_detections.py`, `tests/test_multi_body.py`, `tests/test_roboflow_dataset.py`, `tests/test_detector_eval.py`, `tests/test_detection_interface.py`, `tests/test_dev_bench.py` | Football detector v1 trained (`nathans-workspace-9brdc/spana-elite-2-rfdetr-medium-t1`, RF-DETR medium, dataset version 2), adapter `RoboflowDetector.from_detector_config` (config `detector`, confidence / iou 0.50 untuned). Scored only on the M001 valid split (table below), which shares a broadcaster with training: generalisation unknown. DEV benchmark tooling built (`tools/dev_bench.py`), not yet run. Pipeline CLI still uses pinned COCO YOLOX-s, person only (`models/yolox_s.json`); FRESH_02 recall 0.971 (NESTED_V1). YOLOX inference test skipped without weights. |
+| player detection | PARTIAL | `spana/detection/` (`onnx_backend.py`, `postprocess.py`, `tiling.py`, `roboflow_backend.py`, `base.py`) | `tests/test_detection_camera.py`, `tests/test_merge_detections.py`, `tests/test_multi_body.py`, `tests/test_roboflow_dataset.py`, `tests/test_detector_eval.py`, `tests/test_detection_interface.py`, `tests/test_dev_bench.py` | Football detector v1 trained (`nathans-workspace-9brdc/spana-elite-2-rfdetr-medium-t1`, RF-DETR medium, dataset version 2), adapter `RoboflowDetector.from_detector_config` (config `detector`, confidence / iou 0.50 untuned). Scored only on the M001 valid split (table below), which shares a broadcaster with training: generalisation unknown. DEV benchmark uploaded and pre-labelled (76 frames, 2 DEV matches), waiting for Nathan's label review; not scored. Pipeline CLI still uses pinned COCO YOLOX-s, person only (`models/yolox_s.json`); FRESH_02 recall 0.971 (NESTED_V1). YOLOX inference test skipped without weights. |
 | player tracking | PARTIAL | `spana/tracking/` (`tracker.py`, `kalman.py`, `camera.py`), `spana/appearance.py` | `tests/test_tracker.py`, `tests/test_camera_uncertainty.py`, `tests/test_identity_uncertain.py`, `tests/test_unconfirmed_low_score.py`, `tests/test_cli_e2e.py`, `tests/test_foundation.py` | Generic multi-player tracker with camera compensation and per-track IDENTITY_UNCERTAIN. DEV FRESH_02/05/07: 0 silent swaps (NESTED_V2). Fragmentation remains the largest error (e.g. FRESH_07 47 fragments). Nested-box fix (M2) deferred pending Nathan's approval. |
 | target identity | NOT BUILT | none | none | No selection/following of the user's player. Re-ID model is design only (`records/design/REID_MODEL_DESIGN.md`); TRAIN label tooling exists (`spana/reid_labels.py`, `tools/reid_pack.py`, `tools/freeze_reid_labels.py`). |
 | ball tracking | NOT BUILT | none | none | Only dataset tooling handles the ball class (ball tiling / size filter in `spana/dataset/prefilter.py`, `tools/roboflow_ball_sheet.py`). |
@@ -39,9 +40,11 @@ Known weaknesses:
   with the grass mask, for analysis only.
 - Ball recall 0.20 under 8 px short side (1 / 5); 0.81 at 8-12 px, >= 0.92 from 12 to 24 px.
 
-DEV benchmark (`tools/dev_bench.py`, project `spana-elite-dev-bench`, 40 frames per allow-listed DEV match,
-`bench:v1`, `prelabel:detector-v1`): project created (empty, private); sampling + pre-label NOT yet run (needs the
-local DEV clips and the API key); labels to be reviewed by Nathan before any scoring script is written or run.
+DEV benchmark (`tools/dev_bench.py`, project `spana-elite-dev-bench`): uploaded 2026-11-15 from the full DEV match
+videos at 1280x720. 76 frames: 38 per match (40 selected, 2 per match removed by Nathan as footage of other
+matches), tagged `match:<id>`, `split:dev`, `bench:v1`, `prelabel:detector-v1`; `spana-elite` unchanged. Manifests in
+`records/dev_bench/`, details in `records/detector_v1/RECORD.md`. Waiting for Nathan's label review in Roboflow;
+no scoring script written or run. Watch during review: G2 pre-labels have 116 referee vs 170 player boxes.
 
 ## Open failures
 - No failing tests. Skipped: YOLOX inference (weights not fetched), two Playwright labeller UI tests (no browser).
@@ -68,7 +71,7 @@ local DEV clips and the API key); labels to be reviewed by Nathan before any sco
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
-1. Run `tools/dev_bench.py` on each allow-listed DEV match (dry run first), then Nathan reviews the benchmark labels.
+1. Nathan reviews the 76 benchmark labels in `spana-elite-dev-bench` (add missed objects, not only fix drawn boxes).
 2. After his OK: scoring script (per match / class AP50, P, R; ball recall by size bucket; off-pitch false positives
    via the grass mask) and DEV vs M001 side by side in `records/detector_v1/RECORD.md`.
 3. Then the tracking adapter for the football detector (class filter, class names in the artifact, one threshold

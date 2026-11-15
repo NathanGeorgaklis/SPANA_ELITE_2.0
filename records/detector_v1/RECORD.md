@@ -57,7 +57,7 @@ is missed and two coaching staff in the foreground are boxed as player.
 ## Not done (waiting for Nathan's review)
 - No threshold tuning, no retraining.
 
-## DEV generalisation benchmark (pending)
+## DEV generalisation benchmark (uploaded; waiting for label review)
 - Roboflow project `spana-elite-dev-bench` created 2026-11-14 (private, object detection, own annotation group
   `spana-elite-dev-bench`, 0 images). No version is ever generated from it. The training version gate refuses any
   frame tagged `bench:v1`.
@@ -65,7 +65,36 @@ is missed and two coaching staff in the foreground are boxed as player.
   DEV_G2_NWS_SPIRIT_SD_RAIDERS; not Game 3, never EVAL), selected with the same sampling, blur and near-duplicate
   rules, pre-labelled with detector v1 at detector.confidence / iou 0.50 and no filters, tagged `match:<id>`,
   `bench:v1`, `prelabel:detector-v1`.
-- Not run yet: the DEV clips and the API key are not in the session that built it. Scoring waits for Nathan's
-  review of the benchmark labels. The DEV vs M001 comparison table goes here after that.
+- Source footage (Nathan, 2026-11-15): the full DEV match videos, not the FRESH clips. The FRESH clips kept only 19
+  (G1) and 30 (G2) usable frames, below frames_per_match 40; the rules were not loosened. Full-match permission
+  confirmed (`records/dev_permissions/DEV_PERMISSIONS_2026-11-14.md`). Only 1280x720 copies were used: a first
+  640x360 download was dry-run only and never uploaded.
+
+  | match | video | source resolution | fps | length | sha256 (prefix) |
+  |---|---|---|---|---|---|
+  | DEV_G1_SYDNEY_UNITED_APIA | `Sydney_United_APIA.mp4` | 1280x720 | 30 | 130.9 min | c9f1dd9b3c25 |
+  | DEV_G2_NWS_SPIRIT_SD_RAIDERS | `NWS_Spirit_SD_Raiders.mp4` | 1280x720 | 30 | 142.1 min | 527f2bdc47eb |
+
+- Selection (dry runs 20261115T093253Z / T093307Z, reviewed by Nathan on contact sheets):
+
+  | match | sampled (300 cap) | blur | near-duplicate | selected | removed by Nathan | uploaded | errors |
+  |---|---|---|---|---|---|---|---|
+  | G1 | 300 | 0 | 17 | 40 | 2 (frames 122400, 127410) | 38 | 0 |
+  | G2 | 300 | 0 | 29 | 40 | 2 (frames 130818, 134700) | 38 | 0 |
+
+  Removed: footage of other matches shown inside the broadcast at half-time (not on the allow-list). Kept as they
+  are, at Nathan's decision: countdown / table / stats graphics, half-time interview and presentation close-ups,
+  team huddles, stoppages (G1 frames 0, 7500, 18840, 31920, 116640, 229260; G2 frames 0, 8400, 17820, 31560, 61440,
+  68460, 102780, 127200, 138240, 241740, 247680). The upload runs reproduced the reviewed dry runs exactly
+  (`--reviewed-dry-run`); exclusions and reason are in the manifests.
+- Uploaded 2026-11-15: 76 frames in `spana-elite-dev-bench` (38 per match), each tagged `match:<id>`, `split:dev`,
+  `bench:v1`, `prelabel:detector-v1`, checked in Roboflow; `spana-elite` unchanged (900 images). Manifests:
+  `records/dev_bench/DEV_G1_SYDNEY_UNITED_APIA__bench_v1__20261115T100734Z.json`,
+  `records/dev_bench/DEV_G2_NWS_SPIRIT_SD_RAIDERS__bench_v1__20261115T102105Z.json`.
+- Pre-label boxes (detector v1, 0.50 / 0.50, unfiltered; NOT scores): G1 player 424, referee 64, ball 12,
+  goalkeeper 10; G2 player 170, referee 116, ball 21, goalkeeper 11. The G2 referee count is high for one match
+  (yellow / green kits): check referee boxes during review.
+- Waiting for Nathan's label review in Roboflow. No scoring script written or run. The DEV vs M001 comparison table
+  goes here after the review.
 - Bias to note when scoring: reviewed labels start from detector v1's own boxes, so a detector miss the reviewer
   does not add is never counted. Review must add missed objects, not only correct the boxes that were drawn.
