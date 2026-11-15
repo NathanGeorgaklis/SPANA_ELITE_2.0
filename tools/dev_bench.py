@@ -2,6 +2,7 @@
 trained detector. Evaluation only: no model, threshold or training-data change.
 
     python -m tools.dev_bench --match-id DEV_MATCH_ID --video CLIP_A.mp4 [--video CLIP_B.mp4 ...] [--dry-run]
+        [--exclude-frame CLIP:FRAME ... --exclude-reason TEXT] [--reviewed-dry-run DRYRUN.json]
         [--config config/roboflow.yaml]
 
 Give every local clip of the match, in match order. Fails closed before any video is read:
@@ -15,13 +16,19 @@ Selection (deterministic, no randomness):
   3. near-duplicates (64-bit pHash within audit.phash_hamming_max bits) are dropped, the earliest frame kept;
   4. dev_bench.frames_per_match of what is left, evenly spread over the whole match (clip order, then time).
 Fewer usable frames than dev_bench.frames_per_match: refused, nothing is uploaded.
+  5. --exclude-frame CLIP:FRAME removes a frame the reviewer refused after looking at a dry run (e.g. footage of
+     another match shown inside the broadcast). It is run input, never code: each one and --exclude-reason are
+     recorded in the manifest, and a listed frame that is not in the selection refuses the run. The selection is not
+     topped up, so the match keeps fewer than frames_per_match frames.
+--reviewed-dry-run: the run is refused, before anything is uploaded, unless its selection (clip, frame, image sha256)
+is exactly that dry-run manifest's, so what goes up is what was reviewed.
 
 Upload goes to dev_bench.project only (never roboflow.project), tagged match:<id>, split:dev and dev_bench.bench_tag.
 Each frame is then pre-labelled with detector.model_id at detector.confidence / detector.iou, with no grass or size
 filter (the benchmark has to see the detector's own errors). The annotation is saved through the licence / review
 write guard and read back; only then is dev_bench.prelabel_tag set. A frame tagged review.reviewed_tag is never
-written to; a refusal by the write guard stops the run (the manifest is still written). --dry-run does steps 1-4 and writes the manifest under paths.dev_bench_frames_dir; nothing leaves this
-machine.
+written to; a refusal by the write guard stops the run (the manifest is still written). --dry-run does steps 1-5
+and writes the manifest under paths.dev_bench_frames_dir; nothing leaves this machine.
 """
 from __future__ import annotations
 
@@ -216,10 +223,19 @@ def prior_manifests(cfg: DatasetConfig, root: Path, match_id: str) -> List[str]:
 
 def run_bench(cfg: DatasetConfig, *, match_id: str, videos: Sequence[str], dry_run: bool, root: Path = REPO,
               uploader=None, project=None, detector=None, api_key: Optional[str] = None,
-              argv: Sequence[str] = (), now: Optional[datetime] = None, sleep=time.sleep) -> Path:
+              argv: Sequence[str] = (), now: Optional[datetime] = None, sleep=time.sleep,
+              exclude_frames: Sequence[str] = (), exclude_reason: str = "",
+              reviewed_dry_run: Optional[dict] = None) -> Path:
     if not videos:
         raise PolicyError("refused: give every local clip of the match with --video")
     entry = authorize(cfg, match_id, "dev", third_party=not dry_run)   # a real run uploads: always third-party
+    if exclude_frames and not exclude_reason.strip():
+        raise PolicyError("refused: --exclude-frame needs --exclude-reason (recorded in the manifest)")
+    if len(set(exclude_frames)) != len(exclude_frames):
+        raise PolicyError("refused: a frame is listed twice in --exclude-frame")
+    if reviewed_dry_run is not None and (reviewed_dry_run.get("match_id") != match_id
+                                         or reviewed_dry_run.get("dry_run") is not True):
+        raise PolicyError("refused: --reviewed-dry-run is not a dry-run manifest of this match")
     prior = prior_manifests(cfg, root, match_id)
     if prior and not dry_run:
         raise PolicyError(f"refused: {match_id} already has benchmark manifest(s) {prior} for "
@@ -246,6 +262,17 @@ def run_bench(cfg: DatasetConfig, *, match_id: str, videos: Sequence[str], dry_r
     if len({c["sha256"] for c in clips}) != len(clips):
         raise PolicyError("refused: the same clip was given twice")
     chosen, excluded = select_bench(cfg, cands)
+    if reviewed_dry_run is not None:
+        want = [(f["clip_index"], f["frame_index"], f["image_sha256"]) for f in reviewed_dry_run.get("frames", [])]
+        have = [(c.clip_index, c.frame_index, c.image_sha256) for c in chosen]
+        if want != have:
+            raise PolicyError("refused: this run's selection differs from the reviewed dry run "
+                              f"({len(set(want) ^ set(have))} frames differ); nothing was uploaded")
+    keys = {f"{c.clip_index}:{c.frame_index}" for c in chosen}
+    missing = [k for k in exclude_frames if k not in keys]
+    if missing:
+        raise PolicyError(f"refused: --exclude-frame {missing} not in this run's selection; nothing was uploaded")
+    chosen = [c for c in chosen if f"{c.clip_index}:{c.frame_index}" not in set(exclude_frames)]
 
     if dry_run:
         frames = [{**c.to_dict(), "upload_id": None, "status": "not_uploaded", "prelabel": None, "error": None}
@@ -270,7 +297,9 @@ def run_bench(cfg: DatasetConfig, *, match_id: str, videos: Sequence[str], dry_r
         "clips": clips, "n_analysis_frames": n_analysis, "n_candidates": len(cands),
         "excluded": dict(sorted(Counter("blur" if r == "blur" else "near-duplicate"
                                         for r in excluded.values()).items())),
-        "excluded_frames": excluded, "frames": frames,
+        "excluded_frames": excluded,
+        "reviewer_excluded": {"frames": list(exclude_frames), "reason": exclude_reason} if exclude_frames else None,
+        "reviewed_dry_run": (reviewed_dry_run or {}).get("created_utc"), "frames": frames,
         "summary": {"n_frames": len(frames), "status": dict(sorted(Counter(f["status"] for f in frames).items())),
                     "n_errors": sum(1 for f in frames if f["error"]),
                     "prelabel_boxes": dict(sorted(sum((Counter(f["prelabel"]) for f in frames
@@ -293,10 +322,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--match-id", required=True)
     ap.add_argument("--video", action="append", default=[], help="a clip of the match; repeat, in match order")
     ap.add_argument("--dry-run", action="store_true", help="sample and select only; nothing leaves this machine")
+    ap.add_argument("--exclude-frame", action="append", default=[], metavar="CLIP:FRAME",
+                    help="drop a selected frame after review (repeat); needs --exclude-reason")
+    ap.add_argument("--exclude-reason", default="")
+    ap.add_argument("--reviewed-dry-run", help="dry-run manifest this run must reproduce exactly")
     a = ap.parse_args(argv)
     cfg = load_dataset_config(a.config)
+    reviewed = json.loads(Path(a.reviewed_dry_run).read_text()) if a.reviewed_dry_run else None
     try:
-        out = run_bench(cfg, match_id=a.match_id, videos=a.video, dry_run=a.dry_run, argv=argv)
+        out = run_bench(cfg, match_id=a.match_id, videos=a.video, dry_run=a.dry_run, argv=argv,
+                        exclude_frames=a.exclude_frame, exclude_reason=a.exclude_reason, reviewed_dry_run=reviewed)
     except PolicyError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 3

@@ -198,6 +198,36 @@ class RunTests(unittest.TestCase):
         self.assertEqual([f["status"] for f in doc["frames"]], ["uploaded"] + ["not_uploaded"] * 3)
         self.assertEqual(proj.ann_calls, [])
 
+    def test_reviewer_exclusion_must_match_the_reviewed_dry_run(self):
+        dry = json.loads(run_bench(self.cfg, match_id="M_DEV", videos=self.videos, dry_run=True, root=self.root,
+                                   now=NOW).read_text())
+        keys = [f"{f['clip_index']}:{f['frame_index']}" for f in dry["frames"]]
+        with self.assertRaisesRegex(PolicyError, "needs --exclude-reason"):
+            run_bench(self.cfg, match_id="M_DEV", videos=self.videos, dry_run=True, root=self.root,
+                      exclude_frames=[keys[1]])
+        with self.assertRaisesRegex(PolicyError, "not in this run's selection"):
+            run_bench(self.cfg, match_id="M_DEV", videos=self.videos, dry_run=True, root=self.root,
+                      exclude_frames=["0:999999"], exclude_reason="r",
+                      now=datetime(2026, 11, 14, 12, 1, tzinfo=timezone.utc))
+        changed = dict(dry, frames=dry["frames"][::-1])
+        proj = BenchProject()
+        with self.assertRaisesRegex(PolicyError, "differs from the reviewed dry run"):
+            run_bench(self.cfg, match_id="M_DEV", videos=self.videos, dry_run=False, root=self.root,
+                      uploader=FakeUploader(proj), project=proj, detector=FakeDetector(), api_key="k",
+                      reviewed_dry_run=changed, now=datetime(2026, 11, 14, 12, 2, tzinfo=timezone.utc))
+        self.assertEqual(proj.images, [])                                   # refused before any upload
+        up = FakeUploader(proj)
+        out = run_bench(self.cfg, match_id="M_DEV", videos=self.videos, dry_run=False, root=self.root,
+                        uploader=up, project=proj, detector=FakeDetector(), api_key="k", reviewed_dry_run=dry,
+                        exclude_frames=[keys[1]], exclude_reason="another match shown in the broadcast",
+                        now=datetime(2026, 11, 14, 12, 3, tzinfo=timezone.utc), sleep=lambda s: None)
+        doc = json.loads(out.read_text())
+        self.assertEqual(len(up.calls), 3)                                  # not topped up
+        self.assertNotIn(keys[1], [f"{f['clip_index']}:{f['frame_index']}" for f in doc["frames"]])
+        self.assertEqual(doc["reviewer_excluded"], {"frames": [keys[1]],
+                                                    "reason": "another match shown in the broadcast"})
+        self.assertEqual(doc["reviewed_dry_run"], dry["created_utc"])
+
 
 if __name__ == "__main__":
     unittest.main()
