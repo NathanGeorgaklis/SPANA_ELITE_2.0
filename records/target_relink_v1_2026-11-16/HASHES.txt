@@ -1,0 +1,10 @@
+# sha256 (files on Nathan's Mac unless committed here)
+28e68e177be1d136d33567870826488e4c3b8f8c079bd535bb877876a10228cf  relink_summary.json (committed)
+8e9ba4817526232a7cbe54413ae5325d360230c108a4791571e4d7947c30155d  ~/spana-relink-run/out/relink_default.json
+32c698aecbcfa4b0774b2b172f89e76ef903718019b3c077f23c53f089e8e923  ~/spana-relink-run/out/relink_auto.json
+72467e02925e57e5728814d53c3c4f2b8b4d6207b84bc8cd648e3bb89f7db100  ~/spana-relink-run/out/relink_simuser.json
+f2e4e418b6044cdcc29dd09addcad0493df9e3032110d261abbba82fb6193b42  ~/spana-relink-run/out/auto_confirm.yaml (default.yaml with relink_auto_confirm: true)
+0b62526758819e1ff8c6379399c8b4c65eb3e59483f6aaa2eef2337fedc4269f  runs/person_view_compare/F02_local.trk.json (input)
+c4526f078a3790166f2f6f51a658ddf78d21c553d466525a725cb10ff10a3c54  runs/person_view_compare/F05_local.trk.json (input)
+85b995c7f269bf37bfc8c8bba33716a844baf36004baac49db8092b11a5b20c6  runs/person_view_compare/F07_local.trk.json (input)
+f6741125ec3f15740dc18df404c2ed28b324f6043093d658a51a7edc4fd8a08b  runs/person_view_compare/F08_local.trk.json (input)

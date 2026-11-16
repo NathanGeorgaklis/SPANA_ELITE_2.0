@@ -1,14 +1,15 @@
 # STATUS
 
-As of 2026-11-16 (branch identity/reid-headroom-v1, on main c9e74e0).
-- Full suite: `python -m pytest tests -q` → 314 passed, 4 skipped (container, Python 3.13).
+As of 2026-11-16 (branch identity/target-relink-v1, on main 36e5a10).
+- Full suite: `python -m pytest tests -q` → 333 passed, 4 skipped (container, Python 3.13).
+- Target / re-ID / guard tests (42) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
 |---|---|---|---|---|
 | player detection | PARTIAL | `spana/detection/` (`onnx_backend.py`, `postprocess.py`, `tiling.py`, `roboflow_backend.py`, `base.py`) | `tests/test_detection_camera.py`, `tests/test_merge_detections.py`, `tests/test_multi_body.py`, `tests/test_roboflow_dataset.py`, `tests/test_detector_eval.py`, `tests/test_detection_interface.py`, `tests/test_dev_bench.py` | Football detector v1 trained (`nathans-workspace-9brdc/spana-elite-2-rfdetr-medium-t1`, RF-DETR medium, dataset version 2), adapter `RoboflowDetector.from_detector_config` (config `detector`, confidence / iou 0.50 untuned). Scored only on the M001 valid split (table below), which shares a broadcaster with training: generalisation unknown. DEV benchmark uploaded and pre-labelled (76 frames, 2 DEV matches), waiting for Nathan's label review; not scored. Pipeline CLI still uses pinned COCO YOLOX-s, person only (`models/yolox_s.json`); FRESH_02 recall 0.971 (NESTED_V1). YOLOX inference test skipped without weights. |
 | player tracking | PARTIAL | `spana/tracking/` (`tracker.py`, `kalman.py`, `camera.py`), `spana/appearance.py` | `tests/test_tracker.py`, `tests/test_camera_uncertainty.py`, `tests/test_identity_uncertain.py`, `tests/test_unconfirmed_low_score.py`, `tests/test_cli_e2e.py`, `tests/test_foundation.py` | Generic multi-player tracker with camera compensation and per-track IDENTITY_UNCERTAIN. DEV FRESH_02/05/07: 0 silent swaps (NESTED_V2). Fragmentation remains the largest error (e.g. FRESH_07 47 fragments). Nested-box fix (M2) deferred pending Nathan's approval. |
-| target identity | PARTIAL | `spana/identity/follower.py` | `tests/test_target_follow.py` | Follows one tapped track (selection `track_at_frame` 1.0.0) into `spana.target` 1.0.0 (TARGET / ABSTAIN / LOST; CANDIDATE reserved). Fails closed: never switches track, abstains on unconfirmed / IDENTITY_UNCERTAIN / OCCLUDED, LOST after any track end. DEV baseline (`tools/target_score.py`, local tracks, NESTED_V2): correct-time F02 0.48 / F05 0.72 / F07 0.59 / F08 0.31 (all 4: 0.51), **wrong 1 player-frame of 3449** (F07: a two-person box at a crossing), no answer mostly from track ends (fragmentation, LEFT_FRAME). No re-ID yet (`records/target_follow_v1_2026-11-16/RECORD.md`). Re-ID headroom (`tools/reid_headroom.py`, `records/reid_headroom_2026-11-16`, `records/reid_headroom_F07_F08_2026-11-16`): perfect relinking would give correct-time 0.85 over 4 clips (108 losses). Safe on DEV: the tracker's unique predecessor within 0.5 s on a candidate that confirms (44 / 44). Not safe: position + appearance agreement (4 real wrong players in 45). Long re-entries (19 losses > 1 s) unsolved. Re-ID model is design only (`records/design/REID_MODEL_DESIGN.md`); TRAIN label tooling exists (`spana/reid_labels.py`, `tools/reid_pack.py`, `tools/freeze_reid_labels.py`). |
+| target identity | PARTIAL | `spana/identity/follower.py` | `tests/test_target_follow.py`, `tests/test_target_relink.py` | Follows one tapped track (selection `track_at_frame` 1.0.0) into `spana.target` 2.0.0 (TARGET / CANDIDATE / ABSTAIN / LOST). Fails closed (v1 rules). Relink v1: after a loss, proposes CANDIDATE on the tracker's unique predecessor link (gap ≤ `target.relink_max_gap_s` 0.5); TARGET only after the user confirms (`confirm_candidate` 1.0.0) or with `relink_auto_confirm` (off). DEV, 4 clips (`records/target_relink_v1_2026-11-16`): correct-time 0.509 without confirmation (= v1, wrong 1 frame) → **0.597 with a simulated user (wrong 2 frames: +1 from a tracker identity change after a correct confirmation)**; auto-confirm 0.597, wrong 3. Ceiling 0.853. Long re-entries unsolved. Re-ID model is design only (`records/design/REID_MODEL_DESIGN.md`). |
 | ball tracking | NOT BUILT | none | none | Only dataset tooling handles the ball class (ball tiling / size filter in `spana/dataset/prefilter.py`, `tools/roboflow_ball_sheet.py`). |
 | team classification | NOT BUILT | none | none | Torso colour histogram (`spana/appearance.py`) is used for track association only. Side labels (A/B/GK/REF) exist in re-ID labels only. |
 | pitch context | NOT BUILT | none | none | Grass mask in `spana/dataset/prefilter.py` filters pre-labels only; no pitch model / homography. |
@@ -88,6 +89,9 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   - Only the tracker's own link within 0.5 s is safe (44 / 44).
   - Position + colour agreement picked 4 real wrong players in same-kit clusters.
   - `records/reid_headroom_F07_F08_2026-11-16/RECORD.md`.
+- Target relink, DEV: with confirmation, FRESH_02 player 9 gets 1 wrong TARGET frame (276). Track T000045 was
+  confirmed correctly at frame 270, then changed player; it names two predecessors. Auto-confirm adds a wrong
+  second-hop relink (FRESH_02 player 15 → player 16's track).
 - Target identity, DEV F07: 1 wrong player-frame. A two-person box at a crossing, unflagged by the detector and the
   tracker.
 - README pipeline table is stale (artifact versions listed as 1.1.0 / 2.0.0; code is detections 1.3.0, tracks 2.1.0).
@@ -102,14 +106,13 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
-1. Target relink v1 (step 2): after the followed track ends, propose the tracker's unique predecessor track as
-   CANDIDATE if the gap is within a configured limit (0.5 s prior; DEV 44 / 44) and the new track confirms;
-   otherwise keep LOST.
-   Score with tools/target_score.py on all 4 DEV clips; wrong-time must stay at its current level (1 frame).
-   Needs a `spana.target` version bump (track_id may change after a relink; relink evidence per frame).
-   Decided (Nathan): CANDIDATE + user confirmation; automatic promotion only behind a config flag, off by default.
-2. Follower overlap guard: measured (`records/overlap_guard_cost_2026-11-16`), not adopted; the follower stays v1
-   (Nathan). Revisit when more wrong frames are known.
-3. Long re-entries (19 of 108 losses, LEFT_FRAME, up to 61 candidates): need the SPANA re-ID model and/or team
-   classification to prune the other team.
+1. Nathan's decision on relink v1 (`records/target_relink_v1_2026-11-16`). It is safe in the shipping
+   configuration. With confirmation it gains +8.8 points but adds 1 wrong frame: the confirmed track itself
+   changed player later. Options:
+   - accept it as built;
+   - measure a guard on confirmed tracks that named several predecessors.
+2. App-side: in the default mode, 12 of 13 candidates were dropped before anyone could confirm (the new track was
+   briefly occluded, lost or uncertain). Decide the confirmation window or the drop rules for unconfirmed
+   candidates.
+3. Long re-entries (19 of 108 losses, LEFT_FRAME): the SPANA re-ID model and/or team classification.
 4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments raise correct-time directly.
