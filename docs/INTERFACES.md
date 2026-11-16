@@ -106,6 +106,13 @@ Follow the user's chosen player through a clip, and say so when unsure.
   unambiguous NESTED_V2 track match. Reports correct / wrong / unverified / abstain / lost time, per player and
   pooled per clip.
 
+- Re-ID headroom (analysis tool, not product code): `tools/reid_headroom.py`.
+  - Per labelled player, handovers between their tracks: LOSS (old track gone before the new one was born) /
+    OVERLAP.
+  - Ranks and picks of three clues among the tracks born meanwhile: tracker `possible_predecessors`,
+    camera-compensated foot position, torso colour similarity.
+  - Simple relink rules (picks / correct / wrong) and the follower's ceiling with perfect relinking.
+
 ## Evaluation (supporting) — `spana/evaluation.py`, `spana/labels.py`, `tools/benchmark.py`
 - In: tracks + detections artifacts, frozen MOT labels (`data/labels/<clip>/v1`). Out: `Report` metrics JSON.
 - Match rules: IoU 0.5, NESTED_V1, NESTED_V2 (default).
