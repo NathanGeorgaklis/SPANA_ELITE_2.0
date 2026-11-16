@@ -106,11 +106,8 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
-1. Nathan's decision on relink v1 (`records/target_relink_v1_2026-11-16`). It is safe in the shipping
-   configuration. With confirmation it gains +8.8 points but adds 1 wrong frame: the confirmed track itself
-   changed player later. Options:
-   - accept it as built;
-   - measure a guard on confirmed tracks that named several predecessors.
+1. Relink v1 accepted as built (Nathan, 2026-11-16). Watch confirmed tracks that named several predecessors (the
+   one extra wrong frame); measure a guard if more such cases appear.
 2. App-side: in the default mode, 12 of 13 candidates were dropped before anyone could confirm (the new track was
    briefly occluded, lost or uncertain). Decide the confirmation window or the drop rules for unconfirmed
    candidates.
