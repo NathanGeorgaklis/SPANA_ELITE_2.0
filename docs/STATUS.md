@@ -1,8 +1,8 @@
 # STATUS
 
-As of 2026-11-16 (branch tracking/person-detections, on main a88ad5f). Full suite: `python -m pytest tests -q`
-→ 285 passed, 4 skipped (Nathan's Mac, Python 3.9 .venv; the Linux container with Chromium runs one more
-Playwright test).
+As of 2026-11-16 (branch detection/local-onnx, on main 2a126a8). Full suite: `python -m pytest tests -q`
+→ 291 passed, 4 skipped (Nathan's Mac, Python 3.13 .venv with requirements-local-detector.txt; skips: 2 Playwright,
+2 ffmpeg).
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
@@ -68,8 +68,11 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   - duplicate detections 126 → 17 / 84 → 3;
   - ID switches 28 → 25 / 22 → 8;
   - fragments 28 → 24 / 21 → 8.
-  Details: `records/person_view_2026-11-16/RECORD.md`. The pipeline default is still YOLOX: switching it is
-  Nathan's call.
+  Details: `records/person_view_2026-11-16/RECORD.md`.
+- Local football detector (option A, 2026-11-16): `detect --backend local`, torch on the Apple GPU, 0.44 s/frame
+  end to end, no hosted calls. On FRESH_02 / FRESH_05 tracking equals hosted (ID switches 24 / 7, duplicate
+  detections 17 / 1; `records/local_inference_2026-11-16/RECORD.md`). The CLI default backend is still onnx (YOLOX)
+  and needs no extra arguments; for tracking work, use `--backend local`.
 - Tracking, DEV: fragmentation / ID switches (FRESH_02 33, FRESH_05 20, FRESH_07 48 ID switches, NESTED_V1;
   `records/unconfirmed_low_score_2026-11-08/RECORD.md`).
 - Tracking, DEV: one-directional duplicate refusal (M2: full-body box enclosing a partial-body track spawns a
@@ -90,8 +93,7 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
-1. Nathan decides whether the football detector's person view becomes the default tracking input (DEV evidence:
-   `records/person_view_2026-11-16/RECORD.md`). It is hosted inference, so the cost is one call per analysed frame.
-   A local inference server (`local_api_hosts`) would keep frames on the machine.
+1. Target identity (layer 3): states and interface in docs/INTERFACES.md, then a minimal follower of one
+   user-selected track that abstains on IDENTITY_UNCERTAIN / LOST, built on tracks from `detect --backend local`.
 2. Roles (player / goalkeeper / referee) and teams from the team-classification layer, not the detector.
-3. Remaining tracking errors on the better input: FRESH_02 25 ID switches / 24 fragments (contact cluster), DEV.
+3. Remaining tracking errors on the better input: FRESH_02 24 ID switches / 24 fragments (contact cluster), DEV.

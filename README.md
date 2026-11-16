@@ -22,14 +22,19 @@ Fresh build started 2026-11-07. No code from earlier SPANA builds is used.
 | 11 | Clips (from validated events only) | — | |
 
 Each layer consumes the previous layer's **versioned artifact** (`spana/artifacts.py`, currently
-`spana.detections` 1.1.0 / `spana.tracks` 2.0.0), never its internals. Stage records, including negative results,
+`spana.detections` 1.4.0 / `spana.tracks` 2.1.0), never its internals. Stage records, including negative results,
 are in `records/`.
 
 ## Run
 
+Python >= 3.12 (the pinned numpy 2.5.3 needs it; the Mac and the container use 3.13).
+
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.lock.txt                        # exact pins
+pip install -r requirements-local-detector.txt             # optional: local football detector on GPU / CPU (PyTorch)
 python -m spana.cli detect --video match.mp4 --config config/default.yaml --model-record models/<model>.json --out det.json
+python -m spana.cli detect --backend local --video match.mp4 --config config/default.yaml \
+    --dataset-config config/roboflow.yaml --model-record models/rfdetr_v1.json --runtime torch --device mps --out det.json
 python -m spana.cli track  --video match.mp4 --config config/default.yaml --detections det.json --out tracks.json
 python tools/fetch_model.py models/yolox_s.json   # downloads weights, verifies sha256
 python -m pytest tests -q
