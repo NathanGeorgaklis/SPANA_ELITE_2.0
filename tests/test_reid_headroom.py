@@ -9,7 +9,7 @@ from pathlib import Path
 
 from spana.artifacts import write_json_atomic
 from tests.test_target_follow import CFG, A, L, N, tracks_doc
-from tools.reid_headroom import _rank, analyse_clip
+from tools.reid_headroom import _best, _rank, analyse_clip
 
 
 def _labels(d: Path, rows) -> None:
@@ -43,7 +43,8 @@ class HeadroomTest(unittest.TestCase):
         self.assertEqual((e["from_track"], e["to_track"], e["kind"]), ("t1", "t3", "LOSS"))
         self.assertEqual((e["a_last_observed_frame"], e["b_first_frame"], e["a_end"]), (2, 4, "LOST_EXPIRED"))
         self.assertEqual(e["candidates"], 1)
-        self.assertEqual(e["position"], {"b_distance_h": 1.0, "rank": 1})
+        self.assertEqual(e["position"], {"b_distance_h": 1.0, "rank": 1, "pick": "t3"})
+        self.assertEqual(rep["summary"]["rules"]["position_best"], {"picks": 1, "correct": 1, "wrong": 0})
         self.assertIsNone(e["appearance"])
         p1 = next(r for r in rep["ceiling"]["per_player"] if r["player"] == "1")
         self.assertEqual((p1["v1_correct"], p1["ceiling_correct"]), (2, 3))   # t3 unconfirmed on its first frame
@@ -66,6 +67,8 @@ class HeadroomTest(unittest.TestCase):
         self.assertEqual(_rank({"b": 1.0, "x": 1.0, "y": 2.0}, "b", higher_better=False), 2)
         self.assertEqual(_rank({"b": 0.9, "x": None}, "b", higher_better=True), 1)
         self.assertIsNone(_rank({"b": None}, "b", higher_better=True))
+        self.assertIsNone(_best({"b": 1.0, "x": 1.0}, higher_better=False))   # a tie picks nobody
+        self.assertEqual(_best({"b": 0.5, "x": 1.0, "y": None}, higher_better=False), "b")
 
 
 if __name__ == "__main__":

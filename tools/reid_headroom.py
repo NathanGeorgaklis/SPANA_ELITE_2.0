@@ -21,6 +21,8 @@ Clues, each ranking B among the CANDIDATES = tracks born after A's last observat
   appearance    (only with --video) Bhattacharyya similarity between A's torso colour histogram (mean of clean
                 descriptors over its last appearance.tau_s observed) and each candidate's (first appearance.tau_s
                 observed); spana.appearance, config appearance section. A candidate with no clean crop is unknown.
+Rules: simple relink rules from these clues (unique predecessor, best position, best appearance, agreements), each
+counted as picks / correct / wrong over LOSS handovers.
 Ceiling: per player, the share of labelled frames (from their first labelled frame) on which SOME track attributed
 to them is ACTIVE, confirmed and CERTAIN, i.e. what the v1 follower would score with perfect relinking, next to
 v1's own correct count. Reporting only: nothing here is used by the product, nothing is tuned.
@@ -46,6 +48,14 @@ BREAKS = ("CUT", "UNKNOWN")
 
 def _foot(b: Sequence[float]) -> np.ndarray:
     return np.array([(b[0] + b[2]) / 2.0, b[3]])
+
+
+def _best(scores: Dict[str, Optional[float]], higher_better: bool) -> Optional[str]:
+    """The strictly best candidate (no tie), or None."""
+    known = sorted(((v, k) for k, v in scores.items() if v is not None), reverse=higher_better)
+    if not known or (len(known) > 1 and known[0][0] == known[1][0]):
+        return None
+    return known[0][1]
 
 
 def _rank(scores: Dict[str, Optional[float]], key: str, higher_better: bool) -> Optional[int]:
@@ -203,13 +213,14 @@ def analyse_clip(label_dir: Path, tracks_path: Path, video: Optional[str], cfg) 
             "gap_s": round(ti.t(born) - ti.t(a_last), 4),
             "a_end": ti.tracklet[a]["end_reason"], "cut_between": ti.cut_between(a_last, born),
             "candidates": len(cands),
-            "predecessor": {"b_lists_a": a in trk_b["possible_predecessors"], "candidates_listing_a": len(listers)},
+            "predecessor": {"b_lists_a": a in trk_b["possible_predecessors"], "candidates_listing_a": len(listers),
+                            "pick": listers[0] if len(listers) == 1 else None},
             "position": {"b_distance_h": None if dist.get(b) is None else round(dist[b], 3),
-                         "rank": _rank(dist, b, higher_better=False)},
+                         "rank": _rank(dist, b, higher_better=False), "pick": _best(dist, higher_better=False)},
             "appearance": None if not app.enabled else {
                 "b_similarity": None if sims.get(b) is None else round(sims[b], 4),
                 "best_other": max((v for k, v in sims.items() if k != b and v is not None), default=None),
-                "rank": _rank(sims, b, higher_better=True)},
+                "rank": _rank(sims, b, higher_better=True), "pick": _best(sims, higher_better=True)},
             "labelled_gap": [e["fa"], e["fb"]],
         })
 
@@ -263,10 +274,29 @@ def summarise(events: List[dict], with_app: bool) -> dict:
            "loss_b_lists_a_uniquely": sum(e["predecessor"]["b_lists_a"] and e["predecessor"]["candidates_listing_a"] == 1
                                           for e in loss),
            "loss_position_known": known("position"), "loss_position_rank1": r1("position")}
+    out["rules"] = rules(loss, with_app)
     if with_app:
         out.update({"loss_appearance_known": known("appearance"), "loss_appearance_rank1": r1("appearance"),
                     "loss_position_and_appearance_rank1": sum(1 for e in loss if e["position"]["rank"] == 1
                                                               and e["appearance"]["rank"] == 1)})
+    return out
+
+
+def rules(loss: List[dict], with_app: bool) -> dict:
+    """Simple relink rules on LOSS handovers: each picks a candidate (or abstains); a pick that is not the player's
+    next track is WRONG (pessimistic: that candidate may be an unlabelled fragment of the same player)."""
+    def pick(e, names):
+        ps = [e[n]["pick"] for n in names]
+        return ps[0] if all(p is not None for p in ps) and len(set(ps)) == 1 else None
+    names = {"predecessor_unique": ["predecessor"], "position_best": ["position"]}
+    if with_app:
+        names.update({"appearance_best": ["appearance"], "position_and_appearance_agree": ["position", "appearance"],
+                      "all_three_agree": ["predecessor", "position", "appearance"]})
+    out = {}
+    for rule, ns in names.items():
+        picks = [(pick(e, ns), e["to_track"]) for e in loss]
+        out[rule] = {"picks": sum(p is not None for p, _ in picks), "correct": sum(p == b for p, b in picks),
+                     "wrong": sum(p is not None and p != b for p, b in picks)}
     return out
 
 
