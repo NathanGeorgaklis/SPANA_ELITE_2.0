@@ -1,0 +1,11 @@
+# sha256 (all on Nathan's Mac; nothing here is committed except this record)
+6a54aba8d3d2ee4504dbe4f9bc351833613f3961248a7104881d98fa46857184  ~/spana-reid-headroom-run/out/guard_cost.json (full report)
+0a8b308808a5832394b0b9f2434b323ebe67c810b6918dff18164ebeef0e6119  ~/spana-reid-headroom-run/out/guard_cost_summary.json
+f672161d210d350b7c4282f7bc78a54d5814c6caf5ee9ae03a8154bd48cf75b9  runs/ball_pass/F02_ball.json
+6bfb8cd58d75b90374351a26adf6ddbea6f728d7913dbd81a7d59a2bb964fa65  runs/ball_pass/F05_ball.json
+548f6f4782a32db94489139e62cec5af611f2eb27ca7b7c9114f15a5214720c0  runs/ball_pass/F07_ball.json
+20bf87e2abf54fdceb23012e641ffc9028ae6d01c4b10a63835147bcbdb3a6cb  runs/ball_pass/F08_ball.json
+0b62526758819e1ff8c6379399c8b4c65eb3e59483f6aaa2eef2337fedc4269f  runs/person_view_compare/F02_local.trk.json (input)
+c4526f078a3790166f2f6f51a658ddf78d21c553d466525a725cb10ff10a3c54  runs/person_view_compare/F05_local.trk.json (input)
+85b995c7f269bf37bfc8c8bba33716a844baf36004baac49db8092b11a5b20c6  runs/person_view_compare/F07_local.trk.json (input)
+f6741125ec3f15740dc18df404c2ed28b324f6043093d658a51a7edc4fd8a08b  runs/person_view_compare/F08_local.trk.json (input)

@@ -1,7 +1,7 @@
 # STATUS
 
 As of 2026-11-16 (branch identity/reid-headroom-v1, on main c9e74e0).
-- Full suite: `python -m pytest tests -q` → 309 passed, 4 skipped (container, Python 3.13).
+- Full suite: `python -m pytest tests -q` → 314 passed, 4 skipped (container, Python 3.13).
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
@@ -108,8 +108,11 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
    Score with tools/target_score.py on all 4 DEV clips; wrong-time must stay at its current level (1 frame).
    Needs a `spana.target` version bump (track_id may change after a relink; relink evidence per frame).
    Decided (Nathan): CANDIDATE + user confirmation; automatic promotion only behind a config flag, off by default.
-2. Follower overlap guard: measure its cost first (Nathan), reported separately for contested and near-ball
-   moments. The only wrong frame on DEV (F07) was a two-person box at a crossing.
+2. Follower overlap guard, measured (`records/overlap_guard_cost_2026-11-16`); decision pending (Nathan).
+   - Immediate guard, iou 0.4, no hold: catches the one DEV wrong frame for 1.0 % of correct answers. That
+     threshold is fitted to that single event.
+   - Minimum-duration variants catch it only at iou 0.2 (3.4 % cost).
+   - Near-ball cost is in proportion; contested moments are too rare on DEV to cost.
 3. Long re-entries (19 of 108 losses, LEFT_FRAME, up to 61 candidates): need the SPANA re-ID model and/or team
    classification to prune the other team.
 4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments raise correct-time directly.
