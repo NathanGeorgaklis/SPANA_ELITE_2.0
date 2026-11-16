@@ -3,7 +3,7 @@
 # derived on DEV data only (never EVAL) and recorded with evidence.
 # Secrets: the API key is NEVER in this file. It is read from the environment variable named in roboflow.api_key_env
 # (or the gitignored .env; template .env.example).
-schema_version: "1.5.0"
+schema_version: "1.6.0"
 
 roboflow:
   workspace: nathans-workspace-9brdc
@@ -263,3 +263,5 @@ paths:
   version_dir: records/roboflow_version    # preflight records, label snapshots, version manifests (committed; no pixels)
   dev_bench_dir: records/dev_bench         # DEV benchmark manifests (committed; no pixels)
   dev_bench_frames_dir: runs/dev_bench     # DEV benchmark candidate frames (gitignored)
+  dev_bench_labels_dir: data/labels/dev_bench   # frozen DEV benchmark labels (committed; never edited)
+  dev_bench_score_dir: runs/dev_bench_score     # DEV benchmark predictions cache + annotated frames (gitignored)

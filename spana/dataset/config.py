@@ -21,7 +21,7 @@ import yaml
 
 from ..config import ConfigError, _pos, _pos_int, _unit, typed_from_dict
 
-DATASET_CONFIG_SCHEMA_VERSION = "1.5.0"
+DATASET_CONFIG_SCHEMA_VERSION = "1.6.0"
 SPLITS = ("train", "dev", "eval")
 UPLOADABLE_SPLITS = ("train", "dev")
 ROBOFLOW_SPLITS = ("train", "valid", "test")
@@ -549,6 +549,8 @@ class PathsSection:
     version_dir: str     # preflight records, label snapshots and version manifests (records; committed; no pixels)
     dev_bench_dir: str   # DEV benchmark manifests (records; committed; no pixels)
     dev_bench_frames_dir: str   # DEV benchmark candidate frames (run outputs; not committed)
+    dev_bench_labels_dir: str   # frozen DEV benchmark labels, one folder per bench tag (committed; never edited)
+    dev_bench_score_dir: str    # DEV benchmark predictions cache and annotated frames (run outputs; not committed)
 
 
 @dataclass(frozen=True)

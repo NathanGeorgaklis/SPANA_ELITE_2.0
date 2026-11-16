@@ -86,18 +86,34 @@ def precision_recall(frames: List[dict], cls: str, iou_min: float) -> dict:
             "recall": round(tp / (tp + fn), 4) if tp + fn else None}
 
 
+def agnostic_match(frame: dict, iou_min: float) -> List[Tuple[int, int]]:
+    """Class-agnostic greedy match of one frame, highest IoU first: [(label index, prediction index)]."""
+    pairs = sorted(((iou(g["box"], p["box"]), gi, pi) for gi, g in enumerate(frame["gt"])
+                    for pi, p in enumerate(frame["pred"])), reverse=True)
+    g_used, p_used, out = set(), set(), []
+    for v, gi, pi in pairs:
+        if v < iou_min:
+            break
+        if gi in g_used or pi in p_used:
+            continue
+        g_used.add(gi)
+        p_used.add(pi)
+        out.append((gi, pi))
+    return out
+
+
+def background_predictions(frame: dict, iou_min: float) -> List[int]:
+    """Indices of predictions that match no label of any class (the confusion matrix's BACKGROUND row)."""
+    used = {pi for _, pi in agnostic_match(frame, iou_min)}
+    return [pi for pi in range(len(frame["pred"])) if pi not in used]
+
+
 def confusion(frames: List[dict], classes: Sequence[str], iou_min: float) -> Dict[str, Dict[str, int]]:
     """{label class or BACKGROUND: {predicted class or MISSED: count}} at the predictions given."""
     out = {r: {c: 0 for c in (*classes, MISSED)} for r in (*classes, BACKGROUND)}
     for f in frames:
-        pairs = sorted(((iou(g["box"], p["box"]), gi, pi) for gi, g in enumerate(f["gt"])
-                        for pi, p in enumerate(f["pred"])), reverse=True)
         g_used, p_used = set(), set()
-        for v, gi, pi in pairs:
-            if v < iou_min:
-                break
-            if gi in g_used or pi in p_used:
-                continue
+        for gi, pi in agnostic_match(f, iou_min):
             g_used.add(gi)
             p_used.add(pi)
             out[f["gt"][gi]["class"]][f["pred"][pi]["class"]] += 1
