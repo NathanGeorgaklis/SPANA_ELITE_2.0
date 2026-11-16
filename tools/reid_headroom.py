@@ -23,7 +23,8 @@ Clues, each ranking B among the CANDIDATES = tracks born after A's last observat
                 observed); spana.appearance, config appearance section. A candidate with no clean crop is unknown.
 Rules: simple relink rules from these clues (unique predecessor, best position, best appearance, agreements), each
 counted as picks / correct / wrong over LOSS handovers.
-Ceiling: per player, the share of labelled frames (from their first labelled frame) on which SOME track attributed
+Ceiling: per player (a player no track ever matches unambiguously is not selectable: v1 counts 0), the share of
+labelled frames (from their first labelled frame) on which SOME track attributed
 to them is ACTIVE, confirmed and CERTAIN, i.e. what the v1 follower would score with perfect relinking, next to
 v1's own correct count. Reporting only: nothing here is used by the product, nothing is tuned.
 """
@@ -242,8 +243,8 @@ def ceiling_rows(gt, attr, ti: TrackIndex, doc: dict, cfg) -> dict:
             ok += any(ti.live[f][tid]["state"] == "ACTIVE" and ti.live[f][tid]["confirmed"]
                       and ti.live[f][tid]["identity"] == "CERTAIN" for tid in mine)
         v1 = v1_correct(pid, vis, attr, doc, cfg)
-        rows.append({"player": pid, "labelled_frames": len(vis), "v1_correct": v1, "ceiling_correct": ok,
-                     "attributed_any_state": any_attr})
+        rows.append({"player": pid, "labelled_frames": len(vis), "selectable": v1 is not None,
+                     "v1_correct": v1 or 0, "ceiling_correct": ok, "attributed_any_state": any_attr})
     n = sum(r["labelled_frames"] for r in rows)
     pooled = {k: sum(r[k] for r in rows) for k in ("v1_correct", "ceiling_correct", "attributed_any_state")}
     return {"per_player": rows, "labelled_frames": n, **pooled,

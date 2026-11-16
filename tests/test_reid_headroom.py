@@ -48,6 +48,19 @@ class HeadroomTest(unittest.TestCase):
         self.assertIsNone(e["appearance"])
         p1 = next(r for r in rep["ceiling"]["per_player"] if r["player"] == "1")
         self.assertEqual((p1["v1_correct"], p1["ceiling_correct"]), (2, 3))   # t3 unconfirmed on its first frame
+        self.assertTrue(p1["selectable"])
+
+    def test_unselectable_player_counts_zero(self):
+        # player 3 is labelled where no track is: never selectable, v1 counts 0 instead of failing
+        tracks = tracks_doc([{"t1": N}] + [{"t1": A}] * 5)
+        rows = [f"{f + 1},1,0,100,40,100,1,1,1" for f in (1, 2, 4, 5)] + ["2,3,400,100,40,100,1,1,1"]
+        with tempfile.TemporaryDirectory() as tmp:
+            _labels(Path(tmp) / "lab", rows)
+            trk = Path(tmp) / "trk.json"
+            write_json_atomic(trk, tracks)
+            rep = analyse_clip(Path(tmp) / "lab", trk, None, CFG)
+        p3 = next(r for r in rep["ceiling"]["per_player"] if r["player"] == "3")
+        self.assertEqual((p3["selectable"], p3["v1_correct"], p3["ceiling_correct"]), (False, 0, 0))
 
     def test_coexisting_tracks_are_overlap_not_loss(self):
         # both tracks stay observed; the labels swap players between them (an identity switch, not a relink case)
