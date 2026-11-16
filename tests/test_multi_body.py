@@ -98,7 +98,7 @@ class RefilterMigration(unittest.TestCase):
         cfg_sec = {k: getattr(CFG.detection, k) for k in CFG.detection.__dataclass_fields__}
         old = {k: v for k, v in cfg_sec.items() if not k.startswith("multibody_")}
         src = {"schema": "spana.detections", "schema_version": "1.2.0", "provenance": {}, "frame_stride": 1,
-               "video": {"sha256": "0" * 64}, "model": {}, "detection_config": old,
+               "video": {"sha256": "0" * 64}, "model": {"person_class_id": 0}, "detection_config": old,
                "frames": [{"frame": 0, "t": 0.0, "detections": [[*map(float, PLAYER), 0.9, 0],
                                                                 [*map(float, MERGED), 0.8, 0]]}]}
         with tempfile.TemporaryDirectory() as d:
@@ -109,7 +109,8 @@ class RefilterMigration(unittest.TestCase):
                                cwd=ROOT, capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, r.stderr)
             doc = json.loads(out.read_text())
-        self.assertEqual(doc["schema_version"], "1.3.0")
+        self.assertEqual(doc["schema_version"], "1.4.0")
+        self.assertEqual(doc["class_names"], ["person"])            # rebuilt from model.person_class_id
         self.assertEqual([row[6] for row in doc["frames"][0]["detections"]], [0, 1])
         validate_detections(doc)
         for bad in ([*doc["frames"][0]["detections"][0][:6]], [*doc["frames"][0]["detections"][0][:6], True]):

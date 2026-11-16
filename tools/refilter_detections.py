@@ -3,7 +3,8 @@
 Valid only for rules that act on post-NMS boxes (union-box suppression, multi-body flag). Refuses if any setting that
 acts before or during NMS (scores, NMS, size, tiling) differs between the cached artifact and the config.
 The output records the source artifact's sha256 in its provenance. Also migrates a 1.2.0 artifact (no multi-body
-column) to the current schema: the flag is computed from the cached post-NMS boxes, never assumed.
+column; the flag is computed from the cached post-NMS boxes, never assumed) or a 1.3.0 artifact (no class_names;
+rebuilt from the model record's person_class_id) to the current schema.
 
     python -m tools.refilter_detections --detections IN --config C --out OUT
 """
@@ -23,7 +24,21 @@ from spana.provenance import build_provenance
 
 POST_NMS_KEYS = ("union_member_ioa", "union_member_max_iou", "multibody_member_ioa", "multibody_member_score",
                  "multibody_min_extent")
-MIGRATABLE = ("1.2.0",)          # older detections schemas whose rows can be upgraded from cached boxes
+MIGRATABLE = ("1.2.0", "1.3.0")  # older detections schemas whose rows can be upgraded from cached boxes
+
+
+def migrate(src: dict) -> dict:
+    """1.2.0 (no multi-body column) / 1.3.0 (no class_names) -> current. Both were written only by the person-only
+    ONNX backend, whose model record names the person class index: class_names is rebuilt from it, never guessed."""
+    from spana.cli import person_only_class_names
+    pid = (src.get("model") or {}).get("person_class_id")
+    if not isinstance(pid, int) or pid < 0:
+        raise ArtifactError("cannot migrate: model.person_class_id is missing (not a person-only ONNX artifact)")
+    frames = src["frames"]
+    if src["schema_version"] == "1.2.0":
+        frames = [{**fr, "detections": [[*r[:6], 0] for r in fr["detections"]]} for fr in frames]
+    return {**src, "schema_version": DETECTIONS_SCHEMA[1], "class_names": person_only_class_names(pid),
+            "frames": frames}
 
 
 def main() -> int:
@@ -34,8 +49,7 @@ def main() -> int:
     cfg = load_config(a.config)
     src = orig = read_json(a.detections)
     if src.get("schema") == DETECTIONS_SCHEMA[0] and src.get("schema_version") in MIGRATABLE:
-        src = {**src, "schema_version": DETECTIONS_SCHEMA[1],
-               "frames": [{**fr, "detections": [[*r[:6], 0] for r in fr["detections"]]} for fr in src["frames"]]}
+        src = migrate(src)
     validate_detections(src)
     new_cfg = dataclasses.asdict(cfg.detection)
     pre = {k: v for k, v in new_cfg.items() if k not in POST_NMS_KEYS}

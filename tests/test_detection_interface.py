@@ -44,7 +44,8 @@ class DetectionTrackingInterfaceTests(unittest.TestCase):
         # threshold: taken from config, sent with the request and applied to what comes back
         self.assertEqual(client.calls, [("proj/2", cfg.detector.confidence, cfg.detector.iou)] * 2)
         doc = {"schema": DETECTIONS_SCHEMA[0], "schema_version": DETECTIONS_SCHEMA[1], "provenance": {},
-               "video": {}, "model": det.model_id, "detection_config": {}, "frame_stride": 5, "frames": frames}
+               "video": {}, "model": det.model_id, "class_names": list(det.class_names), "detection_config": {},
+               "frame_stride": 5, "frames": frames}
         validate_detections(doc)                                   # the artifact the tracker reads accepts it
         self.assertEqual(doc["model"]["confidence"], cfg.detector.confidence)
 

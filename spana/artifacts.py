@@ -30,7 +30,7 @@ from .config import OutputConfig
 from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityState, PositionSource, TrackletSummary,
                       TrackState)
 
-DETECTIONS_SCHEMA = ("spana.detections", "1.3.0")
+DETECTIONS_SCHEMA = ("spana.detections", "1.4.0")   # 1.4.0: class_names (class_id indexes it)
 TRACKS_SCHEMA = ("spana.tracks", "2.1.0")
 
 
@@ -99,8 +99,12 @@ def detections_from_frame(fr: dict) -> List[Detection]:
 
 
 def validate_detections(doc: Any) -> None:
-    _header(doc, DETECTIONS_SCHEMA, ("schema", "schema_version", "provenance", "video", "model",
+    _header(doc, DETECTIONS_SCHEMA, ("schema", "schema_version", "provenance", "video", "model", "class_names",
                                      "detection_config", "frame_stride", "frames"))
+    names = doc["class_names"]
+    if not (isinstance(names, list) and names and all(isinstance(n, str) and n for n in names)
+            and len(set(names)) == len(names)):
+        raise ArtifactError("class_names must be a non-empty list of distinct names")
     if not (isinstance(doc["frame_stride"], int) and doc["frame_stride"] >= 1):
         raise ArtifactError("bad frame_stride")
     if not doc["frames"]:
@@ -115,6 +119,8 @@ def validate_detections(doc: Any) -> None:
                 raise ArtifactError(f"frame {fr['frame']}: bad detection row {r!r}")
             if not (r[2] > r[0] and r[3] > r[1] and 0.0 <= r[4] <= 1.0):
                 raise ArtifactError(f"frame {fr['frame']}: invalid box/score {r!r}")
+            if not 0 <= r[5] < len(names):
+                raise ArtifactError(f"frame {fr['frame']}: class_id {r[5]} has no entry in class_names")
 
 
 # ----------------------------------------------------------------------------- tracks

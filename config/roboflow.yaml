@@ -3,7 +3,7 @@
 # derived on DEV data only (never EVAL) and recorded with evidence.
 # Secrets: the API key is NEVER in this file. It is read from the environment variable named in roboflow.api_key_env
 # (or the gitignored .env; template .env.example).
-schema_version: "1.6.0"
+schema_version: "1.7.0"
 
 roboflow:
   workspace: nathans-workspace-9brdc
@@ -219,6 +219,13 @@ detector:
   confidence: 0.50             # untuned prior; not to be tuned until Nathan has reviewed the v1 results
   iou: 0.50                    # untuned prior (overlap sent with each request)
   timeout_s: 90.0
+  # Tracking input (spana/detection/person_view.py, `spana.cli detect --backend roboflow`): boxes of these classes go
+  # to the tracker as one "person" view; their own class is kept as a hint only. Decision (Nathan, 2026-11-16): the
+  # DEV benchmark shows kit-colour role confusion (91 of 708 players boxed as referee) while 94 % of players are found
+  # under some person class, so roles are left to a later layer. For tracking the request confidence is
+  # detection.score_low (default.yaml), not `confidence` above, and duplicates across classes are merged with
+  # detection.nms_iou: at 0.10, 155 cross-class pairs with IoU >= 0.6 in 48 of 66 DEV frames.
+  person_classes: [player, goalkeeper, referee]
 
 # Scoring the detector against the frozen labels of the valid split (tools/detector_eval.py). The valid split is a
 # held-out TRAIN match: it is not SPANA DEV and not EVAL. Nothing here is tuned.
