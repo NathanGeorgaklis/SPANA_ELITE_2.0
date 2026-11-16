@@ -6,8 +6,9 @@
 For each labelled player, the tracks attributed to them on labelled frames (NESTED_V2, unambiguous; same matching
 as tools/target_score.py) form a chain. Every change A -> B in that chain is a HANDOVER: a relinker would have to
 move the target from track A to track B. Per handover:
-  kind          LOSS when A was no longer observed when B was born (a relinker could act), else OVERLAP (A and B
-                were both live: a tracker identity switch, not a relink case)
+  kind          LOSS when A was observed before B was born and not again from B's birth up to B's labelled frame
+                (a relinker had to act), else OVERLAP (A and B coexisted: parallel tracks on one player or an
+                identity switch; not a relink case)
   gap_s         time from A's last observation to B's first frame
   a_end         A's EndReason (or null if A was still live at the end of the clip)
   cut_between   a CUT / UNKNOWN camera frame lies between A's last observation and B's birth
@@ -160,10 +161,12 @@ def analyse_clip(label_dir: Path, tracks_path: Path, video: Optional[str], cfg) 
             # A's last observation before B was born (A may live on after B's birth: OVERLAP)
             a_obs_before = [f for f in ti.obs[a] if f < born]
             a_last = max(a_obs_before) if a_obs_before else min(ti.obs[a])
-            a_live_at_birth = a in ti.live[born] and ti.live[born][a]["source"] == "OBSERVED"
+            # LOSS: A was seen before B was born and not seen again from B's birth up to B's labelled frame, so a
+            # relinker had to act. Otherwise A and B coexisted (parallel tracks or an identity switch): OVERLAP.
+            parallel = not a_obs_before or any(born <= f <= fb for f in ti.obs[a])
             cands = [tid for tid, f1 in ti.first.items() if a_last < f1 <= born and tid != a]
             raw.append({"player": pid, "a": a, "b": b, "a_last_obs": a_last, "b_born": born, "fa": fa, "fb": fb,
-                        "a_live_at_birth": a_live_at_birth, "cands": cands})
+                        "parallel": parallel, "cands": cands})
 
     needed: Dict[int, set] = {}
     for e in raw:
@@ -195,7 +198,7 @@ def analyse_clip(label_dir: Path, tracks_path: Path, video: Optional[str], cfg) 
         listers = [c for c in cands if a in ti.tracklet[c]["possible_predecessors"]]
         events.append({
             "player": e["player"], "from_track": a, "to_track": b,
-            "kind": "OVERLAP" if e["a_live_at_birth"] else "LOSS",
+            "kind": "OVERLAP" if e["parallel"] else "LOSS",
             "a_last_observed_frame": a_last, "b_first_frame": born,
             "gap_s": round(ti.t(born) - ti.t(a_last), 4),
             "a_end": ti.tracklet[a]["end_reason"], "cut_between": ti.cut_between(a_last, born),

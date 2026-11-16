@@ -48,6 +48,20 @@ class HeadroomTest(unittest.TestCase):
         p1 = next(r for r in rep["ceiling"]["per_player"] if r["player"] == "1")
         self.assertEqual((p1["v1_correct"], p1["ceiling_correct"]), (2, 3))   # t3 unconfirmed on its first frame
 
+    def test_coexisting_tracks_are_overlap_not_loss(self):
+        # both tracks stay observed; the labels swap players between them (an identity switch, not a relink case)
+        tracks = tracks_doc([{"t1": N, "t2": N}] + [{"t1": A, "t2": A}] * 5)
+        rows = []
+        for f, (p1, p2) in {1: (0, 100), 2: (0, 100), 4: (100, 0), 5: (100, 0)}.items():
+            rows += [f"{f + 1},1,{p1},100,40,100,1,1,1", f"{f + 1},2,{p2},100,40,100,1,1,1"]
+        with tempfile.TemporaryDirectory() as tmp:
+            _labels(Path(tmp) / "lab", rows)
+            trk = Path(tmp) / "trk.json"
+            write_json_atomic(trk, tracks)
+            rep = analyse_clip(Path(tmp) / "lab", trk, None, CFG)
+        self.assertEqual([e["kind"] for e in rep["handovers"]], ["OVERLAP", "OVERLAP"])
+        self.assertEqual(rep["summary"]["loss"], 0)
+
     def test_rank_ties_count_against(self):
         self.assertEqual(_rank({"b": 1.0, "x": 1.0, "y": 2.0}, "b", higher_better=False), 2)
         self.assertEqual(_rank({"b": 0.9, "x": None}, "b", higher_better=True), 1)
