@@ -66,6 +66,45 @@ What the tracking layer receives from any detector, the football detector includ
 | `PositionSource` | OBSERVED (ACTIVE only), PREDICTED, HELD (OCCLUDED/LOST only) |
 | `CameraStatus` | OK, UNKNOWN, CUT, FIRST |
 | `EndReason` | UNCONFIRMED_MISSED, UNCONFIRMED_TIMEOUT, LOST_EXPIRED, CAMERA_CUT, CAMERA_MOTION_UNKNOWN, LEFT_FRAME |
+| `TargetState` (target identity) | TARGET, CANDIDATE (reserved), LOST, ABSTAIN |
+| `TargetReason` (target identity) | TRACK_OBSERVED, NOT_CONFIRMED, IDENTITY_UNCERTAIN, AFTER_UNCERTAIN, TRACK_OCCLUDED, TRACK_LOST, TRACK_ENDED |
+
+## Target identity — `spana/identity/` (defined 2026-11-16)
+Follow the user's chosen player through a clip, and say so when unsure.
+- In: a validated `spana.tracks` artifact + the user's selection.
+- Selection (versioned; new kinds are added, never changed): `{kind, version, frame, track_id}`.
+  - `track_at_frame` 1.0.0 = a tap on a box the app showed: the track must be live and ACTIVE (observed) on that
+    frame. Otherwise `SelectionError` (refused, never guessed).
+  - Tap is the chosen way to pick (decision 2026-11-16). Shirt number / photo may come later as hints.
+- Out: **`spana.target` 1.0.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
+  - Top level: `schema, schema_version, provenance, video, tracks_sha256, selection, target_config, track_end,
+    frames`.
+  - `target_config`: `{resume_after_uncertain}` from default.yaml `target`.
+  - `track_end`: `{frame, reason: EndReason}` or null.
+  - Frame `{frame, t, state, reason, track_id, box}`, one per tracks frame from the selection frame to the end.
+  - `track_id` and `box` are set only when TARGET.
+  - Validated against the tracks artifact: same frames; TARGET only on the selected track while it is ACTIVE,
+    confirmed and CERTAIN, with its box.
+- Follower (`spana/identity/follower.py`), per frame:
+
+| state | reason | when |
+|---|---|---|
+| TARGET | TRACK_OBSERVED | selected track ACTIVE, confirmed, CERTAIN |
+| ABSTAIN | NOT_CONFIRMED | ... not yet confirmed |
+| ABSTAIN | IDENTITY_UNCERTAIN | ... IDENTITY_UNCERTAIN now |
+| ABSTAIN | AFTER_UNCERTAIN | ... was uncertain earlier and `target.resume_after_uncertain` is false |
+| ABSTAIN | TRACK_OCCLUDED | ... OCCLUDED |
+| LOST | TRACK_LOST | ... LOST |
+| LOST | TRACK_ENDED | selected track ended (any EndReason incl. CAMERA_CUT); for the rest of the clip (no re-ID yet) |
+
+  - Never answers before the selection frame.
+  - Never switches to another track.
+  - A gap the tracker bridged on the same track id is followed again (the tracker's decision, not this layer's).
+  - CANDIDATE is reserved: it is not emitted, and the 1.0.0 validator refuses it.
+- CLI: `python -m spana.cli target --tracks --config --select-track --select-frame --out`.
+- DEV scorer: `tools/target_score.py`. Per labelled player: selected on the first labelled frame with an
+  unambiguous NESTED_V2 track match. Reports correct / wrong / unverified / abstain / lost time, per player and
+  pooled per clip.
 
 ## Evaluation (supporting) — `spana/evaluation.py`, `spana/labels.py`, `tools/benchmark.py`
 - In: tracks + detections artifacts, frozen MOT labels (`data/labels/<clip>/v1`). Out: `Report` metrics JSON.
@@ -86,7 +125,6 @@ What the tracking layer receives from any detector, the football detector includ
 ## Not yet defined
 | layer | inputs / outputs | state enum |
 |---|---|---|
-| target identity | NOT DEFINED | NOT DEFINED |
 | ball tracking | NOT DEFINED | NOT DEFINED |
 | team classification | NOT DEFINED | NOT DEFINED |
 | pitch context | NOT DEFINED | NOT DEFINED |

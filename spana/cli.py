@@ -6,6 +6,7 @@
   python -m spana.cli detect --backend local --video V --config C --dataset-config config/roboflow.yaml \
       --model-record models/rfdetr_v1.json --runtime torch --device mps --out detections.json   # same, on this machine
   python -m spana.cli track  --video V --config C --detections detections.json --out tracks.json
+  python -m spana.cli target --tracks tracks.json --config C --select-track T --select-frame F --out target.json
 
 Detection and tracking are separate passes joined by a versioned artifact, so tracking can be re-run on cached
 detections without re-running the model. Every input is hash-checked; nothing falls back to a default.
@@ -148,6 +149,18 @@ def cmd_track(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_target(a: argparse.Namespace) -> int:
+    """Follow the user's selected player (a track at a frame) through a tracks artifact. No video needed."""
+    from .identity.follower import Selection, target_document
+    cfg = load_config(a.config)
+    refuse_existing(a.out)
+    tdoc = read_json(a.tracks)
+    validate_tracks(tdoc)
+    doc = target_document(tdoc, Selection.track_at_frame(a.select_track, a.select_frame), cfg, sys.argv)
+    print(write_json_atomic(a.out, doc))
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     p = argparse.ArgumentParser(prog="spana")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -172,8 +185,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     d.add_argument("--stop", type=int, default=None)
     d.add_argument("--stride", type=int, default=1, help="analyse every N-th frame (tracking is time-based)")
     sub.choices["track"].add_argument("--detections", required=True)
+    g = sub.add_parser("target", help="follow one user-selected track (spana.target)")
+    g.add_argument("--tracks", required=True)
+    g.add_argument("--config", required=True)
+    g.add_argument("--select-track", required=True, help="track id the user selected (e.g. tapped box)")
+    g.add_argument("--select-frame", required=True, type=int, help="video frame index of the selection")
+    g.add_argument("--out", required=True)
     a = p.parse_args(argv)
-    return cmd_detect(a) if a.cmd == "detect" else cmd_track(a)
+    return {"detect": cmd_detect, "track": cmd_track, "target": cmd_target}[a.cmd](a)
 
 
 if __name__ == "__main__":
