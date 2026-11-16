@@ -52,14 +52,20 @@ def attributions(gt, tracks_doc: dict) -> Dict[int, Dict[str, Tuple[Optional[str
     return out
 
 
-def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Path], clip: str) -> dict:
+def first_selection(pid: str, gt, attr) -> Optional[Tuple[int, int, str]]:
+    """Simulated tap: (labelled frames skipped, frame, track id) of the player's first labelled frame with an
+    unambiguous track attribution, or None if there is none."""
     visible = [f for f in gt.frames if pid in gt.players.get(f, {})]
-    sel = None
     for n, f in enumerate(visible):
         hit = [tid for tid, (p, amb) in attr[f].items() if p == pid and not amb]
         if hit:
-            sel = (n, f, hit[0])
-            break
+            return n, f, hit[0]
+    return None
+
+
+def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Path], clip: str) -> dict:
+    visible = [f for f in gt.frames if pid in gt.players.get(f, {})]
+    sel = first_selection(pid, gt, attr)
     row = {"player": pid, "labelled_frames": len(visible), "first_labelled_frame": visible[0] if visible else None}
     if sel is None:
         return {**row, "selected": False}
