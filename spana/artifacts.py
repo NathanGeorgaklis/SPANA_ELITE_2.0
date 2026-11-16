@@ -2,6 +2,7 @@
 
   spana.detections 1.3.0 : per-frame person detections (Pass: detection)
   spana.tracks     2.0.0 : per-frame multi-player tracks (Pass: tracking), consumes a detections artifact
+  spana.target     1.0.0 : per-frame state of the user's selected player (Pass: target identity), consumes tracks
 
 Change log:
   1.1.0 detections: + top-level detection_config (tracking refuses detections made under another config).
@@ -13,6 +14,8 @@ Change log:
         missed_frames, occluder, recoveries (replaces gaps_bridged), possible_predecessors; + top-level
         `tracklets` summary. Not backward compatible (state vocabulary changed).
   2.1.0 tracks: + per-track identity (CERTAIN / IDENTITY_UNCERTAIN), identity_rivals, uncertain_episodes.
+  1.0.0 target: selection (track_at_frame 1.0.0), target_config, track_end, frames {frame, t, state, reason,
+        track_id, box}. CANDIDATE reserved (refused in 1.0.0).
 
 Any change to keys, types, units or meaning increments the version. Writers are atomic and never overwrite.
 """
@@ -27,11 +30,12 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 from .config import OutputConfig
-from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityState, PositionSource, TrackletSummary,
-                      TrackState)
+from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityState, PositionSource, TargetReason,
+                      TargetState, TrackletSummary, TrackState)
 
 DETECTIONS_SCHEMA = ("spana.detections", "1.4.0")   # 1.4.0: class_names (class_id indexes it)
 TRACKS_SCHEMA = ("spana.tracks", "2.1.0")
+TARGET_SCHEMA = ("spana.target", "1.0.0")
 
 
 class ArtifactError(ValueError):
@@ -312,6 +316,86 @@ def validate_tracks(doc: Any, detections: Optional[dict] = None) -> None:
             raise ArtifactError(f"tracklet {r['track_id']}: end_reason disagrees with the last frame")
     if tids != set(seen):
         raise ArtifactError("tracklets do not cover every emitted track")
+
+
+# ----------------------------------------------------------------------------- target
+_TARGET_REASONS = {  # state -> reasons allowed with it (1.0.0)
+    TargetState.TARGET.value: {TargetReason.TRACK_OBSERVED.value},
+    TargetState.ABSTAIN.value: {TargetReason.NOT_CONFIRMED.value, TargetReason.IDENTITY_UNCERTAIN.value,
+                                TargetReason.AFTER_UNCERTAIN.value, TargetReason.TRACK_OCCLUDED.value},
+    TargetState.LOST.value: {TargetReason.TRACK_LOST.value, TargetReason.TRACK_ENDED.value},
+}
+_SELECTIONS = {("track_at_frame", "1.0.0"): ("kind", "version", "frame", "track_id")}
+
+
+def validate_target(doc: Any, tracks: Optional[dict] = None) -> None:
+    """Structural validation. With the source `tracks` artifact, every answer is also checked against it: same frames
+    from the selection on, TARGET only on the selected track while it is ACTIVE, confirmed and CERTAIN (same box)."""
+    _header(doc, TARGET_SCHEMA, ("schema", "schema_version", "provenance", "video", "tracks_sha256", "selection",
+                                 "target_config", "track_end", "frames"))
+    sel = doc["selection"]
+    if not isinstance(sel, dict) or (sel.get("kind"), sel.get("version")) not in _SELECTIONS:
+        raise ArtifactError("unsupported selection")
+    _keys(sel, _SELECTIONS[(sel["kind"], sel["version"])], "selection")
+    if not (isinstance(sel["frame"], int) and not isinstance(sel["frame"], bool) and isinstance(sel["track_id"], str)):
+        raise ArtifactError("bad selection frame / track_id")
+    tc = doc["target_config"]
+    _keys(tc, ("resume_after_uncertain",), "target_config")
+    if not isinstance(tc["resume_after_uncertain"], bool):
+        raise ArtifactError("bad target_config")
+    frames = doc["frames"]
+    if not frames or frames[0].get("frame") != sel["frame"]:
+        raise ArtifactError("target frames must start at the selection frame")
+    end = doc["track_end"]
+    if end is not None:
+        _keys(end, ("frame", "reason"), "track_end")
+        if end["reason"] not in {r.value for r in EndReason}:
+            raise ArtifactError("bad track_end reason")
+    prev, prev_t, ended = -1, -math.inf, False
+    for fr in frames:
+        _keys(fr, ("frame", "t", "state", "reason", "track_id", "box"), "target frame")
+        prev = _frame_order(fr, prev)
+        where = f"target frame {fr['frame']}"
+        if not _num(fr["t"]) or fr["t"] <= prev_t:
+            raise ArtifactError(f"{where}: time not strictly increasing")
+        prev_t = fr["t"]
+        if fr["reason"] not in _TARGET_REASONS.get(fr["state"], set()):
+            raise ArtifactError(f"{where}: state {fr['state']!r} with reason {fr['reason']!r}")
+        is_target = fr["state"] == TargetState.TARGET.value
+        b = fr["box"]
+        if is_target:
+            if fr["track_id"] != sel["track_id"] or not (isinstance(b, list) and len(b) == 4 and all(_num(v) for v in b)
+                                                         and b[2] > b[0] and b[3] > b[1]):
+                raise ArtifactError(f"{where}: TARGET needs the selected track id and a valid box")
+        elif fr["track_id"] is not None or b is not None:
+            raise ArtifactError(f"{where}: no track id or box without an answer")
+        if end is not None and fr["frame"] == end["frame"]:
+            ended = True
+        if (fr["reason"] == TargetReason.TRACK_ENDED.value) != ended:
+            raise ArtifactError(f"{where}: TRACK_ENDED disagrees with track_end")
+    if end is not None and not ended:
+        raise ArtifactError("track_end frame is not among the target frames")
+    if tracks is None:
+        return
+    if sha256_doc(tracks) != doc["tracks_sha256"]:
+        raise ArtifactError("tracks artifact does not match tracks_sha256")
+    if tracks["video"] != doc["video"]:
+        raise ArtifactError("target video differs from the tracks video")
+    src = [fr for fr in tracks["frames"] if fr["frame"] >= sel["frame"]]
+    if [(f["frame"], f["t"]) for f in src] != [(f["frame"], f["t"]) for f in frames]:
+        raise ArtifactError("target frames differ from the tracks frames after the selection")
+    for tf, fr in zip(src, frames):
+        tr = next((t for t in tf["tracks"] if t["track_id"] == sel["track_id"]), None)
+        hit = [r for tid, r in tf["ended"] if tid == sel["track_id"]]
+        if hit and (end is None or end != {"frame": tf["frame"], "reason": hit[0]}):
+            raise ArtifactError(f"frame {tf['frame']}: selected track ended but track_end disagrees")
+        if fr["state"] == TargetState.TARGET.value and not (
+                tr is not None and tr["state"] == TrackState.ACTIVE.value and tr["confirmed"]
+                and tr["identity"] == IdentityState.CERTAIN.value and tr["box"] == fr["box"]):
+            raise ArtifactError(f"frame {tf['frame']}: TARGET not backed by an ACTIVE, confirmed, CERTAIN track box")
+    first = next((t for t in src[0]["tracks"] if t["track_id"] == sel["track_id"]), None)
+    if first is None or first["state"] != TrackState.ACTIVE.value:
+        raise ArtifactError("selection does not name an ACTIVE track on its frame")
 
 
 # ----------------------------------------------------------------------------- helpers

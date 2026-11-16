@@ -19,7 +19,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.0.0"
+CONFIG_SCHEMA_VERSION = "2.1.0"   # 2.1.0: + target section
 
 
 class ConfigError(ValueError):
@@ -176,6 +176,16 @@ class AppearanceConfig:
 
 
 @dataclass(frozen=True)
+class TargetConfig:
+    """Target identity (following the user's selected player)."""
+    resume_after_uncertain: bool   # after the followed track was IDENTITY_UNCERTAIN, answer again once it is
+                                   #   CERTAIN (true) or abstain for the rest of the track (false, fail closed)
+
+    def validate(self) -> None:
+        pass
+
+
+@dataclass(frozen=True)
 class OutputConfig:
     box_decimals: int
     score_decimals: int
@@ -193,6 +203,7 @@ class SpanaConfig:
     kalman: KalmanConfig
     tracking: TrackingConfig
     appearance: AppearanceConfig
+    target: TargetConfig
     output: OutputConfig
 
     def validate(self) -> None:

@@ -44,6 +44,25 @@ class EndReason(str, Enum):
     LEFT_FRAME = "LEFT_FRAME"
 
 
+class TargetState(str, Enum):
+    """Per-frame answer of the target-identity layer: where is the user's selected player?"""
+    TARGET = "TARGET"        # confident: this box is the selected player
+    CANDIDATE = "CANDIDATE"  # likely match awaiting confirmation (reserved: not emitted by spana.target 1.0.0)
+    LOST = "LOST"            # not visible or not found
+    ABSTAIN = "ABSTAIN"      # unsure: no answer rather than a possibly wrong one
+
+
+class TargetReason(str, Enum):
+    """Why the target layer gave its answer on a frame (spana.target 1.0.0)."""
+    TRACK_OBSERVED = "TRACK_OBSERVED"        # TARGET: followed track observed, confirmed, identity CERTAIN
+    NOT_CONFIRMED = "NOT_CONFIRMED"          # ABSTAIN: followed track not yet confirmed by the tracker
+    IDENTITY_UNCERTAIN = "IDENTITY_UNCERTAIN"  # ABSTAIN: followed track is IDENTITY_UNCERTAIN now
+    AFTER_UNCERTAIN = "AFTER_UNCERTAIN"      # ABSTAIN: followed track was uncertain earlier (target.resume_after_uncertain false)
+    TRACK_OCCLUDED = "TRACK_OCCLUDED"        # ABSTAIN: followed track hidden behind another player
+    TRACK_LOST = "TRACK_LOST"                # LOST: followed track unobserved, not explained by an occluder
+    TRACK_ENDED = "TRACK_ENDED"              # LOST: followed track ended (any EndReason, incl. CAMERA_CUT); no re-ID yet
+
+
 @dataclass(frozen=True)
 class Detection:
     box: Tuple[float, float, float, float]  # x1, y1, x2, y2, source pixels
