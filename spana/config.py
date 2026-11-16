@@ -19,7 +19,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.1.0"   # 2.1.0: + target section
+CONFIG_SCHEMA_VERSION = "2.2.0"   # 2.1.0: + target section; 2.2.0: + target relink keys
 
 
 class ConfigError(ValueError):
@@ -180,9 +180,12 @@ class TargetConfig:
     """Target identity (following the user's selected player)."""
     resume_after_uncertain: bool   # after the followed track was IDENTITY_UNCERTAIN, answer again once it is
                                    #   CERTAIN (true) or abstain for the rest of the track (false, fail closed)
+    relink_max_gap_s: float        # a relink candidate must be born within this time of the lost track's last
+                                   #   observation (spana.identity.follower)
+    relink_auto_confirm: bool      # promote a CANDIDATE to TARGET without the user's confirmation (measurement only)
 
     def validate(self) -> None:
-        pass
+        _pos("target.relink_max_gap_s", self.relink_max_gap_s)
 
 
 @dataclass(frozen=True)

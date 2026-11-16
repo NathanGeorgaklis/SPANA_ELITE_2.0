@@ -14,14 +14,20 @@ For each labelled player of a clip:
                wrong       TARGET box attributed to another labelled player (must stay ~0)
                unverified  TARGET box with no clear attribution (NESTED_V2 ambiguous, matched to nobody, or inside
                            an ignore region): neither credited nor counted wrong
+               candidate_correct / candidate_wrong / candidate_unverified
+                           CANDIDATE proposals (spana.target 2.0.0), judged like answers but never correct time
                abstain / lost   no answer
              plus `answers_while_absent`: TARGET on a labelled frame where the player is not labelled (left the
              picture or unlabelled), with how many of those are attributed to another player.
+Relinks: each proposal is judged right / wrong / undecided on the first labelled frame (from its proposal on) where
+the answer is on the relinked track and its box is clearly attributed. --simulate-user confirms, on its first frame,
+every candidate judged right, and nothing else. Run with relink_auto_confirm true (config) to see automatic promotion.
 Pooled per clip = sums over its players. DEV labels only (refused otherwise); EVAL is never read.
 """
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -29,11 +35,12 @@ from typing import Dict, List, Optional, Tuple
 from spana.artifacts import read_json, sha256_doc, validate_tracks, write_json_atomic
 from spana.config import load_config
 from spana.evaluation import NESTED_V2, _match
-from spana.identity.follower import Selection, target_document
+from spana.identity.follower import Selection, confirm_candidate, follow, target_document
 from tools.benchmark import IGNORE_IOA, _ioa, load_frozen
 
 RULE = NESTED_V2
-COUNTS = ("correct", "wrong", "unverified", "abstain", "lost")
+COUNTS = ("correct", "wrong", "unverified", "candidate_correct", "candidate_wrong", "candidate_unverified", "abstain",
+          "lost")
 
 
 def attributions(gt, tracks_doc: dict) -> Dict[int, Dict[str, Tuple[Optional[str], bool]]]:
@@ -63,45 +70,95 @@ def first_selection(pid: str, gt, attr) -> Optional[Tuple[int, int, str]]:
     return None
 
 
-def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Path], clip: str) -> dict:
+def judge(attr, f: int, tid: str, pid: str) -> str:
+    """correct / wrong / unverified for an answer box of track tid on labelled frame f, for player pid."""
+    p, amb = attr[f].get(tid, (None, False))
+    return "correct" if (p == pid and not amb) else "wrong" if (p is not None and not amb) else "unverified"
+
+
+def relink_verdict(r: dict, frames: List[dict], gt, attr, pid: str) -> Tuple[str, Optional[int], Optional[str]]:
+    """Right / wrong / undecided for one relink: the first labelled frame from its proposal on where the answer is on
+    the relinked track (CANDIDATE or TARGET), the player is labelled and the box is attributed clearly."""
+    labelled = set(gt.frames)
+    for a in frames:
+        if a["frame"] < r["proposed_frame"] or a["track_id"] != r["to_track"] or \
+                a["state"] not in ("CANDIDATE", "TARGET"):
+            continue
+        if a["frame"] in labelled and pid in gt.players.get(a["frame"], {}):
+            j = judge(attr, a["frame"], r["to_track"], pid)
+            if j != "unverified":
+                p, _ = attr[a["frame"]].get(r["to_track"], (None, False))
+                return ("right" if j == "correct" else "wrong"), a["frame"], p
+    return "undecided", None, None
+
+
+def simulated_confirmations(tracks_doc: dict, sel: Selection, cfg, gt, attr, pid: str) -> List[dict]:
+    """A user who confirms every candidate that is the right player (judged on the first labelled frame of the
+    candidate, NESTED_V2) on the candidate's first frame, and confirms nothing else."""
+    confs: List[dict] = []
+    judged: set = set()
+    while True:
+        frames, info = follow(tracks_doc, sel, cfg, confs)
+        todo = [r for r in info["relinks"] if r["outcome"] != "CONFIRMED"
+                and (r["from_track"], r["to_track"], r["proposed_frame"]) not in judged]
+        if not todo:
+            return confs
+        r = todo[0]
+        judged.add((r["from_track"], r["to_track"], r["proposed_frame"]))
+        if relink_verdict(r, frames, gt, attr, pid)[0] == "right":
+            confs.append(confirm_candidate(r["to_track"], r["proposed_frame"]))
+
+
+def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Path], clip: str,
+                 simulate_user: bool = False) -> dict:
     visible = [f for f in gt.frames if pid in gt.players.get(f, {})]
     sel = first_selection(pid, gt, attr)
     row = {"player": pid, "labelled_frames": len(visible), "first_labelled_frame": visible[0] if visible else None}
     if sel is None:
         return {**row, "selected": False}
     n0, f0, tid = sel
-    doc = target_document(tracks_doc, Selection.track_at_frame(tid, f0), cfg, ["tools.target_score", clip, pid])
+    selection = Selection.track_at_frame(tid, f0)
+    confs = simulated_confirmations(tracks_doc, selection, cfg, gt, attr, pid) if simulate_user else []
+    doc = target_document(tracks_doc, selection, cfg, ["tools.target_score", clip, pid], confs)
     if art_dir is not None:
         write_json_atomic(art_dir / f"{clip}.player{pid}.target.json", doc)
     ans = {fr["frame"]: fr for fr in doc["frames"]}
     c = {k: 0 for k in COUNTS}
-    absent, absent_other, events = 0, 0, []
+    absent = {"TARGET": 0, "CANDIDATE": 0}
+    absent_other, events = 0, []
     for f in gt.frames:
         if f < f0:
             continue
         a = ans[f]
+        answering = a["state"] in ("TARGET", "CANDIDATE")
         if pid not in gt.players.get(f, {}):
-            if a["state"] == "TARGET":
-                absent += 1
-                p, amb = attr[f].get(tid, (None, False))
-                absent_other += int(p is not None and not amb)
-                events.append({"frame": f, "kind": "answer_while_absent", "attributed_to": p})
+            if answering:
+                absent[a["state"]] += 1
+                p, amb = attr[f].get(a["track_id"], (None, False))
+                absent_other += int(a["state"] == "TARGET" and p is not None and not amb)
+                events.append({"frame": f, "kind": f"{a['state'].lower()}_while_absent", "track_id": a["track_id"],
+                               "attributed_to": p})
             continue
-        if a["state"] != "TARGET":
+        if not answering:
             c["abstain" if a["state"] == "ABSTAIN" else "lost"] += 1
             continue
-        p, amb = attr[f].get(tid, (None, False))
-        if p == pid and not amb:
-            c["correct"] += 1
-        elif p is not None and not amb:
-            c["wrong"] += 1
-            events.append({"frame": f, "kind": "wrong", "attributed_to": p})
-        else:
-            c["unverified"] += 1
+        j = judge(attr, f, a["track_id"], pid)
+        c[j if a["state"] == "TARGET" else f"candidate_{j}"] += 1
+        if j == "wrong":
+            events.append({"frame": f, "kind": "wrong" if a["state"] == "TARGET" else "wrong_candidate",
+                           "track_id": a["track_id"], "attributed_to": attr[f][a["track_id"]][0]})
+    relinks = []
+    for r in doc["relinks"]:
+        v, vf, vp = relink_verdict(r, doc["frames"], gt, attr, pid)
+        relinks.append({"from_track": r["from_track"], "to_track": r["to_track"], "proposed_frame": r["proposed_frame"],
+                        "gap_s": r["gap_s"], "outcome": r["outcome"], "dropped_reason": r["dropped_reason"],
+                        "confirmed_by": None if r["confirmation"] is None else r["confirmation"]["kind"],
+                        "verdict": v, "verdict_frame": vf, "verdict_player": vp})
     scored = sum(c.values())
     return {**row, "selected": True, "selection": doc["selection"], "frames_before_selection": n0,
-            "scored_frames": scored, **c, **pct(c), "answers_while_absent": absent,
-            "answers_while_absent_on_other_player": absent_other, "track_end": doc["track_end"],
+            "scored_frames": scored, **c, **pct(c), "answers_while_absent": absent["TARGET"],
+            "candidates_while_absent": absent["CANDIDATE"], "answers_while_absent_on_other_player": absent_other,
+            "track_ends": doc["track_ends"], "confirmations": len(confs), "relinks": relinks,
             "target_sha256": sha256_doc(doc), "events": events}
 
 
@@ -109,11 +166,21 @@ def pct(c: Dict[str, int]) -> dict:
     n = sum(c[k] for k in COUNTS)
     r = lambda k: round(c[k] / n, 4) if n else None      # noqa: E731
     return {"correct_time": r("correct"), "wrong_time": r("wrong"), "unverified_time": r("unverified"),
+            "candidate_correct_time": r("candidate_correct"), "candidate_wrong_time": r("candidate_wrong"),
+            "candidate_unverified_time": r("candidate_unverified"),
             "no_answer_time": round((c["abstain"] + c["lost"]) / n, 4) if n else None,
             "abstain_time": r("abstain"), "lost_time": r("lost")}
 
 
-def score_clip(label_dir: Path, tracks_path: Path, cfg, art_dir: Optional[Path]) -> dict:
+def relink_totals(players: List[dict]) -> dict:
+    rs = [r for p in players for r in p["relinks"]]
+    return {"proposed": len(rs), "right": sum(r["verdict"] == "right" for r in rs),
+            "wrong": sum(r["verdict"] == "wrong" for r in rs), "undecided": sum(r["verdict"] == "undecided" for r in rs),
+            "confirmed": sum(r["outcome"] == "CONFIRMED" for r in rs),
+            "dropped": sum(r["outcome"] == "DROPPED" for r in rs)}
+
+
+def score_clip(label_dir: Path, tracks_path: Path, cfg, art_dir: Optional[Path], simulate_user: bool = False) -> dict:
     frozen, gt = load_frozen(label_dir)
     tdoc = read_json(tracks_path)
     validate_tracks(tdoc)
@@ -122,7 +189,7 @@ def score_clip(label_dir: Path, tracks_path: Path, cfg, art_dir: Optional[Path])
     attr = attributions(gt, tdoc)
     ids = sorted({p for f in gt.frames for p in gt.players.get(f, {})}, key=int)
     clip = frozen["clip"]["name"]
-    players = [score_player(p, gt, attr, tdoc, cfg, art_dir, clip) for p in ids]
+    players = [score_player(p, gt, attr, tdoc, cfg, art_dir, clip, simulate_user) for p in ids]
     sel = [p for p in players if p["selected"]]
     pooled = {k: sum(p[k] for p in sel) for k in COUNTS}
     return {"clip": clip, "labels": {"dir": str(label_dir), "gt_sha256": frozen["gt_sha256"],
@@ -131,9 +198,11 @@ def score_clip(label_dir: Path, tracks_path: Path, cfg, art_dir: Optional[Path])
             "players": len(players), "players_selected": len(sel),
             "pooled": {**pooled, **pct(pooled),
                        "answers_while_absent": sum(p["answers_while_absent"] for p in sel),
+                       "candidates_while_absent": sum(p["candidates_while_absent"] for p in sel),
                        "answers_while_absent_on_other_player": sum(p["answers_while_absent_on_other_player"]
                                                                    for p in sel),
-                       "frames_before_selection": sum(p["frames_before_selection"] for p in sel)},
+                       "frames_before_selection": sum(p["frames_before_selection"] for p in sel),
+                       "relinks": relink_totals(sel)},
             "per_player": players}
 
 
@@ -143,16 +212,20 @@ def main(argv: Optional[List[str]] = None) -> int:
     p.add_argument("--clip", nargs=2, action="append", required=True, metavar=("LABELS_DIR", "TRACKS_JSON"))
     p.add_argument("--out", required=True)
     p.add_argument("--artifacts-dir", default=None, help="also write one spana.target document per player here")
+    p.add_argument("--simulate-user", action="store_true",
+                   help="confirm each candidate that is the right player (first labelled candidate frame, NESTED_V2) "
+                        "on its first frame; confirm nothing else")
     a = p.parse_args(argv)
     cfg = load_config(a.config)
     art = Path(a.artifacts_dir) if a.artifacts_dir else None
-    clips = [score_clip(Path(l), Path(t), cfg, art) for l, t in a.clip]
+    clips = [score_clip(Path(l), Path(t), cfg, art, a.simulate_user) for l, t in a.clip]
     report = {"tool": "tools.target_score", "match_rule": RULE.name, "config_sha256": cfg.sha256(),
-              "target_config": {"resume_after_uncertain": cfg.target.resume_after_uncertain}, "clips": clips}
+              "target_config": dataclasses.asdict(cfg.target), "simulate_user": a.simulate_user, "clips": clips}
     write_json_atomic(a.out, report)
     for c in clips:
         print(c["clip"], {k: c["pooled"][k] for k in ("correct_time", "wrong_time", "unverified_time",
-                                                      "abstain_time", "lost_time", "answers_while_absent")},
+                                                      "candidate_correct_time", "candidate_wrong_time",
+                                                      "abstain_time", "lost_time", "answers_while_absent", "relinks")},
               f"players {c['players_selected']}/{c['players']}")
     return 0
 

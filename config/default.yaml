@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.1.0"
+schema_version: "2.2.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -84,6 +84,12 @@ target:
   # tracker's later resolution compares against the track's own appearance, which same-kit rivals can pass.
   # false = fail closed: once the followed track has been uncertain, abstain for the rest of that track.
   resume_after_uncertain: false
+  # Relink after the followed track is lost (CANDIDATE; TARGET only after the user confirms). Prior from DEV
+  # (records/reid_headroom_F07_F08_2026-11-16): the tracker's unique predecessor link was right 44 / 44 on 4 clips
+  # for gaps <= 0.5 s on a candidate that confirms; wrong picks started at 0.88 s.
+  relink_max_gap_s: 0.5
+  # Promote a CANDIDATE to TARGET without confirmation. Measurement only; off by default (Nathan, 2026-11-16).
+  relink_auto_confirm: false
 
 output:
   box_decimals: 1

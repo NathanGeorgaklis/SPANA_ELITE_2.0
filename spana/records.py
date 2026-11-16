@@ -47,7 +47,7 @@ class EndReason(str, Enum):
 class TargetState(str, Enum):
     """Per-frame answer of the target-identity layer: where is the user's selected player?"""
     TARGET = "TARGET"        # confident: this box is the selected player
-    CANDIDATE = "CANDIDATE"  # likely match awaiting confirmation (reserved: not emitted by spana.target 1.0.0)
+    CANDIDATE = "CANDIDATE"  # likely match awaiting the user's confirmation (spana.target >= 2.0.0)
     LOST = "LOST"            # not visible or not found
     ABSTAIN = "ABSTAIN"      # unsure: no answer rather than a possibly wrong one
 
@@ -60,7 +60,8 @@ class TargetReason(str, Enum):
     AFTER_UNCERTAIN = "AFTER_UNCERTAIN"      # ABSTAIN: followed track was uncertain earlier (target.resume_after_uncertain false)
     TRACK_OCCLUDED = "TRACK_OCCLUDED"        # ABSTAIN: followed track hidden behind another player
     TRACK_LOST = "TRACK_LOST"                # LOST: followed track unobserved, not explained by an occluder
-    TRACK_ENDED = "TRACK_ENDED"              # LOST: followed track ended (any EndReason, incl. CAMERA_CUT); no re-ID yet
+    TRACK_ENDED = "TRACK_ENDED"              # LOST: followed track ended (any EndReason, incl. CAMERA_CUT)
+    RELINK_PREDECESSOR = "RELINK_PREDECESSOR"  # CANDIDATE (2.0.0): the only new track the tracker links to the lost one
 
 
 @dataclass(frozen=True)
