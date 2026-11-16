@@ -10,9 +10,6 @@ If a task conflicts with DECISIONS.md or these rules, stop and say so. Don't imp
 reproduce → confirm first failing layer → smallest generic fix → targeted test
 → adjacent-layer check → commit + push → update STATUS.md (+ DECISIONS.md if a decision was made)
 → output CODE REPORT (format below).
-reproduce → confirm first failing layer → smallest generic fix → targeted test
-→ adjacent-layer check → commit + push → update STATUS.md (+ DECISIONS.md if a decision was made)
-→ output CODE REPORT (format below).
 - Branch naming: before the first commit, create/rename the branch to
   <layer>/<feature> after the task's function (e.g. detection/dev-bench-v1).
   Never commit on an auto-generated branch name.
