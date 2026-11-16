@@ -1,7 +1,7 @@
 # STATUS
 
 As of 2026-11-15 (branch claude/nifty-cori-ddgace: DEV benchmark uploaded). Full suite: `python -m pytest tests -q`
-→ 275 passed, 4 skipped (Nathan's Mac, Python 3.9 .venv; the Linux container with Chromium runs one more
+→ 280 passed, 4 skipped (Nathan's Mac, Python 3.9 .venv; the Linux container with Chromium runs one more
 Playwright test).
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -45,7 +45,20 @@ videos at 1280x720. 76 frames: 38 per match (40 selected, 2 per match removed by
 matches), tagged `match:<id>`, `split:dev`, `bench:v1`, `prelabel:detector-v1`; `spana-elite` unchanged. Manifests in
 `records/dev_bench/`, details in `records/detector_v1/RECORD.md`. Reviewed by Nathan (hand-edited): 66 approved
 (G1 34, G2 32) accepted into the bench Dataset and tagged `reviewed`; 10 rejected graphics / close-up frames dropped
-(kept, untagged). Labels not yet frozen; no scoring script written or run.
+(kept, untagged). Labels frozen (`data/labels/dev_bench/bench_v1/`, sha256 088678a9…) and scored 2026-11-16
+(`tools/dev_bench_score.py`):
+
+| | M001 valid | DEV (66 fr.) | DEV G1 | DEV G2 |
+|---|---|---|---|---|
+| mAP50 | 0.922 | 0.701 | 0.693 | 0.736 |
+| player recall | 0.952 | 0.804 | 0.922 | 0.597 |
+| goalkeeper recall | 0.642 | 0.412 | 0.200 | 0.714 |
+| referee precision | 0.978 | 0.367 | 0.641 | 0.216 |
+| ball recall | 0.884 | 0.705 | 0.550 | 0.833 |
+
+Main DEV failure: class confusion from kit colour (91 of 708 players boxed as referee, 85 of them the yellow-kit
+team in G2; goalkeepers boxed as referee in G1). Players are found but given the wrong class. Off-pitch false positives
+are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
 
 ## Open failures
 - No failing tests. Skipped: YOLOX inference (weights not fetched), two Playwright labeller UI tests (no browser).
@@ -72,8 +85,8 @@ matches), tagged `match:<id>`, `split:dev`, `bench:v1`, `prelabel:detector-v1`; 
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
-1. Freeze the 66 `reviewed` benchmark labels (labels done by Nathan, 2026-11-16).
-2. After his OK: scoring script (per match / class AP50, P, R; ball recall by size bucket; off-pitch false positives
-   via the grass mask) and DEV vs M001 side by side in `records/detector_v1/RECORD.md`.
+1. Nathan decides how to handle the kit-colour class confusion (DEV benchmark, 2026-11-16). For tracking, a
+   class-agnostic "person" view (player + goalkeeper + referee) already finds 92 % of G2 players; class can come from a
+   later layer. Retraining or threshold changes need his approval and are scored on this frozen benchmark.
 3. Then the tracking adapter for the football detector (class filter, class names in the artifact, one threshold
    story), per the detection -> tracking interface.
