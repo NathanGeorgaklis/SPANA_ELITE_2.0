@@ -6,7 +6,7 @@
   python -m spana.cli detect --backend local --video V --config C --dataset-config config/roboflow.yaml \
       --model-record models/rfdetr_v1.json --runtime torch --device mps --out detections.json   # same, on this machine
   python -m spana.cli track  --video V --config C --detections detections.json --out tracks.json
-  python -m spana.cli target --tracks tracks.json --config C --select-track T --select-frame F [--confirm C.json] \
+  python -m spana.cli target --tracks tracks.json --config C --select-track T --select-frame F [--actions A.json] \
       --out target.json
 
 Detection and tracking are separate passes joined by a versioned artifact, so tracking can be re-run on cached
@@ -157,9 +157,9 @@ def cmd_target(a: argparse.Namespace) -> int:
     refuse_existing(a.out)
     tdoc = read_json(a.tracks)
     validate_tracks(tdoc)
-    confs = read_json(a.confirm) if a.confirm else []
+    confs = read_json(a.actions) if a.actions else []
     if not isinstance(confs, list):
-        raise ArtifactError("--confirm must name a JSON list of confirm_candidate records")
+        raise ArtifactError("--actions must name a JSON list of user action records")
     doc = target_document(tdoc, Selection.track_at_frame(a.select_track, a.select_frame), cfg, sys.argv, confs)
     print(write_json_atomic(a.out, doc))
     return 0
@@ -194,8 +194,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     g.add_argument("--config", required=True)
     g.add_argument("--select-track", required=True, help="track id the user selected (e.g. tapped box)")
     g.add_argument("--select-frame", required=True, type=int, help="video frame index of the selection")
-    g.add_argument("--confirm", default=None,
-                   help="JSON list of the user's confirm_candidate 1.0.0 records {kind, version, frame, track_id}")
+    g.add_argument("--actions", "--confirm", dest="actions", default=None,
+                   help="JSON list of the user's actions: confirm_candidate / confirm_relink / reject_candidate / "
+                        "track_at_frame (re-selection) 1.0.0 records (spana.identity.follower)")
     g.add_argument("--out", required=True)
     a = p.parse_args(argv)
     return {"detect": cmd_detect, "track": cmd_track, "target": cmd_target}[a.cmd](a)
