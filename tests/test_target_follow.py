@@ -27,7 +27,7 @@ Spec = Tuple[str, bool, bool]
 
 
 def tracks_doc(frames: List[Dict[str, Spec]], ended: Optional[Dict[int, List[Tuple[str, str]]]] = None,
-               cut_at: Optional[int] = None) -> dict:
+               cut_at: Optional[int] = None, preds: Optional[Dict[str, List[str]]] = None) -> dict:
     """A valid spana.tracks 2.1.0 document. frames[n] = {track_id: spec}; ended[n] = [(track_id, EndReason)].
     A track's first frame must be a fresh unconfirmed observation (N), as the tracker emits it."""
     ended = ended or {}
@@ -61,7 +61,7 @@ def tracks_doc(frames: List[Dict[str, Spec]], ended: Optional[Dict[int, List[Tup
                 "confidence": 0.9, "contested": False, "age_frames": s["age"], "missed_frames": s["miss"],
                 "time_since_observed_s": 0 if observed else s["miss"] / FPS, "observed_frames": max(1, s["obs"]),
                 "epoch": s["epoch"], "occluder": occluder, "max_overlap_iou": 0.0, "overlap_with": None,
-                "recoveries": 0, "last_gap_s": 0, "possible_predecessors": [],
+                "recoveries": 0, "last_gap_s": 0, "possible_predecessors": list((preds or {}).get(tid, [])),
                 "identity": "IDENTITY_UNCERTAIN" if unc else "CERTAIN", "identity_rivals": [rival] if unc else [],
                 "uncertain_episodes": s["eps"]})
         out.append({"frame": n, "t": n / FPS,
@@ -76,7 +76,7 @@ def tracks_doc(frames: List[Dict[str, Spec]], ended: Optional[Dict[int, List[Tup
         tracklets.append({"track_id": tid, "epoch": state[tid]["epoch"], "first_frame": seen[0],
                           "last_frame": seen[-1], "last_observed_frame": seen[-1], "observed_frames": state[tid]["obs"],
                           "confirmed": True, "end_reason": None if tid in last_live else ended_reason[tid],
-                          "recoveries": 0, "possible_predecessors": []})
+                          "recoveries": 0, "possible_predecessors": list((preds or {}).get(tid, []))})
     doc = {"schema": "spana.tracks", "schema_version": "2.1.0", "provenance": {}, "video": {"sha256": "v" * 64},
            "detections_sha256": "d" * 64, "frames": out, "tracklets": tracklets}
     validate_tracks(doc)
@@ -95,28 +95,28 @@ def states(doc: dict, sel: Selection, cfg=CFG) -> List[Tuple[str, str]]:
 class FollowerTest(unittest.TestCase):
     def test_follows_confident_track_and_never_switches(self):
         doc = tracks_doc([W] + [{"t1": A, "t2": A}] * 4)
-        frames, end = follow(doc, Selection.track_at_frame("t1", 2), CFG)
+        frames, info = follow(doc, Selection.track_at_frame("t1", 2), CFG)
         self.assertEqual([f["frame"] for f in frames], [2, 3, 4])          # from the selection on, never earlier
         self.assertTrue(all(f["state"] == "TARGET" and f["track_id"] == "t1" for f in frames))
         self.assertTrue(all(f["box"] == [0.0, 100.0, 40.0, 200.0] for f in frames))
-        self.assertIsNone(end)
+        self.assertEqual(info, {"track_ends": [], "relinks": []})
 
     def test_track_end_is_lost_for_the_rest(self):
         doc = tracks_doc([W, {"t1": A, "t2": A}, {"t1": A, "t2": A}, {"t2": A}, {"t2": A}],
                          ended={3: [("t1", "LOST_EXPIRED")]})
-        frames, end = follow(doc, Selection.track_at_frame("t1", 1), CFG)
+        frames, info = follow(doc, Selection.track_at_frame("t1", 1), CFG)
         self.assertEqual([(f["state"], f["reason"]) for f in frames],
                          [("TARGET", "TRACK_OBSERVED")] * 2 + [("LOST", "TRACK_ENDED")] * 2)
-        self.assertEqual(end, {"frame": 3, "reason": "LOST_EXPIRED"})
-        self.assertTrue(all(f["box"] is None and f["track_id"] is None for f in frames[2:]))
+        self.assertEqual(info["track_ends"], [{"track_id": "t1", "frame": 3, "reason": "LOST_EXPIRED"}])
+        self.assertTrue(all(f["box"] is None and f["track_id"] == "t1" for f in frames[2:]))   # 2.0.0: names t1
 
     def test_camera_cut_ends_following_even_if_a_new_track_sits_on_the_same_place(self):
         doc = tracks_doc([{"t1": N}, {"t1": A}, {"t1": A}, {"t9": N}, {"t9": A}], ended={3: [("t1", "CAMERA_CUT")]},
                          cut_at=3)
-        frames, end = follow(doc, Selection.track_at_frame("t1", 1), CFG)
+        frames, info = follow(doc, Selection.track_at_frame("t1", 1), CFG)
         self.assertEqual([f["state"] for f in frames], ["TARGET", "TARGET", "LOST", "LOST"])
-        self.assertEqual(end["reason"], "CAMERA_CUT")
-        self.assertTrue(all(f["track_id"] in (None, "t1") for f in frames))   # never t9
+        self.assertEqual(info["track_ends"][0]["reason"], "CAMERA_CUT")
+        self.assertTrue(all(f["track_id"] == "t1" for f in frames))   # never t9
 
     def test_identity_uncertain_abstains_and_stays_closed(self):
         doc = tracks_doc([W, {"t1": A, "t2": A}, {"t1": AU, "t2": AU}, {"t1": A, "t2": A}, {"t1": A, "t2": A}])
@@ -179,10 +179,10 @@ class TargetArtifactTest(unittest.TestCase):
             lambda d: d["frames"][1].update(state="TARGET", reason="TRACK_OBSERVED", track_id="t1",
                                             box=[100.0, 100.0, 140.0, 200.0]),           # TARGET while uncertain
             lambda d: d["frames"][0].update(track_id="t2"),                              # another track
-            lambda d: d["frames"][0].update(state="CANDIDATE"),                          # reserved in 1.0.0
+            lambda d: d["frames"][0].update(state="CANDIDATE"),                          # CANDIDATE needs its reason
             lambda d: d["frames"][2].update(state="ABSTAIN"),                            # ended -> must be LOST
             lambda d: d["frames"][1].update(box=[0.0, 0.0, 1.0, 1.0]),                   # box without an answer
-            lambda d: d.update(track_end=None),                                          # end not recorded
+            lambda d: d.update(track_ends=[]),                                           # end not recorded
             lambda d: d["frames"].pop(0),                                                # does not start at selection
         ]
         for n, edit in enumerate(cases):

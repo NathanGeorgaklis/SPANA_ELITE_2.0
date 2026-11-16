@@ -66,8 +66,8 @@ What the tracking layer receives from any detector, the football detector includ
 | `PositionSource` | OBSERVED (ACTIVE only), PREDICTED, HELD (OCCLUDED/LOST only) |
 | `CameraStatus` | OK, UNKNOWN, CUT, FIRST |
 | `EndReason` | UNCONFIRMED_MISSED, UNCONFIRMED_TIMEOUT, LOST_EXPIRED, CAMERA_CUT, CAMERA_MOTION_UNKNOWN, LEFT_FRAME |
-| `TargetState` (target identity) | TARGET, CANDIDATE (reserved), LOST, ABSTAIN |
-| `TargetReason` (target identity) | TRACK_OBSERVED, NOT_CONFIRMED, IDENTITY_UNCERTAIN, AFTER_UNCERTAIN, TRACK_OCCLUDED, TRACK_LOST, TRACK_ENDED |
+| `TargetState` (target identity) | TARGET, CANDIDATE (2.0.0: proposed relink awaiting confirmation), LOST, ABSTAIN |
+| `TargetReason` (target identity) | TRACK_OBSERVED, NOT_CONFIRMED, IDENTITY_UNCERTAIN, AFTER_UNCERTAIN, TRACK_OCCLUDED, TRACK_LOST, TRACK_ENDED, RELINK_PREDECESSOR (2.0.0) |
 
 ## Target identity — `spana/identity/` (defined 2026-11-16)
 Follow the user's chosen player through a clip, and say so when unsure.
@@ -76,35 +76,60 @@ Follow the user's chosen player through a clip, and say so when unsure.
   - `track_at_frame` 1.0.0 = a tap on a box the app showed: the track must be live and ACTIVE (observed) on that
     frame. Otherwise `SelectionError` (refused, never guessed).
   - Tap is the chosen way to pick (decision 2026-11-16). Shirt number / photo may come later as hints.
-- Out: **`spana.target` 1.0.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
-  - Top level: `schema, schema_version, provenance, video, tracks_sha256, selection, target_config, track_end,
-    frames`.
-  - `target_config`: `{resume_after_uncertain}` from default.yaml `target`.
-  - `track_end`: `{frame, reason: EndReason}` or null.
+- Out: **`spana.target` 2.0.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
+  1.0.0 documents still validate with their 1.0.0 meaning (TARGET only on the selected track, `track_end`,
+  `track_id` null without an answer, CANDIDATE refused).
+  - Top level: `schema, schema_version, provenance, video, tracks_sha256, selection, confirmations,
+    target_config, track_ends, relinks, frames`.
+  - `target_config`: `{resume_after_uncertain, relink_max_gap_s, relink_auto_confirm}` from default.yaml `target`.
+  - `confirmations`: the user's `confirm_candidate` 1.0.0 records `{kind, version, frame, track_id}`. Each must
+    confirm a CANDIDATE on its own frame, otherwise `ConfirmationError` (refused).
+  - `track_ends`: `{track_id, frame, reason: EndReason}` for each answered track that ended.
+  - `relinks`: one entry per proposal: `from_track, to_track, lost_frame` (from_track's last observation),
+    `proposed_frame, gap_s, evidence {possible_predecessors, candidates}, confirmation` (null, the user's record,
+    or `{kind: auto_confirm, frame}`), `outcome` (PENDING / CONFIRMED / DROPPED) and `dropped_reason`.
   - Frame `{frame, t, state, reason, track_id, box}`, one per tracks frame from the selection frame to the end.
-  - `track_id` and `box` are set only when TARGET.
-  - Validated against the tracks artifact: same frames; TARGET only on the selected track while it is ACTIVE,
-    confirmed and CERTAIN, with its box.
-- Follower (`spana/identity/follower.py`), per frame:
+    `track_id` always names the track the answer refers to; `box` is set exactly for TARGET and CANDIDATE.
+  - Validated against the tracks artifact:
+    - same frames;
+    - TARGET / CANDIDATE boxes are those of an ACTIVE, confirmed, CERTAIN track;
+    - TARGET only on the selection or on a relink confirmed at or before that frame;
+    - every relink supported by the tracks: the new track names the lost one, it is the only such track born in
+      the window, and the gap is within `relink_max_gap_s`.
+- Follower (`spana/identity/follower.py`), per frame, on the ANSWERED track (the selection, or a confirmed relink):
 
 | state | reason | when |
 |---|---|---|
-| TARGET | TRACK_OBSERVED | selected track ACTIVE, confirmed, CERTAIN |
+| TARGET | TRACK_OBSERVED | answered track ACTIVE, confirmed, CERTAIN |
 | ABSTAIN | NOT_CONFIRMED | ... not yet confirmed |
 | ABSTAIN | IDENTITY_UNCERTAIN | ... IDENTITY_UNCERTAIN now |
-| ABSTAIN | AFTER_UNCERTAIN | ... was uncertain earlier and `target.resume_after_uncertain` is false |
+| ABSTAIN | AFTER_UNCERTAIN | ... was uncertain since it became the answered track and `target.resume_after_uncertain` is false |
 | ABSTAIN | TRACK_OCCLUDED | ... OCCLUDED |
 | LOST | TRACK_LOST | ... LOST |
-| LOST | TRACK_ENDED | selected track ended (any EndReason incl. CAMERA_CUT); for the rest of the clip (no re-ID yet) |
+| LOST | TRACK_ENDED | ... ended (any EndReason incl. CAMERA_CUT) |
+| CANDIDATE | RELINK_PREDECESSOR | proposed relink, awaiting the user's confirmation (below) |
 
   - Never answers before the selection frame.
-  - Never switches to another track.
   - A gap the tracker bridged on the same track id is followed again (the tracker's decision, not this layer's).
-  - CANDIDATE is reserved: it is not emitted, and the 1.0.0 validator refuses it.
-- CLI: `python -m spana.cli target --tracks --config --select-track --select-frame --out`.
+  - **Relink (decision 2026-11-16).** Only the tracker's unique predecessor link (DEV 44 / 44). It applies while
+    the answered track A is not observed, and only if A was confirmed, CERTAIN and untainted at its last
+    observation.
+    - B is proposed as CANDIDATE while all hold:
+      - B is the only track born within `target.relink_max_gap_s` after A's last observation whose
+        `possible_predecessors` names A;
+      - B is ACTIVE, confirmed and CERTAIN;
+      - no CUT / UNKNOWN camera frame since A's last observation.
+    - The candidate is dropped (no further proposal for that loss) when A is observed again, a second such track
+      appears, a cut follows, or B stops qualifying.
+    - The user's confirmation makes B the answered track (TARGET from that frame). Losses can repeat (chains).
+    - `target.relink_auto_confirm` (default false) promotes immediately; for measurement only.
+- CLI: `python -m spana.cli target --tracks --config --select-track --select-frame [--confirm FILE] --out`.
 - DEV scorer: `tools/target_score.py`. Per labelled player: selected on the first labelled frame with an
-  unambiguous NESTED_V2 track match. Reports correct / wrong / unverified / abstain / lost time, per player and
-  pooled per clip.
+  unambiguous NESTED_V2 track match.
+  - Reports correct / wrong / unverified / candidate (correct, wrong, unverified) / abstain / lost time, per player
+    and pooled per clip.
+  - Relinks are counted as proposed / right / wrong / undecided / confirmed / dropped.
+  - `--simulate-user` confirms every candidate judged right.
 
 - Re-ID headroom (analysis tool, not product code): `tools/reid_headroom.py`.
   - Per labelled player, handovers between their tracks: LOSS (old track gone before the new one was born) /
