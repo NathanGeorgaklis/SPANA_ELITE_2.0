@@ -62,10 +62,14 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
 
 ## Open failures
 - No failing tests. Skipped: YOLOX inference (weights not fetched), two Playwright labeller UI tests (no browser).
-- Detection -> tracking: wired 2026-11-16 (`PersonView`, `detect --backend roboflow`, detections 1.4.0 with
-  class_names) but not yet run on a DEV clip with the real hosted detector (costs inference per frame; waiting for
-  Nathan's go-ahead). On the cached DEV benchmark predictions the person view keeps 940 of 1103 person boxes at
-  score_low, leaves 0 overlapping pairs and finds 93.1 % of labelled persons at score_high (class ignored).
+- Detection -> tracking: wired and run 2026-11-16 (`PersonView`, `detect --backend roboflow`, detections 1.4.0).
+  On FRESH_02 / FRESH_05 the football detector's person view beats YOLOX on every tracking metric (NESTED_V2):
+  - detection recall 0.973 → 0.980 / 0.989 → 0.998;
+  - duplicate detections 126 → 17 / 84 → 3;
+  - ID switches 28 → 25 / 22 → 8;
+  - fragments 28 → 24 / 21 → 8.
+  Details: `records/person_view_2026-11-16/RECORD.md`. The pipeline default is still YOLOX: switching it is
+  Nathan's call.
 - Tracking, DEV: fragmentation / ID switches (FRESH_02 33, FRESH_05 20, FRESH_07 48 ID switches, NESTED_V1;
   `records/unconfirmed_low_score_2026-11-08/RECORD.md`).
 - Tracking, DEV: one-directional duplicate refusal (M2: full-body box enclosing a partial-body track spawns a
@@ -86,6 +90,8 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
-1. With Nathan's go-ahead: `detect --backend roboflow` + `track` on one DEV FRESH clip, scored against its frozen
-   MOT labels next to the YOLOX baseline (tools/benchmark.py). Hosted inference runs once per analysed frame.
+1. Nathan decides whether the football detector's person view becomes the default tracking input (DEV evidence:
+   `records/person_view_2026-11-16/RECORD.md`). It is hosted inference, so the cost is one call per analysed frame.
+   A local inference server (`local_api_hosts`) would keep frames on the machine.
 2. Roles (player / goalkeeper / referee) and teams from the team-classification layer, not the detector.
+3. Remaining tracking errors on the better input: FRESH_02 25 ID switches / 24 fragments (contact cluster), DEV.
