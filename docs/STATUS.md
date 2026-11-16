@@ -102,13 +102,14 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
-1. Target relink v1 (step 2): after the followed track ends, follow the tracker's unique predecessor track if the
-   gap is within a configured limit (0.5 s prior; DEV 44 / 44) and the new track confirms; otherwise keep LOST.
+1. Target relink v1 (step 2): after the followed track ends, propose the tracker's unique predecessor track as
+   CANDIDATE if the gap is within a configured limit (0.5 s prior; DEV 44 / 44) and the new track confirms;
+   otherwise keep LOST.
    Score with tools/target_score.py on all 4 DEV clips; wrong-time must stay at its current level (1 frame).
    Needs a `spana.target` version bump (track_id may change after a relink; relink evidence per frame).
-   Decide with Nathan: automatic TARGET for this rule, or CANDIDATE + user confirmation.
-2. Optional follower guard (Nathan's call): abstain while the target box overlaps another track above a
-   configured IoU (the only wrong frame on DEV, F07, was a two-person box at a crossing).
+   Decided (Nathan): CANDIDATE + user confirmation; automatic promotion only behind a config flag, off by default.
+2. Follower overlap guard: measure its cost first (Nathan), reported separately for contested and near-ball
+   moments. The only wrong frame on DEV (F07) was a two-person box at a crossing.
 3. Long re-entries (19 of 108 losses, LEFT_FRAME, up to 61 candidates): need the SPANA re-ID model and/or team
    classification to prune the other team.
 4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments raise correct-time directly.
