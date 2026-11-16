@@ -11,7 +11,7 @@ import sys
 
 from spana.artifacts import ArtifactError, read_json, sha256_doc, validate_detections, write_json_atomic
 
-SAME = ("schema", "schema_version", "video", "model", "detection_config", "frame_stride")
+SAME = ("schema", "schema_version", "video", "model", "class_names", "detection_config", "frame_stride")
 
 
 def merge(parts):

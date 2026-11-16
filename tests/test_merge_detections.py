@@ -16,7 +16,8 @@ CFG = load_config(Path(__file__).resolve().parents[1] / "config" / "default.yaml
 
 def part(frames, stride=4, sha="a" * 64):
     return {"schema": DETECTIONS_SCHEMA[0], "schema_version": DETECTIONS_SCHEMA[1], "provenance": {"git": "x"},
-            "video": {"sha256": sha}, "model": {"name": "m"}, "detection_config": {"k": 1}, "frame_stride": stride,
+            "video": {"sha256": sha}, "model": {"name": "m"}, "class_names": ["person"], "detection_config": {"k": 1},
+            "frame_stride": stride,
             "frames": [detection_frame(f, f / 60, [Detection((1.0, 1.0, 5.0, 9.0), 0.9, 0)], CFG.output)
                        for f in frames]}
 

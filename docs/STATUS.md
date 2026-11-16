@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-15 (branch claude/nifty-cori-ddgace: DEV benchmark uploaded). Full suite: `python -m pytest tests -q`
-→ 280 passed, 4 skipped (Nathan's Mac, Python 3.9 .venv; the Linux container with Chromium runs one more
+As of 2026-11-16 (branch tracking/person-detections, on main a88ad5f). Full suite: `python -m pytest tests -q`
+→ 285 passed, 4 skipped (Nathan's Mac, Python 3.9 .venv; the Linux container with Chromium runs one more
 Playwright test).
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -62,9 +62,14 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
 
 ## Open failures
 - No failing tests. Skipped: YOLOX inference (weights not fetched), two Playwright labeller UI tests (no browser).
-- Detection -> tracking, not yet wired (docs/INTERFACES.md): the tracker ignores `class_id` (balls would be tracked
-  as players); the detections artifact does not carry class names; the adapter's 0.50 cut leaves the tracker's
-  low-score round (`detection.score_low` 0.10, default.yaml) with nothing.
+- Detection -> tracking: wired and run 2026-11-16 (`PersonView`, `detect --backend roboflow`, detections 1.4.0).
+  On FRESH_02 / FRESH_05 the football detector's person view beats YOLOX on every tracking metric (NESTED_V2):
+  - detection recall 0.973 → 0.980 / 0.989 → 0.998;
+  - duplicate detections 126 → 17 / 84 → 3;
+  - ID switches 28 → 25 / 22 → 8;
+  - fragments 28 → 24 / 21 → 8.
+  Details: `records/person_view_2026-11-16/RECORD.md`. The pipeline default is still YOLOX: switching it is
+  Nathan's call.
 - Tracking, DEV: fragmentation / ID switches (FRESH_02 33, FRESH_05 20, FRESH_07 48 ID switches, NESTED_V1;
   `records/unconfirmed_low_score_2026-11-08/RECORD.md`).
 - Tracking, DEV: one-directional duplicate refusal (M2: full-body box enclosing a partial-body track spawns a
@@ -85,8 +90,8 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
-1. Nathan decides how to handle the kit-colour class confusion (DEV benchmark, 2026-11-16). For tracking, a
-   class-agnostic "person" view (player + goalkeeper + referee) already finds 92 % of G2 players; class can come from a
-   later layer. Retraining or threshold changes need his approval and are scored on this frozen benchmark.
-3. Then the tracking adapter for the football detector (class filter, class names in the artifact, one threshold
-   story), per the detection -> tracking interface.
+1. Nathan decides whether the football detector's person view becomes the default tracking input (DEV evidence:
+   `records/person_view_2026-11-16/RECORD.md`). It is hosted inference, so the cost is one call per analysed frame.
+   A local inference server (`local_api_hosts`) would keep frames on the machine.
+2. Roles (player / goalkeeper / referee) and teams from the team-classification layer, not the detector.
+3. Remaining tracking errors on the better input: FRESH_02 25 ID switches / 24 fragments (contact cluster), DEV.

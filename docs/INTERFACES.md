@@ -11,28 +11,37 @@ Taken from the code as of 2026-11-14. Records: `spana/records.py`. Artifacts: `s
 - Interfaces (`base.py`): `PlayerDetector.detect(frame_bgr) -> List[Detection]` (persons only);
   `Detector.detect(frame_bgr) -> List[Detection]` + `class_names` (generic multi-class, e.g. Roboflow backend).
 - `Detection`: `box` (x1,y1,x2,y2 source px), `score`, `class_id`, `multi_body`.
-- Artifact out: **`spana.detections` 1.3.0** — top level `schema, schema_version, provenance, video, model,
-  detection_config, frame_stride, frames`; frame `{frame, t, detections}`; row
-  `[x1, y1, x2, y2, score, class_id, multi_body(0/1)]`.
-- CLI: `python -m spana.cli detect --video --config --model-record --out [--start --stop --stride]`.
+- Artifact out: **`spana.detections` 1.4.0** — top level `schema, schema_version, provenance, video, model,
+  class_names, detection_config, frame_stride, frames`; frame `{frame, t, detections}`; row
+  `[x1, y1, x2, y2, score, class_id, multi_body(0/1)]`; `class_id` indexes `class_names` (1.4.0 added it; 1.2.0 /
+  1.3.0 person-only artifacts migrate with `tools/refilter_detections.py`, names rebuilt from `model.person_class_id`).
+- CLI: `python -m spana.cli detect --video --config --model-record --out [--start --stop --stride]` (onnx, person
+  only); `--backend roboflow --dataset-config --match-id` (football detector as a person view; hosted inference, so
+  the match must be an allow-listed DEV match with third-party processing confirmed; EVAL refused).
 
-## Detection -> tracking (defined 2026-11-14; no tracker code yet)
-What the tracking layer may rely on from any detector, the football detector included:
+## Detection -> tracking (defined 2026-11-14; wired 2026-11-16)
+What the tracking layer receives from any detector, the football detector included:
 - One record per processed frame: `frame` (int, source video frame index, strictly increasing), `t` (seconds,
-  PTS), `detections`. This is the `spana.detections` 1.3.0 frame built by `spana.artifacts.detection_frame`.
-- One row per detection: `[x1, y1, x2, y2, score, class_id, multi_body]`. Box in source pixels, inside the frame,
-  `x2 > x1`, `y2 > y1`. Score in [0, 1]. `class_id` indexes the configured class list (`config/roboflow.yaml`
-  `classes`: player, goalkeeper, referee, ball). Tracking maps it to a class name and never hard-codes ids.
-- Confidence threshold: config only. For the football detector it is `detector.confidence` (and `detector.iou`)
-  in `config/roboflow.yaml`. The adapter sends it with each request and drops anything below it, and the artifact
-  records it in `model.confidence`.
-- Adapter: `RoboflowDetector.from_detector_config(cfg, key).detect(frame) -> List[Detection]` (`box`, `score`,
-  `class_id`, `multi_body` always False). `detection_frame` adds the frame index and time. Checked by
-  `tests/test_detection_interface.py`.
-- Not yet covered, and owned by the tracking task: a class filter before association (today the tracker ignores
-  `class_id`); class names stored in the artifact; reconciling `detector.confidence` 0.50 with the tracker's
-  `detection.score_low` / `score_high` (0.10 / 0.50, default.yaml); writing a `spana.detections` artifact from the
-  football detector. `cmd_track` checks `detection_config` against default.yaml, which this backend does not use.
+  PTS), `detections`. This is the `spana.detections` 1.4.0 frame built by `spana.artifacts.detection_frame`.
+- Persons only (`PlayerDetector`). One row per detection: `[x1, y1, x2, y2, score, class_id, multi_body]`. Box in
+  source pixels, inside the frame, `x2 > x1`, `y2 > y1`. Score in [0, 1]. `class_id` names the box's class via the
+  artifact's `class_names`; for the football detector it is a role hint only (player / goalkeeper / referee), which
+  the tracker does not use. Roles come from a later layer (decision 2026-11-16).
+- Football detector -> persons: `spana.detection.person_view.PersonView` wraps `RoboflowDetector`:
+  1. keeps `detector.person_classes` (`config/roboflow.yaml`) and drops the ball;
+  2. applies `detection.score_low` and `min_box_height_frac`;
+  3. merges duplicates across classes with class-agnostic NMS at `detection.nms_iou`, keeping the higher-scoring box;
+  4. sets `multi_body` from `detection.multibody_*`.
+  The artifact records `model.person_view`.
+- Thresholds: one source, default.yaml `detection`:
+  - The football detector is asked for boxes down to `detection.score_low` (0.10). PersonView refuses a detector
+    whose request confidence is higher.
+  - The tracker uses `score_low` / `score_high` as for YOLOX.
+  - `detector.confidence` (0.50, roboflow.yaml) stays the operating point for detector evaluation only.
+- `cmd_track` checks the artifact's `detection_config` against default.yaml `detection` for both backends.
+  The roboflow backend does not use the tiling and union keys in that section.
+- Checked by `tests/test_detection_interface.py` and `tests/test_person_view.py` (including detect -> track on a
+  synthetic clip and the licence gate).
 
 ## Player tracking — `spana/tracking/`
 - In: `spana.detections` (must match video sha256 and current `detection_config`) + video frames.
