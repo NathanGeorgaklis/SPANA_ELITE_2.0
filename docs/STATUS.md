@@ -43,8 +43,9 @@ Known weaknesses:
 DEV benchmark (`tools/dev_bench.py`, project `spana-elite-dev-bench`): uploaded 2026-11-15 from the full DEV match
 videos at 1280x720. 76 frames: 38 per match (40 selected, 2 per match removed by Nathan as footage of other
 matches), tagged `match:<id>`, `split:dev`, `bench:v1`, `prelabel:detector-v1`; `spana-elite` unchanged. Manifests in
-`records/dev_bench/`, details in `records/detector_v1/RECORD.md`. Waiting for Nathan's label review in Roboflow;
-no scoring script written or run. Watch during review: G2 pre-labels have 116 referee vs 170 player boxes.
+`records/dev_bench/`, details in `records/detector_v1/RECORD.md`. Reviewed by Nathan (hand-edited): 66 approved
+(G1 34, G2 32) accepted into the bench Dataset and tagged `reviewed`; 10 rejected graphics / close-up frames dropped
+(kept, untagged). Labels not yet frozen; no scoring script written or run.
 
 ## Open failures
 - No failing tests. Skipped: YOLOX inference (weights not fetched), two Playwright labeller UI tests (no browser).
@@ -71,7 +72,7 @@ no scoring script written or run. Watch during review: G2 pre-labels have 116 re
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
-1. Nathan reviews the 76 benchmark labels in `spana-elite-dev-bench` (add missed objects, not only fix drawn boxes).
+1. Freeze the 66 `reviewed` benchmark labels (labels done by Nathan, 2026-11-16).
 2. After his OK: scoring script (per match / class AP50, P, R; ball recall by size bucket; off-pitch false positives
    via the grass mask) and DEV vs M001 side by side in `records/detector_v1/RECORD.md`.
 3. Then the tracking adapter for the football detector (class filter, class names in the artifact, one threshold

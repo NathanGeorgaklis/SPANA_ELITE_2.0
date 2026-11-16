@@ -57,7 +57,7 @@ is missed and two coaching staff in the foreground are boxed as player.
 ## Not done (waiting for Nathan's review)
 - No threshold tuning, no retraining.
 
-## DEV generalisation benchmark (uploaded; waiting for label review)
+## DEV generalisation benchmark (66 reviewed frames; not yet scored)
 - Roboflow project `spana-elite-dev-bench` created 2026-11-14 (private, object detection, own annotation group
   `spana-elite-dev-bench`, 0 images). No version is ever generated from it. The training version gate refuses any
   frame tagged `bench:v1`.
@@ -94,7 +94,16 @@ is missed and two coaching staff in the foreground are boxed as player.
 - Pre-label boxes (detector v1, 0.50 / 0.50, unfiltered; NOT scores): G1 player 424, referee 64, ball 12,
   goalkeeper 10; G2 player 170, referee 116, ball 21, goalkeeper 11. The G2 referee count is high for one match
   (yellow / green kits): check referee boxes during review.
-- Waiting for Nathan's label review in Roboflow. No scoring script written or run. The DEV vs M001 comparison table
-  goes here after the review.
+- Label review (Nathan, done by 2026-11-16): boxes edited by hand from the detector-v1 pre-labels and checked frame
+  by frame. Roboflow names the review jobs "Auto Label" (labeller AUTOLABEL) because the pre-labels were saved by
+  the API; no other model's labels were used. Class totals over the 76 frames after review: player 713, referee 73,
+  ball 44, goalkeeper 34 (pre-labels: 594 / 180 / 33 / 21).
+- Approved 66, rejected 10. The 10 rejected frames are dropped from the benchmark (Nathan: not needed for tracking).
+  They are not deleted and stay outside the Dataset, untagged: G1 frames 0, 7500, 18840, 116640; G2 frames 0, 8400,
+  17820, 127200, 138240, 247680 (countdown / table / stats graphics, half-time close-ups).
+- 2026-11-16: the 66 approved frames were accepted into the `spana-elite-dev-bench` Dataset (approved status only,
+  split kept `valid`; G1 34, G2 32) and tagged `reviewed` (66 / 66 tag writes succeeded; checked: 66 tagged, none
+  outside the Dataset). The benchmark is the 66 frames tagged `reviewed`. `spana-elite` unchanged (900).
+- Not frozen and not scored yet. Next: freeze the 66 labels, then the scoring script, then DEV vs M001 here.
 - Bias to note when scoring: reviewed labels start from detector v1's own boxes, so a detector miss the reviewer
   does not add is never counted. Review must add missed objects, not only correct the boxes that were drawn.
