@@ -1,0 +1,9 @@
+# Optional: the local football detector (spana/detection/rfdetr_local.py, runtime "torch"; `detect --backend local`).
+# Needs Python >= 3.12 (requirements.lock.txt pins numpy 2.5.3). Install on top of requirements.lock.txt:
+#   pip install -r requirements.lock.txt -r requirements-local-detector.txt
+# The runtime "onnx" needs none of this (onnxruntime is in requirements.lock.txt). Full resolved set (macOS arm64,
+# Python 3.13, 2026-11-16): requirements-local-detector.lock.txt. All three packages are permissive licences
+# (PyTorch BSD-3-Clause, torchvision BSD-3-Clause, rfdetr Apache-2.0).
+torch==2.15.0
+torchvision==0.29.2
+rfdetr==1.12.1

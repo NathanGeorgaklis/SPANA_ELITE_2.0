@@ -3,6 +3,8 @@
   python -m spana.cli detect --video V --config C --model-record M --out detections.json
   python -m spana.cli detect --backend roboflow --video V --config C --dataset-config config/roboflow.yaml \
       --match-id DEV_MATCH_ID --out detections.json        # football detector as a person view (hosted, gated)
+  python -m spana.cli detect --backend local --video V --config C --dataset-config config/roboflow.yaml \
+      --model-record models/rfdetr_v1.json --runtime torch --device mps --out detections.json   # same, on this machine
   python -m spana.cli track  --video V --config C --detections detections.json --out tracks.json
 
 Detection and tracking are separate passes joined by a versioned artifact, so tracking can be re-run on cached
@@ -62,12 +64,32 @@ def _roboflow_detector(a: argparse.Namespace, cfg):
                                         "match_id": a.match_id}
 
 
+def _local_detector(a: argparse.Namespace, cfg):
+    """The football detector run on this machine (models/rfdetr_v1.json) as a person view. Frames never leave the
+    machine, so no third-party-processing licence is involved (same as the onnx backend)."""
+    from .dataset.config import load_dataset_config
+    from .detection.person_view import PersonView
+    from .detection.rfdetr_local import LocalModelRecord, LocalRFDETRDetector, make_runner
+    if not (a.model_record and a.dataset_config and a.runtime and a.device):
+        raise ArtifactError("--backend local needs --model-record, --dataset-config, --runtime and --device")
+    dcfg = load_dataset_config(a.dataset_config)
+    rec = LocalModelRecord.load(a.model_record)
+    raw = LocalRFDETRDetector(rec, make_runner(rec, a.runtime, a.device), dcfg.classes, cfg.detection.score_low)
+    det = PersonView(raw, dcfg.detector.person_classes, cfg.detection)
+    return det, list(det.class_names), {"model_record": sha256_file(a.model_record),
+                                        "weights": rec.weights_sha256 if a.runtime == "torch" else rec.onnx_sha256,
+                                        "dataset_config_detector": dcfg.section_sha256("detector")}
+
+
+_BACKENDS = {"onnx": _onnx_detector, "roboflow": _roboflow_detector, "local": _local_detector}
+
+
 def cmd_detect(a: argparse.Namespace) -> int:
     cfg = load_config(a.config)
     refuse_existing(a.out)
     if a.stride < 1:
         raise ArtifactError("--stride must be >= 1")
-    det, class_names, model_inputs = (_roboflow_detector if a.backend == "roboflow" else _onnx_detector)(a, cfg)
+    det, class_names, model_inputs = _BACKENDS[a.backend](a, cfg)
     video = VideoSource(a.video, expected_sha256=a.video_sha256)
     frames = [detection_frame(i, t, det.detect(img), cfg.output)
               for i, t, img in video.frames(a.start, a.stop) if (i - a.start) % a.stride == 0]
@@ -136,12 +158,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         s.add_argument("--config", required=True)
         s.add_argument("--out", required=True)
     d = sub.choices["detect"]
-    d.add_argument("--backend", choices=("onnx", "roboflow"), default="onnx",
-                   help="onnx: pinned person detector (--model-record); roboflow: football detector as a person view "
-                        "(--dataset-config, --match-id; licence-gated)")
+    d.add_argument("--backend", choices=tuple(_BACKENDS), default="onnx",
+                   help="onnx: pinned person detector (--model-record); roboflow: football detector as a person view, "
+                        "hosted (--dataset-config, --match-id; licence-gated); local: football detector as a person "
+                        "view on this machine (--model-record models/rfdetr_v1.json, --dataset-config, --runtime, "
+                        "--device)")
     d.add_argument("--model-record")
     d.add_argument("--dataset-config")
     d.add_argument("--match-id")
+    d.add_argument("--runtime", choices=("torch", "onnx"), help="local backend: torch (GPU / CPU) or onnx (CPU)")
+    d.add_argument("--device", choices=("mps", "cpu"), help="local backend: mps (Apple GPU) or cpu")
     d.add_argument("--start", type=int, default=0)
     d.add_argument("--stop", type=int, default=None)
     d.add_argument("--stride", type=int, default=1, help="analyse every N-th frame (tracking is time-based)")

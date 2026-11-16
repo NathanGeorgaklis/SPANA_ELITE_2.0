@@ -17,7 +17,9 @@ Taken from the code as of 2026-11-14. Records: `spana/records.py`. Artifacts: `s
   1.3.0 person-only artifacts migrate with `tools/refilter_detections.py`, names rebuilt from `model.person_class_id`).
 - CLI: `python -m spana.cli detect --video --config --model-record --out [--start --stop --stride]` (onnx, person
   only); `--backend roboflow --dataset-config --match-id` (football detector as a person view; hosted inference, so
-  the match must be an allow-listed DEV match with third-party processing confirmed; EVAL refused).
+  the match must be an allow-listed DEV match with third-party processing confirmed; EVAL refused); `--backend local
+  --model-record models/rfdetr_v1.json --dataset-config --runtime {torch,onnx} --device {mps,cpu}` (the same football
+  detector run on this machine, `spana/detection/rfdetr_local.py`; weights / ONNX sha256-checked; frames stay local).
 
 ## Detection -> tracking (defined 2026-11-14; wired 2026-11-16)
 What the tracking layer receives from any detector, the football detector included:
