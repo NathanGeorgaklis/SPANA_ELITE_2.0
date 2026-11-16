@@ -1,15 +1,15 @@
 # STATUS
 
-As of 2026-11-16 (branch detection/local-onnx, on main 2a126a8). Full suite: `python -m pytest tests -q`
-→ 291 passed, 4 skipped (Nathan's Mac, Python 3.13 .venv with requirements-local-detector.txt; skips: 2 Playwright,
-2 ffmpeg).
+As of 2026-11-16 (branch identity/target-follow-v1, on main 972062d).
+- Full suite: `python -m pytest tests -q` → 305 passed, 4 skipped (container, Python 3.13).
+- `tests/test_target_follow.py` (14) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
 |---|---|---|---|---|
 | player detection | PARTIAL | `spana/detection/` (`onnx_backend.py`, `postprocess.py`, `tiling.py`, `roboflow_backend.py`, `base.py`) | `tests/test_detection_camera.py`, `tests/test_merge_detections.py`, `tests/test_multi_body.py`, `tests/test_roboflow_dataset.py`, `tests/test_detector_eval.py`, `tests/test_detection_interface.py`, `tests/test_dev_bench.py` | Football detector v1 trained (`nathans-workspace-9brdc/spana-elite-2-rfdetr-medium-t1`, RF-DETR medium, dataset version 2), adapter `RoboflowDetector.from_detector_config` (config `detector`, confidence / iou 0.50 untuned). Scored only on the M001 valid split (table below), which shares a broadcaster with training: generalisation unknown. DEV benchmark uploaded and pre-labelled (76 frames, 2 DEV matches), waiting for Nathan's label review; not scored. Pipeline CLI still uses pinned COCO YOLOX-s, person only (`models/yolox_s.json`); FRESH_02 recall 0.971 (NESTED_V1). YOLOX inference test skipped without weights. |
 | player tracking | PARTIAL | `spana/tracking/` (`tracker.py`, `kalman.py`, `camera.py`), `spana/appearance.py` | `tests/test_tracker.py`, `tests/test_camera_uncertainty.py`, `tests/test_identity_uncertain.py`, `tests/test_unconfirmed_low_score.py`, `tests/test_cli_e2e.py`, `tests/test_foundation.py` | Generic multi-player tracker with camera compensation and per-track IDENTITY_UNCERTAIN. DEV FRESH_02/05/07: 0 silent swaps (NESTED_V2). Fragmentation remains the largest error (e.g. FRESH_07 47 fragments). Nested-box fix (M2) deferred pending Nathan's approval. |
-| target identity | NOT BUILT | none | none | No selection/following of the user's player. Re-ID model is design only (`records/design/REID_MODEL_DESIGN.md`); TRAIN label tooling exists (`spana/reid_labels.py`, `tools/reid_pack.py`, `tools/freeze_reid_labels.py`). |
+| target identity | PARTIAL | `spana/identity/follower.py` | `tests/test_target_follow.py` | Follows one tapped track (selection `track_at_frame` 1.0.0) into `spana.target` 1.0.0 (TARGET / ABSTAIN / LOST; CANDIDATE reserved). Fails closed: never switches track, abstains on unconfirmed / IDENTITY_UNCERTAIN / OCCLUDED, LOST after any track end. DEV baseline (`tools/target_score.py`, local tracks, NESTED_V2): correct-time F02 0.48 / F05 0.72, **wrong-time 0.00 / 0.00**, no answer 0.50 / 0.28, mostly from track ends (fragmentation, LEFT_FRAME). No re-ID yet (`records/target_follow_v1_2026-11-16/RECORD.md`). Re-ID model is design only (`records/design/REID_MODEL_DESIGN.md`); TRAIN label tooling exists (`spana/reid_labels.py`, `tools/reid_pack.py`, `tools/freeze_reid_labels.py`). |
 | ball tracking | NOT BUILT | none | none | Only dataset tooling handles the ball class (ball tiling / size filter in `spana/dataset/prefilter.py`, `tools/roboflow_ball_sheet.py`). |
 | team classification | NOT BUILT | none | none | Torso colour histogram (`spana/appearance.py`) is used for track association only. Side labels (A/B/GK/REF) exist in re-ID labels only. |
 | pitch context | NOT BUILT | none | none | Grass mask in `spana/dataset/prefilter.py` filters pre-labels only; no pitch model / homography. |
@@ -81,6 +81,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   confirmed observed track-frames uncertain; `records/identity_one_sided_2026-11-08/RECORD.md`).
 - Detection, DEV: label boxes looser than detector boxes, so IoU 0.5 scoring under-reports recall
   (`records/benchmark_FRESH_02_v1/BENCHMARK_RECORD.md`).
+- Target identity, DEV: 30 tapped players followed with 0 wrong player-frames.
+  - Time without an answer: F02 0.50, F05 0.28. Main causes: the track ends while the player is still in the
+    picture (F02 340, F05 116 player-frames), then IDENTITY_UNCERTAIN (F02 100).
+  - `records/target_follow_v1_2026-11-16/RECORD.md`.
 - README pipeline table is stale (artifact versions listed as 1.1.0 / 2.0.0; code is detections 1.3.0, tracks 2.1.0).
 
 ## Hardcoded values / magic numbers found
@@ -93,7 +97,9 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
-1. Target identity (layer 3): states and interface in docs/INTERFACES.md, then a minimal follower of one
-   user-selected track that abstains on IDENTITY_UNCERTAIN / LOST, built on tracks from `detect --backend local`.
+1. Target re-identification after a loss: relink the target to a new track after its track ends (CANDIDATE state,
+   with the user's confirmation in the app). Baseline to beat: `records/target_follow_v1_2026-11-16` (no-answer
+   time 0.50 / 0.28, mostly TRACK_ENDED; wrong-time must stay 0).
 2. Roles (player / goalkeeper / referee) and teams from the team-classification layer, not the detector.
 3. Remaining tracking errors on the better input: FRESH_02 24 ID switches / 24 fragments (contact cluster), DEV.
+   Fewer fragments directly raise the target follower's correct-time.
