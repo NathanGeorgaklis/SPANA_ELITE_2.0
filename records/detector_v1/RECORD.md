@@ -56,3 +56,110 @@ is missed and two coaching staff in the foreground are boxed as player.
 
 ## Not done (waiting for Nathan's review)
 - No threshold tuning, no retraining.
+
+## DEV generalisation benchmark (66 reviewed frames; frozen and scored 2026-11-16)
+- Roboflow project `spana-elite-dev-bench` created 2026-11-14 (private, object detection, own annotation group
+  `spana-elite-dev-bench`, 0 images). No version is ever generated from it. The training version gate refuses any
+  frame tagged `bench:v1`.
+- Tool `tools/dev_bench.py`: 40 frames per allow-listed DEV match (DEV_G1_SYDNEY_UNITED_APIA,
+  DEV_G2_NWS_SPIRIT_SD_RAIDERS; not Game 3, never EVAL), selected with the same sampling, blur and near-duplicate
+  rules, pre-labelled with detector v1 at detector.confidence / iou 0.50 and no filters, tagged `match:<id>`,
+  `bench:v1`, `prelabel:detector-v1`.
+- Source footage (Nathan, 2026-11-15): the full DEV match videos, not the FRESH clips. The FRESH clips kept only 19
+  (G1) and 30 (G2) usable frames, below frames_per_match 40; the rules were not loosened. Full-match permission
+  confirmed (`records/dev_permissions/DEV_PERMISSIONS_2026-11-14.md`). Only 1280x720 copies were used: a first
+  640x360 download was dry-run only and never uploaded.
+
+  | match | video | source resolution | fps | length | sha256 (prefix) |
+  |---|---|---|---|---|---|
+  | DEV_G1_SYDNEY_UNITED_APIA | `Sydney_United_APIA.mp4` | 1280x720 | 30 | 130.9 min | c9f1dd9b3c25 |
+  | DEV_G2_NWS_SPIRIT_SD_RAIDERS | `NWS_Spirit_SD_Raiders.mp4` | 1280x720 | 30 | 142.1 min | 527f2bdc47eb |
+
+- Selection (dry runs 20261115T093253Z / T093307Z, reviewed by Nathan on contact sheets):
+
+  | match | sampled (300 cap) | blur | near-duplicate | selected | removed by Nathan | uploaded | errors |
+  |---|---|---|---|---|---|---|---|
+  | G1 | 300 | 0 | 17 | 40 | 2 (frames 122400, 127410) | 38 | 0 |
+  | G2 | 300 | 0 | 29 | 40 | 2 (frames 130818, 134700) | 38 | 0 |
+
+  Removed: footage of other matches shown inside the broadcast at half-time (not on the allow-list). Kept as they
+  are, at Nathan's decision: countdown / table / stats graphics, half-time interview and presentation close-ups,
+  team huddles, stoppages (G1 frames 0, 7500, 18840, 31920, 116640, 229260; G2 frames 0, 8400, 17820, 31560, 61440,
+  68460, 102780, 127200, 138240, 241740, 247680). The upload runs reproduced the reviewed dry runs exactly
+  (`--reviewed-dry-run`); exclusions and reason are in the manifests.
+- Uploaded 2026-11-15: 76 frames in `spana-elite-dev-bench` (38 per match), each tagged `match:<id>`, `split:dev`,
+  `bench:v1`, `prelabel:detector-v1`, checked in Roboflow; `spana-elite` unchanged (900 images). Manifests:
+  `records/dev_bench/DEV_G1_SYDNEY_UNITED_APIA__bench_v1__20261115T100734Z.json`,
+  `records/dev_bench/DEV_G2_NWS_SPIRIT_SD_RAIDERS__bench_v1__20261115T102105Z.json`.
+- Pre-label boxes (detector v1, 0.50 / 0.50, unfiltered; NOT scores): G1 player 424, referee 64, ball 12,
+  goalkeeper 10; G2 player 170, referee 116, ball 21, goalkeeper 11. The G2 referee count is high for one match
+  (yellow / green kits): check referee boxes during review.
+- Label review (Nathan, done by 2026-11-16): boxes edited by hand from the detector-v1 pre-labels and checked frame
+  by frame. Roboflow names the review jobs "Auto Label" (labeller AUTOLABEL) because the pre-labels were saved by
+  the API; no other model's labels were used. Class totals over the 76 frames after review: player 713, referee 73,
+  ball 44, goalkeeper 34 (pre-labels: 594 / 180 / 33 / 21).
+- Approved 66, rejected 10. The 10 rejected frames are dropped from the benchmark (Nathan: not needed for tracking).
+  They are not deleted and stay outside the Dataset, untagged: G1 frames 0, 7500, 18840, 116640; G2 frames 0, 8400,
+  17820, 127200, 138240, 247680 (countdown / table / stats graphics, half-time close-ups).
+- 2026-11-16: the 66 approved frames were accepted into the `spana-elite-dev-bench` Dataset (approved status only,
+  split kept `valid`; G1 34, G2 32) and tagged `reviewed` (66 / 66 tag writes succeeded; checked: 66 tagged, none
+  outside the Dataset). The benchmark is the 66 frames tagged `reviewed`. `spana-elite` unchanged (900).
+- Frozen 2026-11-16 before any scoring: `data/labels/dev_bench/bench_v1/` (labels.json + FROZEN.json, sha256
+  088678a9…, commit b0b8cc6). 66 frames, boxes: player 708, referee 73, ball 44, goalkeeper 34.
+
+## DEV benchmark vs M001 valid (detector v1, confidence 0.50, IoU 0.50, nothing tuned)
+Tool `tools/dev_bench_score.py` (same metric code and size buckets as `tools/detector_eval.py`). Record
+`dev_bench_eval_nathans-workspace-9brdc_spana-elite-2-rfdetr-medium-t1_20261116T052938Z.json`.
+
+| | M001 valid (295 fr.) | DEV both (66 fr.) | DEV G1 Sydney Utd v APIA (34) | DEV G2 NWS v SD Raiders (32) |
+|---|---|---|---|---|
+| mAP50 | 0.922 | **0.701** | 0.693 | 0.736 |
+| mAP50-95 | 0.730 | 0.543 | 0.511 | 0.606 |
+
+AP50 / precision / recall (labels):
+
+| class | M001 valid | DEV both | DEV G1 | DEV G2 |
+|---|---|---|---|---|
+| player | 0.970 / 0.940 / 0.952 (2383) | 0.892 / 0.966 / **0.804** (708) | 0.981 / 0.981 / 0.922 (450) | 0.721 / 0.928 / **0.597** (258) |
+| goalkeeper | 0.830 / 0.905 / 0.642 (134) | 0.512 / 0.667 / **0.412** (34) | 0.246 / 0.400 / **0.200** (20) | 0.751 / 0.909 / 0.714 (14) |
+| referee | 0.967 / 0.978 / 0.929 (239) | 0.528 / **0.367** / 0.904 (73) | 0.816 / 0.641 / 0.891 (46) | 0.494 / **0.216** / 0.926 (27) |
+| ball | 0.920 / 0.939 / 0.884 (225) | 0.873 / 0.939 / 0.705 (44) | 0.730 / 0.917 / 0.550 (20) | 0.976 / 0.952 / 0.833 (24) |
+
+Ball recall by short side (source px; identical at IoU 0.50 and 0.25):
+
+| bucket | M001 valid | DEV both | DEV G1 | DEV G2 |
+|---|---|---|---|---|
+| 0-8 px | 1/5 (0.20) | 2/5 (0.40) | 2/5 | - |
+| 8-12 px | 46/57 (0.81) | 13/21 (0.62) | 7/13 | 6/8 |
+| 12-16 px | 88/92 (0.96) | 7/8 (0.88) | 2/2 | 5/6 |
+| 16-24 px | 49/53 (0.92) | 5/6 (0.83) | - | 5/6 |
+| >= 24 px | 15/18 (0.83) | 4/4 (1.00) | - | 4/4 |
+
+DEV confusion, both matches (rows label, columns prediction):
+
+| | player | goalkeeper | referee | ball | missed |
+|---|---|---|---|---|---|
+| player | 567 | 6 | **91** | 0 | 44 |
+| goalkeeper | 6 | 14 | 8 | 0 | 6 |
+| referee | 1 | 0 | 66 | 0 | 6 |
+| ball | 0 | 0 | 0 | 31 | 13 |
+| background | 15 | 1 | 15 | 2 | - |
+
+False positives with no label of any class (background row), split by the grass mask (analysis only): DEV 33 in all
+(player 15: 1 off-pitch, 10 on the pitch, 4 cut by the frame's bottom border; referee 15, goalkeeper 1, ball 2: all
+on the pitch). M001 had 118 background player boxes; their off-pitch share was not measured (not re-run here).
+
+Findings (DEV, 2 matches, small samples: 34 goalkeeper and 44 ball labels):
+1. Class confusion from kit colour is the main generalisation failure. G2: 85 of 258 players are boxed as referee
+   (the yellow-kit team; rendered frame f0092460: every yellow player magenta, every green player correct). Players are
+   found (class-agnostic hit rate in G2 (153 + 85) / 258 = 0.92); the class is wrong. Referee precision drops to 0.22
+   in G2. M001 never showed this because its kits resemble the training matches.
+2. Goalkeepers: G1 recall 0.20 (8 of 20 boxed as referee, 4 as player, 4 missed); also kit colour. Overall 0.41 vs
+   0.64 on M001.
+3. Ball: recall 0.70 vs 0.88; worse in G1 (0.55), where 18 of 20 balls are under 12 px. Same size trend as M001.
+4. Off-pitch false positives are not a DEV problem: 1 of 33 background boxes is off the pitch.
+5. G1 players (same 1280x720 broadcast style) generalise well: AP50 0.981, recall 0.922.
+- Not done: no threshold tuning, no retraining (DECISIONS: v1 is the baseline). Annotated frames:
+  `runs/dev_bench_score/<model>/frames/` (not committed).
+- Bias to note when scoring: reviewed labels start from detector v1's own boxes, so a detector miss the reviewer
+  does not add is never counted. Review must add missed objects, not only correct the boxes that were drawn.

@@ -19,3 +19,10 @@ For both, as stated by Nathan:
 
 Not covered by this record: Game 3 (Sydney FC v St George City; FRESH_07 to FRESH_10). It is not on the allow-list,
 so no tool here will send its frames anywhere.
+
+## Full match footage (confirmed by Nathan, 2026-11-15)
+Asked before the full match videos were read, Nathan confirmed in the session of 2026-11-15 that the written
+permissions dated 31 October 2026 cover the full match footage of both DEV matches, not only the FRESH clips. That
+includes third-party processing by Roboflow (upload and hosted inference). Videos used for the DEV benchmark
+(`tools/dev_bench.py`): DEV_G1_SYDNEY_UNITED_APIA `Sydney_United_APIA.mp4`, DEV_G2_NWS_SPIRIT_SD_RAIDERS
+`NWS_Spirit_SD_Raiders.mp4` (one file per match; sha256 in the `records/dev_bench/` manifests).

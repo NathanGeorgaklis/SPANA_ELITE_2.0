@@ -60,7 +60,11 @@ def version_images(cfg: DatasetConfig, images: List[ProjectImage]) -> List[Proje
 def check_ready(cfg: DatasetConfig, images: List[ProjectImage]) -> dict:
     """Raises PolicyError listing every reason the version must not be generated; returns counts otherwise."""
     problems = []
-    unreviewed = [i.name for i in images if any(t in i.tags for t in cfg.prelabel_tags())
+    bench = [i.name for i in images if cfg.dev_bench.bench_tag in i.tags]
+    if bench:
+        problems.append(f"{len(bench)} frames carry the DEV benchmark tag {cfg.dev_bench.bench_tag!r} "
+                        f"(e.g. {bench[:3]}): benchmark frames never enter a training version")
+    unreviewed =[i.name for i in images if any(t in i.tags for t in cfg.prelabel_tags())
                   and cfg.review.reviewed_tag not in i.tags]
     if unreviewed:
         problems.append(f"{len(unreviewed)} pre-labelled frames are not reviewed (e.g. {unreviewed[:3]})")
