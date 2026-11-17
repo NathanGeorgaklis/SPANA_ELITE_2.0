@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.2.0"
+schema_version: "2.3.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -57,6 +57,11 @@ tracking:
   max_accel_h_per_s2: 2.0      # ~3.6 m/s^2 for a 1.8 m player: a hidden player keeps (roughly) his velocity
   predict_max_s: 0.50
   lost_max_s: 2.00
+  # A confirmed track whose prediction leaves the picture (camera pans, players at the edge of the shot) is held,
+  # not ended: frozen where it left, moving with the camera, recoverable for this long under the long-gap rules
+  # (exactly one unexplained detection, no rival, motion-consistent, appearance distinct). Prior, not calibrated:
+  # DEV G2 window, a player left at the left edge and re-entered there 1.2 s later (records/window_f05_2026-11-18).
+  exit_hold_s: 1.50
   duplicate_iou: 0.70
   duplicate_ioa: 0.85
   confidence_window_s: 1.00
