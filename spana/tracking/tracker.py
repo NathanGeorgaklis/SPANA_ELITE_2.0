@@ -618,16 +618,24 @@ class MultiPlayerTracker:
                    time_s: float, out: FrameTracks) -> None:
         keep: List[_Track] = []
         remap: Dict[int, int] = {}
+        # Matched tracks first: confirmation, or the end of an unconfirmed track that ran out of time. Only matched
+        # tracks that survive this frame may be an occluder (real DEV finding: an occluder ending on the same frame
+        # left a hidden track naming a track that was no longer live).
+        ending: Dict[int, EndReason] = {}
+        for k in matched:
+            t = self._tracks[k]
+            if not t.confirmed:
+                if t.observed_frames >= 2 and t.last_observed_t - t.first_observed_t >= self.tc.confirm_s - _EPS \
+                        and not self._nested(dets[matched[k][0]].as_array(), k, matched, dets):
+                    t.confirmed = True
+                elif time_s - t.first_observed_t > self.tc.unconfirmed_max_s + _EPS:
+                    ending[k] = EndReason.UNCONFIRMED_TIMEOUT
+        survivors = {k: v for k, v in matched.items() if k not in ending}
         for k, t in enumerate(self._tracks):
             reason: Optional[EndReason] = None
             gap = time_s - t.last_observed_t
             if k in matched:
-                if not t.confirmed:
-                    if t.observed_frames >= 2 and t.last_observed_t - t.first_observed_t >= self.tc.confirm_s - _EPS \
-                            and not self._nested(dets[matched[k][0]].as_array(), k, matched, dets):
-                        t.confirmed = True
-                    elif time_s - t.first_observed_t > self.tc.unconfirmed_max_s + _EPS:
-                        reason = EndReason.UNCONFIRMED_TIMEOUT
+                reason = ending.get(k)
             elif not t.confirmed and gap > self.tc.rematch_max_s + _EPS:
                 reason = EndReason.UNCONFIRMED_MISSED
             else:
@@ -635,9 +643,9 @@ class MultiPlayerTracker:
                 if gap <= self.tc.occlusion_max_s + _EPS:
                     # Sticky while the occluder is still observed: an occluded body is often missed while it
                     # re-emerges (partly covered). Recovery rules, not the state, keep it safe.
-                    occ = self._occluder(t, matched, dets)
+                    occ = self._occluder(t, survivors, dets)
                     if occ is None and t.state == TrackState.OCCLUDED and \
-                            any(self._tracks[j].track_id == t.occluder for j in matched):
+                            any(self._tracks[j].track_id == t.occluder for j in survivors):
                         occ = t.occluder
                 t.state, t.occluder = (TrackState.OCCLUDED, occ) if occ else (TrackState.LOST, None)
                 if gap > self.tc.lost_max_s + _EPS:
