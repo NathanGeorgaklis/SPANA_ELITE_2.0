@@ -58,8 +58,11 @@ class Embedder:
 
 
 def read_number(img_bgr, box):
-    """Shirt-number OCR on the torso band; (number or None, confidence)."""
-    import pytesseract
+    """Shirt-number OCR on the torso band; (number or None, confidence). Without pytesseract: no reads."""
+    try:
+        import pytesseract
+    except ImportError:
+        return None, 0.0
     x1, y1, x2, y2 = box; h = y2 - y1
     crop = img_bgr[int(max(0, y1 + 0.12 * h)):int(y1 + 0.55 * h), int(max(0, x1)):int(x2)]
     if crop.size == 0 or crop.shape[0] < 6:
