@@ -1,0 +1,9 @@
+# sha256 (files on Nathan's Mac unless committed here)
+b3fbf79a561f3f55276dd7b737d7d1ca1036d2b7cd5dd44d7a652b8e87be47ee  recovery_summary.json (committed)
+e613ccc3c23b1bb245a7b9f2bc468d416a1afc256c217113ff4e0586437baab3  ~/spana-recovery-run/out/recovery_default.json
+92e16be9b9361d3d933545e96616e60bdd50d77562a65055ce44bc3caa108017  ~/spana-recovery-run/out/recovery_simuser.json
+aad19ceb8b0bb1340c36ffb61722c39bafece7d1e873ca64214378e9543f6d06  ~/spana-recovery-run/out/recovery_reviewer.json
+0b62526758819e1ff8c6379399c8b4c65eb3e59483f6aaa2eef2337fedc4269f  runs/person_view_compare/F02_local.trk.json (input)
+c4526f078a3790166f2f6f51a658ddf78d21c553d466525a725cb10ff10a3c54  runs/person_view_compare/F05_local.trk.json (input)
+85b995c7f269bf37bfc8c8bba33716a844baf36004baac49db8092b11a5b20c6  runs/person_view_compare/F07_local.trk.json (input)
+f6741125ec3f15740dc18df404c2ed28b324f6043093d658a51a7edc4fd8a08b  runs/person_view_compare/F08_local.trk.json (input)
