@@ -76,24 +76,39 @@ Follow the user's chosen player through a clip, and say so when unsure.
   - `track_at_frame` 1.0.0 = a tap on a box the app showed: the track must be live and ACTIVE (observed) on that
     frame. Otherwise `SelectionError` (refused, never guessed).
   - Tap is the chosen way to pick (decision 2026-11-16). Shirt number / photo may come later as hints.
-- Out: **`spana.target` 2.0.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
-  1.0.0 documents still validate with their 1.0.0 meaning (TARGET only on the selected track, `track_end`,
-  `track_id` null without an answer, CANDIDATE refused).
-  - Top level: `schema, schema_version, provenance, video, tracks_sha256, selection, confirmations,
-    target_config, track_ends, relinks, frames`.
+- Out: **`spana.target` 2.1.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
+  2.0.0 and 1.0.0 documents still validate with their own meaning.
+  - 2.0.0: `confirmations` instead of `user_actions`, no `gaps`, no `rejection` in relinks.
+  - 1.0.0: TARGET only on the selected track, `track_end`, `track_id` null without an answer, CANDIDATE refused.
+  - Top level: `schema, schema_version, provenance, video, tracks_sha256, selection, user_actions, target_config,
+    track_ends, relinks, frames, gaps`.
   - `target_config`: `{resume_after_uncertain, relink_max_gap_s, relink_auto_confirm}` from default.yaml `target`.
-  - `confirmations`: the user's `confirm_candidate` 1.0.0 records `{kind, version, frame, track_id}`. Each must
-    confirm a CANDIDATE on its own frame, otherwise `ConfirmationError` (refused).
+  - `user_actions` (2.1.0; decisions 2026-11-16: non-blocking offer, tap to re-select, after-match review).
+    Versioned records, each applied on its own frame and refused (`UserActionError`) if it does not apply. At most
+    one track-changing action (`confirm_relink` / `track_at_frame`) per frame.
+
+| action | fields | effect |
+|---|---|---|
+| `confirm_candidate` 1.0.0 | `frame, track_id` | accept the CANDIDATE shown on that frame |
+| `confirm_relink` 1.0.0 | `frame, from_track, to_track, proposed_frame` | accept an offer by its relink entry, also after it was dropped (the offered track must be live on that frame); TARGET on it from that frame on |
+| `reject_candidate` 1.0.0 | `frame, from_track, to_track, proposed_frame` | decline an offer: withdrawn (`REJECTED_BY_USER`), never re-proposed for that loss |
+| `track_at_frame` 1.0.0 | `frame, track_id` | a tap on an observed box mid-clip: re-selects the player from that frame on; earlier answers kept |
+
+  - `gaps` (2.1.0): the review timeline. Maximal runs of frames without a TARGET answer:
+    `{start_frame, end_frame, start_t, end_t, frames, states, offers: [[from_track, to_track, proposed_frame]]}`.
+    The validator recomputes them from the frames.
   - `track_ends`: `{track_id, frame, reason: EndReason}` for each answered track that ended.
   - `relinks`: one entry per proposal: `from_track, to_track, lost_frame` (from_track's last observation),
     `proposed_frame, gap_s, evidence {possible_predecessors, candidates}, confirmation` (null, the user's record,
-    or `{kind: auto_confirm, frame}`), `outcome` (PENDING / CONFIRMED / DROPPED) and `dropped_reason`.
+    or `{kind: auto_confirm, frame}`), `rejection` (2.1.0: null or the user's record), `outcome`
+    (PENDING / CONFIRMED / DROPPED) and `dropped_reason` (kept when an offer is confirmed after it was dropped).
   - Frame `{frame, t, state, reason, track_id, box}`, one per tracks frame from the selection frame to the end.
     `track_id` always names the track the answer refers to; `box` is set exactly for TARGET and CANDIDATE.
   - Validated against the tracks artifact:
     - same frames;
     - TARGET / CANDIDATE boxes are those of an ACTIVE, confirmed, CERTAIN track;
-    - TARGET only on the selection or on a relink confirmed at or before that frame;
+    - TARGET only on the selection, a re-selection or a relink confirmed at or before that frame;
+    - every re-selection is an observed box on its frame;
     - every relink supported by the tracks: the new track names the lost one, it is the only such track born in
       the window, and the gap is within `relink_max_gap_s`.
 - Follower (`spana/identity/follower.py`), per frame, on the ANSWERED track (the selection, or a confirmed relink):
@@ -123,13 +138,16 @@ Follow the user's chosen player through a clip, and say so when unsure.
       appears, a cut follows, or B stops qualifying.
     - The user's confirmation makes B the answered track (TARGET from that frame). Losses can repeat (chains).
     - `target.relink_auto_confirm` (default false) promotes immediately; for measurement only.
-- CLI: `python -m spana.cli target --tracks --config --select-track --select-frame [--confirm FILE] --out`.
+- CLI: `python -m spana.cli target --tracks --config --select-track --select-frame [--actions FILE] --out`
+  (`--confirm` kept as an alias).
 - DEV scorer: `tools/target_score.py`. Per labelled player: selected on the first labelled frame with an
   unambiguous NESTED_V2 track match.
   - Reports correct / wrong / unverified / candidate (correct, wrong, unverified) / abstain / lost time, per player
     and pooled per clip.
   - Relinks are counted as proposed / right / wrong / undecided / confirmed / dropped.
   - `--simulate-user` confirms every candidate judged right.
+  - `--simulate-reviewer` works through the gap list. Per gap: confirm a right offer or reject a wrong one,
+    otherwise tap the player on the gap's first labelled frame. Reports the actions taken (effort).
 
 - Re-ID headroom (analysis tool, not product code): `tools/reid_headroom.py`.
   - Per labelled player, handovers between their tracks: LOSS (old track gone before the new one was born) /

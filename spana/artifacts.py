@@ -19,6 +19,9 @@ Change log:
   2.0.0 target: relinks. CANDIDATE (RELINK_PREDECESSOR) allowed; TARGET may be on a confirmed relinked track;
         every frame names the track it refers to; + confirmations, relinks log, track_ends (replaces track_end),
         target_config + relink_max_gap_s / relink_auto_confirm. 1.0.0 documents keep their 1.0.0 meaning.
+  2.1.0 target: user_actions (confirm_candidate, confirm_relink, reject_candidate, track_at_frame re-selection)
+        replace confirmations; relinks + rejection; + gaps (stretches without a TARGET answer, for the review
+        timeline). 2.0.0 documents keep their 2.0.0 meaning.
 
 Any change to keys, types, units or meaning increments the version. Writers are atomic and never overwrite.
 """
@@ -38,7 +41,7 @@ from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityS
 
 DETECTIONS_SCHEMA = ("spana.detections", "1.4.0")   # 1.4.0: class_names (class_id indexes it)
 TRACKS_SCHEMA = ("spana.tracks", "2.1.0")
-TARGET_SCHEMA = ("spana.target", "2.0.0")   # 1.0.0 documents still validate (validate_target)
+TARGET_SCHEMA = ("spana.target", "2.1.0")   # 1.0.0 / 2.0.0 documents still validate (validate_target)
 
 
 class ArtifactError(ValueError):
@@ -332,14 +335,14 @@ _SELECTIONS = {("track_at_frame", "1.0.0"): ("kind", "version", "frame", "track_
 
 
 def validate_target(doc: Any, tracks: Optional[dict] = None) -> None:
-    """Validate a spana.target document of any supported version (2.0.0 current, 1.0.0 as written then)."""
+    """Validate a spana.target document of any supported version (2.1.0 current; 2.0.0 / 1.0.0 as written then)."""
     if not isinstance(doc, dict):
         raise ArtifactError("target document must be an object")
     version = doc.get("schema_version")
     if version == "1.0.0":
         return _validate_target_v1(doc, tracks)
-    if version == TARGET_SCHEMA[1]:
-        return _validate_target_v2(doc, tracks)
+    if version in ("2.0.0", "2.1.0"):
+        return _validate_target_v2(doc, tracks, v21=version == "2.1.0")
     raise ArtifactError(f"unsupported spana.target version {version!r}")
 
 
@@ -418,12 +421,47 @@ _TARGET_REASONS_V2 = {**_TARGET_REASONS,
 _RELINK_KEYS = ("from_track", "to_track", "lost_frame", "proposed_frame", "gap_s", "evidence", "confirmation",
                 "outcome", "dropped_reason")
 _CONFIRM = ("confirm_candidate", "1.0.0")
+_ACTION_KEYS = {("confirm_candidate", "1.0.0"): ("kind", "version", "frame", "track_id"),
+                ("confirm_relink", "1.0.0"): ("kind", "version", "frame", "from_track", "to_track", "proposed_frame"),
+                ("reject_candidate", "1.0.0"): ("kind", "version", "frame", "from_track", "to_track", "proposed_frame"),
+                ("track_at_frame", "1.0.0"): ("kind", "version", "frame", "track_id")}
 
 
-def _validate_target_v2(doc: Any, tracks: Optional[dict] = None) -> None:
-    """2.0.0. Structure, then (with the source tracks) every answer and every relink against the tracks."""
-    _header(doc, TARGET_SCHEMA, ("schema", "schema_version", "provenance", "video", "tracks_sha256", "selection",
-                                 "confirmations", "target_config", "track_ends", "relinks", "frames"))
+def gaps_of(frames: Sequence[dict], relinks: Sequence[dict]) -> List[dict]:
+    """spana.target 2.1.0 gaps: maximal runs of frames without a TARGET answer, for the review timeline. Each gap
+    lists the states in it and the offers (relinks) shown as CANDIDATE inside it."""
+    out, prev = [], None
+    for fr in frames:
+        if fr["state"] == TargetState.TARGET.value:
+            prev = None
+            continue
+        if prev is None:
+            out.append({"start_frame": fr["frame"], "end_frame": fr["frame"], "start_t": fr["t"], "end_t": fr["t"],
+                        "frames": 0, "states": [], "offers": []})
+        g = out[-1]
+        g["end_frame"], g["end_t"] = fr["frame"], fr["t"]
+        g["frames"] += 1
+        if fr["state"] not in g["states"]:
+            g["states"].append(fr["state"])
+        if fr["state"] == TargetState.CANDIDATE.value:
+            r = max((r for r in relinks if r["to_track"] == fr["track_id"] and r["proposed_frame"] <= fr["frame"]),
+                    key=lambda r: r["proposed_frame"])
+            key = [r["from_track"], r["to_track"], r["proposed_frame"]]
+            if key not in g["offers"]:
+                g["offers"].append(key)
+        prev = fr
+    for g in out:
+        g["states"] = sorted(g["states"])
+    return out
+
+
+def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, v21: bool = True) -> None:
+    """2.0.0 / 2.1.0. Structure, then (with the source tracks) every answer and every relink against the tracks."""
+    version = "2.1.0" if v21 else "2.0.0"
+    _header(doc, ("spana.target", version),
+            ("schema", "schema_version", "provenance", "video", "tracks_sha256", "selection",
+             "user_actions" if v21 else "confirmations", "target_config", "track_ends", "relinks", "frames")
+            + (("gaps",) if v21 else ()))
     sel = doc["selection"]
     if not isinstance(sel, dict) or (sel.get("kind"), sel.get("version")) not in _SELECTIONS:
         raise ArtifactError("unsupported selection")
@@ -435,13 +473,21 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None) -> None:
     if not (isinstance(tc["resume_after_uncertain"], bool) and isinstance(tc["relink_auto_confirm"], bool)
             and _num(tc["relink_max_gap_s"]) and tc["relink_max_gap_s"] > 0):
         raise ArtifactError("bad target_config")
-    confs = doc["confirmations"]
+    confs = doc["user_actions" if v21 else "confirmations"]
     if not isinstance(confs, list):
-        raise ArtifactError("confirmations must be a list")
+        raise ArtifactError("user actions must be a list")
+    allowed = _ACTION_KEYS if v21 else {_CONFIRM: _ACTION_KEYS[_CONFIRM]}
     for c in confs:
-        _keys(c, ("kind", "version", "frame", "track_id"), "confirmation")
-        if (c["kind"], c["version"]) != _CONFIRM or not isinstance(c["frame"], int) or not isinstance(c["track_id"], str):
-            raise ArtifactError(f"bad confirmation {c!r}")
+        kind = (c.get("kind"), c.get("version")) if isinstance(c, dict) else None
+        if kind not in allowed:
+            raise ArtifactError(f"bad user action {c!r}")
+        _keys(c, allowed[kind], "user action")
+        if not isinstance(c["frame"], int) or isinstance(c["frame"], bool):
+            raise ArtifactError(f"bad user action {c!r}")
+    reselected = {}
+    for c in confs:
+        if (c["kind"], c["version"]) == ("track_at_frame", "1.0.0"):
+            reselected.setdefault(c["track_id"], []).append(c["frame"])
     ends = doc["track_ends"]
     if not isinstance(ends, list):
         raise ArtifactError("track_ends must be a list")
@@ -452,13 +498,23 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None) -> None:
     rels = doc["relinks"]
     if not isinstance(rels, list):
         raise ArtifactError("relinks must be a list")
-    used_confs = []
+    used_confs = [c for c in confs if (c["kind"], c["version"]) == ("track_at_frame", "1.0.0")]
     for r in rels:
-        _keys(r, _RELINK_KEYS, "relink")
+        _keys(r, _RELINK_KEYS + (("rejection",) if v21 else ()), "relink")
         _keys(r["evidence"], ("possible_predecessors", "candidates"), "relink evidence")
-        if r["outcome"] not in ("PENDING", "CONFIRMED", "DROPPED") or (r["outcome"] == "DROPPED") != \
-                (r["dropped_reason"] is not None) or (r["outcome"] == "CONFIRMED") != (r["confirmation"] is not None):
+        late_ok = v21 and r["outcome"] == "CONFIRMED"         # 2.1.0: an offer may be confirmed after it was dropped
+        if r["outcome"] not in ("PENDING", "CONFIRMED", "DROPPED") or \
+                (r["outcome"] == "DROPPED" and r["dropped_reason"] is None) or \
+                (r["outcome"] != "DROPPED" and r["dropped_reason"] is not None and not late_ok) or \
+                (r["outcome"] == "CONFIRMED") != (r["confirmation"] is not None):
             raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: outcome fields disagree")
+        key = (r["from_track"], r["to_track"], r["proposed_frame"])
+        rej = r.get("rejection")
+        if rej is not None:
+            if not (rej in confs and (rej["kind"], rej["version"]) == ("reject_candidate", "1.0.0") and
+                    (rej["from_track"], rej["to_track"], rej["proposed_frame"]) == key and r["outcome"] != "CONFIRMED"):
+                raise ArtifactError(f"relink {key}: rejection not among the user actions")
+            used_confs.append(rej)
         if r["from_track"] not in r["evidence"]["possible_predecessors"] or r["to_track"] not in r["evidence"]["candidates"]:
             raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: evidence does not support it")
         if not (_num(r["gap_s"]) and 0 <= r["gap_s"] <= tc["relink_max_gap_s"] + 1e-9):
@@ -468,12 +524,15 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None) -> None:
             if c == {"kind": "auto_confirm", "frame": c.get("frame")}:
                 if not tc["relink_auto_confirm"]:
                     raise ArtifactError("auto-confirmed relink while relink_auto_confirm is false")
-            elif c in confs and c["track_id"] == r["to_track"]:
+            elif c in confs and (c["kind"], c["version"]) == _CONFIRM and c["track_id"] == r["to_track"]:
+                used_confs.append(c)
+            elif v21 and c in confs and (c["kind"], c["version"]) == ("confirm_relink", "1.0.0") and \
+                    (c["from_track"], c["to_track"], c["proposed_frame"]) == key and c["frame"] >= r["proposed_frame"]:
                 used_confs.append(c)
             else:
-                raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: confirmation not among confirmations")
-    if len(used_confs) != len(confs):
-        raise ArtifactError("a confirmation confirms no relink")
+                raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: confirmation not among the user actions")
+    if len(used_confs) != len(confs) or any(used_confs.count(c) > 1 for c in used_confs):
+        raise ArtifactError("a user action applies to nothing (or to two things)")
     frames = doc["frames"]
     if not frames or frames[0].get("frame") != sel["frame"]:
         raise ArtifactError("target frames must start at the selection frame")
@@ -502,12 +561,20 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None) -> None:
                             and b[3] > b[1]):
             raise ArtifactError(f"{where}: bad box")
         if fr["state"] == TargetState.TARGET.value and tid != sel["track_id"] and \
-                not (tid in confirmed_at and confirmed_at[tid] <= fr["frame"]):
-            raise ArtifactError(f"{where}: TARGET on {tid}, neither the selection nor a confirmed relink")
+                not (tid in confirmed_at and confirmed_at[tid] <= fr["frame"]) and \
+                not any(g <= fr["frame"] for g in reselected.get(tid, [])):
+            raise ArtifactError(f"{where}: TARGET on {tid}: not the selection, a re-selection or a confirmed relink")
         if fr["state"] == TargetState.CANDIDATE.value and not any(p <= fr["frame"] for p in proposed.get(tid, [])):
             raise ArtifactError(f"{where}: CANDIDATE {tid} was never proposed")
         if fr["reason"] == TargetReason.TRACK_ENDED.value and not (tid in ended_at and ended_at[tid] <= fr["frame"]):
             raise ArtifactError(f"{where}: TRACK_ENDED for {tid} without a recorded end")
+    by_frame = {fr["frame"]: fr for fr in frames}
+    for tid, fs in reselected.items():
+        for g in fs:
+            if g not in by_frame or by_frame[g]["track_id"] != tid:
+                raise ArtifactError(f"re-selection of {tid} on frame {g} is not reflected in the answers")
+    if v21 and doc["gaps"] != gaps_of(frames, rels):
+        raise ArtifactError("gaps do not match the frames")
     if tracks is None:
         return
     if sha256_doc(tracks) != doc["tracks_sha256"]:
@@ -515,6 +582,12 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None) -> None:
     if tracks["video"] != doc["video"]:
         raise ArtifactError("target video differs from the tracks video")
     src = [fr for fr in tracks["frames"] if fr["frame"] >= sel["frame"]]
+    for tid, fs in reselected.items():
+        for g in fs:
+            tf = next((x for x in src if x["frame"] == g), None)
+            t = None if tf is None else next((x for x in tf["tracks"] if x["track_id"] == tid), None)
+            if t is None or t["state"] != TrackState.ACTIVE.value:
+                raise ArtifactError(f"re-selection of {tid} on frame {g} is not an observed box")
     if [(f["frame"], f["t"]) for f in src] != [(f["frame"], f["t"]) for f in frames]:
         raise ArtifactError("target frames differ from the tracks frames after the selection")
     first = next((t for t in src[0]["tracks"] if t["track_id"] == sel["track_id"]), None)

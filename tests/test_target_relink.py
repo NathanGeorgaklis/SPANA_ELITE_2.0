@@ -134,7 +134,7 @@ class RelinkArtifactTest(unittest.TestCase):
 
     def test_valid(self):
         validate_target(self.doc, self.tracks)
-        self.assertEqual(self.doc["schema_version"], "2.0.0")
+        self.assertEqual(self.doc["schema_version"], "2.1.0")
 
     def test_validator_refuses_inconsistent_documents(self):
         def broken(edit):
@@ -146,7 +146,7 @@ class RelinkArtifactTest(unittest.TestCase):
             lambda d: d["frames"][2].update(track_id="t2"),                              # CANDIDATE never proposed
             lambda d: d["relinks"][0].update(gap_s=0.9),                                 # gap over the limit
             lambda d: d["relinks"][0].update(confirmation=None, outcome="PENDING"),      # unconsumed confirmation
-            lambda d: d["confirmations"].append(confirm_candidate("t3", 9)),             # confirms nothing
+            lambda d: d["user_actions"].append(confirm_candidate("t3", 9)),             # confirms nothing
             lambda d: d["relinks"][0]["evidence"].update(possible_predecessors=[]),      # no evidence
             lambda d: d["frames"][1].update(track_id=None),                              # every frame names a track
             lambda d: d["relinks"][0]["confirmation"].update(frame=3),                   # not the given confirmation
@@ -238,7 +238,7 @@ class RelinkCliTest(unittest.TestCase):
             bad = subprocess.run(cmd + ["--confirm", str(conf2), "--out", str(Path(tmp) / "x.json")], cwd=ROOT,
                                  capture_output=True, text=True)
             self.assertNotEqual(bad.returncode, 0)
-            self.assertIn("ConfirmationError", bad.stderr)
+            self.assertIn("UserActionError", bad.stderr)
             self.assertFalse((Path(tmp) / "x.json").exists())
 
 
