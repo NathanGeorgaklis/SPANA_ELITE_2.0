@@ -52,8 +52,9 @@ Per frame:
      Leaving the picture: an unconfirmed track whose prediction leaves the image is TERMINATED (LEFT_FRAME). A
      confirmed one is HELD (LOST, velocity frozen where it left, still camera-compensated) for exit_hold_s and stays
      recoverable in S4 under the long-gap rules (appearance required beyond rematch_max_s); after exit_hold_s out
-     of the picture it is TERMINATED (LEFT_FRAME). Real DEV finding: camera pans ended most confirmed tracks of a
-     10-minute window as LEFT_FRAME while their players stepped back in at the same edge (records/window_f05_*).
+     of the picture it is TERMINATED (LEFT_FRAME). exit_hold_s = 0 (the default) ends it on leaving, as before:
+     on DEV the hold cost more recoveries than it gained, because torso colour cannot tell teammates apart
+     (records/exit_hold_2026-11-18).
 
 Track confidence (documented, uncalibrated, not a probability): over the last confidence_window_s of the track's
 frames, the mean detection score with unobserved frames counted as 0. Range [0, 1]; high = detected strongly and

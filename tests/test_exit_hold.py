@@ -18,6 +18,13 @@ FPS_SET = (10, 25, 60)
 W = 1920
 
 
+def held(hold_s=1.5):
+    """The default config is off (exit_hold_s 0, decision record exit_hold_2026-11-18): tests set the hold."""
+    c = cfg()
+    return c.__class__(**{**c.__dict__, "tracking": c.tracking.__class__(**{**c.tracking.__dict__,
+                                                                            "exit_hold_s": hold_s})})
+
+
 class OutAndBack(Player):
     """Walks right out of the picture, turns at t_turn, walks back in (300 px/s each way)."""
 
@@ -46,7 +53,7 @@ def tracks_of(res, gid):
 class ExitHoldTest(unittest.TestCase):
     def test_back_within_the_hold_keeps_the_track(self):
         for fps in FPS_SET:
-            res = run([OutAndBack("A", 0.8, kit(1))], fps=fps, duration_s=2.5)    # out of view ~1.0 s
+            res = run([OutAndBack("A", 0.8, kit(1))], fps=fps, duration_s=2.5, config=held())   # out ~1.0 s
             assert_safe(self, res, fps)
             self.assertEqual(len(tracks_of(res, "A")), 1, fps)
             self.assertNotIn(EndReason.LEFT_FRAME, [r for ft in res.frames for _, r in ft.ended], fps)
@@ -54,7 +61,7 @@ class ExitHoldTest(unittest.TestCase):
 
     def test_back_after_the_hold_is_a_new_track(self):
         for fps in FPS_SET:
-            res = run([OutAndBack("A", 1.4, kit(1))], fps=fps, duration_s=3.5)    # out of view ~2.2 s
+            res = run([OutAndBack("A", 1.4, kit(1))], fps=fps, duration_s=3.5, config=held())   # out ~2.2 s
             assert_safe(self, res, fps)
             self.assertEqual(len(tracks_of(res, "A")), 2, fps)
             self.assertIn(EndReason.LEFT_FRAME, [r for ft in res.frames for _, r in ft.ended], fps)
@@ -62,7 +69,7 @@ class ExitHoldTest(unittest.TestCase):
     def test_same_kit_player_near_the_edge_blocks_the_recovery(self):
         for fps in FPS_SET:
             b = Player("B", (1760, 700), (0, 0), appearance=kit(1))                # same kit, in view, another row
-            res = run([OutAndBack("A", 0.8, kit(1)), b], fps=fps, duration_s=2.5)
+            res = run([OutAndBack("A", 0.8, kit(1)), b], fps=fps, duration_s=2.5, config=held())
             assert_safe(self, res, fps)
             self.assertEqual(len(tracks_of(res, "A")), 2, fps)                     # never a guess: new track
             self.assertEqual(len(tracks_of(res, "B")), 1, fps)
@@ -70,11 +77,9 @@ class ExitHoldTest(unittest.TestCase):
                        if d.get("kind") == "recovery_refused" and d.get("reason") == "APPEARANCE_NOT_DISTINCT"]
             self.assertTrue(refused, fps)
 
-    def test_zero_hold_restores_the_old_behaviour(self):
-        c = cfg()
-        c = c.__class__(**{**c.__dict__, "tracking": c.tracking.__class__(**{**c.tracking.__dict__,
-                                                                              "exit_hold_s": 0.0})})
-        res = run([OutAndBack("A", 0.8, kit(1))], fps=25, duration_s=2.5, config=c)
+    def test_default_is_off_and_restores_the_old_behaviour(self):
+        self.assertEqual(cfg().tracking.exit_hold_s, 0.0)
+        res = run([OutAndBack("A", 0.8, kit(1))], fps=25, duration_s=2.5)
         self.assertEqual(len(tracks_of(res, "A")), 2)
 
 
