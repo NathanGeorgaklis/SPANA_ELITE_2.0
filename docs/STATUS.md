@@ -115,7 +115,8 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      (camera pans: LEFT_FRAME; crowds: LOST_EXPIRED), so about one user action every 3 s.
    - Priorities:
      (a) re-identification across pans / re-entries (SPANA re-ID model and/or team classification);
-     (b) tracker: keep tracks alive across pans, fewer LOST_EXPIRED in crowds.
+     (b) tracker: keep tracks alive across pans, fewer LOST_EXPIRED in crowds. The exit hold was tried
+         (`records/exit_hold_2026-11-18`): no net gain without a stronger appearance signal; off by default.
    - Re-measure track life and actions per minute on the same window after each.
 2. Cut the after-match review effort (6.3 actions per followed player-minute on the DEV clips,
    `records/target_recovery_v1_2026-11-17`). Gap-length threshold / top-N per minute.
