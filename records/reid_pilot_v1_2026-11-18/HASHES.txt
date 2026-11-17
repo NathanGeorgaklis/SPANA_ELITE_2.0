@@ -1,0 +1,13 @@
+# sha256, all files on Nathan's Mac (nothing here is in git except this record)
+2475f26c622cd91e6f23cbe15fa4fb11ae36ca8a63ed55be757e6dd719e04c58  Downloads/SPANA_reid/TRAIN_M001/TRAIN_M001_MORETON_CITY_w3000-3600_h264.mp4 (input, = manifest video_sha256)
+ae1e99fcefd534ed978cdeb8326f08030c96e28b7a81ffcbc98a857c84d14be1  spana-models/dinov2-small/model.safetensors (backbone, = models/dinov2_small.json)
+2fdab08ccfe75d5c3e56b655da170d86cc96ca6a07448c061e04a4779dd9d89b  spana-reid-run/crops_M001/crops.jsonl (10,139 crops)
+d51053aaf4d24462dc5fa6f171a509c78d3e105fa82720cb3ac1a581214fef18  spana-reid-run/run_p1/run.json
+7d86bcba52e1f8c3c0c01b7325f136d879cbddd461768c2f2a2cdb69893a12bc  spana-reid-run/run_p1/checkpoint.pt (epoch 12)
+682d0a09298f4b21ec5e6d20ea80d5783f8dc030bade906175b31c882e5239a5  spana-reid-eval/models_p1/spana_reid.onnx (pilot model)
+eb4e54c85fc5104041d387e8265100803f3cb75d7b6c4bcceee09c8d8c6f0382  spana-reid-eval/out/cue_eval_p1.json (hist + spana)
+4441500c5bb5881493cd0bb00ad4b94677d24c353fc4bf31477ffa0b89658c31  spana-reid-eval/out/cue_eval_hist.json (hist only, same numbers)
+0b62526758819e1ff8c6379399c8b4c65eb3e59483f6aaa2eef2337fedc4269f  SPANA_ELITE_2.0/runs/person_view_compare/F02_local.trk.json (input)
+c4526f078a3790166f2f6f51a658ddf78d21c553d466525a725cb10ff10a3c54  SPANA_ELITE_2.0/runs/person_view_compare/F05_local.trk.json (input)
+85b995c7f269bf37bfc8c8bba33716a844baf36004baac49db8092b11a5b20c6  SPANA_ELITE_2.0/runs/person_view_compare/F07_local.trk.json (input)
+f6741125ec3f15740dc18df404c2ed28b324f6043093d658a51a7edc4fd8a08b  SPANA_ELITE_2.0/runs/person_view_compare/F08_local.trk.json (input)

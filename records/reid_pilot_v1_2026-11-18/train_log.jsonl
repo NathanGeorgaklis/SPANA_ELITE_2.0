@@ -1,0 +1,13 @@
+{"epoch": 0, "holdout_rival_acc": 0.8673, "holdout_rival_n": 15702}
+{"epoch": 1, "arcface": 5.5128, "triplet": 0.4404, "minutes": 1.27, "holdout_rival_acc": 0.955, "holdout_rival_n": 15702}
+{"epoch": 2, "arcface": 1.5046, "triplet": 0.2625, "minutes": 2.7, "holdout_rival_acc": 0.9618, "holdout_rival_n": 15702}
+{"epoch": 3, "arcface": 0.9343, "triplet": 0.194, "minutes": 4.09, "holdout_rival_acc": 0.968, "holdout_rival_n": 15702}
+{"epoch": 4, "arcface": 0.6796, "triplet": 0.1599, "minutes": 5.48, "holdout_rival_acc": 0.9672, "holdout_rival_n": 15702}
+{"epoch": 5, "arcface": 0.5317, "triplet": 0.1321, "minutes": 6.87, "holdout_rival_acc": 0.9676, "holdout_rival_n": 15702}
+{"epoch": 6, "arcface": 0.352, "triplet": 0.0987, "minutes": 8.26, "holdout_rival_acc": 0.9689, "holdout_rival_n": 15702}
+{"epoch": 7, "arcface": 0.2984, "triplet": 0.087, "minutes": 9.66, "holdout_rival_acc": 0.97, "holdout_rival_n": 15702}
+{"epoch": 8, "arcface": 0.2571, "triplet": 0.0774, "minutes": 11.05, "holdout_rival_acc": 0.9704, "holdout_rival_n": 15702}
+{"epoch": 9, "arcface": 0.2165, "triplet": 0.0646, "minutes": 12.45, "holdout_rival_acc": 0.9719, "holdout_rival_n": 15702}
+{"epoch": 10, "arcface": 0.1604, "triplet": 0.0564, "minutes": 13.84, "holdout_rival_acc": 0.9708, "holdout_rival_n": 15702}
+{"epoch": 11, "arcface": 0.1619, "triplet": 0.0536, "minutes": 15.23, "holdout_rival_acc": 0.9703, "holdout_rival_n": 15702}
+{"epoch": 12, "arcface": 0.1445, "triplet": 0.0545, "minutes": 16.64, "holdout_rival_acc": 0.9701, "holdout_rival_n": 15702}

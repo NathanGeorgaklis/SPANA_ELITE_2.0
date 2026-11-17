@@ -1,0 +1,165 @@
+{
+ "tool": "tools.dev.appearance_cue_eval",
+ "split": "DEV",
+ "note": "Compact summary; full report cue_eval_p1.json on Nathan's Mac (HASHES.txt). spana = pilot model run_p1 (TRAIN_M001 only, 12 epochs).",
+ "clips": {
+  "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper": {
+   "crops": 450,
+   "players": 12,
+   "hard_pairs": 1,
+   "cue": {
+    "hist": {
+     "auc_all": 0.889,
+     "auc_hard": 0.99999,
+     "tpr_at_1pct_far_hard": 1.0,
+     "rival_test_accuracy": 1.0,
+     "rival_test_n": 53,
+     "rival_acc_query_occluded": [
+      1.0,
+      1
+     ],
+     "rival_acc_query_visible": [
+      1.0,
+      52
+     ]
+    },
+    "spana": {
+     "auc_all": 0.8659,
+     "auc_hard": 0.9798,
+     "tpr_at_1pct_far_hard": 0.6572,
+     "rival_test_accuracy": 0.9623,
+     "rival_test_n": 53,
+     "rival_acc_query_occluded": [
+      0.0,
+      1
+     ],
+     "rival_acc_query_visible": [
+      0.981,
+      52
+     ]
+    }
+   }
+  },
+  "FRESH_07_G3_1205_midfield_passing_switch": {
+   "crops": 1211,
+   "players": 21,
+   "hard_pairs": 13,
+   "cue": {
+    "hist": {
+     "auc_all": 0.8583,
+     "auc_hard": 0.8896,
+     "tpr_at_1pct_far_hard": 0.1063,
+     "rival_test_accuracy": 0.9144,
+     "rival_test_n": 1496,
+     "rival_acc_query_occluded": [
+      0.838,
+      160
+     ],
+     "rival_acc_query_visible": [
+      0.924,
+      1336
+     ]
+    },
+    "spana": {
+     "auc_all": 0.8538,
+     "auc_hard": 0.8576,
+     "tpr_at_1pct_far_hard": 0.2285,
+     "rival_test_accuracy": 0.9091,
+     "rival_test_n": 1496,
+     "rival_acc_query_occluded": [
+      0.781,
+      160
+     ],
+     "rival_acc_query_visible": [
+      0.924,
+      1336
+     ]
+    }
+   }
+  },
+  "FRESH_02_G1_3000_midfield_buildup_passing": {
+   "crops": 1018,
+   "players": 18,
+   "hard_pairs": 13,
+   "cue": {
+    "hist": {
+     "auc_all": 0.829,
+     "auc_hard": 0.8082,
+     "tpr_at_1pct_far_hard": 0.0547,
+     "rival_test_accuracy": 0.8886,
+     "rival_test_n": 1329,
+     "rival_acc_query_occluded": [
+      0.825,
+      63
+     ],
+     "rival_acc_query_visible": [
+      0.892,
+      1266
+     ]
+    },
+    "spana": {
+     "auc_all": 0.8146,
+     "auc_hard": 0.7791,
+     "tpr_at_1pct_far_hard": 0.2212,
+     "rival_test_accuracy": 0.8668,
+     "rival_test_n": 1329,
+     "rival_acc_query_occluded": [
+      0.841,
+      63
+     ],
+     "rival_acc_query_visible": [
+      0.868,
+      1266
+     ]
+    }
+   }
+  },
+  "FRESH_08_G3_2103_attack_into_box_clearance": {
+   "crops": 784,
+   "players": 22,
+   "hard_pairs": 17,
+   "cue": {
+    "hist": {
+     "auc_all": 0.8521,
+     "auc_hard": 0.831,
+     "tpr_at_1pct_far_hard": 0.058,
+     "rival_test_accuracy": 0.8994,
+     "rival_test_n": 1610,
+     "rival_acc_query_occluded": [
+      0.859,
+      326
+     ],
+     "rival_acc_query_visible": [
+      0.91,
+      1284
+     ]
+    },
+    "spana": {
+     "auc_all": 0.8313,
+     "auc_hard": 0.7811,
+     "tpr_at_1pct_far_hard": 0.1518,
+     "rival_test_accuracy": 0.8832,
+     "rival_test_n": 1610,
+     "rival_acc_query_occluded": [
+      0.776,
+      326
+     ],
+     "rival_acc_query_visible": [
+      0.91,
+      1284
+     ]
+    }
+   }
+  }
+ },
+ "pooled_rival": {
+  "hist": {
+   "rival_test_accuracy": 0.9024,
+   "rival_test_n": 4488
+  },
+  "spana": {
+   "rival_test_accuracy": 0.8879,
+   "rival_test_n": 4488
+  }
+ }
+}
