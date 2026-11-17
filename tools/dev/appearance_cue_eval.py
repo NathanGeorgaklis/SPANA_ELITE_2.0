@@ -3,6 +3,7 @@
 #   osnet    OSNet x0.25 person re-ID (MSMT17) ONNX, cosine
 #   youtu    OpenCV-Zoo Youtu person re-ID ONNX, cosine
 #   dinov2   DINOv2-small (general self-supervised) ONNX CLS token, cosine
+#   spana    the SPANA re-ID model (tools/reid_train.py), cosine
 #   number   shirt-number OCR (tesseract, digits only) on the torso band
 # Pairs: same player (frames >= MIN_GAP_S apart) vs different players. "Hard" pairs: players whose labelled boxes
 # overlap (IoU >= 0.30) on some labelled frame (contact pairs: where IDENTITY_UNCERTAIN arises), plus the player
@@ -152,11 +153,15 @@ def auc(pos, neg):
 def main(out_json, model_dir, *specs):
     cfg = load_config("config/default.yaml")
     md = Path(model_dir)
-    emb = {
-        "osnet": Embedder(md / "anriha_osnet_x0_25_msmt17__osnet_x0_25_msmt17.onnx", (256, 128), lambda y: y, 16),
-        "youtu": Embedder(md / "opencv_person_reid_youtureid__person_reid_youtu_2021nov.onnx", (256, 128), lambda y: y),
-        "dinov2": Embedder(md / "onnx-community_dinov2-small__model.onnx", (224, 112), lambda y: y[:, 0, :]),
+    # each embedding cue is used only if its ONNX file is in MODEL_DIR; "spana" = the SPANA re-ID model
+    # (tools/reid_train.py export), already L2-normalised, 224x112
+    known = {
+        "osnet": ("anriha_osnet_x0_25_msmt17__osnet_x0_25_msmt17.onnx", (256, 128), lambda y: y, 16),
+        "youtu": ("opencv_person_reid_youtureid__person_reid_youtu_2021nov.onnx", (256, 128), lambda y: y, None),
+        "dinov2": ("onnx-community_dinov2-small__model.onnx", (224, 112), lambda y: y[:, 0, :], None),
+        "spana": ("spana_reid.onnx", (224, 112), lambda y: y, None),
     }
+    emb = {k: Embedder(md / f, hw, out, fb) for k, (f, hw, out, fb) in known.items() if (md / f).is_file()}
     cues = ["hist", *emb]
     clips = [load_clip(s, cfg) for s in specs]
     report = {"cues": cues, "clips": {}}

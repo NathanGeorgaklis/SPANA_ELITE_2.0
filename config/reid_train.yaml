@@ -1,0 +1,42 @@
+# SPANA re-ID training (pilot). Read by tools/reid_crops.py and tools/reid_train.py only; the product never
+# reads this file. Design: records/design/REID_MODEL_DESIGN.md.
+schema: spana.reid_train_config
+schema_version: 1.0.0
+crops:
+  min_gap_s: 0.25          # two crops of one player at least this far apart
+  min_height_px: 40        # smaller labelled boxes are not cut
+  pad: 0.05                # box padding, share of width / height on each side
+  size_hw: [224, 112]      # stored crop size = model input
+  holdout_tail: 0.2        # last share of the labelled frames kept out of training (a sanity check only)
+  jpeg_quality: 95
+model:
+  frozen_blocks: 8         # DINOv2 ViT-S/14 has 12; the first N are frozen with the patch embedding
+  parts: 3                 # horizontal part pools besides the CLS token
+  dim: 256
+train:
+  p: 16                    # identities per batch
+  k: 4                     # crops per identity
+  same_team_share: 0.5     # at least this share of a batch's identities from one side (hard negatives)
+  epochs: 12
+  batches_per_epoch: 150
+  lr_backbone: 2.0e-5
+  lr_head: 1.0e-3
+  weight_decay: 0.05
+  arcface_s: 30.0
+  arcface_m: 0.30
+  triplet_margin: 0.30
+  triplet_weight: 1.0
+  seed: 0
+  check_min_gap_s: 1.0     # holdout check: reference crops at least this far from the query
+augment:
+  flip_p: 0.5
+  downscale_p: 0.5
+  downscale_min_h: 40      # simulate small players: down to this height, then back up
+  erase_p: 0.5             # random erasing (occlusion)
+  erase_max_area: 0.25
+  blur_p: 0.3
+  jpeg_p: 0.3
+  jpeg_min_quality: 35
+  brightness: 0.2
+  contrast: 0.2
+  hue_deg: 4.0             # small only: kit colour carries identity
