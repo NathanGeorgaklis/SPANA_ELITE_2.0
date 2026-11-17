@@ -15,7 +15,7 @@ from spana.artifacts import validate_detections
 from spana.config import load_config
 from spana.identity.follower import target_document
 from tests.test_target_follow import A, N, tracks_doc
-from tools.long_run import locate, select, subsample, summary
+from tools.long_run import locate, overlap, select, subsample, summary
 
 ROOT = Path(__file__).resolve().parents[1]
 CFG = load_config(ROOT / "config" / "default.yaml")
@@ -73,6 +73,24 @@ class SelectAndSummaryTest(unittest.TestCase):
             r = select(d, 20.0, 2, tracks, "7", "NESTED_V2")
         # clip frame 0 -> window frame 2; the label (x 200..280 at 1280 px) scales to x 100..140 = t2's box
         self.assertEqual((r["frame"], r["track_id"], r["clip_frame"]), (2, "t2", 0))
+
+    def test_overlap_scores_answers_on_the_mapped_labels(self):
+        from spana.identity.follower import Selection
+        tracks = tracks_doc([{"t1": N, "t2": N}] + [{"t1": A, "t2": A}] * 6)
+        tracks["video"].update(width=640, height=360, fps=10.0)
+        # clip 20 fps at 1280 x 720, offset 2: clip frames 2 and 4 -> window 3 and 4; player 7 is on t1 (x 0..40)
+        gt = "3,7,0,200,80,200,1,1,1\n5,7,200,200,80,200,1,1,1\n5,8,0,200,80,200,1,1,1\n".encode()   # 8 on t1
+        doc = target_document(tracks, Selection.track_at_frame("t1", 2), CFG, ["test"])
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            (d / "gt.txt").write_bytes(gt)
+            (d / "FROZEN.json").write_text(json.dumps({"split": "DEV", "gt_sha256": hashlib.sha256(gt).hexdigest(),
+                                                       "frame_step": 2, "clip": {"name": "c", "width": 1280,
+                                                                                 "height": 720, "sha256": "x"}}))
+            (d / "labels_frozen.json").write_text(json.dumps({"frames_labelled": [2, 4]}))
+            r = overlap(d, 20.0, 2, tracks, doc, "7", "NESTED_V2")
+        self.assertEqual((r["counts"]["correct"], r["counts"]["wrong"]), (1, 1))     # frame 4: t1 shows player 8
+        self.assertEqual(r["events"][0]["window_frame"], 4)
 
     def test_summary(self):
         tracks = tracks_doc([{"t1": N, "t2": N}] + [{"t1": A, "t2": A}] * 4)

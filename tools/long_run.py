@@ -17,7 +17,12 @@
         frames (window frame = O + clip frame * window fps / clip fps), boxes scaled by the frame sizes, attributed
         to observed window tracks with the scorer's matching. Prints the first unambiguous {frame, track_id}.
 
-    python -m tools.long_run summary --target TARGET.json [--clip-labels ... for an overlap check]
+    python -m tools.long_run overlap --labels data/labels/<clip>/v1 --clip-fps F --clip-offset-frame O \
+        --tracks WINDOW_TRK.json --target TARGET.json --player P
+        Score a long target run on the labelled clip it contains (same mapping as select): correct / wrong /
+        unverified answers, candidates, abstain / lost, per labelled frame of the player.
+
+    python -m tools.long_run summary --target TARGET.json
         Over a long target document: answered (TARGET) time, offers, abstain / lost time, gaps per minute, gap
         lengths, offers, track ends. Without labels nothing here says whether answers were right.
 """
@@ -137,6 +142,48 @@ def select(label_dir: Path, clip_fps: float, offset: int, tracks: dict, player: 
     raise SystemExit(f"player {player} has no unambiguous track in the window")
 
 
+def overlap(label_dir: Path, clip_fps: float, offset: int, tracks: dict, target: dict, player: str,
+            rule_name: str) -> dict:
+    """Score a long target document on the labelled clip it contains (same mapping as select): per labelled frame
+    of the player, the answer is correct / wrong / unverified (TARGET), candidate_* (CANDIDATE), abstain or lost."""
+    frozen, gt = load_frozen(label_dir)
+    vw, vh = tracks["video"]["width"], tracks["video"]["height"]
+    sx, sy = vw / frozen["clip"]["width"], vh / frozen["clip"]["height"]
+    wfps = tracks["video"]["fps"]
+    by = {fr["frame"]: fr for fr in tracks["frames"]}
+    ans = {fr["frame"]: fr for fr in target["frames"]}
+    rule = RULES[rule_name]
+    counts = {k: 0 for k in ("correct", "wrong", "unverified", "candidate_correct", "candidate_wrong",
+                             "candidate_unverified", "abstain", "lost", "before_selection")}
+    events = []
+    for f in gt.frames:
+        if player not in gt.players.get(f, {}):
+            continue
+        wf = offset + int(round(f * wfps / clip_fps))
+        if wf not in ans:
+            counts["before_selection"] += 1
+            continue
+        a = ans[wf]
+        if a["state"] in ("ABSTAIN", "LOST"):
+            counts[a["state"].lower()] += 1
+            continue
+        sc = lambda b: (b[0] * sx, b[1] * sy, b[2] * sx, b[3] * sy)                  # noqa: E731
+        players = {p: sc(b) for p, b in gt.players[f].items()}
+        ign = [sc(b) for b in gt.ignore.get(f, [])]
+        obs = [t for t in by[wf]["tracks"] if t["source"] == "OBSERVED" and
+               not any(_ioa(t["box"], g) >= IGNORE_IOA for g in ign)]
+        m, _, amb = _match(sorted(players), players, [t["box"] for t in obs], rule, frozenset(gt.occluded.get(f, ())))
+        c = next((c for c, t in enumerate(obs) if t["track_id"] == a["track_id"]), None)
+        p = m.get(c) if c is not None else None
+        kind = "correct" if (p == player and c not in amb) else "wrong" if (p is not None and c not in amb) \
+            else "unverified"
+        counts[kind if a["state"] == "TARGET" else f"candidate_{kind}"] += 1
+        if kind == "wrong":
+            events.append({"window_frame": wf, "clip_frame": f, "state": a["state"], "track_id": a["track_id"],
+                           "attributed_to": p})
+    return {"player": player, "counts": counts, "events": events}
+
+
 # --------------------------------------------------------------------------------------------- summary
 def summary(doc: dict) -> dict:
     frames = doc["frames"]
@@ -177,6 +224,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     c.add_argument("--rule", default="NESTED_V2", choices=sorted(RULES))
     d = sub.add_parser("summary")
     d.add_argument("--target", required=True)
+    e = sub.add_parser("overlap")
+    for k in ("labels", "tracks", "target", "player"):
+        e.add_argument(f"--{k}", required=True)
+    e.add_argument("--clip-fps", type=float, required=True)
+    e.add_argument("--clip-offset-frame", type=int, required=True)
+    e.add_argument("--rule", default="NESTED_V2", choices=sorted(RULES))
     x = p.parse_args(argv)
     if x.cmd == "locate":
         print(json.dumps(locate(x.clip, x.video, x.around, x.search_s)))
@@ -186,6 +239,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(write_json_atomic(x.out, out))
     elif x.cmd == "select":
         print(json.dumps(select(Path(x.labels), x.clip_fps, x.clip_offset_frame, read_json(x.tracks), x.player, x.rule)))
+    elif x.cmd == "overlap":
+        tdoc, gdoc = read_json(x.tracks), read_json(x.target)
+        validate_target(gdoc, tdoc)
+        print(json.dumps(overlap(Path(x.labels), x.clip_fps, x.clip_offset_frame, tdoc, gdoc, x.player, x.rule)))
     else:
         doc = read_json(x.target)
         validate_target(doc)
