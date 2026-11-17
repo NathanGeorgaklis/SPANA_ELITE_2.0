@@ -11,7 +11,8 @@ Overlay per frame (spana.target 2.x):
   timeline (bottom)               one colour per frame (green TARGET, amber CANDIDATE, grey ABSTAIN, red LOST,
                                   dark = before the selection), the gaps of the review list, the user's actions
                                   (^ tap / selection, + accept, x decline) and the playhead
-Encoded with ffmpeg (H.264, yuv420p), so it plays in browsers and on phones. Frames never leave this machine.
+Encoded with ffmpeg (H.264, yuv420p) so it plays in browsers and on phones; without ffmpeg, OpenCV's own writer
+(H.264 where the platform offers it, e.g. macOS). Frames never leave this machine.
 """
 from __future__ import annotations
 
@@ -141,15 +142,29 @@ class Renderer:
         return out
 
 
+def _encode_opencv(frames: Iterable[np.ndarray], out_path: str, fps: float, width: int, height: int) -> None:
+    """Without ffmpeg: OpenCV's own writer. H.264 ('avc1', e.g. AVFoundation on macOS) if available, else MPEG-4."""
+    for fourcc in ("avc1", "mp4v"):
+        w = cv2.VideoWriter(out_path, cv2.VideoWriter_fourcc(*fourcc), fps, (width, height))
+        if w.isOpened():
+            break
+        w.release()
+    else:
+        raise SystemExit("no video encoder: install ffmpeg")
+    for img in frames:
+        w.write(np.ascontiguousarray(img))
+    w.release()
+
+
 def encode(frames: Iterable[np.ndarray], out_path: str, fps: float, width: int, height: int) -> None:
-    """Pipe BGR frames to ffmpeg: H.264, yuv420p (plays everywhere)."""
+    """Pipe BGR frames to ffmpeg: H.264, yuv420p (plays everywhere); without ffmpeg, OpenCV's own writer."""
     exe = shutil.which("ffmpeg")
     if exe is None:
         try:
             import imageio_ffmpeg
             exe = imageio_ffmpeg.get_ffmpeg_exe()
         except ImportError:
-            raise SystemExit("ffmpeg not found (install ffmpeg or imageio-ffmpeg)") from None
+            return _encode_opencv(frames, out_path, fps, width, height)
     p = subprocess.Popen([exe, "-loglevel", "error", "-y", "-f", "rawvideo", "-pix_fmt", "bgr24",
                           "-s", f"{width}x{height}", "-r", f"{fps}", "-i", "-", "-c:v", "libx264", "-pix_fmt",
                           "yuv420p", "-crf", "20", "-movflags", "+faststart", out_path], stdin=subprocess.PIPE)
