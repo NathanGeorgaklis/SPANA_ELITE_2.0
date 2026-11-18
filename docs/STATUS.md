@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reid-calibration-dev, main f86a47e merged in: PRs #11 exit hold, #10 review video).
-- Full suite: `python -m pytest tests -q` → 392 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+As of 2026-11-18 (branch tracking/reid-resolve-v1, on identity/reid-calibration-dev d2e9ba2; main f86a47e).
+- Full suite: `python -m pytest tests -q` → 415 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -142,7 +142,11 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      marginal). Not adopted; next: calibrate a margin on DEV, try behind a flag.
        - Margin calibrated on DEV (`records/reid_calibration_dev_2026-11-18`): only re-ID v2 alone meets <= 0.5 % wrong
      resolutions on held-out clips (1 / 1,036, bound 0.46 %, resolves 23 %); colour and colour + re-ID over-resolve
-     on FRESH_08 when it is held out. Proposed: re-ID margin 0.481 (0.517 conservative), behind a flag. Not wired.
+     on FRESH_08 when it is held out. Margin 0.517 chosen (Nathan's go-ahead).
+       - Wired behind a flag (`reid.enabled`, `target.resume_after_reid`, both off; tracks 2.2.0 `resolved_by`;
+     `records/reid_resolve_dev_2026-11-18`): DEV tracks identical on/off, 2 episodes cleared by re-ID (both right),
+     follower +17 correct frames, 0 wrong. Limited by clean crops: 99 / 1,299 uncertain frames. Next: calibrate re-ID
+     on partly overlapped crops.
      (b) tracker: keep tracks alive across pans, fewer LOST_EXPIRED in crowds. The exit hold was tried
          (`records/exit_hold_2026-11-18`): no net gain without a stronger appearance signal; off by default.
    - Re-measure track life and actions per minute on the same window after each.

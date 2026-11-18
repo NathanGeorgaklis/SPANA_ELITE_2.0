@@ -47,12 +47,14 @@ What the tracking layer receives from any detector, the football detector includ
 
 ## Player tracking — `spana/tracking/`
 - In: `spana.detections` (must match video sha256 and current `detection_config`) + video frames.
-- Artifact out: **`spana.tracks` 2.1.0** — top level `schema, schema_version, provenance, video,
+- Artifact out: **`spana.tracks` 2.2.0** (2.1.0 still validates; 2.2.0 adds `resolved_by`) — top level `schema, schema_version, provenance, video,
   detections_sha256, frames, tracklets`; frame `{frame, t, camera{status, affine, inliers, hist_distance},
   tracks[], ended[[track_id, EndReason]]}`; track keys: `track_id, state, confirmed, source, box,
   detection_index, detection_score, confidence, contested, age_frames, missed_frames, time_since_observed_s,
   observed_frames, epoch, occluder, max_overlap_iou, overlap_with, recoveries, last_gap_s,
-  possible_predecessors, identity, identity_rivals, uncertain_episodes`; tracklet keys: `track_id, epoch,
+  possible_predecessors, identity, identity_rivals, uncertain_episodes, resolved_by`
+  (2.2.0: `REID` / `APPEARANCE` / null — the cue that cleared the last IDENTITY_UNCERTAIN episode; null while
+  uncertain or before any episode; REID only if re-ID cleared every rival on every frame of the run); tracklet keys: `track_id, epoch,
   first_frame, last_frame, last_observed_frame, observed_frames, confirmed, end_reason, recoveries,
   possible_predecessors`.
 - Side output: decision log `*.decisions.jsonl` (every association, refusal, spawn, end).
@@ -76,13 +78,14 @@ Follow the user's chosen player through a clip, and say so when unsure.
   - `track_at_frame` 1.0.0 = a tap on a box the app showed: the track must be live and ACTIVE (observed) on that
     frame. Otherwise `SelectionError` (refused, never guessed).
   - Tap is the chosen way to pick (decision 2026-11-16). Shirt number / photo may come later as hints.
-- Out: **`spana.target` 2.1.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
-  2.0.0 and 1.0.0 documents still validate with their own meaning.
+- Out: **`spana.target` 2.2.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
+  2.2.0 adds `target_config.resume_after_reid`. 2.1.0, 2.0.0 and 1.0.0 documents still validate with their own meaning.
   - 2.0.0: `confirmations` instead of `user_actions`, no `gaps`, no `rejection` in relinks.
   - 1.0.0: TARGET only on the selected track, `track_end`, `track_id` null without an answer, CANDIDATE refused.
   - Top level: `schema, schema_version, provenance, video, tracks_sha256, selection, user_actions, target_config,
     track_ends, relinks, frames, gaps`.
-  - `target_config`: `{resume_after_uncertain, relink_max_gap_s, relink_auto_confirm}` from default.yaml `target`.
+  - `target_config`: `{resume_after_uncertain, relink_max_gap_s, relink_auto_confirm, resume_after_reid}` from default.yaml
+    `target` (`resume_after_reid` 2.2.0: answer again after an episode with `resolved_by` REID; off by default).
   - `user_actions` (2.1.0; decisions 2026-11-16: non-blocking offer, tap to re-select, after-match review).
     Versioned records, each applied on its own frame and refused (`UserActionError`) if it does not apply. At most
     one track-changing action (`confirm_relink` / `track_at_frame`) per frame.
