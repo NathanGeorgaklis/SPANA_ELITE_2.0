@@ -1,8 +1,7 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/review-min-gap, on tracking/extent-and-low-score-v1, on tracking/gate-break-diagnosis, on identity/resume-after-doubt, on tracking/doubt-self-resolve, on identity/tap-vouches-doubt on tracking/continuity-attribution
-on identity/reid-retrain-v2 8d62866; main 11b5a80).
-- Full suite: `python -m pytest tests -q` → 437 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
+As of 2026-11-18 (branch repo/merge-main-2026-11-18: the 2026-11-18 tracking / identity stack merged with main f86a47e).
+- Full suite: `python -m pytest tests -q` → 448 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
   training tests skip).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -97,6 +96,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   - Only the tracker's own link within 0.5 s is safe (44 / 44).
   - Position + colour agreement picked 4 real wrong players in same-kit clusters.
   - `records/reid_headroom_F07_F08_2026-11-16/RECORD.md`.
+- Long run, DEV G2 10-minute window: the tracker emitted an occluder that was not live on its frame (fixed on
+  `tracking/occluder-live-fix`; DEV clip tracks unchanged).
+  - Follower: 0 wrong answers, but 0 answered time for the chosen player without user taps (his track was
+    uncertain, then ended on a camera pan after 7.3 s).
 - Target relink, DEV: with confirmation, FRESH_02 player 9 gets 1 wrong TARGET frame (276). Track T000045 was
   confirmed correctly at frame 270, then changed player; it names two predecessors. Auto-confirm adds a wrong
   second-hop relink (FRESH_02 player 15 → player 16's track).
@@ -127,34 +130,22 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
-1. Cut the after-match review effort (6.3 actions per followed player-minute on DEV, `records/target_recovery_v1_2026-11-17`):
-   - measure correct-time against actions when the reviewer only handles gaps above a configured length, or the
-     N longest per minute;
-   - measure on longer DEV footage (a full DEV half, if Nathan allows) for a realistic per-match rate.
-2. Relink v1 accepted as built (Nathan, 2026-11-16). Watch confirmed tracks that named several predecessors (the
-   one extra wrong frame); measure a guard if more such cases appear.
-3. Long re-entries (19 of 108 losses, LEFT_FRAME): the SPANA re-ID model and/or team classification.
-   - Re-ID pilot v1 (`records/reid_pilot_v1_2026-11-18`): one match is not enough. Next: freeze M002 / M003
-     identity labels, retrain on 2–3 matches, then rerun the colour + re-ID comparison (`--fusion=config/reid_fusion.yaml`).
-   - Combined cue (`records/reid_fusion_dev_2026-11-18`): helps pooled at strict settings, fails where colour is
-     already decisive (FRESH_05, one player pair). Not adopted.
-   - TRAIN labelling is now group-then-confirm (`tools/reid_cluster.py`, review page, audited freeze;
-     `records/reid_cluster_labelling_2026-11-18`). TRAIN_M002: 224 clusters from 355 tracklets (59 excluded), 18
-     audit tracklets, waiting for Nathan's review. The pilot model groups by kit at loose thresholds, so clusters
-     are kept small (max_distance 0.15).
-   - Audit diagnosis (`records/reid_audit_diagnose_2026-11-18`): 3 / 7 counted (43 %), but only 1 real
-     player-vs-player conflict (a mixed cluster A22 / A24; the hidden audit tracklet could not follow the split); 2
-     are clusters marked unsure. Audit bugs found (unsure / reject counted, stale decisions possible, n = 1 usable):
-     fixed (4791913): audit after the review is locked, player vs player only, 60 comparable answers, exact
-     one-sided 95 % bound <= 5 %; the M002 review was upgraded in place (clusters unchanged; 79 eligible tracklets
-     in the saved state). Audit run: 4 / 60 disagree (same-kit mixes, 3-thumbnail sheets, one B22-for-A22 key
-     slip), freeze refused; after Nathan's re-label and re-audit 2 / 60. Freeze rule now `confirmed_only` (Nathan):
-     only his direct answers become player labels, unconfirmed cluster labels are frozen as unsure.
-   - TRAIN_M002 labels v1 frozen (107 player tracklets, 21 players; `data/reid/TRAIN/TRAIN_M002_EASTERN_SUBURBS/v1`). Re-ID v2
-     (M001 + M002, `records/reid_retrain_m001_m002_2026-11-18`): DEV rival 0.921 vs colour 0.902; colour + re-ID
-     pooled TAR @ 0.5 % FAR hard 0.207 vs 0.133 / 0.061 -> "promising" under the fusion rule (FRESH_07
-     marginal). Not adopted; next: calibrate a margin on DEV, try behind a flag.
-4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
+1. Long-play capability (`records/window_f05_2026-11-18`, 10-minute DEV window of match G2; re-measured with the
+   extent link in `records/extent_link_window_2026-11-18`).
+   - Following one player unattended lasts one track; tracks end mostly at camera pans (LEFT_FRAME) and in crowds
+     (LOST_EXPIRED), so the user acts about every few seconds on broadcast footage.
+   - Review actions on the DEV clips by cause (`records/review_min_gap_2026-11-18` reviewer run, 81 actions):
+     track lost 24 (13 offer confirmations), identity uncertain at a crossing 20, left the picture 18, occluded 12.
+   - Priorities:
+     (a) re-identification across pans / re-entries and at crossings (re-ID v2 is "promising", uncalibrated). A
+         re-entry OFFER costs the reviewer one action, like a tap: it eases the action but does not lower actions
+         per minute; only re-ID that acts without the user (auto-link at a strict margin, or crossing resolution)
+         would, and both touch the 2026-11-16 rule that relinks need the user. Nathan to choose;
+     (b) tracker: keep tracks alive across pans, fewer LOST_EXPIRED in crowds. The exit hold was tried
+         (`records/exit_hold_2026-11-18`): no net gain without a stronger appearance signal; off by default.
+2. Relink v1 accepted as built (Nathan, 2026-11-16). Watch confirmed tracks that named several predecessors.
+3. Tracking-error history on the 4 DEV clips (for reference):
+   Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
    ByteTrack shows how much continuity is possible on the same detections (F07 11 / F08 22 fragments) and what it
    costs without flags (silent swaps) (`records/bytetrack_compare_2026-11-18`). Causes attributed
    (`records/continuity_attribution_2026-11-18`): identity gate 44, other 17 (height-ratio gate 8, motion gate 7),
@@ -180,6 +171,6 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
    8.0 % baseline, uncertain share flat; wrong frames outside the labelled 26 s unmeasurable.
    Review list (`target.review_min_gap_s` 1.0, `records/review_min_gap_2026-11-18`): reviewer 0.778 correct,
    2 wrong, 5.64 actions per followed min (was 6.06 listing every gap; 6.27 before the extent link). Only 6 of 87
-   actions were on gaps < 1 s: the review effort is in long gaps (track ends at pans, crowds, re-entries). Across the four attempts fewer fragments did not reduce review effort: longer tracks
-   collect uncertainty and the reviewer still spends about one action per gap. Better levers: the reviewer's own
-   effort (handle only gaps above a configured length, old next-task 1) and re-ID evidence for crossings.
+   actions were on gaps < 1 s: the review effort is in long gaps (track ends at pans, crowds, re-entries).
+   Across these attempts fewer fragments barely reduced review effort: longer tracks collect uncertainty and the
+   reviewer still spends about one action per gap. The remaining lever is item 1 (a).

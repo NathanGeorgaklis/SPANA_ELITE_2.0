@@ -117,7 +117,7 @@ class Scenarios(unittest.TestCase):
     def test_player_leaving_frame(self):
         for fps in FPS_SET:
             p = Player("A", (1700, 500), (400, 0), visible=lambda t: 1700 + 400 * t < 1900)
-            res = run([p], fps=fps, duration_s=2)
+            res = run([p], fps=fps, duration_s=3)       # ended on leaving (tracking.exit_hold_s off by default)
             assert_safe(self, res, fps)
             ended = [r for ft in res.frames for _, r in ft.ended]
             self.assertEqual(ended, [EndReason.LEFT_FRAME], fps)

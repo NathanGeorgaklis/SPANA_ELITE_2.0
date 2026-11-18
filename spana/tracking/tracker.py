@@ -71,7 +71,13 @@ Per frame:
      unconfirmed track older than unconfirmed_max_s is terminated.
   6. Unmatched: OCCLUDED if >= occlusion_min_ioa of the predicted box is covered by an observed box and the gap is
      <= occlusion_max_s (sticky while that occluder is still observed: a re-emerging body is often missed),
-     else LOST; an unconfirmed track unobserved longer than rematch_max_s is TERMINATED; TERMINATED after lost_max_s or when the prediction leaves the image.
+     else LOST; an unconfirmed track unobserved longer than rematch_max_s is TERMINATED; TERMINATED after lost_max_s.
+     Leaving the picture: an unconfirmed track whose prediction leaves the image is TERMINATED (LEFT_FRAME). A
+     confirmed one is HELD (LOST, velocity frozen where it left, still camera-compensated) for exit_hold_s and stays
+     recoverable in S4 under the long-gap rules (appearance required beyond rematch_max_s); after exit_hold_s out
+     of the picture it is TERMINATED (LEFT_FRAME). exit_hold_s = 0 (the default) ends it on leaving, as before:
+     on DEV the hold cost more recoveries than it gained, because torso colour cannot tell teammates apart
+     (records/exit_hold_2026-11-18).
 
 Track confidence (documented, uncalibrated, not a probability): over the last confidence_window_s of the track's
 frames, the mean detection score with unobserved frames counted as 0. Range [0, 1]; high = detected strongly and
@@ -121,6 +127,7 @@ class _Track:
     missed_frames: int = 0
     velocity_frozen: bool = False
     occluder: Optional[str] = None
+    exited_t: Optional[float] = None       # time the prediction left the picture (held, see exit_hold_s)
     appearance: Optional[np.ndarray] = None
     appearance_t: Optional[float] = None
     recoveries: int = 0
@@ -515,6 +522,8 @@ class MultiPlayerTracker:
         if t.observed_last_frame:
             return False
         gap = time_s - t.last_observed_t
+        if t.confirmed and t.exited_t is not None and time_s - t.exited_t <= self.tc.exit_hold_s + _EPS:
+            return True                       # held after leaving the picture (long-gap rules apply in S4)
         if t.confirmed and t.state == TrackState.OCCLUDED:
             return gap <= self.tc.occlusion_max_s + _EPS
         return gap <= self.tc.rematch_max_s + _EPS
@@ -740,7 +749,7 @@ class MultiPlayerTracker:
                 t.last_observed_t, t.last_observed_frame = time_s, frame_index
                 t.observed_frames += 1
                 t.velocity_frozen, t.observed_last_frame, t.missed_frames = False, True, 0
-                t.state, t.occluder = TrackState.ACTIVE, None
+                t.state, t.occluder, t.exited_t = TrackState.ACTIVE, None, None
                 if self._pending_doubt.get(t.track_id) == i:
                     starting = t.appearance_doubt_since is None
                     if not self._uncertain(t):
@@ -824,7 +833,13 @@ class MultiPlayerTracker:
                 if gap > self.tc.lost_max_s + _EPS:
                     reason = EndReason.LOST_EXPIRED
                 elif self._left_frame(t):
-                    reason = EndReason.LEFT_FRAME
+                    if t.confirmed and t.exited_t is None:          # first frame out of the picture: hold it
+                        t.exited_t = time_s
+                        t.kf.freeze_velocity()
+                        t.velocity_frozen = True
+                        out.decisions.append({"kind": "exit_hold", "track_id": t.track_id})
+                    if not t.confirmed or time_s - t.exited_t >= self.tc.exit_hold_s - _EPS:
+                        reason = EndReason.LEFT_FRAME
             if reason is not None:
                 self._end(t, reason, frame_index, out)
             else:

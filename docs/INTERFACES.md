@@ -162,6 +162,11 @@ Follow the user's chosen player through a clip, and say so when unsure.
   - `--simulate-reviewer` works through the gap list. Per gap: confirm a right offer or reject a wrong one,
     otherwise tap the player on the gap's first labelled frame. Reports the actions taken (effort).
 
+- Review video (for people, not an input to any layer): `tools/target_render.py`.
+  - Usage: `--video --tracks --target --out`, H.264 via ffmpeg.
+  - Draws every observed track, the answer (green TARGET, dashed amber offer), the reason in plain words, and a
+    timeline with the review gaps and the user's actions.
+  - `tools/target_demo.py` renders a synthetic demo (drawn players, scripted tracks, real follower; no footage).
 - Re-ID headroom (analysis tool, not product code): `tools/reid_headroom.py`.
   - Per labelled player, handovers between their tracks: LOSS (old track gone before the new one was born) /
     OVERLAP.
