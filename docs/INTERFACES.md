@@ -80,8 +80,13 @@ Follow the user's chosen player through a clip, and say so when unsure.
   - `track_at_frame` 1.0.0 = a tap on a box the app showed: the track must be live and ACTIVE (observed) on that
     frame. Otherwise `SelectionError` (refused, never guessed).
   - Tap is the chosen way to pick (decision 2026-11-16). Shirt number / photo may come later as hints.
-- Out: **`spana.target` 2.4.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
-  2.3.0, 2.2.0, 2.1.0, 2.0.0 and 1.0.0 documents still validate with their own meaning.
+- Out: **`spana.target` 2.5.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
+  2.4.0, 2.3.0, 2.2.0, 2.1.0, 2.0.0 and 1.0.0 documents still validate with their own meaning.
+  - 2.5.0: + top-level `reentry_log` (re-entry rule decisions logged when they change during a loss: `frame,
+    from_track, offer, reason, track, appearance, position, position_informative, position_reason, combined,
+    second_combined, margin, reverse_second_combined, candidates[{track, appearance, position, position_reason,
+    combined}]`); + target_config `reentry_mutual, reentry_position_weight`; re-ID evidence `{kind, similarity,
+    position, combined, position_informative, second_combined, candidates}` (ranked by combined score).
   - 2.4.0: + `embeddings_sha256` (the `spana.track_embeddings` document used, or null); + target_config
     `reentry_offer, reentry_max_gap_s, reentry_min_similarity, reentry_min_margin`; relink `evidence.kind`:
     `predecessor` {possible_predecessors, candidates} or `reid` {similarity, second_similarity, candidates};

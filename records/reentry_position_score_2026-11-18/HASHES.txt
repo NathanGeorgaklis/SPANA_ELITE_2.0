@@ -1,0 +1,9 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/. Grid: code 6a0cd41 (code17/); follower: code b489373
+# (code18/). Inputs: today's default tracks and re-ID signatures out/F0x_mdefault.trk.json / .emb.json
+# (records/reentry_reid_offers_2026-11-18/HASHES.txt).
+03408e7b7a9680071e8da21cd05211747fea4f43ea0d2a110fe57e0ad3fc74f2  ~/spana-continuity-run/out/reentry_position_fit_v4.json (grid, both lenses, every pick)
+b9304daf1b596964e634e50af4c91b471972324fb5cbe76576a4332f50ccca13  ~/spana-continuity-run/run_posscore.sh
+9e3ce2e1e370700432431719af9a0b5731f97593e92afb6465d3c0c30612d292  ~/spana-continuity-run/out/target_ps_w0_default.json (= previous offers)
+66a5962aa638345994ff0c32f16ec8b8bd4f5939c16d9b2e7d0657a6e0be72f8  ~/spana-continuity-run/out/target_ps_w0_reviewer.json (= previous offers)
+82d0daeeebae71bfcbe187d959c5144270025cb356c7d51eb7f6f89d610e87fd  ~/spana-continuity-run/out/target_ps_default_default.json
+49c90f27823918c5e328aca8b6c850fdfeb949d5f431bf00333c900cdac34025  ~/spana-continuity-run/out/target_ps_default_reviewer.json
