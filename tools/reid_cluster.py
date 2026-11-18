@@ -15,7 +15,8 @@ build (TRAIN packs only; DEV / EVAL refused):
 - Within a cluster, tracklets are ordered odd ones out first (mean distance to the other members).
 - Writes REVIEW_DIR/{index.html, review.js, review.json, thumbs/} and never overwrites.
 upgrade: bring an existing review folder to the current format / config without re-clustering (keeps the
-reviewer's progress: the page carries it over from the previous config's browser key).
+reviewer's progress: the page carries it over from the previous config's browser key); with format and config
+already current it only replaces an outdated page (index.html), so a review in progress gets the direct flow.
 
 Audit (after the review is locked): tracklets of player clusters with a live cluster-mate, shown alone in a fixed
 seeded order (answers form a prefix of it). Freeze rule confirmed_only (Nathan, 2026-11-18): only player labels the
@@ -23,9 +24,15 @@ reviewer gave directly (audit answers, single-tracklet clusters) are frozen as p
 multi-tracklet player cluster is frozen as unsure (unconfirmed_cluster_label). The cluster disagreement rate is
 reported with its exact one-sided upper bound, against a reference (not a gate).
 
+Direct flow (Nathan, 2026-11-18): the page may skip the cluster review and lock straight into per-tracklet answers
+(labelling_flow "direct"). Every non-excluded tracklet is queued cluster by cluster, odd ones out first; each answer
+(player / reject / unsure) is the label; an unanswered tracklet is frozen as unsure (status unanswered_direct, not
+trained on). No cluster decisions and no cluster-disagreement gate; exclusions, the same-frame rule, the config
+hash and the pack hash are checked as for cluster_confirm.
+
 The review page exports the standard `spana.reid_label_export` 1.0.0 (one part per tracklet) plus a
 `cluster_review` block; tools/freeze_reid_labels.py re-checks that block (check_cluster_export) and freezes
-only directly confirmed player labels (rule confirmed_only).
+only directly confirmed player labels (rule confirmed_only; in the direct flow every answer is direct).
 
 evaluate: run the same clustering on a pack whose labels are already frozen (TRAIN) and report how often a
 tracklet's cluster majority differs from its label (the error rate the audit would see).
@@ -51,6 +58,9 @@ from spana.reid_labels import ReidLabelError, validate_manifest
 REVIEW_SCHEMA = ("spana.reid_cluster_review", "1.2.0")
 UNCONFIRMED_STATUS = "unconfirmed_cluster_label"
 EXCLUDED_STATUS = "excluded_tracker_uncertain"
+UNANSWERED_STATUS = "unanswered_direct"
+FLOWS = ("cluster_confirm", "direct")
+DECISIONS = ("player", "reject", "unsure")
 PAGE = Path(__file__).resolve().parent / "reid_cluster_review.html"
 DEFAULT_CONFIG = Path(__file__).resolve().parent.parent / "config" / "reid_cluster.yaml"
 PACK_MARGIN = 0.15     # tools/reid_pack.py MARGIN: thumbnail = box + this margin, clipped to the frame
@@ -319,11 +329,24 @@ def answered_prefix(order: Sequence[str], answers: Dict[str, dict]) -> List[str]
     return out
 
 
-def final_decisions(rv: dict, tracklet_ids: Sequence[str], audited: Sequence[str]):
+def final_decisions(rv: dict, tracklet_ids: Sequence[str], audited: Sequence[str], flow: str = "cluster_confirm"):
     """Freeze rule `confirmed_only` (Nathan, 2026-11-18): a player label is frozen only when the reviewer gave it to
     that tracklet directly - an audit answer, or the decision of a single-tracklet cluster. The player label a
     multi-tracklet cluster gives to a tracklet that was not audited is frozen as unsure (status
-    unconfirmed_cluster_label). Returns ({tracklet: (decision, player)}, {tracklet: status})."""
+    unconfirmed_cluster_label). Flow "direct": each answer (rv["answers"]) is the label, an excluded tracklet is unsure
+    (excluded_tracker_uncertain), an unanswered one is unsure (unanswered_direct); `audited` is ignored.
+    Returns ({tracklet: (decision, player)}, {tracklet: status}, derived cluster decisions ({} for direct))."""
+    if flow == "direct":
+        excluded, answers = set(rv.get("excluded", [])), rv.get("answers", {})
+        final, status = {}, {}
+        for t in tracklet_ids:
+            if t in excluded:
+                final[t], status[t] = ("unsure", None), EXCLUDED_STATUS
+            elif t in answers:
+                final[t] = _decision(answers[t])
+            else:
+                final[t], status[t] = ("unsure", None), UNANSWERED_STATUS
+        return final, status, {}
     derived = derived_decisions(rv, tracklet_ids)
     over = rv.get("overrides", {})
     size = {}
@@ -372,20 +395,72 @@ def audit_stats(review: dict, derived: Dict[str, tuple], prefix: Sequence[str], 
                           "max_disagreement_rate": ac["report_max_disagreement_rate"]}, "rows": rows}
 
 
+def _check_parts(tl: Dict[str, dict], ex: dict, final: dict, status: dict, flow: str) -> None:
+    """One whole part per tracklet, carrying exactly the decision and status the flow's rule gives it."""
+    parts: Dict[str, List[dict]] = {}
+    for p in ex.get("parts", []):
+        parts.setdefault(p.get("tracklet"), []).append(p)
+    for tid, t in tl.items():
+        ps = parts.get(tid, [])
+        if len(ps) != 1 or ps[0].get("first_frame") != t["frames"][0] or ps[0].get("last_frame") != t["frames"][-1]:
+            raise ReidLabelError(f"tracklet {tid}: a {flow} export has exactly one whole part per tracklet")
+        if _decision(ps[0]) != final[tid]:
+            raise ReidLabelError(f"tracklet {tid}: exported decision differs from the {flow} rule")
+        if ps[0].get("status") != status.get(tid):
+            raise ReidLabelError(f"tracklet {tid}: status must be {status.get(tid)!r}")
+
+
+def _check_direct(tl: Dict[str, dict], ex: dict, rv: dict, eligible: List[str]) -> dict:
+    """Direct flow: every answer is the label; no cluster decisions, no cluster-disagreement gate."""
+    answers = rv.get("answers")
+    if not isinstance(answers, dict):
+        raise ReidLabelError("a direct export needs cluster_review.answers")
+    stray = sorted(set(answers) - set(eligible))
+    if stray:
+        raise ReidLabelError(f"direct answers name excluded or unknown tracklets: {stray[:5]}")
+    for tid, a in answers.items():
+        d = a.get("decision") if isinstance(a, dict) else None
+        if d not in DECISIONS or (d == "player") != bool(a.get("player")):
+            raise ReidLabelError(f"direct answer for {tid} must be player (with a player), reject or unsure")
+    seen: Dict[tuple, str] = {}
+    for tid in sorted(answers):
+        a = answers[tid]
+        if a["decision"] != "player":
+            continue
+        for f in tl[tid]["frames"]:
+            k = (a["player"], f)
+            if k in seen:
+                raise ReidLabelError(f"CONFLICT: player {a['player']} is {seen[k]} and {tid} on frame {f}")
+            seen[k] = tid
+    final, status, _ = final_decisions(rv, sorted(tl), [], flow="direct")
+    _check_parts(tl, ex, final, status, "direct")
+    count = lambda d: sum(1 for t in eligible if t in answers and answers[t]["decision"] == d)  # noqa: E731
+    return {"freeze_rule": "confirmed_only", "labelling_flow": "direct", "queued": len(eligible),
+            "answered": len(answers), "player_labels": count("player"), "rejected": count("reject"),
+            "unsure": count("unsure"), "unanswered_frozen_unsure": len(eligible) - len(answers),
+            "excluded": len(tl) - len(eligible)}
+
+
 def check_cluster_export(pack: dict, tl: Dict[str, dict], ex: dict, cfg: dict, cfg_sha256: str) -> dict:
-    """Freeze gate for a group-then-confirm export (labelling_flow == cluster_confirm), rule confirmed_only.
-    Recomputes everything from the pack and the export; raises ReidLabelError, or returns the audit statistics."""
+    """Freeze gate for an export of the review page, rule confirmed_only: labelling_flow cluster_confirm
+    (group-then-confirm + audit) or direct (per-tracklet answers, see _check_direct). Recomputes everything from the
+    pack and the export; raises ReidLabelError, or returns the audit (cluster_confirm) / answer (direct) statistics."""
+    flow = ex.get("labelling_flow")
+    if flow not in FLOWS:
+        raise ReidLabelError(f"labelling_flow must be one of {FLOWS}")
     if cfg["audit"].get("freeze_rule") != "confirmed_only":
         raise ReidLabelError("config audit.freeze_rule must be confirmed_only")
     rv = ex.get("cluster_review") or {}
     if (rv.get("schema"), rv.get("schema_version")) != REVIEW_SCHEMA:
-        raise ReidLabelError(f"cluster_confirm export needs a cluster_review block {REVIEW_SCHEMA}")
+        raise ReidLabelError(f"{flow} export needs a cluster_review block {REVIEW_SCHEMA}")
     if rv.get("config_sha256") != cfg_sha256:
         raise ReidLabelError("cluster_review was made with another config/reid_cluster.yaml")
     flagged = sorted(t for t, v in tl.items() if is_flagged(v)) if cfg["clustering"]["exclude_tracker_flagged"] else []
     if sorted(rv.get("excluded", [])) != flagged:
         raise ReidLabelError("excluded tracklets are not exactly the tracker-flagged ones")
     eligible = sorted(set(tl) - set(flagged))
+    if flow == "direct":
+        return _check_direct(tl, ex, rv, eligible)
     in_clusters = sorted(t for c in rv["clusters"].values() for t in c["tracklets"])
     if in_clusters != eligible:
         raise ReidLabelError("clusters do not hold every non-excluded tracklet exactly once")
@@ -411,17 +486,7 @@ def check_cluster_export(pack: dict, tl: Dict[str, dict], ex: dict, cfg: dict, c
     if sorted(answers) != sorted(prefix):
         raise ReidLabelError("audit answers are not a prefix of the draw order (or name tracklets that cannot be drawn)")
     final, status, derived = final_decisions(rv, sorted(tl), prefix)
-    parts: Dict[str, List[dict]] = {}
-    for p in ex.get("parts", []):
-        parts.setdefault(p.get("tracklet"), []).append(p)
-    for tid, t in tl.items():
-        ps = parts.get(tid, [])
-        if len(ps) != 1 or ps[0].get("first_frame") != t["frames"][0] or ps[0].get("last_frame") != t["frames"][-1]:
-            raise ReidLabelError(f"tracklet {tid}: a cluster_confirm export has exactly one whole part per tracklet")
-        if _decision(ps[0]) != final[tid]:
-            raise ReidLabelError(f"tracklet {tid}: exported decision differs from the confirmed-only rule")
-        if ps[0].get("status") != status.get(tid):
-            raise ReidLabelError(f"tracklet {tid}: status must be {status.get(tid)!r}")
+    _check_parts(tl, ex, final, status, "cluster_confirm")
     st = audit_stats(rv, derived, prefix, cfg)
     singles = sum(1 for t in tl if final[t][0] == "player" and t not in prefix)
     st.update({"freeze_rule": "confirmed_only", "drawable": len(order),
@@ -507,6 +572,11 @@ def upgrade(review_dir, cfg_path=DEFAULT_CONFIG) -> dict:
     data = json.loads((rd / "review.json").read_text())
     old = data.get("schema_version")
     if old == REVIEW_SCHEMA[1] and data.get("config_sha256") == config_sha(cfg_path):
+        if (rd / "index.html").read_bytes() != PAGE.read_bytes():          # page-only update: data untouched
+            bak = rd / f"index.html.{hashlib.sha256((rd / 'index.html').read_bytes()).hexdigest()[:12]}.bak"
+            if not bak.exists():
+                shutil.copy(rd / "index.html", bak)
+            shutil.copy(PAGE, rd / "index.html")
         return data
     cfg = load_cluster_config(cfg_path)                       # 1.0.0 -> drops the build-time audit; 1.1.0 -> rule only
     for name in ("review.json", "review.js", "index.html"):

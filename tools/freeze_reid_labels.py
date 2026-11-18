@@ -8,7 +8,9 @@ start and end on its observed frames; every player decision names a declared pla
 never occupies two parts on the same frame; a version > 1 carries a reason. A group-then-confirm export
 (labelling_flow cluster_confirm, tools/reid_cluster.py) is also re-checked from its cluster_review block (clusters,
 same-frame conflicts, exclusions, audit answers) and must follow the confirmed_only rule: player labels only where
-the reviewer confirmed them directly (tools.reid_cluster.final_decisions). Writes
+the reviewer confirmed them directly (tools.reid_cluster.final_decisions). A direct export (labelling_flow direct:
+per-tracklet answers, no cluster review) is re-checked the same way: each answer is the label, unanswered tracklets
+are unsure, exclusions / same-frame rule / config hash as for cluster_confirm. Writes
 data/reid/<split>/<match_id>/v<N>/{manifest.json, players.json, identities.jsonl, boxes.mot.txt, export.json,
 FROZEN.json} with the sha256 of every file, and never overwrites an existing version.
 """
@@ -111,12 +113,13 @@ def freeze(pack_dir: str, export_path: str, video: str | None = None, root: Path
     ex = json.loads(ex_bytes)
     rows = _check_export(pack, tl, ex)
     audit = None
-    if ex.get("labelling_flow") == "cluster_confirm":
+    flow = ex.get("labelling_flow")
+    if flow in ("cluster_confirm", "direct"):
         from tools.reid_cluster import DEFAULT_CONFIG, check_cluster_export, config_sha, load_cluster_config
         cpath = cluster_config or DEFAULT_CONFIG
         audit = check_cluster_export(pack, tl, ex, load_cluster_config(cpath), config_sha(cpath))
-    elif ex.get("labelling_flow") not in (None, "manual"):
-        raise ReidLabelError(f"unknown labelling_flow {ex.get('labelling_flow')!r}")
+    elif flow not in (None, "manual"):
+        raise ReidLabelError(f"unknown labelling_flow {flow!r}")
     dest = root / "data" / "reid" / manifest["split"] / manifest["match_id"] / f"v{ex['label_version']}"
     if dest.exists():
         raise ReidLabelError(f"{dest} already exists: frozen labels are never overwritten")
@@ -157,7 +160,8 @@ def freeze(pack_dir: str, export_path: str, video: str | None = None, root: Path
         "files": {name: sha256_bytes(data) for name, data in files.items()},
         "rule": "Frozen. Never edit; a correction is a new version with a reason. EVAL is never used for "
                 "training or tuning (spana.reid_labels.split_guard).",
-        **({"labelling_flow": "cluster_confirm", "cluster_audit": audit} if audit else {}),
+        **({"labelling_flow": flow, ("direct_labelling" if flow == "direct" else "cluster_audit"): audit}
+           if audit else {}),
     })
     return dest
 

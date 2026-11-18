@@ -29,6 +29,8 @@
   .row img { height:84px; border-radius:3px; }
   .tag { padding:1px 6px; border-radius:10px; border:1px solid var(--line); font-size:11px; }
   .tag.c { border-color:var(--bad); color:var(--bad); }
+  .card.current { border-color:var(--acc); }
+  .card.small .row img { height:56px; }
   #status.bad { color:var(--bad); } #status.ok { color:var(--ok); } #status.warn { color:var(--warn); }
 </style>
 </head>
@@ -38,8 +40,10 @@
   <span id="match" class="muted"></span>
   <button id="tabClusters" class="on">Clusters</button>
   <button id="tabAudit">Audit</button>
+  <button id="tabDirect">Direct</button>
   <select id="filter"><option value="all">all clusters</option><option value="open">undecided</option><option value="conflict">CONFLICT</option><option value="hidden">"not seen" tracklets</option></select>
   <button id="lock">Lock clusters &amp; start audit</button>
+  <button id="direct">Start direct labelling</button>
   <span id="progress" class="muted"></span>
   <button id="export" class="primary">Export frozen labels</button>
   <span id="status"></span>
@@ -74,7 +78,7 @@ const ODD = {}; for (const c of Object.values(R.clusters)) c.tracklets.forEach((
 const FRAMES = Object.fromEntries(R.tracklets.map(t => [t.id, new Set(t.frames)]));
 function fresh() {
   return { players: {}, annotator: "", version: 1, reason: "", members: Object.fromEntries(Object.entries(R.clusters).map(([k, c]) => [k, c.tracklets.slice()])),
-           cdec: {}, overrides: {}, audit: {}, locked: false, next: Object.keys(R.clusters).length + 1 };
+           cdec: {}, overrides: {}, audit: {}, locked: false, next: Object.keys(R.clusters).length + 1, direct: {}, directLocked: false };
 }
 function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); return s && s.members ? s : null; } catch (e) { return null; } }
 function migrate() {     // progress saved under an earlier config of the same review
@@ -98,6 +102,7 @@ function migrate() {     // progress saved under an earlier config of the same r
 let S = load(), active = null, tab = "clusters", selected = new Set(), migrated = false;
 if (!S) { S = migrate(); migrated = !!S; if (!S) S = fresh(); }
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { status("Browser storage unavailable: export often.", "warn"); } }
+S.direct = S.direct || {}; S.directLocked = !!S.directLocked;
 if (migrated) persist();
 function color(p) { const keys = Object.keys(S.players).sort(); return COLORS[keys.indexOf(p) % COLORS.length]; }
 function overlap(a, b) { const A = FRAMES[a], B = FRAMES[b]; const [s, l] = A.size < B.size ? [A, B] : [B, A]; for (const f of s) if (l.has(f)) return true; return false; }
@@ -115,6 +120,7 @@ function needsDecision(cid) { return live(cid).length > 0; }
 // directly (an audit answer, or a single-tracklet cluster); an unaudited tracklet of a multi-tracklet player cluster
 // is frozen as unsure (status unconfirmed_cluster_label)
 function finalD(tid) {
+  if (S.directLocked) return directFinal(tid);
   if (S.locked && auditPrefix().prefix.includes(tid)) return S.audit[tid];
   const d = derived(tid), c = clusterOf(tid);
   if (d && d.decision === "player" && !EXCL.has(tid) && c && live(c).length > 1) return { decision: "unsure", player: null, unconfirmed: true };
@@ -155,6 +161,37 @@ function auditStats() {
   return { ...P, comparable, dis, lost, upper: upperBound(dis, comparable, AC.confidence) };
 }
 
+// ---- direct flow (tools/reid_cluster.py final_decisions flow "direct"): no cluster decisions; every non-excluded
+// tracklet is answered on its own, queued cluster by cluster with odd ones out first (similar tracklets in a row);
+// each answer is the label, an unanswered tracklet is exported as unsure (unanswered_direct, not trained on)
+function directQueue() { const q = []; for (const [cid, m] of Object.entries(S.members)) m.forEach((t, k) => { if (!EXCL.has(t)) q.push({ t, cid, k, n: m.length }); }); return q; }
+function directFinal(tid) {
+  if (EXCL.has(tid)) return { decision: "unsure", player: null };
+  const a = S.direct[tid]; return a ? { decision: a.decision, player: a.decision === "player" ? a.player : null } : { decision: "unsure", player: null, unanswered: true };
+}
+function directConflicts() {     // tracklets of one player that share a frame (same-frame rule)
+  const byP = {}, bad = new Set();
+  for (const [t, a] of Object.entries(S.direct)) if (a.decision === "player" && !EXCL.has(t)) (byP[a.player] = byP[a.player] || []).push(t);
+  for (const ts of Object.values(byP)) for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++) if (overlap(ts[i], ts[j])) { bad.add(ts[i]); bad.add(ts[j]); }
+  return bad;
+}
+let cursor = null;
+function nextUnanswered(q, from) { for (let k = 0; k < q.length; k++) { const e = q[(from + k) % q.length]; if (!S.direct[e.t]) return e.t; } return null; }
+function directAnswer(t, d) {
+  if (d.decision === "player" && !active) return status("Select a player on the left first.", "warn");
+  S.direct[t] = d.decision === "player" ? { decision: "player", player: active } : { decision: d.decision, player: null };
+  persist();
+  const q = directQueue(), i = q.findIndex(e => e.t === t);
+  if (t === cursor) cursor = nextUnanswered(q, i + 1);
+  if (directConflicts().has(t)) status(`CONFLICT: ${S.direct[t].player} is on another tracklet on the same frame.`, "bad");
+  render();
+}
+function directMove(step) {
+  const q = directQueue(); if (!q.length) return;
+  const i = cursor === null ? q.length : q.findIndex(e => e.t === cursor);
+  cursor = q[Math.max(0, Math.min(q.length - 1, i + step))].t; render();
+}
+
 function img(t, k) { const im = document.createElement("img"); im.src = TL[t].thumbs[k]; im.loading = "lazy"; return im; }
 function sheetThumbs(t) { const n = TL[t].thumbs.length, m = Math.min(n, R.config.review.sheet_thumbs_per_tracklet); const out = []; for (let i = 0; i < m; i++) out.push(Math.round(i * (n - 1) / Math.max(1, m - 1))); return [...new Set(out)]; }
 function decLabel(d) { return !d ? '<span class="muted">undecided</span>' : d.decision === "player" ? `<b style="color:${color(d.player)}">${d.player}</b>` : `<b>${d.decision.toUpperCase()}</b>`; }
@@ -176,7 +213,8 @@ function renderClusters(bad) {
   const note = document.createElement("div"); note.className = "muted"; note.style.margin = "0 0 8px";
   note.textContent = `${R.excluded.length} tracker-flagged tracklets excluded (${R.excluded_status}: decided, not trained on).` +
     (HIDDEN.size ? ` ${HIDDEN.size} tracklets were hidden during your earlier review (marked "not seen"): check their clusters.` : "") +
-    (S.locked ? " Clusters are LOCKED for the audit; unlock to edit (this discards audit answers)." : "");
+    (S.locked ? " Clusters are LOCKED for the audit; unlock to edit (this discards audit answers)." : "") +
+    (S.directLocked ? " Direct labelling is on: cluster decisions are not used (answer tracklets in the Direct tab)." : "");
   v.appendChild(note);
   for (const cid of Object.keys(S.members)) {
     const mem = S.members[cid];
@@ -185,7 +223,7 @@ function renderClusters(bad) {
     const card = document.createElement("div"); card.className = "card" + (isBad ? " conflict" : ""); card.dataset.cid = cid;
     const h = document.createElement("h3");
     h.innerHTML = `${cid} <span class="muted">${mem.length} tracklets</span> ${decLabel(d)} ${isBad ? '<span class="tag c">CONFLICT: same frame or player in two places</span>' : ""}${hid ? ' <span class="tag">has a "not seen" tracklet</span>' : ""}`;
-    if (!S.locked) {
+    if (!S.locked && !S.directLocked) {
       h.appendChild(btn("Assign cluster to active player", () => { if (!active) return status("Select a player on the left first.", "warn"); S.cdec[cid] = { decision: "player", player: active }; persist(); render(); }));
       h.appendChild(btn("Reject cluster", () => { S.cdec[cid] = { decision: "reject", player: null }; persist(); render(); }));
       h.appendChild(btn("Unsure cluster", () => { S.cdec[cid] = { decision: "unsure", player: null }; persist(); render(); }));
@@ -198,14 +236,14 @@ function renderClusters(bad) {
     card.appendChild(h);
     for (const t of mem) {
       const row = document.createElement("div"); row.className = "row" + (S.overrides[t] ? " over" : "");
-      if (!S.locked) { const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = selected.has(t); cb.onchange = () => cb.checked ? selected.add(t) : selected.delete(t); row.appendChild(cb); }
+      if (!S.locked && !S.directLocked) { const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = selected.has(t); cb.onchange = () => cb.checked ? selected.add(t) : selected.delete(t); row.appendChild(cb); }
       for (const k of sheetThumbs(t)) row.appendChild(img(t, k));
       const info = document.createElement("span"); info.className = "muted";
       const prev = (S.prevAudit || {})[t];
       info.innerHTML = `${t} · ${TL[t].observed} obs · odd ${ODD[t] !== undefined ? ODD[t].toFixed(3) : "-"}${S.overrides[t] ? ` · <b>${S.overrides[t].decision.toUpperCase()}</b>` : ""}` +
         (HIDDEN.has(t) ? ` · <span class="tag">not seen in your review</span>` : "") + (prev ? ` · your earlier audit answer: ${decLabel(prev)}` : "");
       row.appendChild(info);
-      if (!S.locked) {
+      if (!S.locked && !S.directLocked) {
         row.appendChild(btn("Reject", () => { S.overrides[t] = { decision: "reject" }; persist(); render(); }));
         row.appendChild(btn("Unsure", () => { S.overrides[t] = { decision: "unsure" }; persist(); render(); }));
         if (S.overrides[t]) row.appendChild(btn("Clear", () => { delete S.overrides[t]; persist(); render(); }));
@@ -243,24 +281,94 @@ function renderAudit() {
   });
   if (a.complete) { const d = document.createElement("div"); d.className = "ok"; d.textContent = "Every drawable tracklet answered."; v.prepend(d); }
 }
+function directCard(e, q, current, bad) {
+  const t = e.t, a = S.direct[t];
+  const card = document.createElement("div"); card.className = "card" + (current ? " current" : " small") + (bad.has(t) ? " conflict" : ""); card.dataset.direct = t;
+  const h = document.createElement("h3");
+  h.innerHTML = `${q.indexOf(e) + 1} / ${q.length} · ${e.cid} (${e.k + 1} of ${e.n}) · <span class="muted">${t} · ${TL[t].observed} obs</span> ${a ? decLabel(a) : '<span class="muted">unanswered</span>'}` +
+    (bad.has(t) ? ' <span class="tag c">CONFLICT: same player on the same frame</span>' : "");
+  h.appendChild(btn("Assign active player", () => directAnswer(t, { decision: "player" })));
+  h.appendChild(btn("Reject", () => directAnswer(t, { decision: "reject" })));
+  h.appendChild(btn("Unsure", () => directAnswer(t, { decision: "unsure" })));
+  if (a) h.appendChild(btn("Clear", () => { delete S.direct[t]; persist(); render(); }));
+  if (!current) h.appendChild(btn("Show", () => { cursor = t; render(); }));
+  card.appendChild(h);
+  const row = document.createElement("div"); row.className = "row";
+  (current ? TL[t].thumbs.map((_, k) => k) : sheetThumbs(t)).forEach(k => row.appendChild(img(t, k)));
+  card.appendChild(row); return card;
+}
+function renderDirect() {
+  const v = $("view"); v.innerHTML = "";
+  const note = document.createElement("div"); note.className = "muted"; note.style.margin = "0 0 8px";
+  if (!S.directLocked) { note.textContent = "Direct labelling skips the cluster decisions: you answer every tracklet on its own (player / reject / unsure), cluster by cluster so similar tracklets come one after another. Press \"Start direct labelling\"."; v.appendChild(note); return; }
+  const q = directQueue(), bad = directConflicts(), done = q.filter(e => S.direct[e.t]).length;
+  if (cursor !== null && !q.some(e => e.t === cursor)) cursor = null;
+  if (cursor === null && done < q.length) cursor = nextUnanswered(q, 0);
+  note.textContent = `${done} of ${q.length} answered (${R.excluded.length} tracker-flagged excluded: unsure). Your answers are the labels; unanswered tracklets are exported as unsure (not trained on). ` +
+    "Keys: a = assign active player, r = reject, u = unsure, → = skip, ← = back.";
+  v.appendChild(note);
+  if (bad.size) {
+    const c = document.createElement("div"); c.className = "card conflict";
+    c.innerHTML = `<b class="bad">CONFLICT</b> <span class="muted">one player on two tracklets on the same frame: fix one answer before exporting.</span> `;
+    [...bad].sort().forEach(t => c.appendChild(btn(`${t} (${S.direct[t].player})`, () => { cursor = t; render(); })));
+    v.appendChild(c);
+  }
+  const ci = cursor === null ? q.length : q.findIndex(e => e.t === cursor);
+  if (cursor === null) { const d = document.createElement("div"); d.className = "ok"; d.textContent = "Every tracklet answered."; v.appendChild(d); }
+  else {
+    const e = q[ci], cur = directCard(e, q, true, bad);
+    const prev = q.slice(0, ci).reverse().find(x => x.cid === e.cid && S.direct[x.t] && S.direct[x.t].decision === "player");
+    if (prev) { const p = document.createElement("div"); p.className = "muted"; p.innerHTML = `earlier in ${e.cid}: ${decLabel(S.direct[prev.t])}`; cur.insertBefore(p, cur.children[1]); }
+    cur.querySelector("h3").appendChild(btn("← Back", () => directMove(-1)));
+    cur.querySelector("h3").appendChild(btn("Skip →", () => directMove(1)));
+    v.appendChild(cur);
+  }
+  const recent = q.slice(Math.max(0, ci - 6), ci).reverse();
+  if (recent.length) { const r = document.createElement("div"); r.className = "muted"; r.style.margin = "6px 0"; r.textContent = "Previous in the queue (click to change):"; v.appendChild(r); }
+  recent.forEach(e => v.appendChild(directCard(e, q, false, bad)));
+}
 function render() {
   for (const [k, c] of Object.entries(S.members)) if (!c.length) { delete S.members[k]; delete S.cdec[k]; }
   renderPlayers();
   const bad = conflicts();
-  if (tab === "clusters") renderClusters(bad); else renderAudit();
+  if (tab === "clusters") renderClusters(bad); else if (tab === "direct") renderDirect(); else renderAudit();
   const cl = Object.keys(S.members).filter(needsDecision), dec = cl.filter(k => S.cdec[k]).length;
   const a = S.locked ? auditStats() : null;
   $("progress").textContent = `${dec}/${cl.length} clusters decided · ${bad.size} CONFLICT` + (a ? ` · audit ${a.prefix.length}/${a.order.length} answered` : "");
   $("tabAudit").textContent = a ? `Audit (${a.prefix.length}/${a.order.length})` : "Audit";
+  if (S.directLocked) {
+    const q = directQueue(), done = q.filter(e => S.direct[e.t]).length, nb = directConflicts().size;
+    $("progress").textContent = `direct: ${done}/${q.length} answered · ${nb} CONFLICT`;
+    $("tabDirect").textContent = `Direct (${done}/${q.length})`;
+  } else $("tabDirect").textContent = "Direct";
+  $("direct").textContent = S.directLocked ? "Leave direct labelling (answers kept)" : "Start direct labelling";
   $("lock").textContent = S.locked ? "Unlock clusters (discards audit answers)" : "Lock clusters & start audit";
   $("summary").innerHTML = `${R.stats.tracklets} tracklets · ${R.stats.clustered} clustered into ${R.stats.clusters} · ${R.stats.excluded} excluded` +
     (a && a.comparable ? `<br>Cluster quality (reported, not a gate): ${a.dis} of ${a.comparable} of your player answers differ from their cluster; ${(100 * AC.confidence).toFixed(0)} % upper bound ${pct(a.upper)} (reference ${pct(AC.report_max_disagreement_rate)} at ≥ ${AC.report_min_comparable})` +
      `<br>${a.order.length - a.prefix.length} tracklets of multi-tracklet player clusters not answered: frozen as unsure` : "");
 }
-$("tabClusters").onclick = () => { tab = "clusters"; $("tabClusters").className = "on"; $("tabAudit").className = ""; render(); };
-$("tabAudit").onclick = () => { tab = "audit"; $("tabAudit").className = "on"; $("tabClusters").className = ""; render(); };
+function setTab(t) { tab = t; for (const [k, id] of [["clusters", "tabClusters"], ["audit", "tabAudit"], ["direct", "tabDirect"]]) $(id).className = k === t ? "on" : ""; render(); }
+$("tabClusters").onclick = () => setTab("clusters");
+$("tabAudit").onclick = () => setTab("audit");
+$("tabDirect").onclick = () => setTab("direct");
+$("direct").onclick = () => {
+  if (S.directLocked) { S.directLocked = false; persist(); setTab("clusters"); return; }
+  const na = Object.keys(S.audit).length;
+  if (S.locked && !confirm(`Switch to direct labelling? The cluster lock is released; your ${na} audit answers are kept as direct answers.`)) return;
+  if (S.locked) { for (const [t, a] of Object.entries(S.audit)) if (!S.direct[t] && !EXCL.has(t)) S.direct[t] = a; S.locked = false; }
+  S.directLocked = true; cursor = null; persist(); setTab("direct");
+};
+document.addEventListener("keydown", ev => {
+  if (tab !== "direct" || !S.directLocked || ev.metaKey || ev.ctrlKey || ev.altKey || /^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName)) return;
+  const k = ev.key;
+  if (k === "ArrowRight") directMove(1); else if (k === "ArrowLeft") directMove(-1);
+  else if (cursor && (k === "a" || k === "r" || k === "u")) directAnswer(cursor, { decision: { a: "player", r: "reject", u: "unsure" }[k] });
+  else return;
+  ev.preventDefault();
+});
 $("filter").onchange = render;
 $("lock").onclick = () => {
+  if (S.directLocked) return status("Leave direct labelling first (your direct answers are kept).", "warn");
   if (S.locked) { if (!confirm("Unlock the clusters? Your audit answers will be discarded.")) return; S.locked = false; S.audit = {}; persist(); render(); return; }
   const undecided = Object.keys(S.members).filter(k => needsDecision(k) && !S.cdec[k]);
   if (undecided.length) { status(`${undecided.length} clusters undecided: assign, reject or mark unsure first.`, "bad"); $("filter").value = "open"; tab = "clusters"; render(); return; }
@@ -276,8 +384,31 @@ $("padd").onclick = () => {
   if (S.players[k]) return status("Player " + k + " already exists", "warn");
   S.players[k] = { side, shirt_number: num || null }; active = k; $("pkey").value = ""; $("pnum").value = ""; persist(); render();
 };
+function exportDirect() {
+  if (directConflicts().size) { status("CONFLICT: a player is on two tracklets on the same frame (Direct tab).", "bad"); setTab("direct"); return; }
+  const q = directQueue(), open = q.filter(e => !S.direct[e.t]).length;
+  if (open && !confirm(`${open} tracklets are not answered and will be exported as unsure (not trained on). Export anyway?`)) return;
+  if (!String(S.annotator || "").trim()) return status("Annotator name required.", "bad");
+  const v = parseInt(S.version || 1, 10);
+  if (v > 1 && !String(S.reason || "").trim()) return status("A new version needs a reason.", "bad");
+  const parts = R.tracklets.map(t => { const d = directFinal(t.id); const p = { tracklet: t.id, first_frame: t.first_frame, last_frame: t.last_frame, decision: d.decision, player: d.player };
+    if (EXCL.has(t.id)) p.status = R.excluded_status; else if (d.unanswered) p.status = "unanswered_direct"; return p; });
+  const used = new Set(parts.filter(o => o.decision === "player").map(o => o.player));
+  const players = Object.fromEntries(Object.entries(S.players).filter(([k]) => used.has(k)));
+  const answers = Object.fromEntries(q.filter(e => S.direct[e.t]).map(e => [e.t, directFinal(e.t)]).map(([t, d]) => [t, { decision: d.decision, player: d.player }]));
+  const doc = { schema: "spana.reid_label_export", schema_version: "1.0.0", match_id: R.match.match_id, split: R.match.split,
+    tracklets_sha256: R.tracklets_sha256, annotator: S.annotator.trim(), label_version: v, reason: S.reason || "",
+    exported_utc: new Date().toISOString(), players, parts, labelling_flow: "direct",
+    cluster_review: { schema: R.schema, schema_version: R.schema_version, config_sha256: R.config_sha256, model_sha256: R.model_sha256,
+      excluded: R.excluded, queue: q.map(e => e.t), answers } };
+  const el = document.createElement("a");
+  el.href = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 1)], { type: "application/json" }));
+  el.download = `${R.match.match_id}_reid_v${v}.json`; el.click();
+  status("Exported " + el.download + " (direct) — freeze it with tools/freeze_reid_labels.py", "ok");
+}
 $("export").onclick = () => {
-  if (!S.locked) { status("Lock the clusters and answer the audit first.", "bad"); return; }
+  if (S.directLocked) return exportDirect();
+  if (!S.locked) { status("Lock the clusters and answer the audit first, or start direct labelling.", "bad"); return; }
   if (conflicts().size) { status("CONFLICT: a player is in two places (check your audit answers).", "bad"); return; }
   const a = auditStats();
   if (!a.complete && !confirm(`${a.order.length - a.prefix.length} tracklets of multi-tracklet player clusters are not answered and will be frozen as unsure (not trained on). Export anyway?`)) return;
@@ -303,7 +434,8 @@ $("match").textContent = `${R.match.match_id} · ${R.match.split}`;
 render();
 status(migrated ? (S.locked ? "Your review and audit answers were carried over to the new freeze rule (only your own answers become player labels)."
   : "Your earlier review was carried over (decisions kept; the old audit is discarded). Tracklets that were hidden are now marked \"not seen\".")
-  : Object.keys(S.cdec).length ? "Progress restored from this browser." : "Add players, decide each cluster (odd ones out are at the top of each sheet), then lock and audit.", "ok");
+  : Object.keys(S.cdec).length || Object.keys(S.direct).length ? "Progress restored from this browser." : "Add players, then either decide each cluster (odd ones out are at the top of each sheet), lock and audit, or start direct labelling.", "ok");
+if (S.directLocked) setTab("direct");
 </script>
 </body>
 </html>

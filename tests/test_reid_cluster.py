@@ -1,7 +1,8 @@
 """Group-then-confirm re-ID labelling (tools/reid_cluster.py, tools/reid_cluster_review.html, freeze gate):
 same-frame rule, exclusion of tracker-flagged tracklets, odd-ones-out order, the audit (drawn after the review, player
 vs player only, exact upper bound, shortest prefix), freeze refusals, upgrade of a 1.0.0 review, M001-style manual
-exports unaffected, and the review page end to end incl. carrying over saved progress (Node Playwright)."""
+exports unaffected, the review page end to end incl. carrying over saved progress (Node Playwright), and the direct
+flow (per-tracklet answers without cluster decisions: answers are the labels, unanswered -> unsure, CONFLICT blocks)."""
 from __future__ import annotations
 
 import copy
@@ -125,6 +126,31 @@ def truth_assign(review: dict) -> dict:
         who = {TRACKLETS[t][0] for t in c["tracklets"]}
         out[k] = ("player", who.pop()) if len(who) == 1 else ("unsure", None)
     return out
+
+
+def direct_export(review: dict, answers: dict, players=None) -> dict:
+    """What the review page exports in the direct flow: answers = {tracklet: (decision, player)}; each answer is the
+    label, unanswered -> unsure (unanswered_direct), excluded -> unsure (excluded_tracker_uncertain)."""
+    excl = set(review["excluded"])
+    parts = []
+    for t in review["tracklets"]:
+        d = answers.get(t["id"], ("unsure", None))
+        p = {"tracklet": t["id"], "first_frame": t["first_frame"], "last_frame": t["last_frame"], "decision": d[0],
+             "player": d[1]}
+        if t["id"] in excl:
+            p.update(decision="unsure", player=None, status=RC.EXCLUDED_STATUS)
+        elif t["id"] not in answers:
+            p["status"] = RC.UNANSWERED_STATUS
+        parts.append(p)
+    rv = {"schema": RC.REVIEW_SCHEMA[0], "schema_version": RC.REVIEW_SCHEMA[1], "config_sha256": review["config_sha256"],
+          "model_sha256": None, "excluded": review["excluded"],
+          "queue": [t for c in review["clusters"].values() for t in c["tracklets"]],
+          "answers": {t: {"decision": d, "player": p} for t, (d, p) in answers.items()}}
+    players = players or {k: {"side": "A" if k != "C" else "B", "shirt_number": None} for k in "ABC"}
+    return {"schema": "spana.reid_label_export", "schema_version": "1.0.0", "match_id": review["match"]["match_id"],
+            "split": "TRAIN", "tracklets_sha256": review["tracklets_sha256"], "annotator": "QA", "label_version": 1,
+            "reason": "", "exported_utc": "2026-11-18T00:00:00Z", "players": players, "parts": parts,
+            "labelling_flow": "direct", "cluster_review": rv}
 
 
 class Core(unittest.TestCase):
@@ -340,6 +366,86 @@ class BuildAndFreeze(unittest.TestCase):
             p.pop("status", None)
         self._freeze(ex, "manual.json")
 
+    # ---- direct flow: per-tracklet answers without cluster decisions
+    def test_direct_export_freezes_answers_unanswered_unsure(self):
+        answers = {"T000001-1": ("player", "A"), "T000002-1": ("player", "B"), "T000003-1": ("reject", None),
+                   "T000005-1": ("player", "C"), "T000006-1": ("unsure", None)}      # 4 and 7 unanswered
+        dest = self._freeze(direct_export(self.review, answers))
+        fz = json.loads((dest / "FROZEN.json").read_text())
+        self.assertEqual(fz["labelling_flow"], "direct")
+        self.assertNotIn("cluster_audit", fz)                            # no cluster-disagreement gate
+        st = fz["direct_labelling"]
+        self.assertEqual((st["queued"], st["answered"], st["player_labels"], st["rejected"], st["unsure"],
+                          st["unanswered_frozen_unsure"], st["excluded"]), (7, 5, 3, 1, 1, 2, 1))
+        rows = self._rows(dest)
+        for t, (d, p) in answers.items():                                # each answer is the label
+            self.assertEqual((rows[t]["decision"], rows[t]["player"]), (d, p))
+        for t in ("T000004-1", "T000007-1", "T000008-1"):                # unanswered / excluded: unsure, not trained on
+            self.assertEqual((rows[t]["decision"], rows[t]["player"]), ("unsure", None))
+        st = {p["tracklet"]: p.get("status") for p in json.loads((dest / "export.json").read_text())["parts"]}
+        self.assertEqual((st["T000004-1"], st["T000007-1"], st["T000008-1"], st["T000001-1"]),
+                         (RC.UNANSWERED_STATUS, RC.UNANSWERED_STATUS, RC.EXCLUDED_STATUS, None))
+        # no cluster decision needed even where the clusters mix players (A and B share a kit)
+        self.assertEqual(sorted(load_frozen(dest, "train")["players"]), ["A", "B", "C"])
+
+    def test_direct_refusals(self):
+        good = {"T000001-1": ("player", "A"), "T000005-1": ("player", "C")}
+        self._freeze(direct_export(self.review, good), "direct_ok.json")
+        shutil.rmtree(self.td / "repo")
+
+        def refused(ex, msg):
+            with self.assertRaises(ReidLabelError, msg=msg) as cm:
+                self._freeze(ex, f"bad_direct_{msg}.json")
+            return str(cm.exception)
+
+        # CONFLICT: one player on two tracklets on the same frame
+        self.assertRegex(refused(direct_export(self.review, {**good, "T000002-1": ("player", "A")}), "conflict"),
+                         "CONFLICT|two places on frame")
+        with self.assertRaisesRegex(ReidLabelError, "CONFLICT"):          # the direct gate on its own
+            ex = direct_export(self.review, {**good, "T000002-1": ("player", "A")})
+            tl = {t["id"]: t for t in json.loads((self.pack / "tracklets.json").read_text())}
+            RC.check_cluster_export(json.loads((self.pack / "pack.json").read_text()), tl, ex, self.c, RC.config_sha(self.cfg))
+        # excluded tracklets stay excluded: no answer, status kept, exclusions = the tracker-flagged ones
+        bad = direct_export(self.review, good)
+        bad["cluster_review"]["answers"]["T000008-1"] = {"decision": "player", "player": "C"}
+        refused(bad, "answer_on_excluded")
+        bad = direct_export(self.review, good)
+        next(p for p in bad["parts"] if p["tracklet"] == "T000008-1").pop("status")
+        refused(bad, "excluded_status")
+        bad = direct_export(self.review, good)
+        bad["cluster_review"]["excluded"] = []
+        refused(bad, "exclusions_changed")
+        # unanswered must be exported as unsure with its status, never as a player
+        bad = direct_export(self.review, good)
+        p = next(p for p in bad["parts"] if p.get("status") == RC.UNANSWERED_STATUS)
+        p.update(decision="player", player=TRACKLETS[p["tracklet"]][0])
+        p.pop("status")
+        refused(bad, "unanswered_as_player")
+        bad = direct_export(self.review, good)
+        next(p for p in bad["parts"] if p["tracklet"] == "T000001-1")["player"] = "B"      # part != answer
+        refused(bad, "part_differs_from_answer")
+        bad = direct_export(self.review, good)
+        bad["cluster_review"]["answers"]["T000003-1"] = {"decision": "player", "player": None}
+        refused(bad, "player_answer_without_player")
+        bad = direct_export(self.review, good)
+        bad["cluster_review"]["config_sha256"] = "0" * 64
+        refused(bad, "config")
+        bad = direct_export(self.review, good)
+        bad["tracklets_sha256"] = "0" * 64
+        refused(bad, "pack")
+        bad = direct_export(self.review, good)
+        bad["cluster_review"].pop("answers")
+        refused(bad, "no_answers")
+
+    def test_upgrade_refreshes_an_outdated_page_only(self):
+        rd = self.td / "review"
+        before = (rd / "review.json").read_text()
+        (rd / "index.html").write_text("old page")
+        RC.upgrade(rd, self.cfg)
+        self.assertEqual((rd / "index.html").read_bytes(), RC.PAGE.read_bytes())
+        self.assertEqual((rd / "review.json").read_text(), before)      # data untouched
+        self.assertEqual([b.read_text() for b in rd.glob("index.html.*.bak")], ["old page"])
+
     def test_evaluate_against_frozen_labels(self):
         dest = self._freeze(export_from(self.review, truth_assign(self.review), self.c))
         r = RC.evaluate(self.pack, dest, cfg_path=self.cfg, embed=colour_embed)
@@ -424,6 +530,40 @@ const { chromium } = require('playwright');
 })().catch(e => { console.error(e); process.exit(1); });
 """
 
+NODE_DIRECT = r"""
+const { chromium } = require('playwright');
+(async () => {
+  const [dir, out] = process.argv.slice(2);
+  const truth = JSON.parse(process.argv[4]);
+  const b = await chromium.launch(); const page = await b.newPage({ acceptDownloads: true });
+  await page.goto('file://' + dir + '/index.html');
+  await page.fill('#annotator', 'QA');
+  for (const [k, side] of [['A', 'A'], ['B', 'A'], ['C', 'B']]) { await page.fill('#pkey', k); await page.selectOption('#pside', side); await page.click('#padd'); }
+  const player = async k => page.locator('#players .player').filter({ hasText: new RegExp('^' + k + ' ') }).click();
+  await page.click('#direct');                                          // no cluster decisions at all
+  const R = await page.evaluate(() => window.SPANA_CLUSTER_REVIEW);
+  const n = R.tracklets.length - R.excluded.length;
+  const seen = [];
+  for (let i = 0; i < n - 1; i++) {                                     // leave the last one unanswered
+    const t = await page.locator('.card.current').getAttribute('data-direct');
+    seen.push(t); await player(truth[t]); await page.keyboard.press('a');
+  }
+  // CONFLICT: give the first answered tracklet the player of a tracklet it shares a frame with
+  const F = Object.fromEntries(R.tracklets.map(t => [t.id, t.frames]));
+  let pair = null;
+  for (const x of seen) for (const y of seen) if (!pair && truth[x] !== truth[y] && F[x].some(f => F[y].includes(f))) pair = [x, y];
+  await page.locator(`.card[data-direct="${pair[0]}"] button`, { hasText: 'Show' }).click();
+  await player(truth[pair[1]]); await page.locator('.card.current button', { hasText: 'Assign active player' }).click();
+  await page.click('#export');
+  if (!(await page.textContent('#status')).includes('CONFLICT')) throw new Error('export not blocked by CONFLICT');
+  await page.locator('.card.conflict button', { hasText: pair[0] }).click();
+  await player(truth[pair[0]]); await page.locator('.card.current button', { hasText: 'Assign active player' }).click();
+  page.once('dialog', d => d.accept());                                 // "1 tracklet ... exported as unsure"
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#export')]);
+  await dl.saveAs(out); console.log(seen.join(',')); await b.close();
+})().catch(e => { console.error(e); process.exit(1); });
+"""
+
 
 def _node_playwright() -> bool:
     if shutil.which("node") is None:
@@ -452,6 +592,30 @@ class ReviewPage(unittest.TestCase):
             a = json.loads((dest / "FROZEN.json").read_text())["cluster_audit"]
             self.assertEqual((a["comparable"], a["disagreements"], a["freeze_rule"]), (2, 0, "confirmed_only"))
             self.assertGreater(a["unconfirmed_cluster_labels_frozen_unsure"], 0)
+        finally:
+            shutil.rmtree(td, ignore_errors=True)
+
+    def test_page_direct_labelling_exports_and_freezes(self):
+        td = Path(tempfile.mkdtemp())
+        try:
+            pack = make_pack(td)
+            cfg = write_cfg(td)
+            RC.build(pack, td / "review", cfg, embed=colour_embed)
+            js = td / "direct.js"
+            js.write_text(NODE_DIRECT)
+            out = td / "export.json"
+            truth = json.dumps({t: v[0] for t, v in TRACKLETS.items()})
+            r = subprocess.run(["node", str(js), str(td / "review"), str(out), truth], capture_output=True, text=True,
+                               timeout=120)
+            self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+            ex = json.loads(out.read_text())
+            self.assertEqual(ex["labelling_flow"], "direct")
+            dest = freeze(str(pack), str(out), root=td / "repo", cluster_config=cfg)
+            st = json.loads((dest / "FROZEN.json").read_text())["direct_labelling"]
+            self.assertEqual((st["answered"], st["unanswered_frozen_unsure"], st["excluded"]), (6, 1, 1))
+            rows = {x["tracklet"]: x for x in load_frozen(dest, "train")["identities"]}
+            for t in r.stdout.strip().split(","):
+                self.assertEqual(rows[t]["player"], TRACKLETS[t][0])
         finally:
             shutil.rmtree(td, ignore_errors=True)
 

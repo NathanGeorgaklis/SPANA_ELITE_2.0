@@ -1,7 +1,8 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reid-retrain-v2, on identity/reid-confirmed-labels 12e2b6f; main 11b5a80).
+As of 2026-11-18 (branch identity/reid-direct-label-v1, on identity/reid-retrain-v2 8d62866; main 11b5a80).
 - Full suite: `python -m pytest tests -q` → 385 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+- Re-ID labelling tests (`tests/test_reid_cluster.py`): 20 passed on Nathan's Mac, incl. both review-page tests (Playwright on system Chrome).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -138,6 +139,11 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      (M001 + M002, `records/reid_retrain_m001_m002_2026-11-18`): DEV rival 0.921 vs colour 0.902; colour + re-ID
      pooled TAR @ 0.5 % FAR hard 0.207 vs 0.133 / 0.061 -> "promising" under the fusion rule (FRESH_07
      marginal). Not adopted; next: calibrate a margin on DEV, try behind a flag.
+   - Direct labelling (Nathan): the review page can skip the cluster review ("Start direct labelling"): every
+     non-excluded tracklet answered on its own, queued cluster by cluster, odd ones out first (keys a / r / u, ← →);
+     partial export allowed (unanswered = unsure, `unanswered_direct`), CONFLICT blocks. Export / freeze
+     `labelling_flow: direct` (`tools/reid_cluster.py` `check_cluster_export`). Audit answers carry over as direct
+     answers; `reid_cluster upgrade --review DIR` refreshes the page of an existing review folder.
 4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
    ByteTrack shows how much continuity is possible on the same detections (F07 11 / F08 22 fragments) and what it
    costs without flags (silent swaps): measure ByteTrack-style continuity inside our tracker, keeping the flags
