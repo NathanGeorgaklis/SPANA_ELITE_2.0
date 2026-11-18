@@ -1,0 +1,17 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/ (code c427922 extracted to code8/). Inputs: window
+# detections ~/SPANA_ELITE_2.0/runs/window_f05/G2_w.det.json and the DEV clip detections of runs/person_view_compare
+# (records/window_f05_2026-11-18/HASHES.txt, records/bytetrack_compare_2026-11-18/HASHES.txt).
+54a8224bc8c00f0d387ca788e3fca73ac691de575f85de01d6bf61ee71a8183c  ~/spana-continuity-run/run_default_z.sh
+95d6f8b953c3c6d8035a99b853e63976d0669dc2a99c2250c3d3a473d911ae71  ~/spana-continuity-run/run_window.sh
+2d6dd8061a4d32f1854508b07e594bfdd2c133c80681818fb8051fb90706dc63  ~/spana-continuity-run/window_stats.py
+bb9b83660e8481aa8110e54c981fa74a9231c884a440f2d4f06ce8e6cf59e6d7  ~/spana-continuity-run/window_baseline.py
+0df02e0d606a3da5cb44b9a71ee6f30155d30db6f825282b6e09c2a76eb1e75c  ~/spana-continuity-run/z_default.yaml (= w_on.yaml = shipped default)
+8ee31c948aa5b6040863421a73c100fe814a83870c526e72b5763c2838c3d43c  ~/spana-continuity-run/w_off.yaml
+8e426a319b196482e1926db7fbf29e16720e5a49526ff91d4f55cd22b3e0c51a  ~/spana-continuity-run/out/G2_w_off.trk.json
+098227e0b1533f6af1dafcd86a6b1d1b9e7e023236a7a2251cf1b5f2bae8db2c  ~/spana-continuity-run/out/G2_w_off.trk.decisions.jsonl (= recorded runs/window_f05/G2_w.trk.decisions.jsonl)
+cbf8d4ff9b0880b99d5e1417bb71fba7f34d0f77dbf9c2c8d2c9be1b24abf37c  ~/spana-continuity-run/out/G2_w_on.trk.json
+209d84320edab05cdc8cfd19bd19f08ee2315b1869e39cb147d10359d4d7c4e2  ~/spana-continuity-run/out/G2_w_on.trk.decisions.jsonl
+2d72487276620488ed8e189489ac8d719588b082027a3727e39ca64fe9dc1d3c  ~/spana-continuity-run/out/F02_zdefault.trk.json
+d83dd0a0a14b7a4016dfde235f65dab5532dbab144ef8942d0aabd39de43c8ba  ~/spana-continuity-run/out/F05_zdefault.trk.json
+6297bb3994c134a5b61110ae2104b97318788d2db9dc71b61026848a48076c4f  ~/spana-continuity-run/out/F07_zdefault.trk.json
+c6974ec472528474753a2423940e2ed390f17cd5d84ac4a25002b907957a97cc  ~/spana-continuity-run/out/F08_zdefault.trk.json
