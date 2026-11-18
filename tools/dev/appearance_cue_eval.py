@@ -167,13 +167,17 @@ def fusion_table(name, crops, cues, sim_fn, same, diff_all, same_hard, diff_hard
     t["rival"]["qb"] = {c: np.array([sim_fn(c, q, b) for q, _, b, _ in triplets], float) for c in cues}
     t["rival"]["occluded"] = np.array([crops[q]["occluded"] for q, _, _, _ in triplets], bool)
     t["rival"]["pair"] = ["|".join(sorted((str(p), str(q)))) for _, _, _, (p, q) in triplets]
+    t["rival"]["height"] = [float(crops[q]["h"]) for q, _, _, _ in triplets]          # query crop height (px)
+    t["rival"]["gap_s"] = [float(crops[q]["t"] - crops[a]["t"]) for q, a, _, _ in triplets]
     return t
 
 
 def main(out_json, model_dir, *specs):
     # optional "--fusion=CONFIG": also write OUT_JSON.fusion.json (tools/dev/cue_fusion.py); the main report is unchanged
     fusion_cfg = next((s.split("=", 1)[1] for s in specs if s.startswith("--fusion=")), None)
-    specs = [s for s in specs if not s.startswith("--fusion=")]
+    # optional "--dump-tables=PATH": every per-test score of every cue, for tools/dev/reid_calibrate.py
+    dump_path = next((s.split("=", 1)[1] for s in specs if s.startswith("--dump-tables=")), None)
+    specs = [s for s in specs if not s.startswith("--fusion=") and not s.startswith("--dump-tables=")]
     tables = []
     cfg = load_config("config/default.yaml")
     md = Path(model_dir)
@@ -225,7 +229,7 @@ def main(out_json, model_dir, *specs):
                     rb = [k for k in by_player.get(B, []) if crops[qk]["t"] - crops[k]["t"] >= MIN_GAP_S]
                     if ra and rb:
                         triplets.append((qk, ra[-1], rb[-1], (p, q)))
-        if fusion_cfg:
+        if fusion_cfg or dump_path:
             def sim_or_nan(cue, a, b):
                 if cue == "hist" and (crops[a]["hist"] is None or crops[b]["hist"] is None):
                     return float("nan")
@@ -287,6 +291,19 @@ def main(out_json, model_dir, *specs):
                   f"vis={r['rival_acc_query_visible']} gaps={[r[f'rival_acc_gap{lo}-{hi}s'] for lo, hi in GAP_BINS]} "
                   f"rival_pairs={r['rival_pair_accuracy']}")
     Path(out_json).write_text(json.dumps(report, indent=1, default=str))
+    if dump_path:
+        def plain(x):
+            if isinstance(x, dict):
+                return {k: plain(v) for k, v in x.items()}
+            if isinstance(x, (list, tuple, np.ndarray)):
+                return [plain(v) for v in x]
+            if isinstance(x, (float, np.floating)):
+                return None if np.isnan(x) else float(x)
+            if isinstance(x, (np.bool_, bool)):
+                return bool(x)
+            return x
+        Path(dump_path).write_text(json.dumps({"schema": "spana.cue_tables", "schema_version": "1.0.0", "cues": cues,
+                                               "model_dir": str(model_dir), "tables": plain(tables)}))
     if fusion_cfg:
         from tools.dev.cue_fusion import load_fusion_config, report as fusion_report
         fc = load_fusion_config(fusion_cfg)
