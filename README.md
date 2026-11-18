@@ -10,9 +10,9 @@ Fresh build started 2026-11-07. No code from earlier SPANA builds is used.
 | # | Layer | Package | Status |
 |---|---|---|---|
 | 1 | Video input + provenance | `spana/video.py`, `spana/provenance.py` | built |
-| 2 | Player detection | `spana/detection/` | built: pinned YOLOX-s (Apache-2.0, provisional), full frame + tiles |
-| 3 | Multi-player tracking | `spana/tracking/` | built: ACTIVE / OCCLUDED / LOST / TERMINATED; synthetic-tested only |
-| 4 | Target identity | — | next |
+| 2 | Player detection | `spana/detection/` | built: SPANA football detector v1 (RF-DETR, local or hosted) as a person view; pinned YOLOX-s still the CLI default |
+| 3 | Multi-player tracking | `spana/tracking/` | built: camera-compensated, per-track IDENTITY_UNCERTAIN, extent-change link; scored on DEV (`docs/STATUS.md`) |
+| 4 | Target identity | `spana/identity/` | built: follow one tapped player, relink / re-entry offers (re-ID v2), after-match review list |
 | 5 | Ball tracking | — | |
 | 6 | Team classification | — | |
 | 7 | Pitch / context | — | |
@@ -22,7 +22,8 @@ Fresh build started 2026-11-07. No code from earlier SPANA builds is used.
 | 11 | Clips (from validated events only) | — | |
 
 Each layer consumes the previous layer's **versioned artifact** (`spana/artifacts.py`, currently
-`spana.detections` 1.4.0 / `spana.tracks` 2.1.0), never its internals. Stage records, including negative results,
+`spana.detections` 1.4.0 / `spana.tracks` 2.2.0 / `spana.track_embeddings` 1.0.0 / `spana.target` 2.4.0), never its
+internals; `docs/INTERFACES.md` is the contract. Stage records, including negative results,
 are in `records/`.
 
 ## Run
@@ -36,6 +37,10 @@ python -m spana.cli detect --video match.mp4 --config config/default.yaml --mode
 python -m spana.cli detect --backend local --video match.mp4 --config config/default.yaml \
     --dataset-config config/roboflow.yaml --model-record models/rfdetr_v1.json --runtime torch --device mps --out det.json
 python -m spana.cli track  --video match.mp4 --config config/default.yaml --detections det.json --out tracks.json
+python -m spana.cli embed  --video match.mp4 --config config/default.yaml --tracks tracks.json \
+    --model-record models/spana_reid_v2.json --out emb.json   # re-ID signatures (weights not in git)
+python -m spana.cli target --tracks tracks.json --embeddings emb.json --config config/default.yaml \
+    --select-track T000012 --select-frame 20 --out target.json
 python tools/fetch_model.py models/yolox_s.json   # downloads weights, verifies sha256
 python -m pytest tests -q
 python -m tools.qa_scenarios                      # QA metrics table (transfers, switches, fragments ...)

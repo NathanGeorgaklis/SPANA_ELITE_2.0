@@ -118,7 +118,6 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   resolution rule, or (b) a user tap counting as evidence on a doubted track, or (c) stay off.
 - Config schema is 2.4.0 on this branch; 2.3.0 is used by the unmerged `tracking/exit-hold-v1` /
   `identity/target-render-v1` and by Nathan's local inference / profiling keys: reconcile when merging.
-- README pipeline table is stale (artifact versions listed as 1.1.0 / 2.0.0; code is detections 1.3.0, tracks 2.2.0).
 
 ## Hardcoded values / magic numbers found
 - `spana/tracking/camera.py:40` cut-detection HSV histogram bins `[32, 32]` (`camera.cut_hist_distance` depends on it).
