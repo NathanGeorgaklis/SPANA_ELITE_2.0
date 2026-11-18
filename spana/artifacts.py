@@ -28,6 +28,11 @@ Change log:
   2.2.0 target: + target_config.tap_vouches_doubt; TARGET may carry reason USER_VOUCHED: on an ACTIVE, confirmed
         track uncertain only by an appearance doubt (tracks 2.2.0 identity_doubt, no rivals), tapped by the user
         (selection or re-selection) earlier in the same uncertainty episode. 2.1.0 documents keep their meaning.
+  2.4.0 target: re-entry offers by re-ID. + top-level embeddings_sha256 (the spana.track_embeddings document used, or
+        null); + target_config reentry_offer / reentry_max_gap_s / reentry_min_similarity / reentry_min_margin; relink
+        evidence has a `kind`: "predecessor" {possible_predecessors, candidates} or "reid" {similarity,
+        second_similarity, candidates}; CANDIDATE reason REENTRY_REID for a reid offer. 2.3.0 documents keep their
+        meaning. A track_embeddings document validates with validate_track_embeddings.
   2.3.0 target: + target_config.resume_after_doubt_resolved (a no-rival doubt episode does not taint the followed
         track). Answers keep the 2.2.0 rules. 2.2.0 documents keep their meaning.
 
@@ -50,7 +55,7 @@ from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityS
 DETECTIONS_SCHEMA = ("spana.detections", "1.4.0")   # 1.4.0: class_names (class_id indexes it)
 TRACKS_SCHEMA = ("spana.tracks", "2.2.0")   # 2.1.0 documents still validate (validate_tracks)
 TRACKS_ACCEPTED = ("2.1.0", "2.2.0")
-TARGET_SCHEMA = ("spana.target", "2.3.0")   # 1.0.0 / 2.0.0 / 2.1.0 / 2.2.0 documents still validate
+TARGET_SCHEMA = ("spana.target", "2.4.0")   # 1.0.0 / 2.0.0 / 2.1.0 / 2.2.0 / 2.3.0 documents still validate
 
 
 class ArtifactError(ValueError):
@@ -347,16 +352,16 @@ _TARGET_REASONS = {  # state -> reasons allowed with it (1.0.0)
 _SELECTIONS = {("track_at_frame", "1.0.0"): ("kind", "version", "frame", "track_id")}
 
 
-def validate_target(doc: Any, tracks: Optional[dict] = None) -> None:
-    """Validate a spana.target document of any supported version (2.2.0 current; 2.1.0 / 2.0.0 / 1.0.0 as written
-    then)."""
+def validate_target(doc: Any, tracks: Optional[dict] = None, embeddings: Optional[dict] = None) -> None:
+    """Validate a spana.target document of any supported version (2.4.0 current; older versions as written then).
+    With `embeddings` (2.4.0), every re-ID offer's similarities are recomputed from the signatures."""
     if not isinstance(doc, dict):
         raise ArtifactError("target document must be an object")
     version = doc.get("schema_version")
     if version == "1.0.0":
         return _validate_target_v1(doc, tracks)
-    if version in ("2.0.0", "2.1.0", "2.2.0", "2.3.0"):
-        return _validate_target_v2(doc, tracks, version)
+    if version in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0"):
+        return _validate_target_v2(doc, tracks, version, embeddings)
     raise ArtifactError(f"unsupported spana.target version {version!r}")
 
 
@@ -434,6 +439,9 @@ _TARGET_REASONS_V2 = {**_TARGET_REASONS,
                       TargetState.CANDIDATE.value: {TargetReason.RELINK_PREDECESSOR.value}}
 _TARGET_REASONS_V22 = {**_TARGET_REASONS_V2,
                        TargetState.TARGET.value: {TargetReason.TRACK_OBSERVED.value, TargetReason.USER_VOUCHED.value}}
+_TARGET_REASONS_V24 = {**_TARGET_REASONS_V22,
+                       TargetState.CANDIDATE.value: {TargetReason.RELINK_PREDECESSOR.value,
+                                                     TargetReason.REENTRY_REID.value}}
 _RELINK_KEYS = ("from_track", "to_track", "lost_frame", "proposed_frame", "gap_s", "evidence", "confirmation",
                 "outcome", "dropped_reason")
 _CONFIRM = ("confirm_candidate", "1.0.0")
@@ -471,15 +479,18 @@ def gaps_of(frames: Sequence[dict], relinks: Sequence[dict]) -> List[dict]:
     return out
 
 
-def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = "2.2.0") -> None:
+def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = "2.2.0",
+                        embeddings: Optional[dict] = None) -> None:
     """2.0.0 / 2.1.0 / 2.2.0. Structure, then (with the source tracks) every answer and every relink against the
     tracks."""
-    v21, v22 = version in ("2.1.0", "2.2.0", "2.3.0"), version in ("2.2.0", "2.3.0")
-    v23 = version == "2.3.0"
+    v21, v22 = version in ("2.1.0", "2.2.0", "2.3.0", "2.4.0"), version in ("2.2.0", "2.3.0", "2.4.0")
+    v23, v24 = version in ("2.3.0", "2.4.0"), version == "2.4.0"
     _header(doc, ("spana.target", version),
             ("schema", "schema_version", "provenance", "video", "tracks_sha256", "selection",
              "user_actions" if v21 else "confirmations", "target_config", "track_ends", "relinks", "frames")
-            + (("gaps",) if v21 else ()))
+            + (("gaps",) if v21 else ()) + (("embeddings_sha256",) if v24 else ()))
+    if v24 and doc["embeddings_sha256"] is not None and not isinstance(doc["embeddings_sha256"], str):
+        raise ArtifactError("embeddings_sha256 must be a string or null")
     sel = doc["selection"]
     if not isinstance(sel, dict) or (sel.get("kind"), sel.get("version")) not in _SELECTIONS:
         raise ArtifactError("unsupported selection")
@@ -488,8 +499,12 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
         raise ArtifactError("bad selection frame / track_id")
     tc = doc["target_config"]
     _keys(tc, ("resume_after_uncertain", "relink_max_gap_s", "relink_auto_confirm")
-          + (("tap_vouches_doubt",) if v22 else ()) + (("resume_after_doubt_resolved",) if v23 else ()),
+          + (("tap_vouches_doubt",) if v22 else ()) + (("resume_after_doubt_resolved",) if v23 else ())
+          + (("reentry_offer", "reentry_max_gap_s", "reentry_min_similarity", "reentry_min_margin") if v24 else ()),
           "target_config")
+    if v24 and not (isinstance(tc["reentry_offer"], bool) and _num(tc["reentry_max_gap_s"]) and
+                    _num(tc["reentry_min_similarity"]) and _num(tc["reentry_min_margin"])):
+        raise ArtifactError("bad target_config re-entry keys")
     if not (isinstance(tc["resume_after_uncertain"], bool) and isinstance(tc["relink_auto_confirm"], bool)
             and isinstance(tc.get("tap_vouches_doubt", False), bool)
             and isinstance(tc.get("resume_after_doubt_resolved", False), bool)
@@ -523,7 +538,13 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
     used_confs = [c for c in confs if (c["kind"], c["version"]) == ("track_at_frame", "1.0.0")]
     for r in rels:
         _keys(r, _RELINK_KEYS + (("rejection",) if v21 else ()), "relink")
-        _keys(r["evidence"], ("possible_predecessors", "candidates"), "relink evidence")
+        kind = _relink_kind(r)
+        if v24:
+            _keys(r["evidence"], _EVIDENCE_KEYS.get(kind, ("kind",)), "relink evidence")
+            if kind not in _EVIDENCE_KEYS:
+                raise ArtifactError(f"relink evidence kind {kind!r} unknown")
+        else:
+            _keys(r["evidence"], ("possible_predecessors", "candidates"), "relink evidence")
         late_ok = v21 and r["outcome"] == "CONFIRMED"         # 2.1.0: an offer may be confirmed after it was dropped
         if r["outcome"] not in ("PENDING", "CONFIRMED", "DROPPED") or \
                 (r["outcome"] == "DROPPED" and r["dropped_reason"] is None) or \
@@ -537,10 +558,21 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
                     (rej["from_track"], rej["to_track"], rej["proposed_frame"]) == key and r["outcome"] != "CONFIRMED"):
                 raise ArtifactError(f"relink {key}: rejection not among the user actions")
             used_confs.append(rej)
-        if r["from_track"] not in r["evidence"]["possible_predecessors"] or r["to_track"] not in r["evidence"]["candidates"]:
-            raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: evidence does not support it")
-        if not (_num(r["gap_s"]) and 0 <= r["gap_s"] <= tc["relink_max_gap_s"] + 1e-9):
-            raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: gap outside relink_max_gap_s")
+        if kind == "reid":
+            ev = r["evidence"]
+            sec = ev["second_similarity"]
+            if not (tc["reentry_offer"] and doc["embeddings_sha256"] is not None and r["to_track"] in ev["candidates"]
+                    and _num(ev["similarity"]) and ev["similarity"] >= tc["reentry_min_similarity"] - 1e-9
+                    and (sec is None or (_num(sec) and ev["similarity"] - sec >= tc["reentry_min_margin"] - 1e-9))):
+                raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: re-ID evidence does not support it")
+            if not (_num(r["gap_s"]) and 0 <= r["gap_s"] <= tc["reentry_max_gap_s"] + 1e-9):
+                raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: gap outside reentry_max_gap_s")
+        else:
+            if r["from_track"] not in r["evidence"]["possible_predecessors"] or \
+                    r["to_track"] not in r["evidence"]["candidates"]:
+                raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: evidence does not support it")
+            if not (_num(r["gap_s"]) and 0 <= r["gap_s"] <= tc["relink_max_gap_s"] + 1e-9):
+                raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: gap outside relink_max_gap_s")
         c = r["confirmation"]
         if c is not None:
             if c == {"kind": "auto_confirm", "frame": c.get("frame")}:
@@ -561,7 +593,7 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
     confirmed_at = {(r["to_track"]): r["confirmation"]["frame"] for r in rels if r["outcome"] == "CONFIRMED"}
     proposed = {}
     for r in rels:
-        proposed.setdefault(r["to_track"], []).append(r["proposed_frame"])
+        proposed.setdefault((r["to_track"], _relink_kind(r)), []).append(r["proposed_frame"])
     ended_at = {e["track_id"]: e["frame"] for e in ends}
     prev, prev_t = -1, -math.inf
     for fr in frames:
@@ -571,7 +603,8 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
         if not _num(fr["t"]) or fr["t"] <= prev_t:
             raise ArtifactError(f"{where}: time not strictly increasing")
         prev_t = fr["t"]
-        if fr["reason"] not in (_TARGET_REASONS_V22 if v22 else _TARGET_REASONS_V2).get(fr["state"], set()):
+        if fr["reason"] not in (_TARGET_REASONS_V24 if v24 else _TARGET_REASONS_V22 if v22 else _TARGET_REASONS_V2
+                                ).get(fr["state"], set()):
             raise ArtifactError(f"{where}: state {fr['state']!r} with reason {fr['reason']!r}")
         tid, b = fr["track_id"], fr["box"]
         if not isinstance(tid, str):
@@ -586,8 +619,10 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
                 not (tid in confirmed_at and confirmed_at[tid] <= fr["frame"]) and \
                 not any(g <= fr["frame"] for g in reselected.get(tid, [])):
             raise ArtifactError(f"{where}: TARGET on {tid}: not the selection, a re-selection or a confirmed relink")
-        if fr["state"] == TargetState.CANDIDATE.value and not any(p <= fr["frame"] for p in proposed.get(tid, [])):
-            raise ArtifactError(f"{where}: CANDIDATE {tid} was never proposed")
+        if fr["state"] == TargetState.CANDIDATE.value:
+            kind = "reid" if fr["reason"] == TargetReason.REENTRY_REID.value else "predecessor"
+            if not any(p <= fr["frame"] for p in proposed.get((tid, kind), [])):
+                raise ArtifactError(f"{where}: CANDIDATE {tid} was never proposed ({kind})")
         if fr["reason"] == TargetReason.TRACK_ENDED.value and not (tid in ended_at and ended_at[tid] <= fr["frame"]):
             raise ArtifactError(f"{where}: TRACK_ENDED for {tid} without a recorded end")
     by_frame = {fr["frame"]: fr for fr in frames}
@@ -626,15 +661,21 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
     t_of = {tf["frame"]: tf["t"] for tf in tracks["frames"]}
     for r in rels:
         b = born.get(r["to_track"])
-        if b is None or r["from_track"] not in b["pp"] or not (r["lost_frame"] < b["frame"] <= r["proposed_frame"]):
+        reid = _relink_kind(r) == "reid"
+        if b is None or (not reid and r["from_track"] not in b["pp"]) or \
+                not (r["lost_frame"] < b["frame"] <= r["proposed_frame"]):
             raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: not supported by the tracks artifact")
         t0 = t_of[r["lost_frame"]]
         if abs((b["t"] - t0) - r["gap_s"]) > 1e-5:
             raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: gap_s disagrees with the tracks")
+        if reid:
+            continue                      # re-ID offers are checked against the embeddings below
         rivals = [k for k, v in born.items() if k != r["to_track"] and r["from_track"] in v["pp"]
                   and r["lost_frame"] < v["frame"] <= r["proposed_frame"] and v["t"] - t0 <= tc["relink_max_gap_s"] + 1e-9]
         if rivals:
             raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: not the only candidate ({rivals})")
+    if embeddings is not None and v24:
+        _check_reid_offers(doc, rels, embeddings)
     taps = sorted([(sel["frame"], sel["track_id"])] + [(g, tid) for tid, fs in reselected.items() for g in fs])
     for k, (tf, fr) in enumerate(zip(src, frames)):
         if fr["reason"] == TargetReason.USER_VOUCHED.value:
@@ -645,6 +686,45 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
                     and tr["identity"] == IdentityState.CERTAIN.value and tr["box"] == fr["box"]):
                 raise ArtifactError(f"frame {tf['frame']}: {fr['state']} not backed by an ACTIVE, confirmed, CERTAIN "
                                     "track box")
+
+
+def _relink_kind(r: dict) -> str:
+    return r["evidence"].get("kind", "predecessor") if isinstance(r.get("evidence"), dict) else "predecessor"
+
+
+_EVIDENCE_KEYS = {"predecessor": ("kind", "possible_predecessors", "candidates"),
+                  "reid": ("kind", "similarity", "second_similarity", "candidates")}
+
+
+def _cos(a, b) -> Optional[float]:
+    if a is None or b is None:
+        return None
+    na = math.sqrt(sum(x * x for x in a))
+    nb = math.sqrt(sum(x * x for x in b))
+    return sum(x * y for x, y in zip(a, b)) / max(na * nb, 1e-12)
+
+
+def _check_reid_offers(doc: dict, rels: List[dict], emb: dict) -> None:
+    """Every re-ID offer's similarity (lost track's last vs offered track's first signature) and runner-up."""
+    if sha256_doc(emb) != doc["embeddings_sha256"]:
+        raise ArtifactError("embeddings document does not match embeddings_sha256")
+    if emb["tracks_sha256"] != doc["tracks_sha256"]:
+        raise ArtifactError("embeddings were made from a different tracks document")
+    sig = emb["tracks"]
+    for r in rels:
+        if _relink_kind(r) != "reid":
+            continue
+        ev = r["evidence"]
+        last = sig.get(r["from_track"], {}).get("last")
+        sims = {c: _cos(last, sig.get(c, {}).get("first")) for c in ev["candidates"]}
+        best = sims.get(r["to_track"])
+        others = [v for c, v in sims.items() if c != r["to_track"] and v is not None]
+        second, claimed = (max(others) if others else None), ev["second_similarity"]
+        second_ok = (second is None and claimed is None) or \
+            (second is not None and claimed is not None and abs(second - claimed) <= 1e-4)
+        if best is None or abs(best - ev["similarity"]) > 1e-4 or not second_ok:
+            raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: re-ID similarities disagree with the "
+                                "embeddings")
 
 
 def _doubt_only(t: dict) -> bool:
@@ -702,3 +782,43 @@ def _frame_order(fr: Dict[str, Any], prev: int) -> int:
     if not isinstance(fr["frame"], int) or fr["frame"] <= prev:
         raise ArtifactError(f"frames not strictly increasing at {fr.get('frame')!r}")
     return fr["frame"]
+
+
+EMBEDDINGS_SCHEMA = ("spana.track_embeddings", "1.0.0")
+
+
+def validate_track_embeddings(doc: Any, tracks: Optional[dict] = None) -> None:
+    """spana.track_embeddings 1.0.0 (spana.identity.reid): per track a `first` / `last` re-ID signature (unit vector
+    of the model's dimension, or null when the track had no clean crop) and the frames embedded. With the source
+    tracks: same tracks hash, and every embedded frame is a confirmed, CERTAIN observation of that track."""
+    _header(doc, EMBEDDINGS_SCHEMA, ("schema", "schema_version", "provenance", "video", "tracks_sha256", "model",
+                                     "reid_config", "tracks"))
+    _keys(doc["model"], ("name", "version", "sha256", "embedding_dim"), "model")
+    dim = doc["model"]["embedding_dim"]
+    if not (isinstance(dim, int) and dim > 0) or not isinstance(doc["tracks"], dict):
+        raise ArtifactError("bad embeddings model / tracks")
+    for tid, row in doc["tracks"].items():
+        _keys(row, ("first", "last", "first_frames", "last_frames"), f"embeddings {tid}")
+        for end in ("first", "last"):
+            v, fs = row[end], row[f"{end}_frames"]
+            if not (isinstance(fs, list) and all(isinstance(f, int) for f in fs) and fs == sorted(fs)):
+                raise ArtifactError(f"embeddings {tid}: bad {end}_frames")
+            if v is None:
+                continue
+            if not (isinstance(v, list) and len(v) == dim and all(_num(x) for x in v) and fs):
+                raise ArtifactError(f"embeddings {tid}: bad {end} signature")
+            if abs(math.sqrt(sum(x * x for x in v)) - 1.0) > 1e-3:
+                raise ArtifactError(f"embeddings {tid}: {end} signature is not unit length")
+    if tracks is None:
+        return
+    if sha256_doc(tracks) != doc["tracks_sha256"] or tracks["video"] != doc["video"]:
+        raise ArtifactError("embeddings were made from a different tracks document")
+    obs = {}
+    for fr in tracks["frames"]:
+        for t in fr["tracks"]:
+            if t["source"] == PositionSource.OBSERVED.value and t["confirmed"] and \
+                    t["identity"] == IdentityState.CERTAIN.value:
+                obs.setdefault(t["track_id"], set()).add(fr["frame"])
+    for tid, row in doc["tracks"].items():
+        if not set(row["first_frames"] + row["last_frames"]) <= obs.get(tid, set()):
+            raise ArtifactError(f"embeddings {tid}: a sample is not a confirmed, CERTAIN observation of the track")

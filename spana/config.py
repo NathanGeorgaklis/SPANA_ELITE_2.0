@@ -19,9 +19,10 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.4.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.5.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
-#   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s
+#   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
+#   offer keys
 
 
 class ConfigError(ValueError):
@@ -209,11 +210,36 @@ class TargetConfig:
     resume_after_doubt_resolved: bool  # an uncertainty episode that was only ever a no-rival doubt does not taint
                                    #   the followed track: it is answered again once the tracker resolves the doubt
     review_min_gap_s: float        # after-match review list: only gaps at least this long (0 = every gap)
+    reentry_offer: bool            # offer a returning track by re-ID signature after a loss (needs track embeddings)
+    reentry_max_gap_s: float       # ... born at most this long after the lost track's last observation
+    reentry_min_similarity: float  # ... cosine similarity of the lost track's last and the candidate's first signature
+    reentry_min_margin: float      # ... and above every other candidate's similarity by at least this
 
     def validate(self) -> None:
         _pos("target.relink_max_gap_s", self.relink_max_gap_s)
         if not (isinstance(self.review_min_gap_s, (int, float)) and self.review_min_gap_s >= 0):
             raise ConfigError("target.review_min_gap_s must be >= 0")
+        _pos("target.reentry_max_gap_s", self.reentry_max_gap_s)
+        if not -1.0 <= self.reentry_min_similarity <= 1.0:
+            raise ConfigError("target.reentry_min_similarity must be a cosine in [-1, 1]")
+        if not 0.0 <= self.reentry_min_margin <= 2.0:
+            raise ConfigError("target.reentry_min_margin must be in [0, 2]")
+
+
+@dataclass(frozen=True)
+class ReidConfig:
+    """Re-ID signatures per track (spana.identity.reid). The model and its crop convention come from the model
+    record; these choose which observations are embedded."""
+    samples: int                   # observations embedded at each end of a track (first / last signature)
+    sample_min_gap_s: float        # ... at least this far apart in time
+    min_crop_height_px: int        # absolute floor: smaller boxes carry too few pixels (training crops >= 40 px)
+    clean_max_iou: float           # ... and overlap no other observed box by more than this
+
+    def validate(self) -> None:
+        _pos_int("reid.samples", self.samples)
+        _pos("reid.sample_min_gap_s", self.sample_min_gap_s)
+        _pos_int("reid.min_crop_height_px", self.min_crop_height_px)
+        _unit("reid.clean_max_iou", self.clean_max_iou)
 
 
 @dataclass(frozen=True)
@@ -235,6 +261,7 @@ class SpanaConfig:
     tracking: TrackingConfig
     appearance: AppearanceConfig
     target: TargetConfig
+    reid: ReidConfig
     output: OutputConfig
 
     def validate(self) -> None:

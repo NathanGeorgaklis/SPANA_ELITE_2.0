@@ -50,6 +50,17 @@ re-selection) during that doubt, the tap is the identity evidence the colour mod
 The vouch ends, fail closed, as soon as the track gains a rival (ABSTAIN IDENTITY_UNCERTAIN, then AFTER_UNCERTAIN)
 or a new uncertainty episode starts; it never covers a rival ambiguity, and a tap on a CERTAIN track vouches nothing.
 
+Re-entry offer by re-ID (spana.target 2.4.0, target.reentry_offer; Nathan 2026-11-18). After the answered track A
+is lost (or has ended) and the predecessor relink window has passed without an offer, the follower may show
+  CANDIDATE REENTRY_REID  (box = B's box, track_id = B)
+for the track B born after A's last observation, within target.reentry_max_gap_s of it, ACTIVE / confirmed / CERTAIN
+now, whose first re-ID signature (spana.track_embeddings) is closest to A's last signature, when that similarity
+reaches reentry_min_similarity and beats every other such track's by reentry_min_margin. Tracks without a signature
+are never offered. Accepted / declined exactly like a predecessor offer (confirm_relink / confirm_candidate /
+reject_candidate); never promoted without the user, whatever relink_auto_confirm says. A dropped or declined re-ID
+offer is not repeated for that loss; another track may still be offered. Signatures use the track's first crops,
+which may lie after the proposal frame: the offer is meant for the after-match review.
+
 Resume after a doubt (spana.target 2.3.0, target.resume_after_doubt_resolved). An uncertainty episode seen ONLY as a
 doubt with no rival (every uncertain frame of it doubt-only) does not taint the track: ABSTAIN IDENTITY_UNCERTAIN
 while it lasts, TARGET again once the tracker resolves it. Any frame of the episode with a rival taints as before
@@ -173,14 +184,47 @@ def _doubt_only(tr: dict) -> bool:
         not tr["identity_rivals"]
 
 
+def _reentry_offer(cur: str, last_obs: int, n: int, frames: List[dict], birth: Dict[str, int], live: Dict[str, dict],
+                   sig: Dict[str, dict], done: set, tc) -> Optional[dict]:
+    """Re-entry offer by re-ID (spana.target 2.4.0): among tracks born after cur's last observation and within
+    reentry_max_gap_s of it, usable now and not yet offered for this loss, the one whose first signature is closest
+    to cur's last signature, if it reaches reentry_min_similarity and beats the runner-up by reentry_min_margin.
+    Tracks without a signature are never offered (no evidence, no guess)."""
+    from .reid import cosine
+    last = sig.get(cur, {}).get("last")
+    if last is None:
+        return None
+    t0 = frames[last_obs]["t"]
+    cands = sorted(c for c, b in birth.items() if c != cur and last_obs < b <= n
+                   and frames[b]["t"] - t0 <= tc.reentry_max_gap_s + _EPS)
+    sims = {c: cosine(last, sig.get(c, {}).get("first")) for c in cands}
+    sims = {c: s for c, s in sims.items() if s is not None}
+    offerable = {c: s for c, s in sims.items() if c not in done and _usable(live.get(c))}
+    if not offerable:
+        return None
+    best = max(offerable, key=lambda c: (offerable[c], c))
+    others = [s for c, s in sims.items() if c != best]
+    second = max(others) if others else None
+    if sims[best] < tc.reentry_min_similarity - _EPS or \
+            (second is not None and sims[best] - second < tc.reentry_min_margin - _EPS):
+        return None
+    return {"from_track": cur, "to_track": best, "lost_frame": frames[last_obs]["frame"],
+            "proposed_frame": frames[n]["frame"], "gap_s": round(frames[birth[best]]["t"] - t0, 6),
+            "evidence": {"kind": "reid", "similarity": round(sims[best], 6),
+                         "second_similarity": None if second is None else round(second, 6),
+                         "candidates": sorted(sims)},
+            "confirmation": None, "rejection": None, "outcome": "PENDING", "dropped_reason": None}
+
+
 def _usable(tr: Optional[dict]) -> bool:
     return tr is not None and tr["state"] == TrackState.ACTIVE.value and tr["confirmed"] and \
         tr["identity"] == IdentityState.CERTAIN.value
 
 
-def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable[dict] = ()
-           ) -> Tuple[List[dict], dict]:
-    """(per-frame answers, {"track_ends": [...], "relinks": [...]}). tracks_doc must be a validated spana.tracks doc.
+def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable[dict] = (),
+           embeddings: Optional[dict] = None) -> Tuple[List[dict], dict]:
+    """(per-frame answers, {"track_ends": [...], "relinks": [...]}). tracks_doc must be a validated spana.tracks doc;
+    embeddings, if given, a validated spana.track_embeddings doc of it (re-entry offers, target.reentry_offer).
     Raises SelectionError / UserActionError on an invalid selection / user action."""
     start = check_selection(tracks_doc, sel)
     tc = cfg.target
@@ -209,10 +253,14 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
     relinkable = False                     # cur was confirmed, CERTAIN and untainted at its last observation
     search_done = False                    # this loss of cur gets no (further) proposal
     pending: Optional[dict] = None         # relink log entry of the current CANDIDATE
+    reid_done: set = set()                 # tracks already offered by re-ID for this loss (never offered again)
+    sig = (embeddings or {}).get("tracks", {}) if tc.reentry_offer else {}
 
     def drop(reason: str) -> None:
         nonlocal pending, search_done
         if pending is not None:
+            if pending["evidence"]["kind"] == "reid":
+                reid_done.add(pending["to_track"])
             pending.update(outcome="DROPPED", dropped_reason=reason)
             pending = None
         search_done = True
@@ -230,6 +278,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
             drop(why)
         cur, cur_ended, tainted, episodes0 = tid, False, False, None
         last_obs, relinkable, search_done = None, False, False
+        reid_done.clear()
         vouch = None if tapped is None else vouch_for(tapped)
 
     def find_relink(a: dict) -> dict:
@@ -319,12 +368,16 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                 last_obs = n
                 relinkable = tr["confirmed"] and not uncertain and not tainted
                 search_done = False
+                reid_done.clear()
         answer = {"frame": f, "t": t, "state": state.value, "reason": reason.value, "track_id": cur, "box": box}
 
         # ---------------------------------------------------------------- relink search while cur is not observed
-        if not observed and last_obs is not None and relinkable and not search_done:
+        if not observed and last_obs is not None and relinkable:
             t0 = frames[last_obs]["t"]
-            if any(frames[k]["camera"]["status"] in _BREAKS for k in range(last_obs + 1, n + 1)):
+            reid_pending = pending is not None and pending["evidence"]["kind"] == "reid"
+            if search_done or reid_pending:
+                pass                                   # the predecessor search is over for this loss
+            elif any(frames[k]["camera"]["status"] in _BREAKS for k in range(last_obs + 1, n + 1)):
                 drop("CAMERA_BREAK")
             else:
                 cands = sorted(c for c, b in birth.items()
@@ -338,14 +391,23 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                     b = listers[0]
                     pending = {"from_track": cur, "to_track": b, "lost_frame": frames[last_obs]["frame"],
                                "proposed_frame": f, "gap_s": round(frames[birth[b]]["t"] - t0, 6),
-                               "evidence": {"possible_predecessors": list(preds[b]), "candidates": cands},
+                               "evidence": {"kind": "predecessor", "possible_predecessors": list(preds[b]),
+                                            "candidates": cands},
                                "confirmation": None, "rejection": None, "outcome": "PENDING",
                                "dropped_reason": None}
+                    relinks.append(pending)
+            if reid_pending and not _usable(live.get(pending["to_track"])):
+                drop("CANDIDATE_NOT_USABLE")
+            if pending is None and sig and (search_done or fr["t"] - t0 > tc.relink_max_gap_s + _EPS):
+                pending = _reentry_offer(cur, last_obs, n, frames, birth, live, sig, reid_done, tc)
+                if pending is not None:
                     relinks.append(pending)
             base = dict(answer)
             if pending is not None:
                 b = pending["to_track"]
-                answer.update(state=TargetState.CANDIDATE.value, reason=TargetReason.RELINK_PREDECESSOR.value,
+                answer.update(state=TargetState.CANDIDATE.value,
+                              reason=(TargetReason.REENTRY_REID if pending["evidence"]["kind"] == "reid"
+                                      else TargetReason.RELINK_PREDECESSOR).value,
                               track_id=b, box=list(live[b]["box"]))
                 for a in deferred:                     # the user acted on the offer made on this frame
                     if (a["from_track"], a["to_track"], a["proposed_frame"]) != \
@@ -362,7 +424,8 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
             if pending is not None:
                 b = pending["to_track"]
                 key = (f, b)
-                if tc.relink_auto_confirm or key in confs:
+                auto = tc.relink_auto_confirm and pending["evidence"]["kind"] == "predecessor"   # never re-ID
+                if auto or key in confs:
                     if key in confs:
                         used.add(id(confs[key]))
                     pending.update(confirmation=confs.get(key, {"kind": "auto_confirm", "frame": f}),
@@ -370,6 +433,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                     cur, cur_ended, pending, vouch = b, False, None, None
                     tainted, episodes0 = False, live[b]["uncertain_episodes"]
                     last_obs, relinkable, search_done = n, True, False
+                    reid_done.clear()
                     answer.update(state=TargetState.TARGET.value, reason=TargetReason.TRACK_OBSERVED.value)
         out.append(answer)
     unused = [a for a in acts if id(a) not in used]
@@ -392,25 +456,31 @@ def review_list(gaps: Sequence[dict], cfg: SpanaConfig) -> List[dict]:
 
 
 def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Sequence[str] = (),
-                    actions: Iterable[dict] = ()) -> dict:
-    """Validated spana.target 2.3.0 document for one selection (and the user's actions) on one validated
-    spana.tracks document."""
+                    actions: Iterable[dict] = (), embeddings: Optional[dict] = None) -> dict:
+    """Validated spana.target 2.4.0 document for one selection (and the user's actions) on one validated
+    spana.tracks document (and, for re-entry offers, its validated spana.track_embeddings document)."""
     actions = [dict(a) for a in actions]
-    frames, info = follow(tracks_doc, sel, cfg, actions)
+    frames, info = follow(tracks_doc, sel, cfg, actions, embeddings)
     tsha = sha256_doc(tracks_doc)
+    esha = None if embeddings is None else sha256_doc(embeddings)
     doc = {
         "schema": TARGET_SCHEMA[0], "schema_version": TARGET_SCHEMA[1],
         "provenance": build_provenance(config_sha256=cfg.sha256(), argv=list(argv) or sys.argv,
-                                       inputs={"video": tracks_doc["video"]["sha256"], "tracks": tsha}),
-        "video": tracks_doc["video"], "tracks_sha256": tsha, "selection": sel.to_dict(),
+                                       inputs={"video": tracks_doc["video"]["sha256"], "tracks": tsha,
+                                               **({} if esha is None else {"embeddings": esha})}),
+        "video": tracks_doc["video"], "tracks_sha256": tsha, "embeddings_sha256": esha, "selection": sel.to_dict(),
         "user_actions": actions,
         "target_config": {"resume_after_uncertain": cfg.target.resume_after_uncertain,
                           "relink_max_gap_s": cfg.target.relink_max_gap_s,
                           "relink_auto_confirm": cfg.target.relink_auto_confirm,
                           "tap_vouches_doubt": cfg.target.tap_vouches_doubt,
-                          "resume_after_doubt_resolved": cfg.target.resume_after_doubt_resolved},
+                          "resume_after_doubt_resolved": cfg.target.resume_after_doubt_resolved,
+                          "reentry_offer": cfg.target.reentry_offer,
+                          "reentry_max_gap_s": cfg.target.reentry_max_gap_s,
+                          "reentry_min_similarity": cfg.target.reentry_min_similarity,
+                          "reentry_min_margin": cfg.target.reentry_min_margin},
         "track_ends": info["track_ends"], "relinks": info["relinks"], "frames": frames,
         "gaps": gaps_of(frames, info["relinks"]),
     }
-    validate_target(doc, tracks_doc)
+    validate_target(doc, tracks_doc, embeddings)
     return doc

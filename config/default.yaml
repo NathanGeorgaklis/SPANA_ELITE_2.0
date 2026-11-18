@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.4.0"
+schema_version: "2.5.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -137,6 +137,23 @@ target:
   # 1.0 s chosen on DEV (records/review_min_gap_2026-11-18): the largest value keeping reviewer correct >= 0.778;
   # actions 6.06 -> 5.64 per followed minute. Fitted on 4 DEV clips (a sweep), not on EVAL.
   review_min_gap_s: 1.0
+  # Re-entry offer by re-ID (Nathan, 2026-11-18: option 1, built for testing in the app). After the followed track is
+  # lost and no predecessor relink applies, offer (CANDIDATE, reason REENTRY_REID; TARGET only after the user
+  # confirms) the one track born within reentry_max_gap_s whose first re-ID signature is closest to the lost track's
+  # last signature, if it reaches reentry_min_similarity and beats every other such track by reentry_min_margin.
+  # Needs a spana.track_embeddings document (spana.cli embed); without one, no offer.
+  # Thresholds: set on the DEV clips (records/reentry_reid_offers_2026-11-18).
+  reentry_offer: true
+  reentry_max_gap_s: 10.0
+  reentry_min_similarity: 0.60
+  reentry_min_margin: 0.10
+
+reid:
+  # Which observations are embedded into a track's first / last re-ID signature (spana.identity.reid).
+  samples: 5
+  sample_min_gap_s: 0.20
+  min_crop_height_px: 40     # = the training crops' minimum height (config/reid_train.yaml crops.min_height_px)
+  clean_max_iou: 0.05        # = appearance.clean_max_iou: a crop that mixes players is not evidence
 
 output:
   box_decimals: 1

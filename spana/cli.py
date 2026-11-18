@@ -6,6 +6,8 @@
   python -m spana.cli detect --backend local --video V --config C --dataset-config config/roboflow.yaml \
       --model-record models/rfdetr_v1.json --runtime torch --device mps --out detections.json   # same, on this machine
   python -m spana.cli track  --video V --config C --detections detections.json --out tracks.json
+  python -m spana.cli embed  --video V --config C --tracks tracks.json --model-record models/spana_reid_v2.json \
+      --out embeddings.json
   python -m spana.cli target --tracks tracks.json --config C --select-track T --select-frame F [--actions A.json] \
       --out target.json
 
@@ -160,7 +162,26 @@ def cmd_target(a: argparse.Namespace) -> int:
     confs = read_json(a.actions) if a.actions else []
     if not isinstance(confs, list):
         raise ArtifactError("--actions must name a JSON list of user action records")
-    doc = target_document(tdoc, Selection.track_at_frame(a.select_track, a.select_frame), cfg, sys.argv, confs)
+    emb = None
+    if a.embeddings:
+        from .artifacts import validate_track_embeddings
+        emb = read_json(a.embeddings)
+        validate_track_embeddings(emb, tdoc)
+    doc = target_document(tdoc, Selection.track_at_frame(a.select_track, a.select_frame), cfg, sys.argv, confs, emb)
+    print(write_json_atomic(a.out, doc))
+    return 0
+
+
+def cmd_embed(a: argparse.Namespace) -> int:
+    """Re-ID signatures per track (spana.track_embeddings) for re-entry offers. Reads the video frames that hold a
+    sample; the model is pinned by its record (sha256)."""
+    from .identity.reid import ReidEmbedder, ReidModelRecord, embeddings_document
+    cfg = load_config(a.config)
+    refuse_existing(a.out)
+    tdoc = read_json(a.tracks)
+    validate_tracks(tdoc)
+    video = VideoSource(a.video, expected_sha256=a.video_sha256)
+    doc = embeddings_document(video, tdoc, ReidEmbedder(ReidModelRecord.load(a.model_record)), cfg, sys.argv)
     print(write_json_atomic(a.out, doc))
     return 0
 
@@ -197,9 +218,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     g.add_argument("--actions", "--confirm", dest="actions", default=None,
                    help="JSON list of the user's actions: confirm_candidate / confirm_relink / reject_candidate / "
                         "track_at_frame (re-selection) 1.0.0 records (spana.identity.follower)")
+    g.add_argument("--embeddings", default=None,
+                   help="spana.track_embeddings of these tracks (spana.cli embed): enables re-entry offers")
     g.add_argument("--out", required=True)
+    e = sub.add_parser("embed", help="re-ID signatures per track (spana.track_embeddings)")
+    e.add_argument("--video", required=True)
+    e.add_argument("--video-sha256", default=None, help="refuse to run if the video hash differs")
+    e.add_argument("--tracks", required=True)
+    e.add_argument("--config", required=True)
+    e.add_argument("--model-record", required=True, help="re-ID model record, e.g. models/spana_reid_v2.json")
+    e.add_argument("--out", required=True)
     a = p.parse_args(argv)
-    return {"detect": cmd_detect, "track": cmd_track, "target": cmd_target}[a.cmd](a)
+    return {"detect": cmd_detect, "track": cmd_track, "target": cmd_target, "embed": cmd_embed}[a.cmd](a)
 
 
 if __name__ == "__main__":

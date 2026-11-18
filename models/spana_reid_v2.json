@@ -1,0 +1,15 @@
+{
+  "name": "SPANA re-ID model v2 (DINOv2 ViT-S/14 backbone, fine-tuned on TRAIN_M001 + TRAIN_M002 identities)",
+  "source": "tools/reid_train.py run on Nathan's Mac, 2026-11-18 (records/reid_retrain_m001_m002_2026-11-18); exported to ONNX with tools/reid_train.py export",
+  "version": "spana-reid-v2-m001-m002",
+  "licence": "backbone DINOv2-small Apache-2.0 (models/dinov2_small.json); fine-tuned by SPANA on SPANA-licensed TRAIN matches",
+  "onnx_path": "spana_reid_v2/spana_reid.onnx",
+  "onnx_sha256": "c269450e871cb28b4020b715618edc9dcda328faf951503a9e09f8e7a3032f84",
+  "input_size_hw": [224, 112],
+  "crop_pad": 0.05,
+  "color_order": "rgb",
+  "mean": [0.485, 0.456, 0.406],
+  "std": [0.229, 0.224, 0.225],
+  "embedding_dim": 256,
+  "validation": "records/reid_retrain_m001_m002_2026-11-18: DEV A-or-B rival accuracy 0.921 pooled (colour 0.902); ONNX vs PyTorch max abs diff 1.2e-6"
+}

@@ -34,7 +34,7 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from spana.artifacts import read_json, sha256_doc, validate_tracks, write_json_atomic
+from spana.artifacts import read_json, sha256_doc, validate_track_embeddings, validate_tracks, write_json_atomic
 from spana.config import load_config
 from spana.evaluation import NESTED_V2, _match
 from spana.artifacts import gaps_of
@@ -96,13 +96,14 @@ def relink_verdict(r: dict, frames: List[dict], gt, attr, pid: str) -> Tuple[str
     return "undecided", None, None
 
 
-def simulated_confirmations(tracks_doc: dict, sel: Selection, cfg, gt, attr, pid: str) -> List[dict]:
+def simulated_confirmations(tracks_doc: dict, sel: Selection, cfg, gt, attr, pid: str,
+                            emb: Optional[dict] = None) -> List[dict]:
     """A user who confirms every candidate that is the right player (judged on the first labelled frame of the
     candidate, NESTED_V2) on the candidate's first frame, and confirms nothing else."""
     confs: List[dict] = []
     judged: set = set()
     while True:
-        frames, info = follow(tracks_doc, sel, cfg, confs)
+        frames, info = follow(tracks_doc, sel, cfg, confs, emb)
         todo = [r for r in info["relinks"] if r["outcome"] != "CONFIRMED"
                 and (r["from_track"], r["to_track"], r["proposed_frame"]) not in judged]
         if not todo:
@@ -124,7 +125,8 @@ def offer_verdict(r: dict, gt, attr, pid: str) -> str:
     return "undecided"
 
 
-def simulated_review(tracks_doc: dict, sel: Selection, cfg, gt, attr, pid: str, max_steps: int = 1000) -> List[dict]:
+def simulated_review(tracks_doc: dict, sel: Selection, cfg, gt, attr, pid: str, max_steps: int = 1000,
+                     emb: Optional[dict] = None) -> List[dict]:
     """An after-match reviewer working through the gap list (decision 2026-11-16), knowing the truth: for each gap in
     turn, it confirms an offer judged right or rejects one judged wrong (on the offer's first frame); otherwise it taps
     the player on the gap's first labelled frame where they have an unambiguous track. Best case of the review UI.
@@ -132,7 +134,7 @@ def simulated_review(tracks_doc: dict, sel: Selection, cfg, gt, attr, pid: str, 
     actions: List[dict] = []
     handled: set = set()
     for _ in range(max_steps):
-        frames, info = follow(tracks_doc, sel, cfg, actions)
+        frames, info = follow(tracks_doc, sel, cfg, actions, emb)
         todo = [g for g in review_list(gaps_of(frames, info["relinks"]), cfg) if g["start_frame"] not in handled]
         if not todo:
             return actions
@@ -166,7 +168,7 @@ def simulated_review(tracks_doc: dict, sel: Selection, cfg, gt, attr, pid: str, 
 
 
 def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Path], clip: str,
-                 simulate_user: bool = False, simulate_reviewer: bool = False) -> dict:
+                 simulate_user: bool = False, simulate_reviewer: bool = False, emb: Optional[dict] = None) -> dict:
     visible = [f for f in gt.frames if pid in gt.players.get(f, {})]
     sel = first_selection(pid, gt, attr)
     row = {"player": pid, "labelled_frames": len(visible), "first_labelled_frame": visible[0] if visible else None}
@@ -174,9 +176,9 @@ def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Pa
         return {**row, "selected": False}
     n0, f0, tid = sel
     selection = Selection.track_at_frame(tid, f0)
-    confs = simulated_confirmations(tracks_doc, selection, cfg, gt, attr, pid) if simulate_user else \
-        simulated_review(tracks_doc, selection, cfg, gt, attr, pid) if simulate_reviewer else []
-    doc = target_document(tracks_doc, selection, cfg, ["tools.target_score", clip, pid], confs)
+    confs = simulated_confirmations(tracks_doc, selection, cfg, gt, attr, pid, emb) if simulate_user else \
+        simulated_review(tracks_doc, selection, cfg, gt, attr, pid, emb=emb) if simulate_reviewer else []
+    doc = target_document(tracks_doc, selection, cfg, ["tools.target_score", clip, pid], confs, emb)
     if art_dir is not None:
         write_json_atomic(art_dir / f"{clip}.player{pid}.target.json", doc)
     ans = {fr["frame"]: fr for fr in doc["frames"]}
@@ -207,7 +209,9 @@ def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Pa
     relinks = []
     for r in doc["relinks"]:
         v, vf, vp = relink_verdict(r, doc["frames"], gt, attr, pid)
-        relinks.append({"from_track": r["from_track"], "to_track": r["to_track"], "proposed_frame": r["proposed_frame"],
+        relinks.append({"kind": r["evidence"].get("kind", "predecessor"),
+                        "similarity": r["evidence"].get("similarity"),
+                        "from_track": r["from_track"], "to_track": r["to_track"], "proposed_frame": r["proposed_frame"],
                         "gap_s": r["gap_s"], "outcome": r["outcome"], "dropped_reason": r["dropped_reason"],
                         "confirmed_by": None if r["confirmation"] is None else r["confirmation"]["kind"],
                         "verdict": v, "verdict_frame": vf, "verdict_player": vp})
@@ -233,30 +237,37 @@ def pct(c: Dict[str, int]) -> dict:
             "abstain_time": r("abstain"), "lost_time": r("lost")}
 
 
-def relink_totals(players: List[dict]) -> dict:
-    rs = [r for p in players for r in p["relinks"]]
-    return {"proposed": len(rs), "right": sum(r["verdict"] == "right" for r in rs),
+def relink_totals(players: List[dict], kind: Optional[str] = None) -> dict:
+    rs = [r for p in players for r in p["relinks"] if kind is None or r["kind"] == kind]
+    by_kind = {} if kind is not None else {"by_kind": {k: relink_totals(players, k) for k in ("predecessor", "reid")}}
+    return {**by_kind, "proposed": len(rs), "right": sum(r["verdict"] == "right" for r in rs),
             "wrong": sum(r["verdict"] == "wrong" for r in rs), "undecided": sum(r["verdict"] == "undecided" for r in rs),
             "confirmed": sum(r["outcome"] == "CONFIRMED" for r in rs),
             "dropped": sum(r["outcome"] == "DROPPED" for r in rs)}
 
 
 def score_clip(label_dir: Path, tracks_path: Path, cfg, art_dir: Optional[Path], simulate_user: bool = False,
-               simulate_reviewer: bool = False) -> dict:
+               simulate_reviewer: bool = False, embeddings_path: Optional[Path] = None) -> dict:
     frozen, gt = load_frozen(label_dir)
     tdoc = read_json(tracks_path)
     validate_tracks(tdoc)
+    emb = None
+    if embeddings_path is not None:
+        emb = read_json(embeddings_path)
+        validate_track_embeddings(emb, tdoc)
     if tdoc["video"]["sha256"] != frozen["clip"]["sha256"]:
         raise SystemExit("refusing: the tracks were made from a different video than the labels")
     attr = attributions(gt, tdoc)
     ids = sorted({p for f in gt.frames for p in gt.players.get(f, {})}, key=int)
     clip = frozen["clip"]["name"]
-    players = [score_player(p, gt, attr, tdoc, cfg, art_dir, clip, simulate_user, simulate_reviewer) for p in ids]
+    players = [score_player(p, gt, attr, tdoc, cfg, art_dir, clip, simulate_user, simulate_reviewer, emb)
+               for p in ids]
     sel = [p for p in players if p["selected"]]
     pooled = {k: sum(p[k] for p in sel) for k in COUNTS}
     return {"clip": clip, "labels": {"dir": str(label_dir), "gt_sha256": frozen["gt_sha256"],
                                      "frames": len(gt.frames), "frame_step": frozen["frame_step"]},
             "tracks": {"path": tracks_path.name, "sha256": sha256_doc(tdoc), "commit": tdoc["provenance"].get("git")},
+            "embeddings": None if emb is None else {"path": embeddings_path.name, "sha256": sha256_doc(emb)},
             "players": len(players), "players_selected": len(sel),
             "pooled": {**pooled, **pct(pooled),
                        "answers_while_absent": sum(p["answers_while_absent"] for p in sel),
@@ -273,7 +284,9 @@ def score_clip(label_dir: Path, tracks_path: Path, cfg, art_dir: Optional[Path],
 def main(argv: Optional[List[str]] = None) -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--config", required=True)
-    p.add_argument("--clip", nargs=2, action="append", required=True, metavar=("LABELS_DIR", "TRACKS_JSON"))
+    p.add_argument("--clip", nargs="+", action="append", required=True,
+                   metavar="LABELS_DIR TRACKS_JSON [EMBEDDINGS_JSON]",
+                   help="labels dir, tracks, and optionally the tracks' spana.track_embeddings (re-entry offers)")
     p.add_argument("--out", required=True)
     p.add_argument("--artifacts-dir", default=None, help="also write one spana.target document per player here")
     p.add_argument("--simulate-user", action="store_true",
@@ -287,7 +300,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     art = Path(a.artifacts_dir) if a.artifacts_dir else None
     if a.simulate_user and a.simulate_reviewer:
         raise SystemExit("choose --simulate-user or --simulate-reviewer, not both")
-    clips = [score_clip(Path(l), Path(t), cfg, art, a.simulate_user, a.simulate_reviewer) for l, t in a.clip]
+    if any(len(c) not in (2, 3) for c in a.clip):
+        raise SystemExit("--clip takes LABELS_DIR TRACKS_JSON [EMBEDDINGS_JSON]")
+    clips = [score_clip(Path(c[0]), Path(c[1]), cfg, art, a.simulate_user, a.simulate_reviewer,
+                        Path(c[2]) if len(c) == 3 else None) for c in a.clip]
     report = {"tool": "tools.target_score", "match_rule": RULE.name, "config_sha256": cfg.sha256(),
               "target_config": dataclasses.asdict(cfg.target), "simulate_user": a.simulate_user,
               "simulate_reviewer": a.simulate_reviewer, "clips": clips}

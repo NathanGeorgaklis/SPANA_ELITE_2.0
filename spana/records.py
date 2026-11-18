@@ -62,6 +62,7 @@ class TargetReason(str, Enum):
     TRACK_LOST = "TRACK_LOST"                # LOST: followed track unobserved, not explained by an occluder
     TRACK_ENDED = "TRACK_ENDED"              # LOST: followed track ended (any EndReason, incl. CAMERA_CUT)
     RELINK_PREDECESSOR = "RELINK_PREDECESSOR"  # CANDIDATE (2.0.0): the only new track the tracker links to the lost one
+    REENTRY_REID = "REENTRY_REID"            # CANDIDATE (2.4.0): returning track offered by its re-ID signature
     USER_VOUCHED = "USER_VOUCHED"            # TARGET (2.2.0): track uncertain only by an appearance doubt (no rival),
                                              #   and the user tapped it during that same doubt episode
 

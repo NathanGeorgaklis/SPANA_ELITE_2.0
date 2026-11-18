@@ -71,7 +71,7 @@ What the tracking layer receives from any detector, the football detector includ
 | `CameraStatus` | OK, UNKNOWN, CUT, FIRST |
 | `EndReason` | UNCONFIRMED_MISSED, UNCONFIRMED_TIMEOUT, LOST_EXPIRED, CAMERA_CUT, CAMERA_MOTION_UNKNOWN, LEFT_FRAME |
 | `TargetState` (target identity) | TARGET, CANDIDATE (2.0.0: proposed relink awaiting confirmation), LOST, ABSTAIN |
-| `TargetReason` (target identity) | TRACK_OBSERVED, NOT_CONFIRMED, IDENTITY_UNCERTAIN, AFTER_UNCERTAIN, TRACK_OCCLUDED, TRACK_LOST, TRACK_ENDED, RELINK_PREDECESSOR (2.0.0), USER_VOUCHED (2.2.0) |
+| `TargetReason` (target identity) | TRACK_OBSERVED, NOT_CONFIRMED, IDENTITY_UNCERTAIN, AFTER_UNCERTAIN, TRACK_OCCLUDED, TRACK_LOST, TRACK_ENDED, RELINK_PREDECESSOR (2.0.0), USER_VOUCHED (2.2.0), REENTRY_REID (2.4.0) |
 
 ## Target identity — `spana/identity/` (defined 2026-11-16)
 Follow the user's chosen player through a clip, and say so when unsure.
@@ -80,8 +80,12 @@ Follow the user's chosen player through a clip, and say so when unsure.
   - `track_at_frame` 1.0.0 = a tap on a box the app showed: the track must be live and ACTIVE (observed) on that
     frame. Otherwise `SelectionError` (refused, never guessed).
   - Tap is the chosen way to pick (decision 2026-11-16). Shirt number / photo may come later as hints.
-- Out: **`spana.target` 2.3.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
-  2.2.0, 2.1.0, 2.0.0 and 1.0.0 documents still validate with their own meaning.
+- Out: **`spana.target` 2.4.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
+  2.3.0, 2.2.0, 2.1.0, 2.0.0 and 1.0.0 documents still validate with their own meaning.
+  - 2.4.0: + `embeddings_sha256` (the `spana.track_embeddings` document used, or null); + target_config
+    `reentry_offer, reentry_max_gap_s, reentry_min_similarity, reentry_min_margin`; relink `evidence.kind`:
+    `predecessor` {possible_predecessors, candidates} or `reid` {similarity, second_similarity, candidates};
+    CANDIDATE reason REENTRY_REID. `validate_target(doc, tracks, embeddings)` recomputes re-ID similarities.
   - 2.2.0: no `target_config.resume_after_doubt_resolved`.
   - 2.1.0: no `target_config.tap_vouches_doubt`, no USER_VOUCHED.
   - 2.0.0: `confirmations` instead of `user_actions`, no `gaps`, no `rejection` in relinks.
@@ -151,7 +155,14 @@ Follow the user's chosen player through a clip, and say so when unsure.
       appears, a cut follows, or B stops qualifying.
     - The user's confirmation makes B the answered track (TARGET from that frame). Losses can repeat (chains).
     - `target.relink_auto_confirm` (default false) promotes immediately; for measurement only.
-- CLI: `python -m spana.cli target --tracks --config --select-track --select-frame [--actions FILE] --out`
+- CLI: `python -m spana.cli target --tracks --config --select-track --select-frame [--actions FILE]
+  [--embeddings FILE] --out`
+- Re-ID signatures (`spana/identity/reid.py`): **`spana.track_embeddings` 1.0.0** — `schema, schema_version,
+  provenance, video, tracks_sha256, model {name, version, sha256, embedding_dim}, reid_config, tracks`; per track
+  `{first, last, first_frames, last_frames}`: unit-length signatures (mean of up to `reid.samples` clean crops at the
+  track's start / end) or null. Validated by `validate_track_embeddings(doc, tracks)`. Model pinned by
+  `models/spana_reid_v2.json` (ONNX sha256; weights not in git). CLI: `python -m spana.cli embed --video --tracks
+  --config --model-record --out`.
   (`--confirm` kept as an alias).
 - DEV scorer: `tools/target_score.py`. Per labelled player: selected on the first labelled frame with an
   unambiguous NESTED_V2 track match.
