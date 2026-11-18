@@ -156,6 +156,7 @@ def main(argv=None) -> int:
     r.add_argument("--ref-tracks", required=True)
     r.add_argument("--out", required=True)
     r.add_argument("--config", default=str(DEFAULT_CONFIG))
+    r.add_argument("--git", default=None, help="commit of this tool, recorded in provenance (tools/benchmark.py reads it)")
     lf = sub.add_parser("life")
     lf.add_argument("--tracks", nargs="+", required=True)
     a = p.parse_args(argv)
@@ -172,7 +173,7 @@ def main(argv=None) -> int:
     validate_tracks(ref, dets)
     fps = float(dets["video"]["fps"])
     ml = max_time_lost(fps, cfg["bytetrack"]["lost_track_buffer"])
-    prov = {"tool": "tools.dev.bytetrack_compare", "tracker": f"supervision ByteTrack {cfg['supervision_version']}",
+    prov = {"tool": "tools.dev.bytetrack_compare", "git": a.git, "tracker": f"supervision ByteTrack {cfg['supervision_version']}",
             "config_sha256": hashlib.sha256(Path(a.config).read_bytes()).hexdigest(), "bytetrack": cfg["bytetrack"],
             "frame_rate": int(round(fps)), "max_time_lost_frames": ml,
             "reference_tracks_sha256": hashlib.sha256(Path(a.ref_tracks).read_bytes()).hexdigest()}

@@ -89,6 +89,7 @@ class RealByteTrack(unittest.TestCase):
                                       "--out", str(out)]), 0)
             doc = read_json(out)
             validate_tracks(doc, dets)
+            self.assertIn("git", doc["provenance"])                   # tools/benchmark.py reads it
             self.assertTrue(any(t["state"] == "ACTIVE" for fr in doc["frames"] for t in fr["tracks"]))
             self.assertEqual((td / "bt.trk.decisions.jsonl").read_text(), "")
         finally:
