@@ -89,6 +89,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   - Only the tracker's own link within 0.5 s is safe (44 / 44).
   - Position + colour agreement picked 4 real wrong players in same-kit clusters.
   - `records/reid_headroom_F07_F08_2026-11-16/RECORD.md`.
+- Long run, DEV G2 10-minute window: the tracker emitted an occluder that was not live on its frame (fixed on
+  `tracking/occluder-live-fix`; DEV clip tracks unchanged).
+  - Follower: 0 wrong answers, but 0 answered time for the chosen player without user taps (his track was
+    uncertain, then ended on a camera pan after 7.3 s).
 - Target relink, DEV: with confirmation, FRESH_02 player 9 gets 1 wrong TARGET frame (276). Track T000045 was
   confirmed correctly at frame 270, then changed player; it names two predecessors. Auto-confirm adds a wrong
   second-hop relink (FRESH_02 player 15 → player 16's track).
@@ -106,11 +110,15 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
-1. Cut the after-match review effort (6.3 actions per followed player-minute on DEV, `records/target_recovery_v1_2026-11-17`):
-   - measure correct-time against actions when the reviewer only handles gaps above a configured length, or the
-     N longest per minute;
-   - measure on longer DEV footage (a full DEV half, if Nathan allows) for a realistic per-match rate.
-2. Relink v1 accepted as built (Nathan, 2026-11-16). Watch confirmed tracks that named several predecessors (the
-   one extra wrong frame); measure a guard if more such cases appear.
-3. Long re-entries (19 of 108 losses, LEFT_FRAME): the SPANA re-ID model and/or team classification.
-4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
+1. Long-play capability (`records/window_f05_2026-11-18`, 10-minute DEV window of match G2).
+   - Following one player unattended lasts one track. Median confirmed track life is 2.8 s on broadcast footage
+     (camera pans: LEFT_FRAME; crowds: LOST_EXPIRED), so about one user action every 3 s.
+   - Priorities:
+     (a) re-identification across pans / re-entries (SPANA re-ID model and/or team classification);
+     (b) tracker: keep tracks alive across pans, fewer LOST_EXPIRED in crowds. The exit hold was tried
+         (`records/exit_hold_2026-11-18`): no net gain without a stronger appearance signal; off by default.
+   - Re-measure track life and actions per minute on the same window after each.
+2. Cut the after-match review effort (6.3 actions per followed player-minute on the DEV clips,
+   `records/target_recovery_v1_2026-11-17`). Gap-length threshold / top-N per minute.
+3. Relink v1 accepted as built (Nathan, 2026-11-16). Watch confirmed tracks that named several predecessors.
+4. Remaining tracking errors (F07 38 / F08 51 fragments).
