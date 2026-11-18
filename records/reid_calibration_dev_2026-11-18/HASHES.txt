@@ -1,0 +1,7 @@
+# sha256, files on Nathan's Mac (code fd60cb6 unpacked to spana-calibration/)
+c269450e871cb28b4020b715618edc9dcda328faf951503a9e09f8e7a3032f84  spana-reid-eval/models_p2/spana_reid.onnx (re-ID model v2)
+c5ce70cd68ad64e79452cf59dd0636ddc920ce954f7349f72ab0bb992a0a5684  spana-calibration/out/tables_p2.json (every per-test score)
+3893be942183b0546af682feee6be52012ca380c46752a4dad0ba9431c71432f  spana-calibration/out/cue_eval_p2.json (= the v2 retrain record's report)
+141f55258b6f19014f390c1fc4ff0dc5597b751f8340207419fa68e15e6a4c9e  spana-calibration/out/calibration_p2.json
+185048c55a39803b3213a49d6bc4567e7f082004bd665d7d8391c98a9bee29a5  config/reid_calibration.yaml (= reid_calibration.config_snapshot.yaml)
+d0226d5d24fbc178af431eeda853f8f76a7dee9739ff39d0c457884c853f3188  config/reid_fusion.yaml

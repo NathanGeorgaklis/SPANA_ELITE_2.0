@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reid-retrain-v2, on identity/reid-confirmed-labels 12e2b6f; main 11b5a80).
-- Full suite: `python -m pytest tests -q` → 385 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+As of 2026-11-18 (branch identity/reid-calibration-dev, on identity/reid-retrain-v2 8d62866; main 11b5a80).
+- Full suite: `python -m pytest tests -q` → 392 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -138,6 +138,9 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      (M001 + M002, `records/reid_retrain_m001_m002_2026-11-18`): DEV rival 0.921 vs colour 0.902; colour + re-ID
      pooled TAR @ 0.5 % FAR hard 0.207 vs 0.133 / 0.061 -> "promising" under the fusion rule (FRESH_07
      marginal). Not adopted; next: calibrate a margin on DEV, try behind a flag.
+   - Margin calibrated on DEV (`records/reid_calibration_dev_2026-11-18`): only re-ID v2 alone meets <= 0.5 % wrong
+     resolutions on held-out clips (1 / 1,036, bound 0.46 %, resolves 23 %); colour and colour + re-ID over-resolve
+     on FRESH_08 when it is held out. Proposed: re-ID margin 0.481 (0.517 conservative), behind a flag. Not wired.
 4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
    ByteTrack shows how much continuity is possible on the same detections (F07 11 / F08 22 fragments) and what it
    costs without flags (silent swaps): measure ByteTrack-style continuity inside our tracker, keeping the flags
