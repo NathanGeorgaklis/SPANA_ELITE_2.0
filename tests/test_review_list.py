@@ -28,10 +28,9 @@ def gap(t0: float, t1: float) -> dict:
 
 
 class ReviewList(unittest.TestCase):
-    def test_default_lists_every_gap(self):
+    def test_zero_lists_every_gap(self):
         gaps = [gap(0.0, 0.0), gap(1.0, 1.2), gap(3.0, 5.0)]
-        self.assertEqual(CFG.target.review_min_gap_s, 0.0)
-        self.assertEqual(review_list(gaps, CFG), gaps)
+        self.assertEqual(review_list(gaps, with_min(0.0)), gaps)
 
     def test_short_gaps_are_not_listed(self):
         gaps = [gap(0.0, 0.0), gap(1.0, 1.2), gap(3.0, 5.0)]
@@ -63,7 +62,7 @@ class ReviewerUsesTheList(unittest.TestCase):
             return score_clip(d, trk, cfg, None, simulate_reviewer=True)["per_player"][0]
 
     def test_a_gap_shorter_than_the_minimum_is_left_alone(self):
-        everything = self._score(CFG)
+        everything = self._score(with_min(0.0))
         self.assertGreaterEqual(sum(everything["actions"].values()), 1)
         nothing = self._score(with_min(100.0))                              # longer than the whole clip
         self.assertEqual(sum(nothing["actions"].values()), 0)

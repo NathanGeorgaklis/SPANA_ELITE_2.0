@@ -1,0 +1,15 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/ (code fb23909 extracted to code9/). Tracks: today's
+# default (extent link on), out/F0x_zdefault.trk.json (records/extent_link_window_2026-11-18/HASHES.txt).
+f1e1a52cb5e91a4d2d34a6688865b6b9c7a89a49a223c2c3fd30f0b39938b88d  ~/spana-continuity-run/run_review_sweep.sh
+56ff65b52a1f98cfd61aa5b324d6753a38d395641affc56eafee56dbdeb1a838  ~/spana-continuity-run/rv_1.0.yaml
+46698b5efa41dd9ff8374ffe427f81dcc7cf9e024e1e857f78a63541b9518aac  ~/spana-continuity-run/out/target_rv_0.0.json
+fcbc9c473140977721077c640f2c3ea54bccc27c91975a4f29dcb09ec2ed77f8  ~/spana-continuity-run/out/target_rv_0.1.json
+f772e6d5030527e9d213c3301be93b637eefc82d3d4e626a743a342a7c998032  ~/spana-continuity-run/out/target_rv_0.2.json
+ea4b5c7120def66101bb66fec15d82ba1637947cc85722be4ef27bf5e8478107  ~/spana-continuity-run/out/target_rv_0.3.json
+4b20491b3e2f94de7efb42406c59a3478dddf1f408291a09b30c1b178f54300a  ~/spana-continuity-run/out/target_rv_0.5.json
+9ca2bf7cb0f182593f13a80f73caa965c1ea2c73657c98d75bda08fe80f3fe77  ~/spana-continuity-run/out/target_rv_0.75.json
+24eb45df772ae10d41711e9f93a64f876bc5f89b0282a818eeb041f9a61bfb8a  ~/spana-continuity-run/out/target_rv_1.0.json
+df6dbb55ec82b0f4dc2b598ecca97ade2883c1dcd016acd72124dcb74f00f2bf  ~/spana-continuity-run/out/target_rv_1.5.json
+7195964135ec0a8003ac86491332acd1206d5cd32dc449ea231a2e4a8e1f0bbd  ~/spana-continuity-run/out/target_rv_2.0.json
+1b80c102e4f6e4db28b99ee8ff74bc95c273f2f568986a191769954f5ecc89cb  ~/spana-continuity-run/out/target_rv_3.0.json
+2ac9167a227dac3ecb08939e5162f99d8c12ed989d5a5c0777657b29dfa6d280  ~/spana-continuity-run/out/target_zdefault_default.json (no review)

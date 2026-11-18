@@ -4,6 +4,7 @@ reviewer of tools/target_score.py. Synthetic tracks at 10 fps."""
 from __future__ import annotations
 
 import copy
+import dataclasses
 import hashlib
 import json
 import tempfile
@@ -160,8 +161,9 @@ class SimulatedReviewerTest(unittest.TestCase):
             (d / "labels_frozen.json").write_text(json.dumps({"frames_labelled": [1, 2, 4, 5]}))
             trk = Path(tmp) / "trk.json"
             write_json_atomic(trk, tracks)
-            base = score_clip(d, trk, CFG, None)
-            rev = score_clip(d, trk, CFG, None, simulate_reviewer=True)
+            every_gap = dataclasses.replace(CFG, target=dataclasses.replace(CFG.target, review_min_gap_s=0.0))
+            base = score_clip(d, trk, every_gap, None)
+            rev = score_clip(d, trk, every_gap, None, simulate_reviewer=True)   # synthetic gaps are < 1 s
         p0, p1 = base["per_player"][0], rev["per_player"][0]
         self.assertEqual((p0["correct"], p0["lost"]), (1, 3))       # dropped offer is not re-offered: frame 5 LOST
         self.assertEqual(p1["actions"]["confirm_relink"], 1)                   # the dropped offer, confirmed

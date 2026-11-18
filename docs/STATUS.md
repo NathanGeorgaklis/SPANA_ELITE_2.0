@@ -1,8 +1,8 @@
 # STATUS
 
-As of 2026-11-18 (branch tracking/extent-and-low-score-v1, on tracking/gate-break-diagnosis, on identity/resume-after-doubt, on tracking/doubt-self-resolve, on identity/tap-vouches-doubt on tracking/continuity-attribution
+As of 2026-11-18 (branch identity/review-min-gap, on tracking/extent-and-low-score-v1, on tracking/gate-break-diagnosis, on identity/resume-after-doubt, on tracking/doubt-self-resolve, on identity/tap-vouches-doubt on tracking/continuity-attribution
 on identity/reid-retrain-v2 8d62866; main 11b5a80).
-- Full suite: `python -m pytest tests -q` → 433 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
+- Full suite: `python -m pytest tests -q` → 437 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
   training tests skip).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -177,6 +177,9 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
    0.532, silent 0, but 7 transfers (the same flagged knock-on FRESH_07 crossing). Bar revised by Nathan to "silent
    0 and no transfer on a linked track": **A is ON by default** (`c427922`; B off). 10-minute DEV window
    (`records/extent_link_window_2026-11-18`): 1,804 -> 1,747 track starts (−3 %), uncertainty after a link 7.0 % vs
-   8.0 % baseline, uncertain share flat; wrong frames outside the labelled 26 s unmeasurable. Across the four attempts fewer fragments did not reduce review effort: longer tracks
+   8.0 % baseline, uncertain share flat; wrong frames outside the labelled 26 s unmeasurable.
+   Review list (`target.review_min_gap_s` 1.0, `records/review_min_gap_2026-11-18`): reviewer 0.778 correct,
+   2 wrong, 5.64 actions per followed min (was 6.06 listing every gap; 6.27 before the extent link). Only 6 of 87
+   actions were on gaps < 1 s: the review effort is in long gaps (track ends at pans, crowds, re-entries). Across the four attempts fewer fragments did not reduce review effort: longer tracks
    collect uncertainty and the reviewer still spends about one action per gap. Better levers: the reviewer's own
    effort (handle only gaps above a configured length, old next-task 1) and re-ID evidence for crossings.

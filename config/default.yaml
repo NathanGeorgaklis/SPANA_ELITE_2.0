@@ -129,7 +129,9 @@ target:
   resume_after_doubt_resolved: false
   # After-match review list (spana.identity.follower.review_list): only gaps without a TARGET answer lasting at least
   # this long are listed for the user to fix. 0 = every gap. The spana.target document always keeps every gap.
-  review_min_gap_s: 0.0
+  # 1.0 s chosen on DEV (records/review_min_gap_2026-11-18): the largest value keeping reviewer correct >= 0.778;
+  # actions 6.06 -> 5.64 per followed minute. Fitted on 4 DEV clips (a sweep), not on EVAL.
+  review_min_gap_s: 1.0
 
 output:
   box_decimals: 1
