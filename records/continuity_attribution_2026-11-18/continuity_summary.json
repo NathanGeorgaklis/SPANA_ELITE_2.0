@@ -1,0 +1,569 @@
+{
+ "note": "DEV FRESH_02/05/07/08, existing local-detector detections; re-tracked with tracking.appearance_doubt_link off (= recorded tracks, identical) and on. benchmark NESTED_V2; target_score default and --simulate-reviewer.",
+ "attribution": {
+  "baseline": {
+   "per_clip": {
+    "FRESH_02": {
+     "breaks": 24,
+     "fragments": 24,
+     "bytetrack_continuous_breaks": 14,
+     "bytetrack_continuous_fragments": 14,
+     "causes_fragments": {
+      "LOST_TIMEOUT": 1,
+      "IDENTITY_GATE": 5,
+      "LOW_SCORE_UNMATCHED": 2,
+      "DUPLICATE_SPAWN_M2": 1,
+      "OTHER": 5
+     },
+     "causes_breaks": {
+      "LOST_TIMEOUT": 1,
+      "IDENTITY_GATE": 5,
+      "LOW_SCORE_UNMATCHED": 2,
+      "DUPLICATE_SPAWN_M2": 1,
+      "OTHER": 5
+     },
+     "detail_fragments": {
+      "IDENTITY_GATE": 5,
+      "OTHER:GATE_FAILED:height_ok": 3,
+      "LOW_SCORE_UNMATCHED": 2,
+      "DUPLICATE_SPAWN_M2": 1,
+      "OTHER:GATE_FAILED:mahalanobis_ok": 1,
+      "LOST_TIMEOUT": 1,
+      "OTHER:TAKEN_BY_OTHER": 1
+     }
+    },
+    "FRESH_05": {
+     "breaks": 7,
+     "fragments": 7,
+     "bytetrack_continuous_breaks": 0,
+     "bytetrack_continuous_fragments": 0,
+     "causes_fragments": {
+      "LOST_TIMEOUT": 0,
+      "IDENTITY_GATE": 0,
+      "LOW_SCORE_UNMATCHED": 0,
+      "DUPLICATE_SPAWN_M2": 0,
+      "OTHER": 0
+     },
+     "causes_breaks": {
+      "LOST_TIMEOUT": 0,
+      "IDENTITY_GATE": 0,
+      "LOW_SCORE_UNMATCHED": 0,
+      "DUPLICATE_SPAWN_M2": 0,
+      "OTHER": 0
+     },
+     "detail_fragments": {}
+    },
+    "FRESH_07": {
+     "breaks": 38,
+     "fragments": 38,
+     "bytetrack_continuous_breaks": 30,
+     "bytetrack_continuous_fragments": 30,
+     "causes_fragments": {
+      "LOST_TIMEOUT": 2,
+      "IDENTITY_GATE": 16,
+      "LOW_SCORE_UNMATCHED": 2,
+      "DUPLICATE_SPAWN_M2": 2,
+      "OTHER": 8
+     },
+     "causes_breaks": {
+      "LOST_TIMEOUT": 2,
+      "IDENTITY_GATE": 16,
+      "LOW_SCORE_UNMATCHED": 2,
+      "DUPLICATE_SPAWN_M2": 2,
+      "OTHER": 8
+     },
+     "detail_fragments": {
+      "IDENTITY_GATE": 16,
+      "OTHER:GATE_FAILED:mahalanobis_ok": 5,
+      "DUPLICATE_SPAWN_M2": 2,
+      "LOW_SCORE_UNMATCHED": 2,
+      "LOST_TIMEOUT": 2,
+      "OTHER:GATE_FAILED:height_ok": 1,
+      "OTHER:GATE_FAILED:mahalanobis_ok+height_ok": 1,
+      "OTHER:NO_RECOVERY_ATTEMPT": 1
+     }
+    },
+    "FRESH_08": {
+     "breaks": 52,
+     "fragments": 51,
+     "bytetrack_continuous_breaks": 32,
+     "bytetrack_continuous_fragments": 32,
+     "causes_fragments": {
+      "LOST_TIMEOUT": 1,
+      "IDENTITY_GATE": 23,
+      "LOW_SCORE_UNMATCHED": 3,
+      "DUPLICATE_SPAWN_M2": 1,
+      "OTHER": 4
+     },
+     "causes_breaks": {
+      "LOST_TIMEOUT": 1,
+      "IDENTITY_GATE": 23,
+      "LOW_SCORE_UNMATCHED": 3,
+      "DUPLICATE_SPAWN_M2": 1,
+      "OTHER": 4
+     },
+     "detail_fragments": {
+      "IDENTITY_GATE": 23,
+      "OTHER:GATE_FAILED:height_ok": 4,
+      "LOW_SCORE_UNMATCHED": 3,
+      "DUPLICATE_SPAWN_M2": 1,
+      "LOST_TIMEOUT": 1
+     }
+    }
+   },
+   "pooled": {
+    "breaks": 121,
+    "fragments": 120,
+    "bytetrack_continuous_breaks": 76,
+    "bytetrack_continuous_fragments": 76,
+    "causes_fragments": {
+     "LOST_TIMEOUT": 4,
+     "IDENTITY_GATE": 44,
+     "LOW_SCORE_UNMATCHED": 7,
+     "DUPLICATE_SPAWN_M2": 4,
+     "OTHER": 17
+    },
+    "causes_breaks": {
+     "LOST_TIMEOUT": 4,
+     "IDENTITY_GATE": 44,
+     "LOW_SCORE_UNMATCHED": 7,
+     "DUPLICATE_SPAWN_M2": 4,
+     "OTHER": 17
+    },
+    "detail_fragments": {
+     "IDENTITY_GATE": 44,
+     "OTHER:GATE_FAILED:height_ok": 8,
+     "LOW_SCORE_UNMATCHED": 7,
+     "OTHER:GATE_FAILED:mahalanobis_ok": 6,
+     "DUPLICATE_SPAWN_M2": 4,
+     "LOST_TIMEOUT": 4,
+     "OTHER:TAKEN_BY_OTHER": 1,
+     "OTHER:GATE_FAILED:mahalanobis_ok+height_ok": 1,
+     "OTHER:NO_RECOVERY_ATTEMPT": 1
+    }
+   }
+  },
+  "doubt_on": {
+   "per_clip": {
+    "FRESH_02": {
+     "breaks": 25,
+     "fragments": 25,
+     "bytetrack_continuous_breaks": 15,
+     "bytetrack_continuous_fragments": 15,
+     "causes_fragments": {
+      "LOST_TIMEOUT": 1,
+      "IDENTITY_GATE": 6,
+      "LOW_SCORE_UNMATCHED": 2,
+      "DUPLICATE_SPAWN_M2": 1,
+      "OTHER": 5
+     },
+     "causes_breaks": {
+      "LOST_TIMEOUT": 1,
+      "IDENTITY_GATE": 6,
+      "LOW_SCORE_UNMATCHED": 2,
+      "DUPLICATE_SPAWN_M2": 1,
+      "OTHER": 5
+     },
+     "detail_fragments": {
+      "IDENTITY_GATE": 6,
+      "OTHER:GATE_FAILED:height_ok": 3,
+      "LOW_SCORE_UNMATCHED": 2,
+      "DUPLICATE_SPAWN_M2": 1,
+      "OTHER:GATE_FAILED:mahalanobis_ok": 1,
+      "LOST_TIMEOUT": 1,
+      "OTHER:TAKEN_BY_OTHER": 1
+     }
+    },
+    "FRESH_05": {
+     "breaks": 7,
+     "fragments": 7,
+     "bytetrack_continuous_breaks": 0,
+     "bytetrack_continuous_fragments": 0,
+     "causes_fragments": {
+      "LOST_TIMEOUT": 0,
+      "IDENTITY_GATE": 0,
+      "LOW_SCORE_UNMATCHED": 0,
+      "DUPLICATE_SPAWN_M2": 0,
+      "OTHER": 0
+     },
+     "causes_breaks": {
+      "LOST_TIMEOUT": 0,
+      "IDENTITY_GATE": 0,
+      "LOW_SCORE_UNMATCHED": 0,
+      "DUPLICATE_SPAWN_M2": 0,
+      "OTHER": 0
+     },
+     "detail_fragments": {}
+    },
+    "FRESH_07": {
+     "breaks": 35,
+     "fragments": 35,
+     "bytetrack_continuous_breaks": 27,
+     "bytetrack_continuous_fragments": 27,
+     "causes_fragments": {
+      "LOST_TIMEOUT": 2,
+      "IDENTITY_GATE": 14,
+      "LOW_SCORE_UNMATCHED": 1,
+      "DUPLICATE_SPAWN_M2": 2,
+      "OTHER": 8
+     },
+     "causes_breaks": {
+      "LOST_TIMEOUT": 2,
+      "IDENTITY_GATE": 14,
+      "LOW_SCORE_UNMATCHED": 1,
+      "DUPLICATE_SPAWN_M2": 2,
+      "OTHER": 8
+     },
+     "detail_fragments": {
+      "IDENTITY_GATE": 14,
+      "OTHER:GATE_FAILED:mahalanobis_ok": 5,
+      "DUPLICATE_SPAWN_M2": 2,
+      "LOST_TIMEOUT": 2,
+      "OTHER:GATE_FAILED:height_ok": 1,
+      "OTHER:GATE_FAILED:mahalanobis_ok+height_ok": 1,
+      "LOW_SCORE_UNMATCHED": 1,
+      "OTHER:NO_RECOVERY_ATTEMPT": 1
+     }
+    },
+    "FRESH_08": {
+     "breaks": 42,
+     "fragments": 41,
+     "bytetrack_continuous_breaks": 23,
+     "bytetrack_continuous_fragments": 23,
+     "causes_fragments": {
+      "LOST_TIMEOUT": 1,
+      "IDENTITY_GATE": 18,
+      "LOW_SCORE_UNMATCHED": 2,
+      "DUPLICATE_SPAWN_M2": 1,
+      "OTHER": 1
+     },
+     "causes_breaks": {
+      "LOST_TIMEOUT": 1,
+      "IDENTITY_GATE": 18,
+      "LOW_SCORE_UNMATCHED": 2,
+      "DUPLICATE_SPAWN_M2": 1,
+      "OTHER": 1
+     },
+     "detail_fragments": {
+      "IDENTITY_GATE": 18,
+      "LOW_SCORE_UNMATCHED": 2,
+      "OTHER:GATE_FAILED:height_ok": 1,
+      "DUPLICATE_SPAWN_M2": 1,
+      "LOST_TIMEOUT": 1
+     }
+    }
+   },
+   "pooled": {
+    "breaks": 109,
+    "fragments": 108,
+    "bytetrack_continuous_breaks": 65,
+    "bytetrack_continuous_fragments": 65,
+    "causes_fragments": {
+     "LOST_TIMEOUT": 4,
+     "IDENTITY_GATE": 38,
+     "LOW_SCORE_UNMATCHED": 5,
+     "DUPLICATE_SPAWN_M2": 4,
+     "OTHER": 14
+    },
+    "causes_breaks": {
+     "LOST_TIMEOUT": 4,
+     "IDENTITY_GATE": 38,
+     "LOW_SCORE_UNMATCHED": 5,
+     "DUPLICATE_SPAWN_M2": 4,
+     "OTHER": 14
+    },
+    "detail_fragments": {
+     "IDENTITY_GATE": 38,
+     "OTHER:GATE_FAILED:mahalanobis_ok": 6,
+     "LOW_SCORE_UNMATCHED": 5,
+     "OTHER:GATE_FAILED:height_ok": 5,
+     "DUPLICATE_SPAWN_M2": 4,
+     "LOST_TIMEOUT": 4,
+     "OTHER:TAKEN_BY_OTHER": 1,
+     "OTHER:GATE_FAILED:mahalanobis_ok+height_ok": 1,
+     "OTHER:NO_RECOVERY_ATTEMPT": 1
+    }
+   }
+  }
+ },
+ "tracking": {
+  "off": {
+   "FRESH_02": {
+    "fragments_total": 24,
+    "id_switches": 24,
+    "identity_transfers": 3,
+    "unflagged_transfers": 0,
+    "track_coverage": 0.9686,
+    "duplicate_track_frames": 7,
+    "wrong_recoveries": 0
+   },
+   "FRESH_05": {
+    "fragments_total": 7,
+    "id_switches": 7,
+    "identity_transfers": 0,
+    "unflagged_transfers": 0,
+    "track_coverage": 0.9978,
+    "duplicate_track_frames": 0,
+    "wrong_recoveries": 0
+   },
+   "FRESH_07": {
+    "fragments_total": 38,
+    "id_switches": 38,
+    "identity_transfers": 2,
+    "unflagged_transfers": 0,
+    "track_coverage": 0.962,
+    "duplicate_track_frames": 6,
+    "wrong_recoveries": 0
+   },
+   "FRESH_08": {
+    "fragments_total": 51,
+    "id_switches": 52,
+    "identity_transfers": 1,
+    "unflagged_transfers": 0,
+    "track_coverage": 0.9324,
+    "duplicate_track_frames": 3,
+    "wrong_recoveries": 0
+   }
+  },
+  "on": {
+   "FRESH_02": {
+    "fragments_total": 25,
+    "id_switches": 25,
+    "identity_transfers": 3,
+    "unflagged_transfers": 0,
+    "track_coverage": 0.9686,
+    "duplicate_track_frames": 7,
+    "wrong_recoveries": 0
+   },
+   "FRESH_05": {
+    "fragments_total": 7,
+    "id_switches": 7,
+    "identity_transfers": 0,
+    "unflagged_transfers": 0,
+    "track_coverage": 0.9978,
+    "duplicate_track_frames": 0,
+    "wrong_recoveries": 0
+   },
+   "FRESH_07": {
+    "fragments_total": 35,
+    "id_switches": 35,
+    "identity_transfers": 2,
+    "unflagged_transfers": 0,
+    "track_coverage": 0.962,
+    "duplicate_track_frames": 6,
+    "wrong_recoveries": 0
+   },
+   "FRESH_08": {
+    "fragments_total": 41,
+    "id_switches": 42,
+    "identity_transfers": 1,
+    "unflagged_transfers": 0,
+    "track_coverage": 0.9413,
+    "duplicate_track_frames": 3,
+    "wrong_recoveries": 0
+   }
+  }
+ },
+ "following": {
+  "off_default": {
+   "FRESH_02_G1_3000_midfield_buildup_passing": {
+    "correct": 491,
+    "wrong": 0,
+    "unverified": 15,
+    "abstain": 139,
+    "lost": 332,
+    "candidate_correct": 37,
+    "candidate_wrong": 1,
+    "candidate_unverified": 3,
+    "followed_s": 203.8006,
+    "actions": 0
+   },
+   "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper": {
+    "correct": 322,
+    "wrong": 0,
+    "unverified": 1,
+    "abstain": 11,
+    "lost": 116,
+    "candidate_correct": 0,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "followed_s": 143.8,
+    "actions": 0
+   },
+   "FRESH_07_G3_1205_midfield_passing_switch": {
+    "correct": 706,
+    "wrong": 1,
+    "unverified": 8,
+    "abstain": 94,
+    "lost": 364,
+    "candidate_correct": 32,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "followed_s": 246.6,
+    "actions": 0
+   },
+   "FRESH_08_G3_2103_attack_into_box_clearance": {
+    "correct": 237,
+    "wrong": 0,
+    "unverified": 3,
+    "abstain": 57,
+    "lost": 379,
+    "candidate_correct": 100,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "followed_s": 267.2,
+    "actions": 0
+   }
+  },
+  "off_reviewer": {
+   "FRESH_02_G1_3000_midfield_buildup_passing": {
+    "correct": 785,
+    "wrong": 1,
+    "unverified": 19,
+    "abstain": 146,
+    "lost": 67,
+    "candidate_correct": 0,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "followed_s": 203.8006,
+    "actions": 18
+   },
+   "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper": {
+    "correct": 434,
+    "wrong": 0,
+    "unverified": 2,
+    "abstain": 14,
+    "lost": 0,
+    "candidate_correct": 0,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "followed_s": 143.8,
+    "actions": 7
+   },
+   "FRESH_07_G3_1205_midfield_passing_switch": {
+    "correct": 931,
+    "wrong": 1,
+    "unverified": 9,
+    "abstain": 138,
+    "lost": 126,
+    "candidate_correct": 0,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "followed_s": 246.6,
+    "actions": 26
+   },
+   "FRESH_08_G3_2103_attack_into_box_clearance": {
+    "correct": 535,
+    "wrong": 0,
+    "unverified": 3,
+    "abstain": 115,
+    "lost": 123,
+    "candidate_correct": 0,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "followed_s": 267.2,
+    "actions": 39
+   }
+  },
+  "on_default": {
+   "FRESH_02_G1_3000_midfield_buildup_passing": {
+    "correct": 483,
+    "wrong": 0,
+    "unverified": 10,
+    "abstain": 168,
+    "lost": 324,
+    "candidate_correct": 30,
+    "candidate_wrong": 1,
+    "candidate_unverified": 2,
+    "followed_s": 203.8006,
+    "actions": 0
+   },
+   "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper": {
+    "correct": 322,
+    "wrong": 0,
+    "unverified": 1,
+    "abstain": 11,
+    "lost": 116,
+    "candidate_correct": 0,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "followed_s": 143.8,
+    "actions": 0
+   },
+   "FRESH_07_G3_1205_midfield_passing_switch": {
+    "correct": 706,
+    "wrong": 1,
+    "unverified": 8,
+    "abstain": 109,
+    "lost": 349,
+    "candidate_correct": 32,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "followed_s": 246.6,
+    "actions": 0
+   },
+   "FRESH_08_G3_2103_attack_into_box_clearance": {
+    "correct": 255,
+    "wrong": 0,
+    "unverified": 3,
+    "abstain": 195,
+    "lost": 293,
+    "candidate_correct": 30,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "followed_s": 267.2,
+    "actions": 0
+   }
+  },
+  "on_reviewer": {
+   "FRESH_02_G1_3000_midfield_buildup_passing": {
+    "correct": 686,
+    "wrong": 1,
+    "unverified": 14,
+    "abstain": 180,
+    "lost": 137,
+    "candidate_correct": 0,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "followed_s": 203.8006,
+    "actions": 18
+   },
+   "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper": {
+    "correct": 420,
+    "wrong": 0,
+    "unverified": 2,
+    "abstain": 28,
+    "lost": 0,
+    "candidate_correct": 0,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "followed_s": 143.8,
+    "actions": 7
+   },
+   "FRESH_07_G3_1205_midfield_passing_switch": {
+    "correct": 913,
+    "wrong": 1,
+    "unverified": 9,
+    "abstain": 162,
+    "lost": 120,
+    "candidate_correct": 0,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "followed_s": 246.6,
+    "actions": 23
+   },
+   "FRESH_08_G3_2103_attack_into_box_clearance": {
+    "correct": 389,
+    "wrong": 0,
+    "unverified": 3,
+    "abstain": 285,
+    "lost": 99,
+    "candidate_correct": 0,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "followed_s": 267.2,
+    "actions": 31
+   }
+  }
+ }
+}

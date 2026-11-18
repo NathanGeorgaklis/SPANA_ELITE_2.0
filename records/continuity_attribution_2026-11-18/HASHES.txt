@@ -1,0 +1,39 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/ (code 009f73a extracted to code/; run.sh drives the
+# re-tracking, benchmark and target_score); inputs in ~/SPANA_ELITE_2.0/runs/person_view_compare/ and
+# ~/spana-bytetrack-run/out/ (hashes in records/bytetrack_compare_2026-11-18/HASHES.txt).
+a922cd96affc31e423b5fb3e6c66cb514a7bb4ad26438696e78de897d3c0db25  continuity_summary.json (committed)
+8d5f0e3f7319fc107e20b00b95858d33b00078a920cc6ce7dc24a05da923687f  fragments_baseline.tsv (committed)
+88e90647aae1fcbc4aa595e6c031bdc31c4b881ef24f21987f05f5b34a42593b  ~/spana-continuity-run/code/tools/dev/continuity_attribution.py
+8728b130f04780ce91544cfa57e89b4fb7f2a38721a5e3ec9c06415a15bd859a  ~/spana-continuity-run/code/config/default.yaml (link on, as run)
+40fe767c402986dd65ee09e6d863efc9969433d22828f23f86423c945ce50ed9  ~/spana-continuity-run/doubt_off.yaml (link off; = shipped default apart from comments)
+cd7914bddea0dfdf5d034bb1f0d100108176bb3a75dc4b9762eef0a0a466e6ea  ~/spana-continuity-run/run.sh
+eb96f73c14ca5931fd56c6d58686647ec981ef62f1add0c37874939f53059caf  ~/spana-continuity-run/out/attribution_baseline.json
+f76563e2683d3a0cdd68911f9bdce2abf2cf37dfb06dd63701ab0dcb4ed968d5  ~/spana-continuity-run/out/attribution_on.json
+5c352eed93561a5f488217311c5ebfb2c20dab4bc0c1e28706c6904525be9b54  ~/spana-continuity-run/out/F02_off.trk.json
+8e067fc7e5506bf73b0ccfa26bf1d5299297468043cf2c7be28d79404691a1fa  ~/spana-continuity-run/out/F05_off.trk.json
+f41597fa0c3254179c956ddd14cc06e93359858c0f38ba74962d47111ff7eeec  ~/spana-continuity-run/out/F07_off.trk.json
+87082a500e938e56b787ec6652d3ab15289419e5c0297a9024f00b22bd9db27a  ~/spana-continuity-run/out/F08_off.trk.json
+af70da734abbea81b7c7d2e472960e94cbbc2966b4c58943caa656cde0754316  ~/spana-continuity-run/out/F02_off.trk.decisions.jsonl (= recorded F02_local)
+a5185aa82b7d7a6601c126b90d63f6b89c301bb14d08df13039734a05dfd91e4  ~/spana-continuity-run/out/F05_off.trk.decisions.jsonl (= recorded F05_local)
+1499f2c1e056136faf0e5e20da7eb2420bb1b562c6452b5b2167509005d92de6  ~/spana-continuity-run/out/F07_off.trk.decisions.jsonl (= recorded F07_local)
+3724486e670043d3ef36839d86a0c625d1fb052725ff8433a78cdd4806dd4a53  ~/spana-continuity-run/out/F08_off.trk.decisions.jsonl (= recorded F08_local)
+1d6f966f26e929dadeab27812dea0eb6a9b2488e90007e23aca0194b6534258f  ~/spana-continuity-run/out/F02_on.trk.json
+e4e3b8ca4376d53760338f50d037e68e4b49e3a4a5f9fb4730521f61b7985fab  ~/spana-continuity-run/out/F05_on.trk.json
+c07ffee7df6c564a7f875c4261d20797adb8db007f4766204354dc3231638098  ~/spana-continuity-run/out/F07_on.trk.json
+f923a0002871f00e094c480480be90e8b3c8e8cbc02929db7797020272f0148f  ~/spana-continuity-run/out/F08_on.trk.json
+eb3a9fed7dc75ee309eb42369e7e1e2ce583a7de3961e27d8e52922649619199  ~/spana-continuity-run/out/F02_on.trk.decisions.jsonl
+9f2a2a9687e870b73efea741f02b6390df33826e3f3aa61301f47839bb52b9cb  ~/spana-continuity-run/out/F05_on.trk.decisions.jsonl
+500980eec708371208990f7a8995ede9e10ce8cda3fcb0ffbb46454f33b2244e  ~/spana-continuity-run/out/F07_on.trk.decisions.jsonl
+d2bc77c4c31b4ac9321ed06246bb6bb5d25113d72884e94863fc45e004e78bc2  ~/spana-continuity-run/out/F08_on.trk.decisions.jsonl
+2cd57c3ce8e205f17b19887c7642030907dca840d4e20b0222bfcf47d17c0e46  ~/spana-continuity-run/out/F02_off.bench.json
+420c06eada3550a2c657a1043e70589f52641fe392a5efa07cdbdd62dbe9f534  ~/spana-continuity-run/out/F05_off.bench.json
+ad90862c8079cd17350b3841d785db3e0049c2815a4e32e68b314a3463be3e86  ~/spana-continuity-run/out/F07_off.bench.json
+2817bdba3d3d037dad26009bcffb5255e60f2aac3b2d302d8d66fc5c82568a7f  ~/spana-continuity-run/out/F08_off.bench.json
+da1fc9598ca5ecdd548a1c761dc4a5616be30b903cb91798d610972743b01b91  ~/spana-continuity-run/out/F02_on.bench.json
+f98716f9610ec1c022c737eed1cddee8fe6fae96b5ecb7bd948546c9c43722d4  ~/spana-continuity-run/out/F05_on.bench.json
+3827df2eb58764c746d7bd95703913fbf028e6f5d300d4681c6fa0ffb52c6520  ~/spana-continuity-run/out/F07_on.bench.json
+f4db65ba39d2988d43bf3383e972307dc5aaa161263fe31f9541f41a5c5e3344  ~/spana-continuity-run/out/F08_on.bench.json
+553f923f81464a543b6b612bf854fa0f175bd9107af619108ac40f2ff84eb862  ~/spana-continuity-run/out/target_off_default.json
+e3560e980f8d8f308b6e7752d1738b427a0d1c24c7eb096c23bbc68a66464d67  ~/spana-continuity-run/out/target_off_reviewer.json
+649e1feccca3080b011e9b872da631e2cf4f6ceb31395946d6ad531fd37b8cd7  ~/spana-continuity-run/out/target_on_default.json
+8ef8f109094d8e865fb0a16327c80eb2ef08c014dfbb7409b04ed24687dfce30  ~/spana-continuity-run/out/target_on_reviewer.json

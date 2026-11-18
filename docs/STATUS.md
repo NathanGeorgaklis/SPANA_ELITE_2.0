@@ -1,14 +1,15 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reid-retrain-v2, on identity/reid-confirmed-labels 12e2b6f; main 11b5a80).
-- Full suite: `python -m pytest tests -q` → 385 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+As of 2026-11-18 (branch tracking/continuity-attribution, on identity/reid-retrain-v2 8d62866; main 11b5a80).
+- Full suite: `python -m pytest tests -q` → 394 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
+  training tests skip).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
 |---|---|---|---|---|
 | player detection | PARTIAL | `spana/detection/` (`onnx_backend.py`, `postprocess.py`, `tiling.py`, `roboflow_backend.py`, `base.py`) | `tests/test_detection_camera.py`, `tests/test_merge_detections.py`, `tests/test_multi_body.py`, `tests/test_roboflow_dataset.py`, `tests/test_detector_eval.py`, `tests/test_detection_interface.py`, `tests/test_dev_bench.py` | Football detector v1 trained (`nathans-workspace-9brdc/spana-elite-2-rfdetr-medium-t1`, RF-DETR medium, dataset version 2), adapter `RoboflowDetector.from_detector_config` (config `detector`, confidence / iou 0.50 untuned). Scored only on the M001 valid split (table below), which shares a broadcaster with training: generalisation unknown. DEV benchmark uploaded and pre-labelled (76 frames, 2 DEV matches), waiting for Nathan's label review; not scored. Pipeline CLI still uses pinned COCO YOLOX-s, person only (`models/yolox_s.json`); FRESH_02 recall 0.971 (NESTED_V1). YOLOX inference test skipped without weights. |
-| player tracking | PARTIAL | `spana/tracking/` (`tracker.py`, `kalman.py`, `camera.py`), `spana/appearance.py` | `tests/test_tracker.py`, `tests/test_camera_uncertainty.py`, `tests/test_identity_uncertain.py`, `tests/test_unconfirmed_low_score.py`, `tests/test_cli_e2e.py`, `tests/test_foundation.py` | Generic multi-player tracker with camera compensation and per-track IDENTITY_UNCERTAIN. DEV FRESH_02/05/07: 0 silent swaps (NESTED_V2). Fragmentation remains the largest error (e.g. FRESH_07 47 fragments). Nested-box fix (M2) deferred pending Nathan's approval. |
+| player tracking | PARTIAL | `spana/tracking/` (`tracker.py`, `kalman.py`, `camera.py`), `spana/appearance.py` | `tests/test_tracker.py`, `tests/test_camera_uncertainty.py`, `tests/test_identity_uncertain.py`, `tests/test_unconfirmed_low_score.py`, `tests/test_cli_e2e.py`, `tests/test_foundation.py` | Generic multi-player tracker with camera compensation and per-track IDENTITY_UNCERTAIN (`spana.tracks` 2.2.0: + `identity_doubt`). DEV 4 clips (local detector): 120 fragments, 121 ID switches, 6 transfers, 0 silent (NESTED_V2). Fragmentation remains the largest error. Where ByteTrack kept one track (76 of 120 fragments) ours broke mostly at the identity gate (44; 25 of them the torso-colour veto on the track's own next box), then low-score (7), LOST timeout (4), M2 nested (4), other (17) (`records/continuity_attribution_2026-11-18`). Appearance doubt link (`tracking.appearance_doubt_link`, S3b): continues such tracks flagged IDENTITY_UNCERTAIN: fragments 120 → 108, silent transfers 0, but reviewer correct-time 0.778 → 0.698 because doubts rarely resolve and the follower abstains on them; **OFF by default, decision pending**. Nested-box fix (M2) deferred pending Nathan's approval. Tests also `tests/test_appearance_doubt_link.py`. |
 | target identity | PARTIAL | `spana/identity/follower.py` | `tests/test_target_follow.py`, `tests/test_target_relink.py` | Follows one tapped track (selection `track_at_frame` 1.0.0) into `spana.target` 2.0.0 (TARGET / CANDIDATE / ABSTAIN / LOST). Fails closed (v1 rules). Relink v1: after a loss, proposes CANDIDATE on the tracker's unique predecessor link (gap ≤ `target.relink_max_gap_s` 0.5); TARGET only after the user confirms (`confirm_candidate` 1.0.0) or with `relink_auto_confirm` (off). DEV, 4 clips (`records/target_relink_v1_2026-11-16`): correct-time 0.509 without confirmation (= v1, wrong 1 frame) → **0.597 with a simulated user (wrong 2 frames: +1 from a tracker identity change after a correct confirmation)**; auto-confirm 0.597, wrong 3. Ceiling 0.853. Recovery inputs (`spana.target` 2.1.0): confirm / reject offers, tap to re-select, gap list. **Simulated after-match reviewer: correct-time 0.779, wrong 2 frames (the two known ones), but about 6.3 user actions per followed player-minute** (`records/target_recovery_v1_2026-11-17`). Long re-entries unsolved. Re-ID model: pilot trained on TRAIN_M001 only (`tools/reid_crops.py`, `tools/reid_train.py`, `config/reid_train.yaml`); DEV rival test 0.888 vs shirt colour 0.902, but 2–4× colour's true accepts at 1 % false accepts on hard pairs; not used by the product (`records/reid_pilot_v1_2026-11-18`). Colour + re-ID combined (DEV eval only, `tools/dev/cue_fusion.py`): pooled TAR @ 0.5 % FAR on hard pairs 0.172 vs re-ID 0.146 / colour 0.061, but below colour on FRESH_05 (0.717 vs 1.000) → not promising under the decision rule (`records/reid_fusion_dev_2026-11-18`). |
 | ball tracking | NOT BUILT | none | none | Only dataset tooling handles the ball class (ball tiling / size filter in `spana/dataset/prefilter.py`, `tools/roboflow_ball_sheet.py`). |
 | team classification | NOT BUILT | none | none | Torso colour histogram (`spana/appearance.py`) is used for track association only. Side labels (A/B/GK/REF) exist in re-ID labels only. |
@@ -99,7 +100,15 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   follower on it shows the wrong player 6.3 % of the time (8.1 % with the after-match reviewer) vs ours 0.03 % /
   0.06 %. Not adopted; its continuity (low-score second association, motion-only lost pool) is worth porting with
   our uncertainty flags.
-- README pipeline table is stale (artifact versions listed as 1.1.0 / 2.0.0; code is detections 1.3.0, tracks 2.1.0).
+- Tracking continuity, DEV (`records/continuity_attribution_2026-11-18`): of the 76 fragments ByteTrack bridged, 44
+  are identity-gate refusals; 25 of those are the colour veto on a continuing track's own next box (IoU 0.46–0.99,
+  similarity 0.36–0.70). The doubt link removes 12 fragments with 0 silent transfers, but only 3 of 24 doubts
+  resolve (the frozen colour model never catches up) and the follower cannot use a doubted track even after a tap:
+  reviewer correct-time 0.778 → 0.698, actions 6.27 → 5.50 per min. Shipped off; needs (a) a no-rival doubt
+  resolution rule, or (b) a user tap counting as evidence on a doubted track, or (c) stay off.
+- Config schema is 2.4.0 on this branch; 2.3.0 is used by the unmerged `tracking/exit-hold-v1` /
+  `identity/target-render-v1` and by Nathan's local inference / profiling keys: reconcile when merging.
+- README pipeline table is stale (artifact versions listed as 1.1.0 / 2.0.0; code is detections 1.3.0, tracks 2.2.0).
 
 ## Hardcoded values / magic numbers found
 - `spana/tracking/camera.py:40` cut-detection HSV histogram bins `[32, 32]` (`camera.cut_hist_distance` depends on it).
@@ -140,5 +149,8 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      marginal). Not adopted; next: calibrate a margin on DEV, try behind a flag.
 4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
    ByteTrack shows how much continuity is possible on the same detections (F07 11 / F08 22 fragments) and what it
-   costs without flags (silent swaps): measure ByteTrack-style continuity inside our tracker, keeping the flags
-   (`records/bytetrack_compare_2026-11-18`).
+   costs without flags (silent swaps) (`records/bytetrack_compare_2026-11-18`). Causes attributed
+   (`records/continuity_attribution_2026-11-18`): identity gate 44, other 17 (height-ratio gate 8, motion gate 7),
+   low-score 7, LOST timeout 4, M2 nested 4. The colour-veto part has a flagged fix, off pending Nathan's choice:
+   (a) resolve a no-rival doubt on self-consistent crops while the track stays exclusive, (b) let a user tap on a
+   doubted track count as identity evidence in the follower, or (c) leave it off and take the gates next.

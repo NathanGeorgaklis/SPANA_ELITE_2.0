@@ -23,8 +23,9 @@ FPS = 30.0
 
 
 def cfg(**tracking):
+    """default.yaml with the doubt link ON (it ships off; these tests exercise the mechanism)."""
     raw = copy.deepcopy(RAW)
-    raw["tracking"].update(tracking)
+    raw["tracking"].update({"appearance_doubt_link": True, **tracking})
     return config_from_dict(raw)
 
 

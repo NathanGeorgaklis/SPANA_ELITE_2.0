@@ -70,7 +70,10 @@ tracking:
   # box by >= appearance_doubt_min_iou is continued even when the torso colour vetoes it, but marked
   # IDENTITY_UNCERTAIN (identity_doubt, appearance frozen) until clean crops match its pre-doubt appearance for
   # identity_resolve_s. Without it the track ends and a new one starts on the same box one frame later.
-  appearance_doubt_link: true
+  # OFF by default after DEV measurement: fragments 120 -> 108 and 0 silent transfers, but doubts almost never
+  # resolve (3 of 24 tracks) and the follower abstains on an uncertain track even after a tap, so the simulated
+  # reviewer's correct time fell 0.778 -> 0.698. Pending Nathan's decision (DECISIONS.md 2026-11-18).
+  appearance_doubt_link: false
   appearance_doubt_min_iou: 0.40   # = low_score_min_iou (the strict IoU-only continuation); not tuned
 
 appearance:
