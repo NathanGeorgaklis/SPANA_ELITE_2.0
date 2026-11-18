@@ -290,8 +290,6 @@ def position_fit(ctx: "ReentryContext", lost: str, lost_idx: int, cand: str, tc_
         return 0.0, "WEIGHT_ZERO"
     if ctx.width is None or ctx.height is None:
         return 0.0, "NO_FRAME_SIZE"
-    if gap > tc_target.reentry_position_max_gap_s + 1e-9:
-        return 0.0, "GAP_TOO_LONG"
     x1, y1, x2, y2 = ctx.box_at[(lost, lost_idx)]
     p0 = np.array([[(x1 + x2) / 2, (y1 + y2) / 2]])
     p, h = p0.copy(), y2 - y1
@@ -308,6 +306,8 @@ def position_fit(ctx: "ReentryContext", lost: str, lost_idx: int, cand: str, tc_
         return 0.0, "OUT_OF_PICTURE"
     if float(np.hypot(*(p[0] - p0[0]))) > tc_target.reentry_position_max_pan_frac * ctx.width:
         return 0.0, "PAN"
+    if gap > tc_target.reentry_position_max_gap_s + 1e-9:     # after the camera / exit checks: those silence more
+        return 0.0, "GAP_TOO_LONG"
     cb = ctx.box_at[(cand, b)]
     d = float(np.hypot((cb[0] + cb[2]) / 2 - p[0, 0], (cb[1] + cb[3]) / 2 - p[0, 1])) / max(h, 1e-9)
     reach = tc_target.reentry_position_base_h + tc_target.reentry_position_speed_h_per_s * gap
