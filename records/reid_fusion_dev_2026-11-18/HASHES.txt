@@ -1,0 +1,12 @@
+# sha256. Code: commit 88a9632 (branch identity/reid-fusion-dev-eval), extracted on Nathan's Mac to spana-fusion-eval/.
+# Inputs and full outputs stay on Nathan's Mac (paths relative to the home folder).
+682d0a09298f4b21ec5e6d20ea80d5783f8dc030bade906175b31c882e5239a5  spana-reid-eval/models_p1/spana_reid.onnx (pilot v1 model, unchanged; records/reid_pilot_v1_2026-11-18)
+d0226d5d24fbc178af431eeda853f8f76a7dee9739ff39d0c457884c853f3188  spana-fusion-eval/config/reid_fusion.yaml (= reid_fusion.config_snapshot.yaml here)
+eb4e54c85fc5104041d387e8265100803f3cb75d7b6c4bcceee09c8d8c6f0382  spana-fusion-eval/out/cue_eval_fusion.json (main report; byte-identical to the pilot's cue_eval_p1.json)
+df0281e4e6c4a44f6256bb8b33bdcf884798c5ba7282d32589b79d6722ff7593  spana-fusion-eval/out/cue_eval_fusion.json.fusion.json (full fusion report)
+3368f82380104639f0af210787a5c5762977bf24783d581ebc5ff82ef89af259  spana-fusion-eval/out/fusion_summary.json (= fusion_summary.json here)
+752196566537be7353ab582b731acdacbfe0e15c595ad0acd530c64dfcc47dc1  spana-fusion-eval/out/fusion.log
+0b62526758819e1ff8c6379399c8b4c65eb3e59483f6aaa2eef2337fedc4269f  SPANA_ELITE_2.0/runs/person_view_compare/F02_local.trk.json (input)
+c4526f078a3790166f2f6f51a658ddf78d21c553d466525a725cb10ff10a3c54  SPANA_ELITE_2.0/runs/person_view_compare/F05_local.trk.json (input)
+85b995c7f269bf37bfc8c8bba33716a844baf36004baac49db8092b11a5b20c6  SPANA_ELITE_2.0/runs/person_view_compare/F07_local.trk.json (input)
+f6741125ec3f15740dc18df404c2ed28b324f6043093d658a51a7edc4fd8a08b  SPANA_ELITE_2.0/runs/person_view_compare/F08_local.trk.json (input)
