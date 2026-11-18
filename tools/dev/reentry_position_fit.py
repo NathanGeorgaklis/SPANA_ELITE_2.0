@@ -26,7 +26,7 @@ from spana.config import load_config
 from spana.identity.reid import ReentryContext, position_fit, reentry_choice
 from tools.dev.reid_reentry_eval import clip_events
 
-WEIGHTS = (0.0, 0.05, 0.1, 0.2, 0.3, 0.5)
+WEIGHTS = (0.0, 0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1.0)
 SPEEDS = (1.0, 2.0, 5.0)
 TIME_SCALES = (0.5, 1.0, 2.0)
 MAX_GAPS = (1.0, 3.0)

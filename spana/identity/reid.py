@@ -267,6 +267,7 @@ class ReentryContext:
         return None
 
 
+SILENCING = ("CAMERA_BREAK", "LEFT_FRAME", "OUT_OF_PICTURE", "PAN", "NO_FRAME_SIZE")
 POSITION_REASONS = ("INFORMATIVE", "GAP_TOO_LONG", "CAMERA_BREAK", "LEFT_FRAME", "OUT_OF_PICTURE", "PAN",
                     "NO_FRAME_SIZE", "WEIGHT_ZERO")
 
@@ -326,7 +327,9 @@ def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, 
     (the follower: usable now and not yet offered). With target.reentry_position_gate, a candidate the lost player
     could not have reached (reachable() is False) is dropped (unchanged).
     Score: combined = appearance + reentry_position_weight * position_fit (position_fit() is 0 when position carries
-    no information, so the ranking falls back to appearance alone). The best combined offerable candidate is offered
+    no information). A camera / exit reason (cut, pan, LEFT_FRAME, out of picture, no frame size) for ANY candidate
+    silences position for the whole decision, so the ranking is exactly appearance-only; a gap beyond
+    reentry_position_max_gap_s silences only that candidate. The best combined offerable candidate is offered
     when its APPEARANCE reaches reentry_min_similarity and its combined score beats every other candidate's (offerable
     or not) by reentry_min_margin; with reentry_mutual, the lost track's combined score must also beat, by the same
     margin, every other track that was lost when the candidate appeared (scored the same way, towards the candidate).
@@ -357,8 +360,16 @@ def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, 
         if a is None:
             continue
         fit, why = position_fit(ctx, lost, lost_idx, c, tc_target)
-        cands[c] = {"appearance": round(a, 6), "position": round(fit, 6), "position_reason": why,
-                    "combined": round(a + w * fit, 6)}
+        cands[c] = {"appearance": a, "position": fit, "position_reason": why}
+    # The camera or an exit silences position for the whole decision: a pan return must never lose to a candidate
+    # that position happens to favour (a long gap only silences that candidate).
+    silenced = next((v["position_reason"] for v in cands.values() if v["position_reason"] in SILENCING), None)
+    for v in cands.values():
+        if silenced is not None:
+            v["position"], v["position_reason"] = 0.0, v["position_reason"] if v["position_reason"] in SILENCING \
+                else silenced
+        v["combined"] = round(v["appearance"] + w * v["position"], 6)
+        v["appearance"], v["position"] = round(v["appearance"], 6), round(v["position"], 6)
     out["candidates"] = cands
     offerable = [c for c in cands if allowed(c)]
     if not offerable:

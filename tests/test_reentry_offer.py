@@ -296,6 +296,17 @@ class PositionScore(unittest.TestCase):
             if "PAN" in why:
                 self.assertEqual(with_pos["candidates"]["t2"]["position_reason"], "PAN")
 
+    def test_an_exit_silences_position_for_every_candidate(self):
+        # t2 appears near at once (position would favour it), t1 then ends LEFT_FRAME before t3 returns: the decision
+        # is appearance-only, so the pan / exit return t3 is not out-ranked by position.
+        doc = scene({"t2": (4, 102.0), "t3": (15, 900.0)})
+        doc["frames"][6]["ended"] = [["t1", "LEFT_FRAME"]]
+        sigs = {"t1": ME, "t2": NEAR_LOOK, "t3": FAR_LOOK}
+        ch = choose(doc, sigs)
+        self.assertEqual(ch["track"], choose(doc, sigs, reentry_position_weight=0.0)["track"])
+        self.assertEqual(ch["track"], "t3")
+        self.assertTrue(all(c["position"] == 0.0 for c in ch["candidates"].values()))
+
     def test_weight_zero_is_appearance_only_whatever_the_scales(self):
         doc = scene({"t2": (4, 102.0), "t3": (15, 900.0)})
         sigs = {"t1": ME, "t2": NEAR_LOOK, "t3": FAR_LOOK}
