@@ -49,6 +49,11 @@ re-selection) during that doubt, the tap is the identity evidence the colour mod
                                 episode the user tapped it in (same uncertain_episodes)
 The vouch ends, fail closed, as soon as the track gains a rival (ABSTAIN IDENTITY_UNCERTAIN, then AFTER_UNCERTAIN)
 or a new uncertainty episode starts; it never covers a rival ambiguity, and a tap on a CERTAIN track vouches nothing.
+
+Resume after a doubt (spana.target 2.3.0, target.resume_after_doubt_resolved). An uncertainty episode seen ONLY as a
+doubt with no rival (every uncertain frame of it doubt-only) does not taint the track: ABSTAIN IDENTITY_UNCERTAIN
+while it lasts, TARGET again once the tracker resolves it. Any frame of the episode with a rival taints as before
+(target.resume_after_uncertain), and so does an episode the follower never saw.
 """
 from __future__ import annotations
 
@@ -290,7 +295,9 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                 vouch = None                                   # a rival or a new episode: the tap no longer covers it
             if episodes0 is None:
                 episodes0 = tr["uncertain_episodes"] - int(uncertain)
-            if uncertain or tr["uncertain_episodes"] > episodes0:
+            if uncertain and tc.resume_after_doubt_resolved and _doubt_only(tr):
+                episodes0 = tr["uncertain_episodes"]           # a doubt with no rival: abstain now, no taint
+            elif uncertain or tr["uncertain_episodes"] > episodes0:
                 tainted = not tc.resume_after_uncertain
             box = None
             if uncertain:
@@ -374,7 +381,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
 
 def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Sequence[str] = (),
                     actions: Iterable[dict] = ()) -> dict:
-    """Validated spana.target 2.2.0 document for one selection (and the user's actions) on one validated
+    """Validated spana.target 2.3.0 document for one selection (and the user's actions) on one validated
     spana.tracks document."""
     actions = [dict(a) for a in actions]
     frames, info = follow(tracks_doc, sel, cfg, actions)
@@ -388,7 +395,8 @@ def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Se
         "target_config": {"resume_after_uncertain": cfg.target.resume_after_uncertain,
                           "relink_max_gap_s": cfg.target.relink_max_gap_s,
                           "relink_auto_confirm": cfg.target.relink_auto_confirm,
-                          "tap_vouches_doubt": cfg.target.tap_vouches_doubt},
+                          "tap_vouches_doubt": cfg.target.tap_vouches_doubt,
+                          "resume_after_doubt_resolved": cfg.target.resume_after_doubt_resolved},
         "track_ends": info["track_ends"], "relinks": info["relinks"], "frames": frames,
         "gaps": gaps_of(frames, info["relinks"]),
     }

@@ -20,7 +20,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 import yaml
 
 CONFIG_SCHEMA_VERSION = "2.4.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.4.0: + tracking appearance
-#   doubt link (+ self-consistent resolution), target.tap_vouches_doubt (2.3.0 is taken by unmerged branches: tracking.exit_hold_s, inference /
+#   doubt link (+ self-consistent resolution), target.tap_vouches_doubt / resume_after_doubt_resolved (2.3.0 is taken by unmerged branches: tracking.exit_hold_s, inference /
 #   profiling / performance)
 
 
@@ -192,6 +192,8 @@ class TargetConfig:
     relink_auto_confirm: bool      # promote a CANDIDATE to TARGET without the user's confirmation (measurement only)
     tap_vouches_doubt: bool        # a user's tap on a track that is uncertain ONLY by an appearance doubt (no rival)
                                    #   answers TARGET (USER_VOUCHED) for the rest of that doubt episode
+    resume_after_doubt_resolved: bool  # an uncertainty episode that was only ever a no-rival doubt does not taint
+                                   #   the followed track: it is answered again once the tracker resolves the doubt
 
     def validate(self) -> None:
         _pos("target.relink_max_gap_s", self.relink_max_gap_s)

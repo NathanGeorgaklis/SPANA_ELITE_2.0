@@ -110,6 +110,10 @@ target:
   # (USER_VOUCHED) until the track ends, gains a rival, or starts a new uncertainty episode. Rival ambiguities are
   # never vouched. Measured with the doubt link (records/doubt_resolution_2026-11-18).
   tap_vouches_doubt: false
+  # An uncertainty episode that was only ever a doubt with no rival does not taint the followed track: TARGET again
+  # once the tracker resolves it (resume_after_uncertain stays false for every episode with a rival). Measured with
+  # the doubt link (records/resume_after_doubt_2026-11-18).
+  resume_after_doubt_resolved: false
 
 output:
   box_decimals: 1

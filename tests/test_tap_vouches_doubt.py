@@ -90,7 +90,7 @@ class Artifact(unittest.TestCase):
 
     def test_valid(self):
         validate_target(self.doc, self.tracks)
-        self.assertEqual(self.doc["schema_version"], "2.2.0")
+        self.assertEqual(self.doc["schema_version"], "2.3.0")
         self.assertTrue(self.doc["target_config"]["tap_vouches_doubt"])
         self.assertIn("USER_VOUCHED", [f["reason"] for f in self.doc["frames"]])
 
@@ -121,8 +121,16 @@ class Artifact(unittest.TestCase):
     def test_2_1_0_target_documents_cannot_carry_user_vouched(self):
         d = copy.deepcopy(self.doc)
         d["schema_version"] = "2.1.0"
-        del d["target_config"]["tap_vouches_doubt"]
+        del d["target_config"]["tap_vouches_doubt"], d["target_config"]["resume_after_doubt_resolved"]
         self._refused(d)
+        f = next(f for f in d["frames"] if f["reason"] == "USER_VOUCHED")
+        f.update(state="ABSTAIN", reason="IDENTITY_UNCERTAIN", box=None)
+        for g in d["frames"]:
+            if g["reason"] == "USER_VOUCHED":
+                g.update(state="ABSTAIN", reason="IDENTITY_UNCERTAIN", box=None)
+        from spana.artifacts import gaps_of
+        d["gaps"] = gaps_of(d["frames"], d["relinks"])
+        validate_target(d, self.tracks)                  # without the vouched answers it is a valid 2.1.0 document
 
 
 if __name__ == "__main__":

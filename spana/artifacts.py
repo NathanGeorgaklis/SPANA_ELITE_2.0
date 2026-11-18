@@ -28,6 +28,8 @@ Change log:
   2.2.0 target: + target_config.tap_vouches_doubt; TARGET may carry reason USER_VOUCHED: on an ACTIVE, confirmed
         track uncertain only by an appearance doubt (tracks 2.2.0 identity_doubt, no rivals), tapped by the user
         (selection or re-selection) earlier in the same uncertainty episode. 2.1.0 documents keep their meaning.
+  2.3.0 target: + target_config.resume_after_doubt_resolved (a no-rival doubt episode does not taint the followed
+        track). Answers keep the 2.2.0 rules. 2.2.0 documents keep their meaning.
 
 Any change to keys, types, units or meaning increments the version. Writers are atomic and never overwrite.
 """
@@ -48,7 +50,7 @@ from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityS
 DETECTIONS_SCHEMA = ("spana.detections", "1.4.0")   # 1.4.0: class_names (class_id indexes it)
 TRACKS_SCHEMA = ("spana.tracks", "2.2.0")   # 2.1.0 documents still validate (validate_tracks)
 TRACKS_ACCEPTED = ("2.1.0", "2.2.0")
-TARGET_SCHEMA = ("spana.target", "2.2.0")   # 1.0.0 / 2.0.0 / 2.1.0 documents still validate (validate_target)
+TARGET_SCHEMA = ("spana.target", "2.3.0")   # 1.0.0 / 2.0.0 / 2.1.0 / 2.2.0 documents still validate
 
 
 class ArtifactError(ValueError):
@@ -353,7 +355,7 @@ def validate_target(doc: Any, tracks: Optional[dict] = None) -> None:
     version = doc.get("schema_version")
     if version == "1.0.0":
         return _validate_target_v1(doc, tracks)
-    if version in ("2.0.0", "2.1.0", "2.2.0"):
+    if version in ("2.0.0", "2.1.0", "2.2.0", "2.3.0"):
         return _validate_target_v2(doc, tracks, version)
     raise ArtifactError(f"unsupported spana.target version {version!r}")
 
@@ -472,7 +474,8 @@ def gaps_of(frames: Sequence[dict], relinks: Sequence[dict]) -> List[dict]:
 def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = "2.2.0") -> None:
     """2.0.0 / 2.1.0 / 2.2.0. Structure, then (with the source tracks) every answer and every relink against the
     tracks."""
-    v21, v22 = version in ("2.1.0", "2.2.0"), version == "2.2.0"
+    v21, v22 = version in ("2.1.0", "2.2.0", "2.3.0"), version in ("2.2.0", "2.3.0")
+    v23 = version == "2.3.0"
     _header(doc, ("spana.target", version),
             ("schema", "schema_version", "provenance", "video", "tracks_sha256", "selection",
              "user_actions" if v21 else "confirmations", "target_config", "track_ends", "relinks", "frames")
@@ -485,9 +488,11 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
         raise ArtifactError("bad selection frame / track_id")
     tc = doc["target_config"]
     _keys(tc, ("resume_after_uncertain", "relink_max_gap_s", "relink_auto_confirm")
-          + (("tap_vouches_doubt",) if v22 else ()), "target_config")
+          + (("tap_vouches_doubt",) if v22 else ()) + (("resume_after_doubt_resolved",) if v23 else ()),
+          "target_config")
     if not (isinstance(tc["resume_after_uncertain"], bool) and isinstance(tc["relink_auto_confirm"], bool)
             and isinstance(tc.get("tap_vouches_doubt", False), bool)
+            and isinstance(tc.get("resume_after_doubt_resolved", False), bool)
             and _num(tc["relink_max_gap_s"]) and tc["relink_max_gap_s"] > 0):
         raise ArtifactError("bad target_config")
     confs = doc["user_actions" if v21 else "confirmations"]
