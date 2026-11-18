@@ -13,8 +13,10 @@ Scope:
   - 195 rejected, 112 unsure (59 tracker-flagged).
 - **Cluster quality (reported only):** 4 of 86 cluster labels differed from Nathan's answers: 4.7 %, exact one-sided
   95 % bound 10.3 %.
-- **Not in git yet:** the frozen folder (`data/reid/TRAIN/TRAIN_M002_EASTERN_SUBURBS/v1`) is on Nathan's Mac. The
-  Mac refused committing it from there (`HASHES.txt`).
+- **In git:** `data/reid/TRAIN/TRAIN_M002_EASTERN_SUBURBS/v1`, commit f785ee1 (branch data/reid-train-m002-v1, pushed
+  from a scratch clone on Nathan's Mac with his approval; merged into identity/reid-retrain-v2).
+  - FROZEN.json sha `1766d19d…bf41` equals the Mac copy.
+  - `load_frozen(..., "train")` verifies every file hash; "tune" is refused.
 
 ## Training
 - **Data:** M001 crops (unchanged) + M002 crops (5,968, 21 players): 46 identities, 13,109 train / 2,998 holdout crops.

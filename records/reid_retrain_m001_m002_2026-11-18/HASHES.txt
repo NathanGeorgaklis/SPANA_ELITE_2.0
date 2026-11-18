@@ -1,6 +1,6 @@
 # sha256, files on Nathan's Mac (code 12e2b6f unpacked to spana-confirmed-labels/)
 919f7bae7504e9898e1894e3c5d87af228e86c2d47b52e64fcc90e7dfef28670  Downloads/TRAIN_M002_EASTERN_SUBURBS_reid_v1.json (Nathan's export)
-1766d19d4c5cd333a3a74bf21a0c41c626f6ef24fc7c467f3406597a9d52bf41  spana-confirmed-labels/data/reid/TRAIN/TRAIN_M002_EASTERN_SUBURBS/v1/FROZEN.json (frozen labels; not yet in git)
+1766d19d4c5cd333a3a74bf21a0c41c626f6ef24fc7c467f3406597a9d52bf41  spana-confirmed-labels/data/reid/TRAIN/TRAIN_M002_EASTERN_SUBURBS/v1/FROZEN.json (frozen labels; in git at f785ee1, identical)
 4af8b1cd83aaa94749bc8f7208742a0c3454c983d3669180d3b910132e4d1e35  spana-confirmed-labels/crops_M002/crops.jsonl (5,968 crops)
 2fdab08ccfe75d5c3e56b655da170d86cc96ca6a07448c061e04a4779dd9d89b  spana-reid-run/crops_M001/crops.jsonl (unchanged from the pilot)
 84311a66310744ecca66b6abe693d6b15970750dadfca074cc4cf7805707c9d1  spana-confirmed-labels/run_p2/run.json
