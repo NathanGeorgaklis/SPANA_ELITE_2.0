@@ -108,6 +108,61 @@ class ExtentLink(unittest.TestCase):
         self.assertNotIn("extent_link", kinds(out))
 
 
+class ExtentLinkReviewCases(unittest.TestCase):
+    def test_one_track_after_the_link_too(self):
+        # After a size jump the next frames must still match: the linked box replaces the Kalman extent instead of
+        # being averaged with the old one (found while reviewing: the averaged box kept neither edge).
+        out = run(cfg(extent_change_link=True), [lambda f: body(f, keep="bottom", visible=0.5 if f < HIDE else 1.0)], 40)
+        self.assertEqual(len(tracks(out)), 1)
+
+    """Cases added after the code review of eecbc72."""
+
+    def test_link_across_a_gap_is_recorded_as_a_recovery(self):
+        def missed_then_shrunk(f):          # not detected for 3 frames, then back with the lower body hidden
+            if HIDE <= f < HIDE + 3:
+                return None
+            return body(f, visible=0.6 if HIDE + 3 <= f < BACK else 1.0)
+        out = run(cfg(extent_change_link=True), [missed_then_shrunk], 45)
+        rec = [d for ft in out for d in ft.decisions if d["kind"] == "recovery" and d.get("rule") == "EXTENT_CHANGE"]
+        self.assertEqual(len(rec), 1)
+        self.assertEqual(len(tracks(out)), 1)
+        o = out[HIDE + 3].tracks[0]
+        self.assertEqual(o.recoveries, 1)
+        self.assertGreater(o.last_gap_s, 0.0)
+
+    def test_link_across_a_gap_must_fit_own_motion(self):
+        # Tracked as a half-height box (upper body hidden), missed 3 frames, back at full height with the same bottom
+        # edge: the extent rule fits (ratio 2.0, nested, bottom kept) but the centre moved half a predicted height,
+        # beyond the acceleration bound for the gap. Without the gap the same change links (control).
+        def doubled(f, gap=True):
+            if gap and HIDE <= f < HIDE + 3:
+                return None
+            return body(f, keep="bottom", visible=0.5 if f < HIDE + (3 if gap else 0) else 1.0)
+        out = run(cfg(extent_change_link=True), [doubled], 45)
+        self.assertNotIn("S3c", [d.get("stage") for d in out[HIDE + 3].decisions])
+        ctrl = run(cfg(extent_change_link=True), [lambda f: doubled(f, gap=False)], 45)
+        self.assertIn("extent_link", kinds(ctrl))
+
+    def test_appearance_veto_blocks_the_link(self):
+        import numpy as np
+        a, b = np.full(16, 1 / 16), np.zeros(16)
+        b[0] = 1.0
+        trk = MultiPlayerTracker(cfg(extent_change_link=True), 1920, 1080)
+        seen = []
+        for f in range(40):
+            box, sc = hidden_legs(f)
+            cam = CameraObservation.identity(CameraStatus.FIRST if f == 0 else CameraStatus.OK, inliers=100)
+            seen.append(trk.update(f, f / FPS, [Detection(box, sc, 0)], cam, [a if f < HIDE else b]))
+        self.assertNotIn("extent_link", kinds(seen))
+        self.assertIn("extent_link", kinds(run(cfg(extent_change_link=True), [hidden_legs], 40)))   # control
+
+    def test_refusals_hold_on_every_hidden_frame(self):
+        def lower(f):
+            return body(f, keep="bottom", visible=0.6) if HIDE <= f < BACK else None
+        out = run(cfg(extent_change_link=True), [hidden_legs, lower], 45)
+        self.assertNotIn("extent_link", kinds(out[HIDE:BACK]))
+
+
 GAP0, GAP1 = 20, 23            # frames the player is not detected (0.1 s < rematch_max_s 0.2 s)
 
 
@@ -125,8 +180,8 @@ class LowScoreRecovery(unittest.TestCase):
     def test_on_recovers_on_the_low_score_box(self):
         out = run(cfg(low_score_recovery=True), [weak_return], 40)
         self.assertEqual(len(tracks(out)), 1)
-        rec = [d for ft in out for d in ft.decisions if d["kind"] == "recovery"]
-        self.assertTrue(rec)
+        at = [n for n, ft in enumerate(out) for d in ft.decisions if d["kind"] == "recovery"]
+        self.assertEqual(at, [GAP1])                      # recovered on the low-score box, no high-score box present
 
     def test_gap_longer_than_rematch_is_not_recovered_on_low_score(self):
         def long_gap(f):

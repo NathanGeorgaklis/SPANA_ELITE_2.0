@@ -59,6 +59,17 @@ class BoxKalman:
         self.x = self.x + K @ y
         self.P = (np.eye(2 * _DIM) - K @ H) @ self.P
 
+    def rebase_extent(self, cxcywh: np.ndarray) -> None:
+        """The visible extent of the body changed (part hidden or re-emerging; tracker stage S3c): take the measured
+        box as the new position and size, with measurement uncertainty, and keep the velocity. A normal update would
+        average the old and new extents (so neither box edge would match the next frame) and read the centre jump
+        as motion."""
+        self.x[:_DIM] = np.asarray(cxcywh, dtype=float)
+        r = (self.cfg.pos_std_h * max(float(cxcywh[3]), 1.0)) ** 2
+        self.P[:_DIM, :] = 0.0
+        self.P[:, :_DIM] = 0.0
+        self.P[:_DIM, :_DIM] = np.eye(_DIM) * r
+
     def position_mahalanobis2(self, xy: np.ndarray) -> float:
         """Squared Mahalanobis distance of a measured centre from the predicted centre, using the predicted
         position covariance plus measurement noise. Grows tolerant with elapsed time and velocity uncertainty."""

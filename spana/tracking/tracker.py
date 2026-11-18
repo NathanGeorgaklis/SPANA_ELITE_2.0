@@ -36,7 +36,11 @@ Per frame:
           within the gate radius, and appearance does not veto. Exclusive only: no other track gates or extent-fits
           the detection, and the track has no other candidate. Real DEV finding
           (records/gate_break_diagnosis_2026-11-18): such boxes failed the height or centre (Kalman) gate and
-          spawned a new track. Every later check still applies.
+          spawned a new track. Every later check still applies. A link across an unobserved gap (track not observed
+          on the previous frame) is a bridged gap: it must also fit the track's own motion (S4 rule; S4's
+          no-contested-neighbour rule is implied by the exclusive gate) and is recorded like an S4 recovery
+          (`recovery` decision, rule EXTENT_CHANGE; recoveries / last_gap_s). The linked box replaces the track's
+          box state (BoxKalman.rebase_extent, velocity kept) instead of being averaged with the old extent.
        Hidden-rival check: a continuing match is refused when an unobserved confirmed track (gap <= occlusion_max_s,
           and whose own motion can reach the detection) explains the
           detection better by more than contest_margin (the continuing player may have dropped while the hidden
@@ -147,6 +151,7 @@ class MultiPlayerTracker:
         self._last_frame: Optional[int] = None
         self._summaries: Dict[str, TrackletSummary] = {}
         self._pending_doubt: Dict[str, int] = {}   # S3b links of this frame: track id -> detection index
+        self._pending_extent: Dict[str, int] = {}  # S3c links of this frame: track id -> detection index
 
     # ------------------------------------------------------------------ public
     def update(self, frame_index: int, time_s: float, detections: Sequence[Detection], camera: CameraObservation,
@@ -335,6 +340,7 @@ class MultiPlayerTracker:
     def _extent_links(self, rem_high: List[int], dets: Sequence[Detection], desc: Sequence[Optional[np.ndarray]],
                       time_s: float, matched: Dict[int, Tuple[int, bool]], out: FrameTracks) -> List[int]:
         """S3c (see module docstring). Certain links, exclusive pairs only."""
+        self._pending_extent = {}
         if not self.tc.extent_change_link or not rem_high:
             return rem_high
         cand = [k for k, t in enumerate(self._tracks) if k not in matched and t.confirmed
@@ -358,13 +364,22 @@ class MultiPlayerTracker:
             sim = similarity(desc[i], t.appearance)
             if sim is not None and sim < self.ac.min_similarity:
                 continue
+            gap = time_s - t.last_observed_t
+            bridged = not t.observed_last_frame
+            if bridged and not self._motion_consistent(t, dets[i], gap):
+                continue                      # a bridged gap must also fit the track's own motion (S4 rule)
             matched[k] = (i, False)
             used.add(i)
+            self._pending_extent[t.track_id] = i
             p, b = t.box(), dets[i].as_array()
-            out.decisions.append({"kind": "extent_link", "stage": "S3c", "track_id": t.track_id, "detection": i,
-                                  "height_ratio": round(float((b[3] - b[1]) / max(p[3] - p[1], _EPS)), 4),
-                                  "gap_s": round(time_s - t.last_observed_t, 6),
-                                  "similarity": None if sim is None else round(sim, 4)})
+            entry = {"kind": "recovery" if bridged else "extent_link", "stage": "S3c", "track_id": t.track_id,
+                     "detection": i, "height_ratio": round(float((b[3] - b[1]) / max(p[3] - p[1], _EPS)), 4),
+                     "gap_s": round(gap, 6), "similarity": None if sim is None else round(sim, 4)}
+            if bridged:                       # every bridged gap is recorded, as in S4
+                t.recoveries += 1
+                t.last_gap_s = round(gap, 6)
+                entry.update(prior_state=t.state.value, rule="EXTENT_CHANGE")
+            out.decisions.append(entry)
         return [i for i in rem_high if i not in used]
 
     def _uncertain(self, t: _Track) -> bool:
@@ -718,7 +733,10 @@ class MultiPlayerTracker:
         for k, t in enumerate(self._tracks):
             if k in matched:
                 i, contested = matched[k]
-                t.kf.update(box_to_cxcywh(dets[i].as_array()))
+                if self._pending_extent.get(t.track_id) == i:
+                    t.kf.rebase_extent(box_to_cxcywh(dets[i].as_array()))   # S3c: a new visible extent
+                else:
+                    t.kf.update(box_to_cxcywh(dets[i].as_array()))
                 t.last_observed_t, t.last_observed_frame = time_s, frame_index
                 t.observed_frames += 1
                 t.velocity_frozen, t.observed_last_frame, t.missed_frames = False, True, 0
