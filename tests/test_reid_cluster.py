@@ -78,7 +78,7 @@ def colour_embed(crops):
 
 def write_cfg(root: Path, **audit) -> Path:
     cfg = RC.load_cluster_config()
-    cfg["audit"].update({"min_comparable": 3, "max_disagreement_rate": 0.7, **audit})   # small fixture: 0/3 passes
+    cfg["audit"].update(audit)
     p = root / "cluster.yaml"
     p.write_text(yaml.safe_dump(cfg))
     return p
@@ -89,9 +89,9 @@ def truth_answer(t):
 
 
 def export_from(review: dict, assign: dict, cfg: dict, answer=truth_answer, audit_answers=None, overrides=None,
-                clusters=None, players=None) -> dict:
-    """What the review page exports: assign = {cluster: (decision, player)}; the audit answers the draw order with
-    `answer` until min_comparable answers name a player (or uses audit_answers as given)."""
+                clusters=None, players=None, n_answers=3) -> dict:
+    """What the review page exports: assign = {cluster: (decision, player)}; the audit answers the first n_answers
+    tracklets of the draw order with `answer` (or uses audit_answers as given); rule confirmed_only."""
     clusters = clusters or {k: list(c["tracklets"]) for k, c in review["clusters"].items()}
     overrides = overrides or {}
     rv = {"schema": RC.REVIEW_SCHEMA[0], "schema_version": RC.REVIEW_SCHEMA[1], "config_sha256": review["config_sha256"],
@@ -100,21 +100,17 @@ def export_from(review: dict, assign: dict, cfg: dict, answer=truth_answer, audi
                            "player": assign.get(k, (None, None))[1]} for k, m in clusters.items()}}
     if audit_answers is None:
         order = RC.audit_order(RC.audit_eligible(rv), cfg["audit"]["seed"])
-        audit_answers, n = {}, 0
-        for t in order:
-            audit_answers[t] = answer(t)
-            n += audit_answers[t]["decision"] == "player"
-            if n >= cfg["audit"]["min_comparable"]:
-                break
+        audit_answers = {t: answer(t) for t in order[:n_answers]}
     rv["audit"] = audit_answers
-    derived = RC.derived_decisions(rv, [t["id"] for t in review["tracklets"]])
+    ids = [t["id"] for t in review["tracklets"]]
+    final, status, _ = RC.final_decisions(rv, ids, [t for t in audit_answers])
     parts = []
     for t in review["tracklets"]:
-        d = RC._decision(audit_answers[t["id"]]) if t["id"] in audit_answers else derived[t["id"]]
+        d = final[t["id"]]
         p = {"tracklet": t["id"], "first_frame": t["first_frame"], "last_frame": t["last_frame"], "decision": d[0],
              "player": d[1]}
-        if t["id"] in review["excluded"]:
-            p["status"] = RC.EXCLUDED_STATUS
+        if t["id"] in status:
+            p["status"] = status[t["id"]]
         parts.append(p)
     players = players or {k: {"side": "A" if k != "C" else "B", "shirt_number": None} for k in "ABC"}
     return {"schema": "spana.reid_label_export", "schema_version": "1.0.0", "match_id": review["match"]["match_id"],
@@ -165,9 +161,9 @@ class Core(unittest.TestCase):
         self.assertEqual(RC.fnv1a32("0:T000001-1"), RC.fnv1a32("0:T000001-1"))
         ans = {o[0]: {"decision": "player", "player": "A"}, o[1]: {"decision": "reject"},
                o[2]: {"decision": "unsure"}, o[3]: {"decision": "player", "player": "B"}}
-        self.assertEqual(RC.audit_prefix(o, ans, 2), (o[:4], True))       # reject / unsure are not comparable
-        self.assertEqual(RC.audit_prefix(o, ans, 3), (o[:4], False))      # next answer missing
-        self.assertEqual(RC.audit_prefix(o[:4], ans, 3), (o[:4], False))  # order ran out
+        self.assertEqual(RC.answered_prefix(o, ans), o[:4])
+        self.assertEqual(RC.answered_prefix(o, {o[1]: ans[o[1]]}), [])     # a gap: nothing before it is answered
+        self.assertEqual(RC.answered_prefix(o[:4], ans), o[:4])
 
     def test_eligible_needs_a_player_cluster_with_a_live_mate(self):
         rv = {"overrides": {"c": {"decision": "reject"}},
@@ -220,30 +216,58 @@ class BuildAndFreeze(unittest.TestCase):
         with self.assertRaises(ReidLabelError):                         # TRAIN only
             RC.build(dev, self.td / "review_dev", self.cfg, embed=colour_embed)
 
-    def test_freeze_accepts_a_correct_review_and_records_the_audit(self):
-        ex = export_from(self.review, truth_assign(self.review), self.c)
+    def _rows(self, dest):
+        return {r["tracklet"]: r for r in load_frozen(dest, "train")["identities"]}
+
+    def test_only_confirmed_player_labels_are_frozen(self):
+        ex = export_from(self.review, truth_assign(self.review), self.c, n_answers=3)
         dest = self._freeze(ex)
         fz = json.loads((dest / "FROZEN.json").read_text())
         self.assertEqual(fz["labelling_flow"], "cluster_confirm")
         a = fz["cluster_audit"]
-        self.assertEqual((a["comparable"], a["disagreements"]), (3, 0))
-        self.assertAlmostEqual(a["upper_bound"], RC.upper_bound(0, 3, 0.95))
-        lab = load_frozen(dest, "train")
-        rows = {r["tracklet"]: r for r in lab["identities"]}
-        self.assertEqual(rows["T000008-1"]["decision"], "unsure")         # excluded: decided, not trained on
-        self.assertEqual(json.loads((dest / "export.json").read_text())["parts"][-1]["status"], RC.EXCLUDED_STATUS)
+        self.assertEqual((a["freeze_rule"], a["comparable"], a["disagreements"]), ("confirmed_only", 3, 0))
+        self.assertEqual(a["drawable"], 7)
+        self.assertEqual(a["unconfirmed_cluster_labels_frozen_unsure"], 4)
+        rows = self._rows(dest)
+        audited = set(ex["cluster_review"]["audit"])
+        for t in TRACKLETS:
+            if t == "T000008-1":
+                self.assertEqual(rows[t]["decision"], "unsure")              # excluded
+            elif t in audited:
+                self.assertEqual((rows[t]["decision"], rows[t]["player"]), ("player", TRACKLETS[t][0]))
+            else:
+                self.assertEqual(rows[t]["decision"], "unsure")              # unconfirmed cluster label
+        st = {p["tracklet"]: p.get("status") for p in json.loads((dest / "export.json").read_text())["parts"]}
+        self.assertEqual(st["T000008-1"], RC.EXCLUDED_STATUS)
+        self.assertEqual(sorted(t for t, v in st.items() if v == RC.UNCONFIRMED_STATUS), sorted(set(TRACKLETS) - audited - {"T000008-1"}))
 
-    def test_reject_and_unsure_answers_are_lost_data_not_disagreements(self):
+    def test_answers_win_over_clusters_and_disagreements_do_not_block(self):
+        wrong = {}
+
+        def answer(t):                                                   # the first drawn: a different player
+            if not wrong:
+                wrong[t] = "C" if TRACKLETS[t][0] != "C" else "A"
+                return {"decision": "player", "player": wrong[t]}
+            return truth_answer(t)
+        dest = self._freeze(export_from(self.review, truth_assign(self.review), self.c, answer=answer, n_answers=7))
+        a = json.loads((dest / "FROZEN.json").read_text())["cluster_audit"]
+        self.assertEqual((a["comparable"], a["disagreements"], a["unconfirmed_cluster_labels_frozen_unsure"]), (7, 1, 0))
+        self.assertFalse(a["cluster_quality_meets_reference"])          # reported, not a gate
+        (t, p), = wrong.items()
+        self.assertEqual(self._rows(dest)[t]["player"], p)               # your answer is what is frozen
+
+    def test_reject_answer_is_lost_data(self):
         first = {}
 
-        def answer(t):                                                   # the first drawn tracklet: rejected
+        def answer(t):
             if not first:
                 first[t] = True
                 return {"decision": "reject", "player": None}
             return truth_answer(t)
-        dest = self._freeze(export_from(self.review, truth_assign(self.review), self.c, answer=answer))
+        dest = self._freeze(export_from(self.review, truth_assign(self.review), self.c, answer=answer, n_answers=4))
         a = json.loads((dest / "FROZEN.json").read_text())["cluster_audit"]
         self.assertEqual((a["comparable"], a["disagreements"], a["lost_data"], a["drawn"]), (3, 0, 1, 4))
+        self.assertEqual(self._rows(dest)[next(iter(first))]["decision"], "reject")
 
     def test_freeze_refusals(self):
         good = export_from(self.review, truth_assign(self.review), self.c)
@@ -252,22 +276,21 @@ class BuildAndFreeze(unittest.TestCase):
             with self.assertRaises(ReidLabelError, msg=msg):
                 self._freeze(ex, f"bad_{msg}.json")
 
-        def wrong_first(t, seen=[]):                                     # noqa: B006 - one wrong answer, rest right
-            if not seen:
-                seen.append(t)
-                return {"decision": "player", "player": "C" if TRACKLETS[t][0] != "C" else "A"}
-            return truth_answer(t)
-        refused(export_from(self.review, truth_assign(self.review), self.c, answer=wrong_first), "one_of_three_wrong")
-        bad = copy.deepcopy(good)
-        bad["cluster_review"]["audit"].pop(sorted(bad["cluster_review"]["audit"])[0])
-        refused(bad, "audit_not_prefix")
         bad = copy.deepcopy(good)
         rv = bad["cluster_review"]
-        extra = [t for t in RC.audit_order(RC.audit_eligible(rv), 0) if t not in rv["audit"]][0]
-        rv["audit"][extra] = truth_answer(extra)                          # answered past the stopping point
-        refused(bad, "audit_longer_than_prefix")
+        first = RC.audit_order(RC.audit_eligible(rv), 0)[0]
+        rv["audit"].pop(first)                                            # answered later ones, skipped the first
+        refused(bad, "audit_not_prefix")
         bad = copy.deepcopy(good)
-        bad["cluster_review"]["schema_version"] = "1.0.0"
+        p = next(p for p in bad["parts"] if p.get("status") == RC.UNCONFIRMED_STATUS)
+        p.update(decision="player", player=TRACKLETS[p["tracklet"]][0])
+        p.pop("status")
+        refused(bad, "unconfirmed_label_as_player")
+        bad = copy.deepcopy(good)
+        next(p for p in bad["parts"] if p.get("status") == RC.UNCONFIRMED_STATUS).pop("status")
+        refused(bad, "unconfirmed_status_missing")
+        bad = copy.deepcopy(good)
+        bad["cluster_review"]["schema_version"] = "1.1.0"
         refused(bad, "old_audit_format")
         cl = {k: list(c["tracklets"]) for k, c in self.review["clusters"].items()}
         a_cl = next(k for k, m in cl.items() if "T000001-1" in m)
@@ -281,19 +304,16 @@ class BuildAndFreeze(unittest.TestCase):
         bad = copy.deepcopy(good)
         bad["cluster_review"]["config_sha256"] = "0" * 64
         refused(bad, "config")
-        bad = copy.deepcopy(good)
-        p = next(p for p in bad["parts"] if p["tracklet"] not in bad["cluster_review"]["audit"] and p["tracklet"] != "T000008-1")
-        p["decision"], p["player"] = "reject", None
-        refused(bad, "parts_differ")
 
-    def test_not_enough_comparable_answers_refused(self):
-        cfg = write_cfg(self.td, min_comparable=50)
-        c = RC.load_cluster_config(cfg)
-        review = dict(self.review, config_sha256=RC.config_sha(cfg))
-        p = self.td / "few.json"
-        p.write_text(json.dumps(export_from(review, truth_assign(review), c)))
-        with self.assertRaises(ReidLabelError):
-            freeze(str(self.pack), str(p), root=self.td / "repo", cluster_config=cfg)
+    def test_upgrade_from_1_1_keeps_everything_but_the_rule(self):
+        rd = self.td / "review"
+        old = json.loads((rd / "review.json").read_text())
+        old.update(schema_version="1.1.0", config_sha256="e" * 64)
+        (rd / "review.json").write_text(json.dumps(old))
+        new = RC.upgrade(rd, self.cfg)
+        self.assertEqual(new["schema_version"], RC.REVIEW_SCHEMA[1])
+        self.assertNotIn("previously_hidden", new)
+        self.assertEqual((new["clusters"], new["tracklets"], new["excluded"]), (old["clusters"], old["tracklets"], old["excluded"]))
 
     def test_upgrade_keeps_clusters_and_marks_previously_hidden(self):
         rd = self.td / "review"
@@ -336,16 +356,28 @@ const { chromium } = require('playwright');
   await page.goto('file://' + dir + '/index.html');
   const R = await page.evaluate(() => window.SPANA_CLUSTER_REVIEW);
   const cid0 = Object.keys(R.clusters).find(k => new Set(R.clusters[k].tracklets.map(t => truth[t])).size === 1);
-  // progress saved under an earlier config: carried over (decisions kept, old audit dropped)
+  // progress saved under earlier configs: a 1.0.0 state (no lock) and a locked post-review state -> the locked one
+  // is carried over with its audit answers; a 1.0.0 state alone is carried over without its audit
   await page.evaluate(([R, cid0, who]) => {
     const members = Object.fromEntries(Object.entries(R.clusters).map(([k, c]) => [k, c.tracklets.slice()]));
-    localStorage.setItem('spana_reid_cluster_' + R.tracklets_sha256 + '_' + 'f'.repeat(64), JSON.stringify({
-      players: { [who]: { side: 'A', shirt_number: null } }, members, cdec: { [cid0]: { decision: 'player', player: who } },
-      overrides: {}, audit: { [R.clusters[cid0].tracklets[0]]: { decision: 'reject', player: null } }, next: 99 }));
+    const base = { players: { [who]: { side: 'A', shirt_number: null } }, members, cdec: { [cid0]: { decision: 'player', player: who } }, overrides: {}, next: 99 };
+    localStorage.setItem('spana_reid_cluster_' + R.tracklets_sha256 + '_' + 'f'.repeat(64),
+      JSON.stringify({ ...base, audit: { [R.clusters[cid0].tracklets[0]]: { decision: 'reject', player: null } } }));
   }, [R, cid0, truth[R.clusters[cid0].tracklets[0]]]);
   await page.reload();
   if (!(await page.textContent('#status')).includes('carried over')) throw new Error('earlier progress not carried over');
   if (!(await page.locator(`.card[data-cid="${cid0}"] h3`).textContent()).includes(truth[R.clusters[cid0].tracklets[0]])) throw new Error('decision lost');
+  if ((await page.textContent('#lock')).includes('Unlock')) throw new Error('a 1.0.0 state must not arrive locked');
+  await page.evaluate(([R, cid0, who]) => {
+    localStorage.removeItem('spana_reid_cluster_' + R.tracklets_sha256 + '_' + R.config_sha256);
+    const members = Object.fromEntries(Object.entries(R.clusters).map(([k, c]) => [k, c.tracklets.slice()]));
+    localStorage.setItem('spana_reid_cluster_' + R.tracklets_sha256 + '_' + 'e'.repeat(64), JSON.stringify({
+      players: { [who]: { side: 'A', shirt_number: null } }, members, cdec: { [cid0]: { decision: 'player', player: who } },
+      overrides: {}, next: 99, locked: true, audit: { x: { decision: 'unsure', player: null } } }));
+  }, [R, cid0, truth[R.clusters[cid0].tracklets[0]]]);
+  await page.reload();
+  if (!(await page.textContent('#lock')).includes('Unlock')) throw new Error('locked post-review state not carried over');
+  if (!(await page.textContent('#status')).includes('audit answers were carried over')) throw new Error('audit answers not carried over');
   await page.evaluate(() => localStorage.clear()); await page.reload();
   // a fresh review
   await page.fill('#annotator', 'QA');
@@ -381,12 +413,12 @@ const { chromium } = require('playwright');
   await decideAll(pair[1]);
   await page.click('#lock');
   if (!(await page.textContent('#lock')).includes('Unlock')) throw new Error('not locked');
-  for (let i = 0; i < 40; i++) {
-    if ((await page.textContent('#view')).includes('Audit complete')) break;
+  for (let i = 0; i < 2; i++) {                                        // answer 2, leave the rest unconfirmed
     const card = page.locator('.card[data-audit]').first();             // newest drawn tracklet on top
     const t = await card.getAttribute('data-audit');
     await player(truth[t]); await card.locator('button', { hasText: 'Assign active player' }).click();
   }
+  page.once('dialog', d => d.accept());                                 // "N tracklets will be frozen as unsure"
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#export')]);
   await dl.saveAs(out); console.log(await page.textContent('#status')); await b.close();
 })().catch(e => { console.error(e); process.exit(1); });
@@ -418,7 +450,8 @@ class ReviewPage(unittest.TestCase):
             self.assertEqual(ex["cluster_review"]["schema_version"], RC.REVIEW_SCHEMA[1])
             dest = freeze(str(pack), str(out), root=td / "repo", cluster_config=cfg)   # JS draw order == Python
             a = json.loads((dest / "FROZEN.json").read_text())["cluster_audit"]
-            self.assertEqual((a["comparable"], a["disagreements"]), (3, 0))
+            self.assertEqual((a["comparable"], a["disagreements"], a["freeze_rule"]), (2, 0, "confirmed_only"))
+            self.assertGreater(a["unconfirmed_cluster_labels_frozen_unsure"], 0)
         finally:
             shutil.rmtree(td, ignore_errors=True)
 

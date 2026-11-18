@@ -94,16 +94,16 @@ class DiagnoseV11(unittest.TestCase):
                 cdec[k] = {"decision": "player", "player": who.pop()} if len(who) == 1 else {"decision": "unsure", "player": None}
             rv = {"clusters": {k: {"tracklets": m, **cdec[k]} for k, m in members.items()}, "overrides": {}}
             order = RC.audit_order(RC.audit_eligible(rv), c["audit"]["seed"])
-            audit = {t: {"decision": "player", "player": TRACKLETS[t][0]} for t in order[:c["audit"]["min_comparable"]]}
+            audit = {t: {"decision": "player", "player": TRACKLETS[t][0]} for t in order[:3]}
             wrong = order[0]
             audit[wrong] = {"decision": "player", "player": "C" if TRACKLETS[wrong][0] != "C" else "A"}
             S = {"players": {"A": {"side": "A"}, "B": {"side": "A"}, "C": {"side": "B"}}, "members": members,
                  "cdec": cdec, "overrides": {}, "audit": audit, "locked": True}
             res = diagnose(td / "review", pack, S, td / "diag", cfg_path=cfg)
-            self.assertEqual(res["audit_tracklets"], c["audit"]["min_comparable"])
+            self.assertEqual(res["audit_tracklets"], 3)
             self.assertEqual([r["tracklet"] for r in res["disagreements"]], [wrong])
             self.assertEqual(res["rate_a_real_conflicts"]["disagreements"], 1)
-            self.assertEqual(res["rate_a_real_conflicts"]["n"], c["audit"]["min_comparable"])
+            self.assertEqual(res["rate_a_real_conflicts"]["n"], 3)
             self.assertEqual(res["rate_b_as_tool_counts"]["disagreements"], 1)        # 1.1.0: (a) == (b)
             self.assertFalse(res["disagreements"][0]["category"].startswith("other: stale"))
         finally:

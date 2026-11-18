@@ -7,8 +7,8 @@ to this pack (match_id, split, tracklets sha256); every proposed tracklet is ful
 start and end on its observed frames; every player decision names a declared player with a valid side; one player
 never occupies two parts on the same frame; a version > 1 carries a reason. A group-then-confirm export
 (labelling_flow cluster_confirm, tools/reid_cluster.py) is also re-checked from its cluster_review block (clusters,
-same-frame conflicts, exclusions, audit sample) and refused when the audit disagreement rate is above
-config/reid_cluster.yaml audit.max_disagreement_rate. Writes
+same-frame conflicts, exclusions, audit answers) and must follow the confirmed_only rule: player labels only where
+the reviewer confirmed them directly (tools.reid_cluster.final_decisions). Writes
 data/reid/<split>/<match_id>/v<N>/{manifest.json, players.json, identities.jsonl, boxes.mot.txt, export.json,
 FROZEN.json} with the sha256 of every file, and never overwrites an existing version.
 """

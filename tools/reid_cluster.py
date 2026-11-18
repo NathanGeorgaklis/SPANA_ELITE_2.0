@@ -17,13 +17,15 @@ build (TRAIN packs only; DEV / EVAL refused):
 upgrade: bring an existing review folder to the current format / config without re-clustering (keeps the
 reviewer's progress: the page carries it over from the previous config's browser key).
 
-Audit (after the review is locked): tracklets of player clusters with a live cluster-mate, shown alone in a seeded
-order until `audit.min_comparable` answers name a player; disagreement = player vs player; the exact one-sided
-upper bound of the disagreement rate must be <= `audit.max_disagreement_rate`.
+Audit (after the review is locked): tracklets of player clusters with a live cluster-mate, shown alone in a fixed
+seeded order (answers form a prefix of it). Freeze rule confirmed_only (Nathan, 2026-11-18): only player labels the
+reviewer gave directly (audit answers, single-tracklet clusters) are frozen as players; an unaudited tracklet of a
+multi-tracklet player cluster is frozen as unsure (unconfirmed_cluster_label). The cluster disagreement rate is
+reported with its exact one-sided upper bound, against a reference (not a gate).
 
 The review page exports the standard `spana.reid_label_export` 1.0.0 (one part per tracklet) plus a
-`cluster_review` block; tools/freeze_reid_labels.py re-checks that block (check_cluster_export) and refuses to
-freeze when the audit's upper bound is above `audit.max_disagreement_rate`.
+`cluster_review` block; tools/freeze_reid_labels.py re-checks that block (check_cluster_export) and freezes
+only directly confirmed player labels (rule confirmed_only).
 
 evaluate: run the same clustering on a pack whose labels are already frozen (TRAIN) and report how often a
 tracklet's cluster majority differs from its label (the error rate the audit would see).
@@ -46,7 +48,8 @@ import yaml
 
 from spana.reid_labels import ReidLabelError, validate_manifest
 
-REVIEW_SCHEMA = ("spana.reid_cluster_review", "1.1.0")
+REVIEW_SCHEMA = ("spana.reid_cluster_review", "1.2.0")
+UNCONFIRMED_STATUS = "unconfirmed_cluster_label"
 EXCLUDED_STATUS = "excluded_tracker_uncertain"
 PAGE = Path(__file__).resolve().parent / "reid_cluster_review.html"
 DEFAULT_CONFIG = Path(__file__).resolve().parent.parent / "config" / "reid_cluster.yaml"
@@ -220,11 +223,10 @@ def odd_scores(D: np.ndarray, labels: List[int]) -> List[float]:
 
 
 # ------------------------------------------------------------------------------------------- audit
-# Audit (2026-11-18 fix, records/reid_audit_diagnose_2026-11-18): drawn AFTER the cluster review is locked, from the
-# tracklets whose reviewed cluster says a player and that still have a live cluster-mate; shown alone, in a fixed
-# seeded order, until `audit.min_comparable` answers are comparable (the answer names a player). Disagreement =
-# player vs player only; reject / unsure answers are reported apart as lost data. Gate: the exact one-sided
-# (Clopper-Pearson) upper confidence bound of the disagreement rate must not exceed `audit.max_disagreement_rate`.
+# Audit (records/reid_audit_diagnose_2026-11-18): drawn AFTER the cluster review is locked, from the tracklets whose
+# reviewed cluster says a player and that still have a live cluster-mate; shown alone in a fixed seeded order; the
+# answers form a prefix of that order. Freeze rule confirmed_only (final_decisions): only directly confirmed player
+# labels are frozen. Disagreement (player vs player) is reported with an exact one-sided upper bound.
 def fnv1a32(text: str) -> int:
     h = 0x811C9DC5
     for b in text.encode("utf-8"):
@@ -306,21 +308,46 @@ def audit_eligible(review: dict) -> List[str]:
     return sorted(out)
 
 
-def audit_prefix(order: Sequence[str], answers: Dict[str, dict], min_comparable: int):
-    """The audit to score: the shortest prefix of the draw order holding min_comparable comparable answers.
-    Returns (prefix, complete); complete is False when an answer is missing or the order ran out first."""
-    n = 0
-    for k, t in enumerate(order):
+def answered_prefix(order: Sequence[str], answers: Dict[str, dict]) -> List[str]:
+    """The answered part of the draw order: answers must form a prefix of it (no picking which to answer)."""
+    out = []
+    for t in order:
         a = answers.get(t)
         if not a or a.get("decision") not in ("player", "reject", "unsure"):
-            return list(order[:k]), False
-        n += a["decision"] == "player"
-        if n >= min_comparable:
-            return list(order[:k + 1]), True
-    return list(order), False
+            break
+        out.append(t)
+    return out
+
+
+def final_decisions(rv: dict, tracklet_ids: Sequence[str], audited: Sequence[str]):
+    """Freeze rule `confirmed_only` (Nathan, 2026-11-18): a player label is frozen only when the reviewer gave it to
+    that tracklet directly - an audit answer, or the decision of a single-tracklet cluster. The player label a
+    multi-tracklet cluster gives to a tracklet that was not audited is frozen as unsure (status
+    unconfirmed_cluster_label). Returns ({tracklet: (decision, player)}, {tracklet: status})."""
+    derived = derived_decisions(rv, tracklet_ids)
+    over = rv.get("overrides", {})
+    size = {}
+    for c in rv["clusters"].values():
+        live = [t for t in c["tracklets"] if t not in over]
+        for t in live:
+            size[t] = len(live)
+    excluded = set(rv.get("excluded", []))
+    aud = set(audited)
+    final, status = {}, {}
+    for t in tracklet_ids:
+        if t in excluded:
+            final[t], status[t] = ("unsure", None), EXCLUDED_STATUS
+        elif t in aud:
+            final[t] = _decision(rv["audit"][t])
+        elif derived[t][0] == "player" and size.get(t, 1) > 1:
+            final[t], status[t] = ("unsure", None), UNCONFIRMED_STATUS
+        else:
+            final[t] = derived[t]
+    return final, status, derived
 
 
 def audit_stats(review: dict, derived: Dict[str, tuple], prefix: Sequence[str], cfg: dict) -> dict:
+    """Cluster quality, reported (not a gate under confirmed_only): player answers vs the cluster's player label."""
     ac = cfg["audit"]
     comparable = dis = lost = 0
     rows = []
@@ -328,27 +355,31 @@ def audit_stats(review: dict, derived: Dict[str, tuple], prefix: Sequence[str], 
         a = _decision(review["audit"][tid])
         c = derived[tid]
         if a[0] != "player":
-            lost += 1                                                   # reject / unsure on a player cluster
+            lost += 1
             rows.append({"tracklet": tid, "answer": list(a), "cluster": list(c), "kind": "lost_data"})
             continue
         comparable += 1
         bad = a != c
         dis += bad
         rows.append({"tracklet": tid, "answer": list(a), "cluster": list(c), "kind": "disagree" if bad else "agree"})
+    ub = upper_bound(dis, comparable, ac["confidence"])
     return {"drawn": len(prefix), "comparable": comparable, "disagreements": dis, "lost_data": lost,
-            "rate": dis / comparable if comparable else None,
-            "upper_bound": upper_bound(dis, comparable, ac["confidence"]), "confidence": ac["confidence"],
+            "rate": dis / comparable if comparable else None, "upper_bound": ub, "confidence": ac["confidence"],
             "bound": "exact one-sided (Clopper-Pearson)", "wilson": wilson(dis, comparable, ac["confidence"]),
-            "limit": ac["max_disagreement_rate"], "min_comparable": ac["min_comparable"], "rows": rows}
+            "cluster_quality_meets_reference": bool(comparable >= ac["report_min_comparable"] and ub is not None
+                                                    and ub <= ac["report_max_disagreement_rate"]),
+            "reference": {"min_comparable": ac["report_min_comparable"],
+                          "max_disagreement_rate": ac["report_max_disagreement_rate"]}, "rows": rows}
 
 
 def check_cluster_export(pack: dict, tl: Dict[str, dict], ex: dict, cfg: dict, cfg_sha256: str) -> dict:
-    """Freeze gate for a group-then-confirm export (labelling_flow == cluster_confirm). Recomputes everything from
-    the pack and the export; raises ReidLabelError, or returns the audit statistics."""
+    """Freeze gate for a group-then-confirm export (labelling_flow == cluster_confirm), rule confirmed_only.
+    Recomputes everything from the pack and the export; raises ReidLabelError, or returns the audit statistics."""
+    if cfg["audit"].get("freeze_rule") != "confirmed_only":
+        raise ReidLabelError("config audit.freeze_rule must be confirmed_only")
     rv = ex.get("cluster_review") or {}
     if (rv.get("schema"), rv.get("schema_version")) != REVIEW_SCHEMA:
-        raise ReidLabelError(f"cluster_confirm export needs a cluster_review block {REVIEW_SCHEMA} "
-                             "(1.0.0 audits are not accepted: records/reid_audit_diagnose_2026-11-18)")
+        raise ReidLabelError(f"cluster_confirm export needs a cluster_review block {REVIEW_SCHEMA}")
     if rv.get("config_sha256") != cfg_sha256:
         raise ReidLabelError("cluster_review was made with another config/reid_cluster.yaml")
     flagged = sorted(t for t, v in tl.items() if is_flagged(v)) if cfg["clustering"]["exclude_tracker_flagged"] else []
@@ -375,16 +406,11 @@ def check_cluster_export(pack: dict, tl: Dict[str, dict], ex: dict, cfg: dict, c
                     raise ReidLabelError(f"CONFLICT: cluster {cid} holds {seen[f]} and {t} on frame {f}")
                 seen[f] = t
     order = audit_order(audit_eligible(rv), cfg["audit"]["seed"])
-    prefix, complete = audit_prefix(order, rv.get("audit", {}), cfg["audit"]["min_comparable"])
-    if sorted(rv.get("audit", {})) != sorted(prefix):
-        raise ReidLabelError("audit answers are not exactly the shortest prefix of the draw order")
-    if not complete:
-        raise ReidLabelError(f"audit incomplete: fewer than {cfg['audit']['min_comparable']} comparable answers "
-                             f"({len(order)} tracklets could be drawn)")
-    derived = derived_decisions(rv, sorted(tl))
-    final = dict(derived)
-    for tid in prefix:
-        final[tid] = _decision(rv["audit"][tid])                        # the human answer is what gets frozen
+    answers = rv.get("audit", {})
+    prefix = answered_prefix(order, answers)
+    if sorted(answers) != sorted(prefix):
+        raise ReidLabelError("audit answers are not a prefix of the draw order (or name tracklets that cannot be drawn)")
+    final, status, derived = final_decisions(rv, sorted(tl), prefix)
     parts: Dict[str, List[dict]] = {}
     for p in ex.get("parts", []):
         parts.setdefault(p.get("tracklet"), []).append(p)
@@ -393,14 +419,15 @@ def check_cluster_export(pack: dict, tl: Dict[str, dict], ex: dict, cfg: dict, c
         if len(ps) != 1 or ps[0].get("first_frame") != t["frames"][0] or ps[0].get("last_frame") != t["frames"][-1]:
             raise ReidLabelError(f"tracklet {tid}: a cluster_confirm export has exactly one whole part per tracklet")
         if _decision(ps[0]) != final[tid]:
-            raise ReidLabelError(f"tracklet {tid}: exported decision differs from the cluster review")
-        if (tid in flagged) != (ps[0].get("status") == EXCLUDED_STATUS):
-            raise ReidLabelError(f"tracklet {tid}: status {EXCLUDED_STATUS} must mark exactly the excluded ones")
+            raise ReidLabelError(f"tracklet {tid}: exported decision differs from the confirmed-only rule")
+        if ps[0].get("status") != status.get(tid):
+            raise ReidLabelError(f"tracklet {tid}: status must be {status.get(tid)!r}")
     st = audit_stats(rv, derived, prefix, cfg)
-    if st["upper_bound"] > cfg["audit"]["max_disagreement_rate"]:
-        raise ReidLabelError(f"audit: {st['disagreements']} of {st['comparable']} comparable answers disagree; the "
-                             f"{st['confidence']:.0%} upper bound {st['upper_bound']:.3f} is above the limit "
-                             f"{cfg['audit']['max_disagreement_rate']}: refusing to freeze")
+    singles = sum(1 for t in tl if final[t][0] == "player" and t not in prefix)
+    st.update({"freeze_rule": "confirmed_only", "drawable": len(order),
+               "player_labels_from_audit": sum(1 for t in prefix if final[t][0] == "player"),
+               "player_labels_from_single_tracklet_clusters": singles,
+               "unconfirmed_cluster_labels_frozen_unsure": sum(1 for v in status.values() if v == UNCONFIRMED_STATUS)})
     return st
 
 
@@ -481,7 +508,7 @@ def upgrade(review_dir, cfg_path=DEFAULT_CONFIG) -> dict:
     old = data.get("schema_version")
     if old == REVIEW_SCHEMA[1] and data.get("config_sha256") == config_sha(cfg_path):
         return data
-    cfg = load_cluster_config(cfg_path)
+    cfg = load_cluster_config(cfg_path)                       # 1.0.0 -> drops the build-time audit; 1.1.0 -> rule only
     for name in ("review.json", "review.js", "index.html"):
         bak = rd / f"{name}.{old}.bak"
         if not bak.exists():

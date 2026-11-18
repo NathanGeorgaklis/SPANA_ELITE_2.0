@@ -15,7 +15,9 @@ clustering:
 review:
   sheet_thumbs_per_tracklet: 3 # contact sheet: thumbnails shown per tracklet (odd ones out first)
 audit:                         # drawn after the review is locked (records/reid_audit_diagnose_2026-11-18)
-  seed: 0                      # fixed draw order (FNV-1a of "<seed>:<tracklet>")
-  min_comparable: 60           # answers that name a player (Nathan, 2026-11-18)
-  confidence: 0.95             # exact one-sided (Clopper-Pearson) upper bound of the disagreement rate
-  max_disagreement_rate: 0.05  # freeze refused when the upper bound is above this
+  seed: 0                      # fixed draw order (FNV-1a of "<seed>:<tracklet>"); answers are a prefix of it
+  freeze_rule: confirmed_only  # Nathan 2026-11-18: player labels only from audit answers or single-tracklet clusters;
+                               # an unconfirmed label of a multi-tracklet cluster is frozen as unsure (not trained on)
+  confidence: 0.95             # reported: exact one-sided (Clopper-Pearson) upper bound of the cluster disagreement rate
+  report_min_comparable: 60    # reported: cluster quality is judged on at least this many comparable answers
+  report_max_disagreement_rate: 0.05   # reported: reference limit for cluster quality (not a freeze gate any more)

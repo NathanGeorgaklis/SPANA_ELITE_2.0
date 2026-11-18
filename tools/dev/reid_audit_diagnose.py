@@ -5,7 +5,7 @@
 
 STATE.json = the review page's saved progress (its localStorage value: players, members, cdec, overrides, audit).
 Audit tracklets: 1.0.0 reviews = the sample drawn at build; 1.1.0 = the scored prefix of the post-review draw order
-(tools.reid_cluster.audit_order / audit_prefix), recomputed from the state.
+(tools.reid_cluster.audit_order / answered_prefix), recomputed from the state.
 
 For every audit tracklet, three cluster labels are compared with the audit answer:
   tool       what the page / freeze gate count: the decision stored on the tracklet's current cluster
@@ -126,7 +126,7 @@ def diagnose(review_dir, pack_dir, state: dict, out_dir, embed=None, light="unkn
         rv = {"clusters": {k: {"tracklets": m, **(state["cdec"].get(k) or {"decision": None, "player": None})}
                            for k, m in state["members"].items()}, "overrides": state.get("overrides", {})}
         order = RC.audit_order(RC.audit_eligible(rv), cfg0["audit"]["seed"])
-        R["audit"] = RC.audit_prefix(order, state.get("audit", {}), cfg0["audit"]["min_comparable"])[0]
+        R["audit"] = RC.answered_prefix(order, state.get("audit", {}))
     pack, tracklets = RC._load_pack(pack_dir)
     if pack["tracklets_sha256"] != R["tracklets_sha256"]:
         raise SystemExit("review and pack disagree")
@@ -211,7 +211,7 @@ def diagnose(review_dir, pack_dir, state: dict, out_dir, embed=None, light="unkn
                                      "ci95": wilson(a_k, a_n)},
            "rate_b_as_tool_counts": {"disagreements": b_k, "n": b_n, "rate": round(b_k / b_n, 4) if b_n else None,
                                      "ci95": wilson(b_k, b_n)},
-           "limit": cfg["audit"]["max_disagreement_rate"],
+           "limit": cfg["audit"].get("report_max_disagreement_rate"),
            "disagreements": [r for r in rows if r.get("disagrees")], "all": rows}
     (out_dir / "diagnosis.json").write_text(json.dumps(res, indent=1, default=str))
     items = "".join(f"<h3>{r['tracklet']}: {r['category']}</h3><p>you: {r['answer']} · tool counted: {r['tool_label']} · "

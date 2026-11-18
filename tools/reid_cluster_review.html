@@ -77,17 +77,23 @@ function fresh() {
            cdec: {}, overrides: {}, audit: {}, locked: false, next: Object.keys(R.clusters).length + 1 };
 }
 function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); return s && s.members ? s : null; } catch (e) { return null; } }
-function migrate() {     // progress saved under an earlier config of the same review: keep the review, drop its audit
+function migrate() {     // progress saved under an earlier config of the same review
+  // the most recent kind wins: a state with a lock (post-review audit, kept as is) over a 1.0.0 state (its
+  // build-time audit was a different sample: dropped, kept only as "earlier audit answer"); then the most answers
+  let best = null;
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i); if (!k || !k.startsWith(PREFIX) || k === KEY) continue;
       const o = JSON.parse(localStorage.getItem(k)); if (!o || !o.members) continue;
-      return { players: o.players || {}, annotator: o.annotator || "", version: o.version || 1, reason: o.reason || "", members: o.members,
-               cdec: o.cdec || {}, overrides: o.overrides || {}, audit: {}, locked: false, next: o.next || Object.keys(o.members).length + 1,
-               prevAudit: o.audit || {}, migrated_from: k };
+      const rank = [("locked" in o) ? 1 : 0, Object.keys(o.audit || {}).length];
+      if (!best || rank[0] > best.rank[0] || (rank[0] === best.rank[0] && rank[1] > best.rank[1])) best = { k, o, rank };
     }
   } catch (e) { /* storage unavailable */ }
-  return null;
+  if (!best) return null;
+  const o = best.o, post = best.rank[0] === 1;
+  return { players: o.players || {}, annotator: o.annotator || "", version: o.version || 1, reason: o.reason || "", members: o.members,
+           cdec: o.cdec || {}, overrides: o.overrides || {}, audit: post ? (o.audit || {}) : {}, locked: post ? !!o.locked : false,
+           next: o.next || Object.keys(o.members).length + 1, prevAudit: post ? (o.prevAudit || {}) : (o.audit || {}), migrated_from: best.k };
 }
 let S = load(), active = null, tab = "clusters", selected = new Set(), migrated = false;
 if (!S) { S = migrate(); migrated = !!S; if (!S) S = fresh(); }
@@ -105,7 +111,15 @@ function derived(tid) {
 }
 function live(cid) { return S.members[cid].filter(t => !S.overrides[t]); }
 function needsDecision(cid) { return live(cid).length > 0; }
-function finalD(tid) { return S.locked && auditPrefix().prefix.includes(tid) ? S.audit[tid] : derived(tid); }
+// freeze rule confirmed_only (tools/reid_cluster.py final_decisions): a player label is frozen only where you gave it
+// directly (an audit answer, or a single-tracklet cluster); an unaudited tracklet of a multi-tracklet player cluster
+// is frozen as unsure (status unconfirmed_cluster_label)
+function finalD(tid) {
+  if (S.locked && auditPrefix().prefix.includes(tid)) return S.audit[tid];
+  const d = derived(tid), c = clusterOf(tid);
+  if (d && d.decision === "player" && !EXCL.has(tid) && c && live(c).length > 1) return { decision: "unsure", player: null, unconfirmed: true };
+  return d;
+}
 function conflicts() {           // cluster ids in CONFLICT: two live members on one frame, or a player in two places
   const bad = new Set();
   for (const cid of Object.keys(S.members)) { const L = live(cid); outer: for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) if (overlap(L[i], L[j])) { bad.add(cid); break outer; } }
@@ -126,14 +140,10 @@ function auditOrder() {
   const key = t => fnv1a32(AC.seed + ":" + t);
   return el.sort().map(t => [key(t), t]).sort((a, b) => a[0] - b[0] || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0)).map(x => x[1]);
 }
-function auditPrefix() {
-  const order = auditOrder(); let n = 0;
-  for (let k = 0; k < order.length; k++) {
-    const a = S.audit[order[k]]; if (!a) return { order, prefix: order.slice(0, k), next: order[k], complete: false };
-    if (a.decision === "player") n++;
-    if (n >= AC.min_comparable) return { order, prefix: order.slice(0, k + 1), next: null, complete: true };
-  }
-  return { order, prefix: order.slice(), next: null, complete: false };
+function auditPrefix() {           // answers form a prefix of the draw order; the next one is shown until all are done
+  const order = auditOrder();
+  for (let k = 0; k < order.length; k++) if (!S.audit[order[k]]) return { order, prefix: order.slice(0, k), next: order[k], complete: false };
+  return { order, prefix: order.slice(), next: null, complete: true };
 }
 function binomCdf(k, n, p) { let s = 0, c = 1; for (let i = 0; i <= k; i++) { if (i > 0) c = c * (n - i + 1) / i; s += c * Math.pow(p, i) * Math.pow(1 - p, n - i); } return s; }
 function upperBound(k, n, conf) { if (!n) return null; if (k >= n) return 1; let lo = k / n, hi = 1; for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2; if (binomCdf(k, n, m) > 1 - conf) lo = m; else hi = m; } return hi; }
@@ -216,7 +226,7 @@ function renderAudit() {
   if (!S.locked) { note.textContent = "The audit starts once every cluster is decided and there is no CONFLICT: press \"Lock clusters & start audit\"."; v.appendChild(note); return; }
   const a = auditStats();
   note.textContent = `Tracklets from your player clusters, one at a time, without their cluster. Say who it is (active player), or Reject / Unsure. ` +
-    `${a.comparable} of ${AC.min_comparable} answers that name a player so far (${a.order.length} tracklets can be drawn). Your answer is what gets frozen for these tracklets.`;
+    `${a.prefix.length} of ${a.order.length} answered. Your answers are what gets frozen; every tracklet of a multi-tracklet cluster you do not answer here is frozen as unsure (not trained on), so answering more keeps more data.`;
   v.appendChild(note);
   const show = a.prefix.concat(a.next ? [a.next] : []);
   show.slice().reverse().forEach(t => {
@@ -231,8 +241,7 @@ function renderAudit() {
     TL[t].thumbs.forEach((_, k) => row.appendChild(img(t, k)));
     card.appendChild(row); v.appendChild(card);
   });
-  if (a.complete) { const d = document.createElement("div"); d.className = "ok"; d.textContent = "Audit complete."; v.prepend(d); }
-  else if (!a.next) { const d = document.createElement("div"); d.className = "bad"; d.textContent = `Not enough tracklets to reach ${AC.min_comparable} comparable answers: the freeze will refuse.`; v.prepend(d); }
+  if (a.complete) { const d = document.createElement("div"); d.className = "ok"; d.textContent = "Every drawable tracklet answered."; v.prepend(d); }
 }
 function render() {
   for (const [k, c] of Object.entries(S.members)) if (!c.length) { delete S.members[k]; delete S.cdec[k]; }
@@ -241,11 +250,12 @@ function render() {
   if (tab === "clusters") renderClusters(bad); else renderAudit();
   const cl = Object.keys(S.members).filter(needsDecision), dec = cl.filter(k => S.cdec[k]).length;
   const a = S.locked ? auditStats() : null;
-  $("progress").textContent = `${dec}/${cl.length} clusters decided · ${bad.size} CONFLICT` + (a ? ` · audit ${a.comparable}/${AC.min_comparable} comparable` : "");
-  $("tabAudit").textContent = a ? `Audit (${a.comparable}/${AC.min_comparable})` : "Audit";
+  $("progress").textContent = `${dec}/${cl.length} clusters decided · ${bad.size} CONFLICT` + (a ? ` · audit ${a.prefix.length}/${a.order.length} answered` : "");
+  $("tabAudit").textContent = a ? `Audit (${a.prefix.length}/${a.order.length})` : "Audit";
   $("lock").textContent = S.locked ? "Unlock clusters (discards audit answers)" : "Lock clusters & start audit";
   $("summary").innerHTML = `${R.stats.tracklets} tracklets · ${R.stats.clustered} clustered into ${R.stats.clusters} · ${R.stats.excluded} excluded` +
-    (a && a.comparable ? `<br>Audit: ${a.dis} of ${a.comparable} comparable answers disagree; ${(100 * AC.confidence).toFixed(0)} % upper bound ${pct(a.upper)} (limit ${pct(AC.max_disagreement_rate)}); ${a.lost} answered reject / unsure (lost data, not counted)` : "");
+    (a && a.comparable ? `<br>Cluster quality (reported, not a gate): ${a.dis} of ${a.comparable} of your player answers differ from their cluster; ${(100 * AC.confidence).toFixed(0)} % upper bound ${pct(a.upper)} (reference ${pct(AC.report_max_disagreement_rate)} at ≥ ${AC.report_min_comparable})` +
+     `<br>${a.order.length - a.prefix.length} tracklets of multi-tracklet player clusters not answered: frozen as unsure` : "");
 }
 $("tabClusters").onclick = () => { tab = "clusters"; $("tabClusters").className = "on"; $("tabAudit").className = ""; render(); };
 $("tabAudit").onclick = () => { tab = "audit"; $("tabAudit").className = "on"; $("tabClusters").className = ""; render(); };
@@ -267,16 +277,15 @@ $("padd").onclick = () => {
   S.players[k] = { side, shirt_number: num || null }; active = k; $("pkey").value = ""; $("pnum").value = ""; persist(); render();
 };
 $("export").onclick = () => {
-  if (!S.locked) { status("Lock the clusters and complete the audit first.", "bad"); return; }
+  if (!S.locked) { status("Lock the clusters and answer the audit first.", "bad"); return; }
   if (conflicts().size) { status("CONFLICT: a player is in two places (check your audit answers).", "bad"); return; }
   const a = auditStats();
-  if (!a.complete) { status(`Audit incomplete: ${a.comparable} of ${AC.min_comparable} comparable answers.`, "bad"); $("tabAudit").onclick(); return; }
-  if (a.upper > AC.max_disagreement_rate) { status(`Audit: ${a.dis} of ${a.comparable} disagree; upper bound ${pct(a.upper)} is above the limit (the freeze would refuse).`, "bad"); return; }
+  if (!a.complete && !confirm(`${a.order.length - a.prefix.length} tracklets of multi-tracklet player clusters are not answered and will be frozen as unsure (not trained on). Export anyway?`)) return;
   if (!String(S.annotator || "").trim()) return status("Annotator name required.", "bad");
   const v = parseInt(S.version || 1, 10);
   if (v > 1 && !String(S.reason || "").trim()) return status("A new version needs a reason.", "bad");
   const parts = R.tracklets.map(t => { const d = finalD(t.id); const p = { tracklet: t.id, first_frame: t.first_frame, last_frame: t.last_frame, decision: d.decision, player: d.decision === "player" ? d.player : null };
-    if (EXCL.has(t.id)) p.status = R.excluded_status; return p; });
+    if (EXCL.has(t.id)) p.status = R.excluded_status; else if (d.unconfirmed) p.status = "unconfirmed_cluster_label"; return p; });
   const used = new Set(parts.filter(o => o.decision === "player").map(o => o.player));
   const players = Object.fromEntries(Object.entries(S.players).filter(([k]) => used.has(k)));
   const clusters = Object.fromEntries(Object.entries(S.members).map(([k, m]) => [k, { tracklets: m, decision: S.cdec[k] ? S.cdec[k].decision : null, player: S.cdec[k] && S.cdec[k].decision === "player" ? S.cdec[k].player : null }]));
@@ -292,7 +301,8 @@ $("export").onclick = () => {
 };
 $("match").textContent = `${R.match.match_id} · ${R.match.split}`;
 render();
-status(migrated ? "Your earlier review was carried over (decisions kept; the old audit is discarded). Tracklets that were hidden are now marked \"not seen\"."
+status(migrated ? (S.locked ? "Your review and audit answers were carried over to the new freeze rule (only your own answers become player labels)."
+  : "Your earlier review was carried over (decisions kept; the old audit is discarded). Tracklets that were hidden are now marked \"not seen\".")
   : Object.keys(S.cdec).length ? "Progress restored from this browser." : "Add players, decide each cluster (odd ones out are at the top of each sheet), then lock and audit.", "ok");
 </script>
 </body>
