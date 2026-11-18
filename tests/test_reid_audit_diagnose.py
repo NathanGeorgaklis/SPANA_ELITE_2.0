@@ -2,6 +2,7 @@
 the tool but is not a real conflict; a real player-vs-player conflict is; unsure answers are categorised."""
 from __future__ import annotations
 
+import json
 import shutil
 import tempfile
 import unittest
@@ -18,6 +19,9 @@ class Diagnose(unittest.TestCase):
         self.pack = make_pack(self.td)
         self.cfg = write_cfg(self.td, min_tracklets=3)
         self.R = RC.build(self.pack, self.td / "review", self.cfg, embed=colour_embed)
+        # the diagnosis is for 1.0.0 reviews, whose audit sample was drawn at build time: give it one
+        self.R["audit"] = ["T000001-1", "T000005-1", "T000006-1"]
+        (self.td / "review" / "review.json").write_text(json.dumps(self.R))
 
     def tearDown(self):
         shutil.rmtree(self.td, ignore_errors=True)

@@ -1,6 +1,7 @@
 """Group-then-confirm re-ID labelling (tools/reid_cluster.py, tools/reid_cluster_review.html, freeze gate):
-same-frame rule, exclusion of tracker-flagged tracklets, odd-ones-out order, deterministic audit, Wilson CI, freeze
-refusals, M001-style manual exports unaffected, and the review page end to end (Node Playwright, if available)."""
+same-frame rule, exclusion of tracker-flagged tracklets, odd-ones-out order, the audit (drawn after the review, player
+vs player only, exact upper bound, shortest prefix), freeze refusals, upgrade of a 1.0.0 review, M001-style manual
+exports unaffected, and the review page end to end incl. carrying over saved progress (Node Playwright)."""
 from __future__ import annotations
 
 import copy
@@ -77,22 +78,35 @@ def colour_embed(crops):
 
 def write_cfg(root: Path, **audit) -> Path:
     cfg = RC.load_cluster_config()
-    cfg["audit"].update(audit)
+    cfg["audit"].update({"min_comparable": 3, "max_disagreement_rate": 0.7, **audit})   # small fixture: 0/3 passes
     p = root / "cluster.yaml"
     p.write_text(yaml.safe_dump(cfg))
     return p
 
 
-def export_from(review: dict, assign: dict, audit_answers=None, overrides=None, clusters=None, players=None) -> dict:
-    """What the review page exports: assign = {cluster: (decision, player)}; audit answers default to the truth."""
+def truth_answer(t):
+    return {"decision": "player", "player": TRACKLETS[t][0]}
+
+
+def export_from(review: dict, assign: dict, cfg: dict, answer=truth_answer, audit_answers=None, overrides=None,
+                clusters=None, players=None) -> dict:
+    """What the review page exports: assign = {cluster: (decision, player)}; the audit answers the draw order with
+    `answer` until min_comparable answers name a player (or uses audit_answers as given)."""
     clusters = clusters or {k: list(c["tracklets"]) for k, c in review["clusters"].items()}
     overrides = overrides or {}
-    audit_answers = audit_answers if audit_answers is not None else \
-        {t: {"decision": "player", "player": TRACKLETS[t][0]} for t in review["audit"]}
     rv = {"schema": RC.REVIEW_SCHEMA[0], "schema_version": RC.REVIEW_SCHEMA[1], "config_sha256": review["config_sha256"],
-          "model_sha256": None, "excluded": review["excluded"], "overrides": overrides, "audit": audit_answers,
+          "model_sha256": None, "excluded": review["excluded"], "overrides": overrides,
           "clusters": {k: {"tracklets": m, "decision": assign.get(k, (None, None))[0],
                            "player": assign.get(k, (None, None))[1]} for k, m in clusters.items()}}
+    if audit_answers is None:
+        order = RC.audit_order(RC.audit_eligible(rv), cfg["audit"]["seed"])
+        audit_answers, n = {}, 0
+        for t in order:
+            audit_answers[t] = answer(t)
+            n += audit_answers[t]["decision"] == "player"
+            if n >= cfg["audit"]["min_comparable"]:
+                break
+    rv["audit"] = audit_answers
     derived = RC.derived_decisions(rv, [t["id"] for t in review["tracklets"]])
     parts = []
     for t in review["tracklets"]:
@@ -135,16 +149,32 @@ class Core(unittest.TestCase):
         self.assertEqual(max(range(3), key=lambda i: odd[i]), 2)        # the farthest member first in review
         self.assertEqual(odd[3], 0.0)
 
-    def test_audit_sample_deterministic_and_wilson(self):
-        cfg = RC.load_cluster_config()
-        ids = [f"T{i:06d}-1" for i in range(400)]
-        a = RC.audit_sample(ids, cfg)
-        self.assertEqual(a, RC.audit_sample(list(reversed(ids)), cfg))
-        self.assertEqual(len(a), 20)                                     # 5 % of 400
-        self.assertEqual(len(RC.audit_sample(ids[:50], cfg)), 10)       # minimum
-        lo, hi = RC.wilson(0, 20, 0.95)
-        self.assertEqual(lo, 0.0)
-        self.assertAlmostEqual(hi, 0.1611, places=3)
+    def test_upper_bound_matches_the_60_rule(self):
+        self.assertAlmostEqual(RC.upper_bound(0, 60, 0.95), 1 - 0.05 ** (1 / 60), places=6)   # 0.0487: passes 5 %
+        self.assertLess(RC.upper_bound(0, 60, 0.95), 0.05)
+        self.assertGreater(RC.upper_bound(1, 60, 0.95), 0.05)                                 # one error fails
+        self.assertGreater(RC.wilson(0, 60, 0.95)[1], 0.05)              # why the gate is not Wilson
+        self.assertLess(RC.upper_bound(2, 200, 0.95), RC.upper_bound(2, 100, 0.95))
+        self.assertIsNone(RC.upper_bound(0, 0, 0.95))
+
+    def test_order_and_prefix(self):
+        ids = [f"T{i:06d}-1" for i in range(50)]
+        o = RC.audit_order(ids, 0)
+        self.assertEqual(o, RC.audit_order(list(reversed(ids)), 0))
+        self.assertNotEqual(o, sorted(ids))
+        self.assertEqual(RC.fnv1a32("0:T000001-1"), RC.fnv1a32("0:T000001-1"))
+        ans = {o[0]: {"decision": "player", "player": "A"}, o[1]: {"decision": "reject"},
+               o[2]: {"decision": "unsure"}, o[3]: {"decision": "player", "player": "B"}}
+        self.assertEqual(RC.audit_prefix(o, ans, 2), (o[:4], True))       # reject / unsure are not comparable
+        self.assertEqual(RC.audit_prefix(o, ans, 3), (o[:4], False))      # next answer missing
+        self.assertEqual(RC.audit_prefix(o[:4], ans, 3), (o[:4], False))  # order ran out
+
+    def test_eligible_needs_a_player_cluster_with_a_live_mate(self):
+        rv = {"overrides": {"c": {"decision": "reject"}},
+              "clusters": {"X": {"tracklets": ["a", "b"], "decision": "player", "player": "P"},
+                           "Y": {"tracklets": ["c", "d"], "decision": "player", "player": "Q"},     # one live left
+                           "Z": {"tracklets": ["e", "f"], "decision": "unsure", "player": None}}}
+        self.assertEqual(RC.audit_eligible(rv), ["a", "b"])
 
     def test_thumb_box_recovers_the_player(self):
         img = np.full((H, W, 3), 90, np.uint8)
@@ -160,7 +190,8 @@ class BuildAndFreeze(unittest.TestCase):
     def setUp(self):
         self.td = Path(tempfile.mkdtemp())
         self.pack = make_pack(self.td)
-        self.cfg = write_cfg(self.td, min_tracklets=3, fraction=0.05)
+        self.cfg = write_cfg(self.td)
+        self.c = RC.load_cluster_config(self.cfg)
         self.review = RC.build(self.pack, self.td / "review", self.cfg, embed=colour_embed)
 
     def tearDown(self):
@@ -181,10 +212,7 @@ class BuildAndFreeze(unittest.TestCase):
             self.assertFalse(any(tl[a] & tl[b] for i, a in enumerate(ts) for b in ts[i + 1:]))
         cs = [set(c["tracklets"]) for c in r["clusters"].values()]
         self.assertIn({"T000005-1", "T000006-1", "T000007-1"}, cs)       # player C: one cluster
-        self.assertEqual(len(r["audit"]), 3)
-        self.assertNotIn("T000008-1", r["audit"])
-        self.assertEqual(r["audit"], RC.audit_sample(r["audit"] and [t for t in TRACKLETS if t != "T000008-1"],
-                                                     RC.load_cluster_config(self.cfg)))
+        self.assertNotIn("audit", r)                                     # drawn after the review, not at build
         self.assertTrue((self.td / "review" / "index.html").exists() and (self.td / "review" / "thumbs").is_dir())
         with self.assertRaises(ReidLabelError):                         # never overwrites
             RC.build(self.pack, self.td / "review", self.cfg, embed=colour_embed)
@@ -193,37 +221,60 @@ class BuildAndFreeze(unittest.TestCase):
             RC.build(dev, self.td / "review_dev", self.cfg, embed=colour_embed)
 
     def test_freeze_accepts_a_correct_review_and_records_the_audit(self):
-        ex = export_from(self.review, truth_assign(self.review))
+        ex = export_from(self.review, truth_assign(self.review), self.c)
         dest = self._freeze(ex)
         fz = json.loads((dest / "FROZEN.json").read_text())
         self.assertEqual(fz["labelling_flow"], "cluster_confirm")
-        self.assertEqual(fz["cluster_audit"]["disagreements"], 0)
+        a = fz["cluster_audit"]
+        self.assertEqual((a["comparable"], a["disagreements"]), (3, 0))
+        self.assertAlmostEqual(a["upper_bound"], RC.upper_bound(0, 3, 0.95))
         lab = load_frozen(dest, "train")
         rows = {r["tracklet"]: r for r in lab["identities"]}
         self.assertEqual(rows["T000008-1"]["decision"], "unsure")         # excluded: decided, not trained on
         self.assertEqual(json.loads((dest / "export.json").read_text())["parts"][-1]["status"], RC.EXCLUDED_STATUS)
 
+    def test_reject_and_unsure_answers_are_lost_data_not_disagreements(self):
+        first = {}
+
+        def answer(t):                                                   # the first drawn tracklet: rejected
+            if not first:
+                first[t] = True
+                return {"decision": "reject", "player": None}
+            return truth_answer(t)
+        dest = self._freeze(export_from(self.review, truth_assign(self.review), self.c, answer=answer))
+        a = json.loads((dest / "FROZEN.json").read_text())["cluster_audit"]
+        self.assertEqual((a["comparable"], a["disagreements"], a["lost_data"], a["drawn"]), (3, 0, 1, 4))
+
     def test_freeze_refusals(self):
-        good = export_from(self.review, truth_assign(self.review))
-        audited = self.review["audit"]
+        good = export_from(self.review, truth_assign(self.review), self.c)
 
         def refused(ex, msg):
             with self.assertRaises(ReidLabelError, msg=msg):
                 self._freeze(ex, f"bad_{msg}.json")
 
-        bad = copy.deepcopy(good)                                         # audit says otherwise -> disagreement
-        cid = next(k for k, c in bad["cluster_review"]["clusters"].items() if audited[0] in c["tracklets"])
-        bad = export_from(self.review, {**truth_assign(self.review), cid: ("reject", None)})
-        refused(bad, "above_limit")
+        def wrong_first(t, seen=[]):                                     # noqa: B006 - one wrong answer, rest right
+            if not seen:
+                seen.append(t)
+                return {"decision": "player", "player": "C" if TRACKLETS[t][0] != "C" else "A"}
+            return truth_answer(t)
+        refused(export_from(self.review, truth_assign(self.review), self.c, answer=wrong_first), "one_of_three_wrong")
         bad = copy.deepcopy(good)
-        del bad["cluster_review"]["audit"][audited[0]]
-        refused(bad, "audit_incomplete")
+        bad["cluster_review"]["audit"].pop(sorted(bad["cluster_review"]["audit"])[0])
+        refused(bad, "audit_not_prefix")
+        bad = copy.deepcopy(good)
+        rv = bad["cluster_review"]
+        extra = [t for t in RC.audit_order(RC.audit_eligible(rv), 0) if t not in rv["audit"]][0]
+        rv["audit"][extra] = truth_answer(extra)                          # answered past the stopping point
+        refused(bad, "audit_longer_than_prefix")
+        bad = copy.deepcopy(good)
+        bad["cluster_review"]["schema_version"] = "1.0.0"
+        refused(bad, "old_audit_format")
         cl = {k: list(c["tracklets"]) for k, c in self.review["clusters"].items()}
         a_cl = next(k for k, m in cl.items() if "T000001-1" in m)
         b_cl = next(k for k, m in cl.items() if "T000002-1" in m)
         cl[a_cl].append("T000002-1")
         cl[b_cl].remove("T000002-1")
-        refused(export_from(self.review, truth_assign(self.review), clusters=cl), "conflict")
+        refused(export_from(self.review, truth_assign(self.review), self.c, clusters=cl), "conflict")
         bad = copy.deepcopy(good)
         bad["parts"][-1].pop("status")
         refused(bad, "excluded_status")
@@ -231,12 +282,38 @@ class BuildAndFreeze(unittest.TestCase):
         bad["cluster_review"]["config_sha256"] = "0" * 64
         refused(bad, "config")
         bad = copy.deepcopy(good)
-        p = next(p for p in bad["parts"] if p["tracklet"] not in audited and p["tracklet"] != "T000008-1")
+        p = next(p for p in bad["parts"] if p["tracklet"] not in bad["cluster_review"]["audit"] and p["tracklet"] != "T000008-1")
         p["decision"], p["player"] = "reject", None
         refused(bad, "parts_differ")
 
+    def test_not_enough_comparable_answers_refused(self):
+        cfg = write_cfg(self.td, min_comparable=50)
+        c = RC.load_cluster_config(cfg)
+        review = dict(self.review, config_sha256=RC.config_sha(cfg))
+        p = self.td / "few.json"
+        p.write_text(json.dumps(export_from(review, truth_assign(review), c)))
+        with self.assertRaises(ReidLabelError):
+            freeze(str(self.pack), str(p), root=self.td / "repo", cluster_config=cfg)
+
+    def test_upgrade_keeps_clusters_and_marks_previously_hidden(self):
+        rd = self.td / "review"
+        old = json.loads((rd / "review.json").read_text())
+        old.update(schema_version="1.0.0", config_sha256="f" * 64, audit=["T000003-1", "T000006-1"], z=1.96)
+        (rd / "review.json").write_text(json.dumps(old))
+        (rd / "review.js").write_text("old")
+        new = RC.upgrade(rd, self.cfg)
+        self.assertEqual(new["schema_version"], RC.REVIEW_SCHEMA[1])
+        self.assertEqual(new["previously_hidden"], ["T000003-1", "T000006-1"])
+        self.assertEqual(new["clusters"], old["clusters"])
+        self.assertEqual(new["tracklets"], old["tracklets"])
+        self.assertNotIn("audit", new)
+        self.assertEqual(new["config_sha256"], RC.config_sha(self.cfg))
+        self.assertTrue((rd / "review.json.1.0.0.bak").exists() and (rd / "review.js.1.0.0.bak").read_text() == "old")
+        self.assertIn("window.SPANA_CLUSTER_REVIEW", (rd / "review.js").read_text())
+        self.assertEqual(RC.upgrade(rd, self.cfg), new)                  # idempotent
+
     def test_manual_export_still_freezes(self):
-        ex = export_from(self.review, truth_assign(self.review))
+        ex = export_from(self.review, truth_assign(self.review), self.c)
         for k in ("labelling_flow", "cluster_review"):
             ex.pop(k)
         for p in ex["parts"]:
@@ -244,7 +321,7 @@ class BuildAndFreeze(unittest.TestCase):
         self._freeze(ex, "manual.json")
 
     def test_evaluate_against_frozen_labels(self):
-        dest = self._freeze(export_from(self.review, truth_assign(self.review)))
+        dest = self._freeze(export_from(self.review, truth_assign(self.review), self.c))
         r = RC.evaluate(self.pack, dest, cfg_path=self.cfg, embed=colour_embed)
         self.assertEqual(r["errors"], 0)
         self.assertGreater(r["labelled_single_player"], 0)
@@ -254,35 +331,61 @@ NODE_SCRIPT = r"""
 const { chromium } = require('playwright');
 (async () => {
   const [dir, out] = process.argv.slice(2);
+  const truth = JSON.parse(process.argv[4]);
   const b = await chromium.launch(); const page = await b.newPage({ acceptDownloads: true });
   await page.goto('file://' + dir + '/index.html');
   const R = await page.evaluate(() => window.SPANA_CLUSTER_REVIEW);
-  const truth = JSON.parse(process.argv[4]);
+  const cid0 = Object.keys(R.clusters).find(k => new Set(R.clusters[k].tracklets.map(t => truth[t])).size === 1);
+  // progress saved under an earlier config: carried over (decisions kept, old audit dropped)
+  await page.evaluate(([R, cid0, who]) => {
+    const members = Object.fromEntries(Object.entries(R.clusters).map(([k, c]) => [k, c.tracklets.slice()]));
+    localStorage.setItem('spana_reid_cluster_' + R.tracklets_sha256 + '_' + 'f'.repeat(64), JSON.stringify({
+      players: { [who]: { side: 'A', shirt_number: null } }, members, cdec: { [cid0]: { decision: 'player', player: who } },
+      overrides: {}, audit: { [R.clusters[cid0].tracklets[0]]: { decision: 'reject', player: null } }, next: 99 }));
+  }, [R, cid0, truth[R.clusters[cid0].tracklets[0]]]);
+  await page.reload();
+  if (!(await page.textContent('#status')).includes('carried over')) throw new Error('earlier progress not carried over');
+  if (!(await page.locator(`.card[data-cid="${cid0}"] h3`).textContent()).includes(truth[R.clusters[cid0].tracklets[0]])) throw new Error('decision lost');
+  await page.evaluate(() => localStorage.clear()); await page.reload();
+  // a fresh review
   await page.fill('#annotator', 'QA');
   for (const [k, side] of [['A', 'A'], ['B', 'A'], ['C', 'B']]) { await page.fill('#pkey', k); await page.selectOption('#pside', side); await page.click('#padd'); }
   const player = async k => page.locator('#players .player').filter({ hasText: new RegExp('^' + k + ' ') }).click();
-  for (const [cid, c] of Object.entries(R.clusters)) {
-    const shown = c.tracklets.filter(t => !R.audit.includes(t)); if (!shown.length) continue;
-    const who = [...new Set(shown.map(t => truth[t]))];
-    const card = page.locator(`.card[data-cid="${cid}"]`);
-    if (who.length === 1) { await player(who[0]); await card.locator('button', { hasText: 'Assign cluster' }).click(); }
-    else await card.locator('button', { hasText: 'Unsure cluster' }).click();
-  }
-  // CONFLICT: move a tracklet into a cluster holding another tracklet on the same frame -> flagged, export refused
-  const cl = t => Object.keys(R.clusters).find(k => R.clusters[k].tracklets.includes(t));
-  const shown = R.tracklets.filter(t => !R.audit.includes(t.id) && !R.excluded.includes(t.id));
+  const members = Object.fromEntries(Object.entries(R.clusters).map(([k, c]) => [k, c.tracklets.slice()]));
+  const decideAll = async (skip) => {
+    for (const [cid, m] of Object.entries(members)) {
+      const L = m.filter(t => t !== skip); if (!L.length) continue;
+      const card = page.locator(`.card[data-cid="${cid}"]`);
+      const who = [...new Set(L.map(t => truth[t]))];
+      if (who.length === 1) { await player(who[0]); await card.locator('button', { hasText: 'Assign cluster' }).click(); }
+      else await card.locator('button', { hasText: 'Unsure cluster' }).click();
+    }
+  };
+  await decideAll(null);
+  // CONFLICT: move a tracklet into a cluster holding another tracklet on the same frame -> flagged, lock refused;
+  // the move clears both clusters' decisions
+  const cl = t => Object.keys(members).find(k => members[k].includes(t));
+  const shown = R.tracklets.filter(t => !R.excluded.includes(t.id));
   let pair = null;
   for (const x of shown) for (const y of shown) if (!pair && cl(x.id) !== cl(y.id) && x.frames.some(f => y.frames.includes(f))) pair = [x.id, y.id];
-  await page.locator('.row', { hasText: pair[1] }).locator('select').selectOption(cl(pair[0]));
+  const from = cl(pair[1]), to = cl(pair[0]);
+  await page.locator('.row', { hasText: pair[1] }).locator('select').selectOption(to);
+  members[from] = members[from].filter(t => t !== pair[1]); members[to].push(pair[1]);
   if (!(await page.locator('.card.conflict').count())) throw new Error('no CONFLICT shown');
-  await page.click('#export');
-  if (!(await page.textContent('#status')).includes('CONFLICT')) throw new Error('export not refused on CONFLICT');
+  if (!(await page.locator(`.card[data-cid="${to}"] h3`).textContent()).includes('undecided')) throw new Error('move did not clear the decision');
+  await page.click('#lock');
+  if ((await page.textContent('#lock')).includes('Unlock')) throw new Error('locked despite CONFLICT / undecided');
   await page.locator('.row', { hasText: pair[1] }).locator('button', { hasText: 'Unsure' }).click();
   if (await page.locator('.card.conflict').count()) throw new Error('CONFLICT not resolved by removing the tracklet');
-  await page.click('#tabAudit');
-  for (let i = 0; i < R.audit.length; i++) {
-    await player(truth[R.audit[i]]);
-    await page.locator('.card').nth(i).locator('button', { hasText: 'Assign active player' }).click();
+  await page.selectOption('#filter', 'all');
+  await decideAll(pair[1]);
+  await page.click('#lock');
+  if (!(await page.textContent('#lock')).includes('Unlock')) throw new Error('not locked');
+  for (let i = 0; i < 40; i++) {
+    if ((await page.textContent('#view')).includes('Audit complete')) break;
+    const card = page.locator('.card[data-audit]').first();             // newest drawn tracklet on top
+    const t = await card.getAttribute('data-audit');
+    await player(truth[t]); await card.locator('button', { hasText: 'Assign active player' }).click();
   }
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#export')]);
   await dl.saveAs(out); console.log(await page.textContent('#status')); await b.close();
@@ -298,11 +401,11 @@ def _node_playwright() -> bool:
 
 @unittest.skipUnless(_node_playwright(), "node + playwright not available")
 class ReviewPage(unittest.TestCase):
-    def test_page_export_freezes(self):
+    def test_page_lock_audit_export_freezes(self):
         td = Path(tempfile.mkdtemp())
         try:
             pack = make_pack(td)
-            cfg = write_cfg(td, min_tracklets=3)
+            cfg = write_cfg(td)
             RC.build(pack, td / "review", cfg, embed=colour_embed)
             js = td / "drive.js"
             js.write_text(NODE_SCRIPT)
@@ -312,9 +415,10 @@ class ReviewPage(unittest.TestCase):
                                timeout=120)
             self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
             ex = json.loads(out.read_text())
-            self.assertEqual(ex["labelling_flow"], "cluster_confirm")
-            dest = freeze(str(pack), str(out), root=td / "repo", cluster_config=cfg)
-            self.assertEqual(json.loads((dest / "FROZEN.json").read_text())["cluster_audit"]["disagreements"], 0)
+            self.assertEqual(ex["cluster_review"]["schema_version"], RC.REVIEW_SCHEMA[1])
+            dest = freeze(str(pack), str(out), root=td / "repo", cluster_config=cfg)   # JS draw order == Python
+            a = json.loads((dest / "FROZEN.json").read_text())["cluster_audit"]
+            self.assertEqual((a["comparable"], a["disagreements"]), (3, 0))
         finally:
             shutil.rmtree(td, ignore_errors=True)
 

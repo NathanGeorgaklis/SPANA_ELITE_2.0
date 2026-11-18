@@ -38,7 +38,8 @@
   <span id="match" class="muted"></span>
   <button id="tabClusters" class="on">Clusters</button>
   <button id="tabAudit">Audit</button>
-  <select id="filter"><option value="all">all clusters</option><option value="open">undecided</option><option value="conflict">CONFLICT</option></select>
+  <select id="filter"><option value="all">all clusters</option><option value="open">undecided</option><option value="conflict">CONFLICT</option><option value="hidden">"not seen" tracklets</option></select>
+  <button id="lock">Lock clusters &amp; start audit</button>
   <span id="progress" class="muted"></span>
   <button id="export" class="primary">Export frozen labels</button>
   <span id="status"></span>
@@ -64,54 +65,91 @@ const R = window.SPANA_CLUSTER_REVIEW;
 const $ = id => document.getElementById(id);
 function status(msg, cls) { const s = $("status"); s.textContent = msg; s.className = cls || ""; }
 if (!R || !R.clusters) { status("review.js missing: open index.html from inside a cluster review folder.", "bad"); throw new Error("no review"); }
-const KEY = "spana_reid_cluster_" + R.tracklets_sha256 + "_" + R.config_sha256;
+const PREFIX = "spana_reid_cluster_" + R.tracklets_sha256 + "_", KEY = PREFIX + R.config_sha256;
 const COLORS = ["#58a6ff","#3fb950","#d29922","#f778ba","#a371f7","#39c5cf","#ff7b72","#e3b341","#7ee787","#79c0ff","#ffa657","#d2a8ff"];
 const TL = Object.fromEntries(R.tracklets.map(t => [t.id, t]));
-const AUDIT = new Set(R.audit), EXCL = new Set(R.excluded);
+const EXCL = new Set(R.excluded), HIDDEN = new Set(R.previously_hidden || []);
+const AC = R.config.audit;
 const ODD = {}; for (const c of Object.values(R.clusters)) c.tracklets.forEach((t, i) => ODD[t] = c.odd[i]);
 const FRAMES = Object.fromEntries(R.tracklets.map(t => [t.id, new Set(t.frames)]));
 function fresh() {
   return { players: {}, annotator: "", version: 1, reason: "", members: Object.fromEntries(Object.entries(R.clusters).map(([k, c]) => [k, c.tracklets.slice()])),
-           cdec: {}, overrides: {}, audit: {}, next: Object.keys(R.clusters).length + 1 };
+           cdec: {}, overrides: {}, audit: {}, locked: false, next: Object.keys(R.clusters).length + 1 };
 }
-let S = load() || fresh(), active = null, tab = "clusters", selected = new Set();
 function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); return s && s.members ? s : null; } catch (e) { return null; } }
+function migrate() {     // progress saved under an earlier config of the same review: keep the review, drop its audit
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i); if (!k || !k.startsWith(PREFIX) || k === KEY) continue;
+      const o = JSON.parse(localStorage.getItem(k)); if (!o || !o.members) continue;
+      return { players: o.players || {}, annotator: o.annotator || "", version: o.version || 1, reason: o.reason || "", members: o.members,
+               cdec: o.cdec || {}, overrides: o.overrides || {}, audit: {}, locked: false, next: o.next || Object.keys(o.members).length + 1,
+               prevAudit: o.audit || {}, migrated_from: k };
+    }
+  } catch (e) { /* storage unavailable */ }
+  return null;
+}
+let S = load(), active = null, tab = "clusters", selected = new Set(), migrated = false;
+if (!S) { S = migrate(); migrated = !!S; if (!S) S = fresh(); }
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { status("Browser storage unavailable: export often.", "warn"); } }
+if (migrated) persist();
 function color(p) { const keys = Object.keys(S.players).sort(); return COLORS[keys.indexOf(p) % COLORS.length]; }
 function overlap(a, b) { const A = FRAMES[a], B = FRAMES[b]; const [s, l] = A.size < B.size ? [A, B] : [B, A]; for (const f of s) if (l.has(f)) return true; return false; }
 
-// decisions: excluded -> unsure; override wins over the cluster; audit answer is what gets exported for audit tracklets
+// ---- decisions: excluded -> unsure; a tracklet override wins over its cluster; audit answers win for audited tracklets
 function clusterOf(tid) { for (const [k, m] of Object.entries(S.members)) if (m.includes(tid)) return k; return null; }
 function derived(tid) {
   if (EXCL.has(tid)) return { decision: "unsure", player: null };
   if (S.overrides[tid]) return { decision: S.overrides[tid].decision, player: null };
   const d = S.cdec[clusterOf(tid)]; return d ? { decision: d.decision, player: d.decision === "player" ? d.player : null } : null;
 }
-function finalD(tid) { return AUDIT.has(tid) && S.audit[tid] ? S.audit[tid] : derived(tid); }
 function live(cid) { return S.members[cid].filter(t => !S.overrides[t]); }
-function needsDecision(cid) { return live(cid).some(t => !AUDIT.has(t)); }   // audit-only clusters give no opinion
+function needsDecision(cid) { return live(cid).length > 0; }
+function finalD(tid) { return S.locked && auditPrefix().prefix.includes(tid) ? S.audit[tid] : derived(tid); }
 function conflicts() {           // cluster ids in CONFLICT: two live members on one frame, or a player in two places
-  const bad = new Set(), m = Object.entries(S.members);
-  for (const [cid] of m) { const L = live(cid); outer: for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) if (overlap(L[i], L[j])) { bad.add(cid); break outer; } }
+  const bad = new Set();
+  for (const cid of Object.keys(S.members)) { const L = live(cid); outer: for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) if (overlap(L[i], L[j])) { bad.add(cid); break outer; } }
   const byP = {};
   for (const t of R.tracklets) { const d = finalD(t.id); if (d && d.decision === "player") (byP[d.player] = byP[d.player] || []).push(t.id); }
   for (const ts of Object.values(byP)) for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++)
     if (overlap(ts[i], ts[j])) { for (const t of [ts[i], ts[j]]) { const c = clusterOf(t); if (c) bad.add(c); } }
   return bad;
 }
-function auditStats() {
-  let answered = 0, dis = 0, unsure = 0, noOpinion = 0;
-  for (const t of R.audit) { const a = S.audit[t]; if (!a) continue; if (a.decision === "unsure") { unsure++; continue; }
-    const d = derived(t); if (!d) { noOpinion++; continue; }
-    answered++; if (d.decision !== a.decision || (a.decision === "player" && d.player !== a.player)) dis++; }
-  let ci = null; if (answered) { const z = R.z, n = answered, p = dis / n, den = 1 + z * z / n, c = (p + z * z / (2 * n)) / den,
-    h = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / den; ci = [Math.max(0, c - h), Math.min(1, c + h)]; }
-  return { answered, dis, unsure, noOpinion, done: R.audit.filter(t => S.audit[t]).length, rate: answered ? dis / answered : null, ci };
+// a split / move changes a cluster: its decision is cleared and must be confirmed again
+function clearDecision(...cids) { let n = 0; for (const c of cids) if (c && S.cdec[c]) { delete S.cdec[c]; n++; } if (n) status("Cluster changed: its decision was cleared, confirm it again.", "warn"); }
+
+// ---- audit (same rules as tools/reid_cluster.py): after the lock, player clusters with a live mate, fixed order
+function fnv1a32(text) { let h = 0x811c9dc5; for (const b of new TextEncoder().encode(text)) { h ^= b; h = Math.imul(h, 0x01000193) >>> 0; } return h >>> 0; }
+function auditOrder() {
+  const el = [];
+  for (const [cid, m] of Object.entries(S.members)) { const d = S.cdec[cid], L = live(cid); if (d && d.decision === "player" && L.length >= 2) el.push(...L); }
+  const key = t => fnv1a32(AC.seed + ":" + t);
+  return el.sort().map(t => [key(t), t]).sort((a, b) => a[0] - b[0] || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0)).map(x => x[1]);
 }
+function auditPrefix() {
+  const order = auditOrder(); let n = 0;
+  for (let k = 0; k < order.length; k++) {
+    const a = S.audit[order[k]]; if (!a) return { order, prefix: order.slice(0, k), next: order[k], complete: false };
+    if (a.decision === "player") n++;
+    if (n >= AC.min_comparable) return { order, prefix: order.slice(0, k + 1), next: null, complete: true };
+  }
+  return { order, prefix: order.slice(), next: null, complete: false };
+}
+function binomCdf(k, n, p) { let s = 0, c = 1; for (let i = 0; i <= k; i++) { if (i > 0) c = c * (n - i + 1) / i; s += c * Math.pow(p, i) * Math.pow(1 - p, n - i); } return s; }
+function upperBound(k, n, conf) { if (!n) return null; if (k >= n) return 1; let lo = k / n, hi = 1; for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2; if (binomCdf(k, n, m) > 1 - conf) lo = m; else hi = m; } return hi; }
+function auditStats() {
+  const P = auditPrefix(); let comparable = 0, dis = 0, lost = 0;
+  for (const t of P.prefix) { const a = S.audit[t], d = derived(t);
+    if (a.decision !== "player") { lost++; continue; }
+    comparable++; if (!d || d.decision !== "player" || d.player !== a.player) dis++; }
+  return { ...P, comparable, dis, lost, upper: upperBound(dis, comparable, AC.confidence) };
+}
+
 function img(t, k) { const im = document.createElement("img"); im.src = TL[t].thumbs[k]; im.loading = "lazy"; return im; }
 function sheetThumbs(t) { const n = TL[t].thumbs.length, m = Math.min(n, R.config.review.sheet_thumbs_per_tracklet); const out = []; for (let i = 0; i < m; i++) out.push(Math.round(i * (n - 1) / Math.max(1, m - 1))); return [...new Set(out)]; }
 function decLabel(d) { return !d ? '<span class="muted">undecided</span>' : d.decision === "player" ? `<b style="color:${color(d.player)}">${d.player}</b>` : `<b>${d.decision.toUpperCase()}</b>`; }
 function btn(txt, fn) { const b = document.createElement("button"); b.textContent = txt; b.onclick = fn; return b; }
+function pct(x) { return x === null ? "-" : (100 * x).toFixed(1) + " %"; }
 
 function renderPlayers() {
   const el = $("players"); el.innerHTML = "";
@@ -125,43 +163,48 @@ function renderPlayers() {
 }
 function renderClusters(bad) {
   const v = $("view"), filt = $("filter").value; v.innerHTML = "";
-  const hiddenAudit = R.audit.length;
   const note = document.createElement("div"); note.className = "muted"; note.style.margin = "0 0 8px";
-  note.textContent = `${R.excluded.length} tracker-flagged tracklets excluded (${R.excluded_status}: decided, not trained on). ${hiddenAudit} audit tracklets are hidden here; answer them in the Audit tab.`;
+  note.textContent = `${R.excluded.length} tracker-flagged tracklets excluded (${R.excluded_status}: decided, not trained on).` +
+    (HIDDEN.size ? ` ${HIDDEN.size} tracklets were hidden during your earlier review (marked "not seen"): check their clusters.` : "") +
+    (S.locked ? " Clusters are LOCKED for the audit; unlock to edit (this discards audit answers)." : "");
   v.appendChild(note);
   for (const cid of Object.keys(S.members)) {
-    const mem = S.members[cid].filter(t => !AUDIT.has(t));
-    if (!mem.length) continue;
-    const d = S.cdec[cid], isBad = bad.has(cid), open = !d && needsDecision(cid);
-    if ((filt === "open" && !open) || (filt === "conflict" && !isBad)) continue;
+    const mem = S.members[cid];
+    const d = S.cdec[cid], isBad = bad.has(cid), open = !d && needsDecision(cid), hid = mem.some(t => HIDDEN.has(t));
+    if ((filt === "open" && !open) || (filt === "conflict" && !isBad) || (filt === "hidden" && !hid)) continue;
     const card = document.createElement("div"); card.className = "card" + (isBad ? " conflict" : ""); card.dataset.cid = cid;
     const h = document.createElement("h3");
-    h.innerHTML = `${cid} <span class="muted">${mem.length} tracklets</span> ${decLabel(d)} ${isBad ? '<span class="tag c">CONFLICT: same frame or player in two places</span>' : ""}`;
-    h.appendChild(btn("Assign cluster to active player", () => { if (!active) return status("Select a player on the left first.", "warn"); S.cdec[cid] = { decision: "player", player: active }; persist(); render(); }));
-    h.appendChild(btn("Reject cluster", () => { S.cdec[cid] = { decision: "reject", player: null }; persist(); render(); }));
-    h.appendChild(btn("Unsure cluster", () => { S.cdec[cid] = { decision: "unsure", player: null }; persist(); render(); }));
-    h.appendChild(btn("Clear", () => { delete S.cdec[cid]; persist(); render(); }));
-    h.appendChild(btn("Split selected → new cluster", () => {
-      const sel = mem.filter(t => selected.has(t)); if (!sel.length) return status("Tick tracklets in this cluster first.", "warn");
-      const nid = "C" + String(S.next++).padStart(3, "0") + "s"; S.members[nid] = sel; S.members[cid] = S.members[cid].filter(t => !sel.includes(t));
-      sel.forEach(t => selected.delete(t)); persist(); render(); }));
+    h.innerHTML = `${cid} <span class="muted">${mem.length} tracklets</span> ${decLabel(d)} ${isBad ? '<span class="tag c">CONFLICT: same frame or player in two places</span>' : ""}${hid ? ' <span class="tag">has a "not seen" tracklet</span>' : ""}`;
+    if (!S.locked) {
+      h.appendChild(btn("Assign cluster to active player", () => { if (!active) return status("Select a player on the left first.", "warn"); S.cdec[cid] = { decision: "player", player: active }; persist(); render(); }));
+      h.appendChild(btn("Reject cluster", () => { S.cdec[cid] = { decision: "reject", player: null }; persist(); render(); }));
+      h.appendChild(btn("Unsure cluster", () => { S.cdec[cid] = { decision: "unsure", player: null }; persist(); render(); }));
+      h.appendChild(btn("Clear", () => { delete S.cdec[cid]; persist(); render(); }));
+      h.appendChild(btn("Split selected → new cluster", () => {
+        const sel = mem.filter(t => selected.has(t)); if (!sel.length) return status("Tick tracklets in this cluster first.", "warn");
+        const nid = "C" + String(S.next++).padStart(3, "0") + "s"; S.members[nid] = sel; S.members[cid] = S.members[cid].filter(t => !sel.includes(t));
+        sel.forEach(t => selected.delete(t)); clearDecision(cid); persist(); render(); }));
+    }
     card.appendChild(h);
     for (const t of mem) {
       const row = document.createElement("div"); row.className = "row" + (S.overrides[t] ? " over" : "");
-      const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = selected.has(t); cb.onchange = () => cb.checked ? selected.add(t) : selected.delete(t);
-      row.appendChild(cb);
+      if (!S.locked) { const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = selected.has(t); cb.onchange = () => cb.checked ? selected.add(t) : selected.delete(t); row.appendChild(cb); }
       for (const k of sheetThumbs(t)) row.appendChild(img(t, k));
       const info = document.createElement("span"); info.className = "muted";
-      info.innerHTML = `${t} · ${TL[t].observed} obs · odd ${ODD[t] !== undefined ? ODD[t].toFixed(3) : "-"}${S.overrides[t] ? ` · <b>${S.overrides[t].decision.toUpperCase()}</b>` : ""}`;
+      const prev = (S.prevAudit || {})[t];
+      info.innerHTML = `${t} · ${TL[t].observed} obs · odd ${ODD[t] !== undefined ? ODD[t].toFixed(3) : "-"}${S.overrides[t] ? ` · <b>${S.overrides[t].decision.toUpperCase()}</b>` : ""}` +
+        (HIDDEN.has(t) ? ` · <span class="tag">not seen in your review</span>` : "") + (prev ? ` · your earlier audit answer: ${decLabel(prev)}` : "");
       row.appendChild(info);
-      row.appendChild(btn("Reject", () => { S.overrides[t] = { decision: "reject" }; persist(); render(); }));
-      row.appendChild(btn("Unsure", () => { S.overrides[t] = { decision: "unsure" }; persist(); render(); }));
-      if (S.overrides[t]) row.appendChild(btn("Clear", () => { delete S.overrides[t]; persist(); render(); }));
-      const mv = document.createElement("select");
-      mv.innerHTML = `<option value="">move to…</option><option value="__new">new cluster</option>` + Object.keys(S.members).filter(k => k !== cid).map(k => `<option>${k}</option>`).join("");
-      mv.onchange = () => { const to = mv.value; if (!to) return; const dest = to === "__new" ? "C" + String(S.next++).padStart(3, "0") + "s" : to;
-        S.members[cid] = S.members[cid].filter(x => x !== t); (S.members[dest] = S.members[dest] || []).push(t); persist(); render(); };
-      row.appendChild(mv);
+      if (!S.locked) {
+        row.appendChild(btn("Reject", () => { S.overrides[t] = { decision: "reject" }; persist(); render(); }));
+        row.appendChild(btn("Unsure", () => { S.overrides[t] = { decision: "unsure" }; persist(); render(); }));
+        if (S.overrides[t]) row.appendChild(btn("Clear", () => { delete S.overrides[t]; persist(); render(); }));
+        const mv = document.createElement("select");
+        mv.innerHTML = `<option value="">move to…</option><option value="__new">new cluster</option>` + Object.keys(S.members).filter(k => k !== cid).map(k => `<option>${k}</option>`).join("");
+        mv.onchange = () => { const to = mv.value; if (!to) return; const dest = to === "__new" ? "C" + String(S.next++).padStart(3, "0") + "s" : to;
+          S.members[cid] = S.members[cid].filter(x => x !== t); (S.members[dest] = S.members[dest] || []).push(t); clearDecision(cid, dest); persist(); render(); };
+        row.appendChild(mv);
+      }
       card.appendChild(row);
     }
     v.appendChild(card);
@@ -170,35 +213,50 @@ function renderClusters(bad) {
 function renderAudit() {
   const v = $("view"); v.innerHTML = "";
   const note = document.createElement("div"); note.className = "muted"; note.style.margin = "0 0 8px";
-  note.textContent = `Random ${R.audit.length} tracklets, shown alone. Say who each one is (active player), or Reject / Unsure. Your answer is what gets frozen for these tracklets; the agreement with the clusters is measured.`;
+  if (!S.locked) { note.textContent = "The audit starts once every cluster is decided and there is no CONFLICT: press \"Lock clusters & start audit\"."; v.appendChild(note); return; }
+  const a = auditStats();
+  note.textContent = `Tracklets from your player clusters, one at a time, without their cluster. Say who it is (active player), or Reject / Unsure. ` +
+    `${a.comparable} of ${AC.min_comparable} answers that name a player so far (${a.order.length} tracklets can be drawn). Your answer is what gets frozen for these tracklets.`;
   v.appendChild(note);
-  R.audit.forEach((t, i) => {
-    const card = document.createElement("div"); card.className = "card";
-    const h = document.createElement("h3"); h.innerHTML = `Audit ${i + 1} / ${R.audit.length} ${decLabel(S.audit[t])}`;
+  const show = a.prefix.concat(a.next ? [a.next] : []);
+  show.slice().reverse().forEach(t => {
+    const i = a.order.indexOf(t);
+    const card = document.createElement("div"); card.className = "card"; card.dataset.audit = t;
+    const h = document.createElement("h3"); h.innerHTML = `Audit ${i + 1} ${decLabel(S.audit[t])}`;
     h.appendChild(btn("Assign active player", () => { if (!active) return status("Select a player on the left first.", "warn"); S.audit[t] = { decision: "player", player: active }; persist(); render(); }));
     h.appendChild(btn("Reject", () => { S.audit[t] = { decision: "reject", player: null }; persist(); render(); }));
     h.appendChild(btn("Unsure", () => { S.audit[t] = { decision: "unsure", player: null }; persist(); render(); }));
-    if (S.audit[t]) h.appendChild(btn("Clear", () => { delete S.audit[t]; persist(); render(); }));
     card.appendChild(h);
     const row = document.createElement("div"); row.className = "row";
     TL[t].thumbs.forEach((_, k) => row.appendChild(img(t, k)));
     card.appendChild(row); v.appendChild(card);
   });
+  if (a.complete) { const d = document.createElement("div"); d.className = "ok"; d.textContent = "Audit complete."; v.prepend(d); }
+  else if (!a.next) { const d = document.createElement("div"); d.className = "bad"; d.textContent = `Not enough tracklets to reach ${AC.min_comparable} comparable answers: the freeze will refuse.`; v.prepend(d); }
 }
 function render() {
   for (const [k, c] of Object.entries(S.members)) if (!c.length) { delete S.members[k]; delete S.cdec[k]; }
   renderPlayers();
   const bad = conflicts();
   if (tab === "clusters") renderClusters(bad); else renderAudit();
-  const cl = Object.keys(S.members).filter(needsDecision), dec = cl.filter(k => S.cdec[k]).length, a = auditStats();
-  $("progress").textContent = `${dec}/${cl.length} clusters decided · ${bad.size} CONFLICT · audit ${a.done}/${R.audit.length}`;
-  $("tabAudit").textContent = `Audit (${a.done}/${R.audit.length})`;
+  const cl = Object.keys(S.members).filter(needsDecision), dec = cl.filter(k => S.cdec[k]).length;
+  const a = S.locked ? auditStats() : null;
+  $("progress").textContent = `${dec}/${cl.length} clusters decided · ${bad.size} CONFLICT` + (a ? ` · audit ${a.comparable}/${AC.min_comparable} comparable` : "");
+  $("tabAudit").textContent = a ? `Audit (${a.comparable}/${AC.min_comparable})` : "Audit";
+  $("lock").textContent = S.locked ? "Unlock clusters (discards audit answers)" : "Lock clusters & start audit";
   $("summary").innerHTML = `${R.stats.tracklets} tracklets · ${R.stats.clustered} clustered into ${R.stats.clusters} · ${R.stats.excluded} excluded` +
-    (a.done === R.audit.length && a.answered ? `<br>Audit disagreement ${a.dis}/${a.answered} = ${(100 * a.rate).toFixed(1)} % (CI ${(100 * a.ci[0]).toFixed(1)}–${(100 * a.ci[1]).toFixed(1)} %), limit ${(100 * R.config.audit.max_disagreement_rate).toFixed(1)} %` : "");
+    (a && a.comparable ? `<br>Audit: ${a.dis} of ${a.comparable} comparable answers disagree; ${(100 * AC.confidence).toFixed(0)} % upper bound ${pct(a.upper)} (limit ${pct(AC.max_disagreement_rate)}); ${a.lost} answered reject / unsure (lost data, not counted)` : "");
 }
 $("tabClusters").onclick = () => { tab = "clusters"; $("tabClusters").className = "on"; $("tabAudit").className = ""; render(); };
 $("tabAudit").onclick = () => { tab = "audit"; $("tabAudit").className = "on"; $("tabClusters").className = ""; render(); };
 $("filter").onchange = render;
+$("lock").onclick = () => {
+  if (S.locked) { if (!confirm("Unlock the clusters? Your audit answers will be discarded.")) return; S.locked = false; S.audit = {}; persist(); render(); return; }
+  const undecided = Object.keys(S.members).filter(k => needsDecision(k) && !S.cdec[k]);
+  if (undecided.length) { status(`${undecided.length} clusters undecided: assign, reject or mark unsure first.`, "bad"); $("filter").value = "open"; tab = "clusters"; render(); return; }
+  if (conflicts().size) { status("CONFLICT: resolve the red clusters first.", "bad"); $("filter").value = "conflict"; tab = "clusters"; render(); return; }
+  S.locked = true; S.audit = {}; persist(); $("tabAudit").onclick();
+};
 $("annotator").value = S.annotator; $("annotator").oninput = e => { S.annotator = e.target.value; persist(); };
 $("version").value = S.version; $("version").oninput = e => { S.version = e.target.value; persist(); };
 $("reason").value = S.reason; $("reason").oninput = e => { S.reason = e.target.value; persist(); };
@@ -209,14 +267,11 @@ $("padd").onclick = () => {
   S.players[k] = { side, shirt_number: num || null }; active = k; $("pkey").value = ""; $("pnum").value = ""; persist(); render();
 };
 $("export").onclick = () => {
-  const undecided = Object.keys(S.members).filter(k => needsDecision(k) && !S.cdec[k]);
-  if (undecided.length) { status(`${undecided.length} clusters undecided: assign, reject or mark unsure.`, "bad"); $("filter").value = "open"; tab = "clusters"; render(); return; }
-  if (conflicts().size) { status("CONFLICT: resolve the red clusters first (split / move / remove a tracklet).", "bad"); $("filter").value = "conflict"; tab = "clusters"; render(); return; }
-  const missing = R.audit.filter(t => !S.audit[t]);
-  if (missing.length) { status(`${missing.length} audit tracklets unanswered.`, "bad"); $("tabAudit").onclick(); return; }
+  if (!S.locked) { status("Lock the clusters and complete the audit first.", "bad"); return; }
+  if (conflicts().size) { status("CONFLICT: a player is in two places (check your audit answers).", "bad"); return; }
   const a = auditStats();
-  if (!a.answered) { status("Every audit answer is Unsure: the clusters cannot be checked.", "bad"); return; }
-  if (a.rate > R.config.audit.max_disagreement_rate) { status(`Audit disagreement ${a.dis}/${a.answered} = ${(100 * a.rate).toFixed(1)} % is above the limit: fix the clusters (the freeze would refuse).`, "bad"); return; }
+  if (!a.complete) { status(`Audit incomplete: ${a.comparable} of ${AC.min_comparable} comparable answers.`, "bad"); $("tabAudit").onclick(); return; }
+  if (a.upper > AC.max_disagreement_rate) { status(`Audit: ${a.dis} of ${a.comparable} disagree; upper bound ${pct(a.upper)} is above the limit (the freeze would refuse).`, "bad"); return; }
   if (!String(S.annotator || "").trim()) return status("Annotator name required.", "bad");
   const v = parseInt(S.version || 1, 10);
   if (v > 1 && !String(S.reason || "").trim()) return status("A new version needs a reason.", "bad");
@@ -229,7 +284,7 @@ $("export").onclick = () => {
     tracklets_sha256: R.tracklets_sha256, annotator: S.annotator.trim(), label_version: v, reason: S.reason || "",
     exported_utc: new Date().toISOString(), players, parts, labelling_flow: "cluster_confirm",
     cluster_review: { schema: R.schema, schema_version: R.schema_version, config_sha256: R.config_sha256, model_sha256: R.model_sha256,
-      clusters, overrides: S.overrides, excluded: R.excluded, audit: Object.fromEntries(R.audit.map(t => [t, S.audit[t]])) } };
+      clusters, overrides: S.overrides, excluded: R.excluded, audit: Object.fromEntries(a.prefix.map(t => [t, S.audit[t]])) } };
   const el = document.createElement("a");
   el.href = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 1)], { type: "application/json" }));
   el.download = `${R.match.match_id}_reid_v${v}.json`; el.click();
@@ -237,7 +292,8 @@ $("export").onclick = () => {
 };
 $("match").textContent = `${R.match.match_id} · ${R.match.split}`;
 render();
-status(Object.keys(S.cdec).length || Object.keys(S.audit).length ? "Progress restored from this browser." : "Add players, assign each cluster (odd ones out are at the top of each sheet), then answer the audit.", "ok");
+status(migrated ? "Your earlier review was carried over (decisions kept; the old audit is discarded). Tracklets that were hidden are now marked \"not seen\"."
+  : Object.keys(S.cdec).length ? "Progress restored from this browser." : "Add players, decide each cluster (odd ones out are at the top of each sheet), then lock and audit.", "ok");
 </script>
 </body>
 </html>

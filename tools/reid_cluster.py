@@ -13,12 +13,17 @@ build (TRAIN packs only; DEV / EVAL refused):
 - Agglomerative clustering (average linkage) of the rest; two tracklets observed on the same frame can never share a
   cluster (same-frame rule, enforced as cannot-link); merging stops above `clustering.max_distance`.
 - Within a cluster, tracklets are ordered odd ones out first (mean distance to the other members).
-- A seeded random `audit.fraction` of the clustered tracklets is shown alone, without its cluster.
 - Writes REVIEW_DIR/{index.html, review.js, review.json, thumbs/} and never overwrites.
+upgrade: bring an existing review folder to the current format / config without re-clustering (keeps the
+reviewer's progress: the page carries it over from the previous config's browser key).
+
+Audit (after the review is locked): tracklets of player clusters with a live cluster-mate, shown alone in a seeded
+order until `audit.min_comparable` answers name a player; disagreement = player vs player; the exact one-sided
+upper bound of the disagreement rate must be <= `audit.max_disagreement_rate`.
 
 The review page exports the standard `spana.reid_label_export` 1.0.0 (one part per tracklet) plus a
 `cluster_review` block; tools/freeze_reid_labels.py re-checks that block (check_cluster_export) and refuses to
-freeze when the audit disagreement rate is above `audit.max_disagreement_rate`.
+freeze when the audit's upper bound is above `audit.max_disagreement_rate`.
 
 evaluate: run the same clustering on a pack whose labels are already frozen (TRAIN) and report how often a
 tracklet's cluster majority differs from its label (the error rate the audit would see).
@@ -41,7 +46,7 @@ import yaml
 
 from spana.reid_labels import ReidLabelError, validate_manifest
 
-REVIEW_SCHEMA = ("spana.reid_cluster_review", "1.0.0")
+REVIEW_SCHEMA = ("spana.reid_cluster_review", "1.1.0")
 EXCLUDED_STATUS = "excluded_tracker_uncertain"
 PAGE = Path(__file__).resolve().parent / "reid_cluster_review.html"
 DEFAULT_CONFIG = Path(__file__).resolve().parent.parent / "config" / "reid_cluster.yaml"
@@ -215,13 +220,21 @@ def odd_scores(D: np.ndarray, labels: List[int]) -> List[float]:
 
 
 # ------------------------------------------------------------------------------------------- audit
-def audit_sample(eligible_ids: Sequence[str], cfg: dict) -> List[str]:
-    """Deterministic: depends only on the sorted eligible tracklet ids, the fraction, the minimum and the seed."""
-    ids = sorted(eligible_ids)
-    ac = cfg["audit"]
-    n = min(len(ids), max(int(ac["min_tracklets"]), int(math.ceil(ac["fraction"] * len(ids)))))
-    rng = np.random.default_rng(ac["seed"])
-    return sorted(ids[i] for i in rng.choice(len(ids), n, replace=False)) if n else []
+# Audit (2026-11-18 fix, records/reid_audit_diagnose_2026-11-18): drawn AFTER the cluster review is locked, from the
+# tracklets whose reviewed cluster says a player and that still have a live cluster-mate; shown alone, in a fixed
+# seeded order, until `audit.min_comparable` answers are comparable (the answer names a player). Disagreement =
+# player vs player only; reject / unsure answers are reported apart as lost data. Gate: the exact one-sided
+# (Clopper-Pearson) upper confidence bound of the disagreement rate must not exceed `audit.max_disagreement_rate`.
+def fnv1a32(text: str) -> int:
+    h = 0x811C9DC5
+    for b in text.encode("utf-8"):
+        h = ((h ^ b) * 0x01000193) & 0xFFFFFFFF
+    return h
+
+
+def audit_order(eligible_ids: Sequence[str], seed: int) -> List[str]:
+    """Deterministic draw order (the review page computes the same with the same FNV-1a hash)."""
+    return sorted(eligible_ids, key=lambda t: (fnv1a32(f"{seed}:{t}"), t))
 
 
 def wilson(k: int, n: int, level: float):
@@ -233,6 +246,26 @@ def wilson(k: int, n: int, level: float):
     c = (p + z * z / (2 * n)) / den
     h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / den
     return [round(max(0.0, c - h), 4), round(min(1.0, c + h), 4)]
+
+
+def binom_cdf(k: int, n: int, p: float) -> float:
+    return sum(math.comb(n, i) * p ** i * (1 - p) ** (n - i) for i in range(k + 1))
+
+
+def upper_bound(k: int, n: int, confidence: float) -> Optional[float]:
+    """Exact one-sided (Clopper-Pearson) upper bound: the p at which P(X <= k) = 1 - confidence."""
+    if n == 0:
+        return None
+    if k >= n:
+        return 1.0
+    lo, hi = k / n, 1.0
+    for _ in range(100):
+        mid = (lo + hi) / 2
+        if binom_cdf(k, n, mid) > 1 - confidence:
+            lo = mid
+        else:
+            hi = mid
+    return hi
 
 
 def _decision(d) -> tuple:
@@ -262,28 +295,51 @@ def derived_decisions(review: dict, tracklet_ids: Sequence[str]) -> Dict[str, tu
     return out
 
 
-def audit_stats(review: dict, derived: Dict[str, tuple], cfg: dict) -> dict:
-    """Disagreement = the audit answer differs from the decision the reviewed clusters imply. Unsure answers and
-    tracklets whose cluster gives no opinion (every other member also in the audit) are counted apart."""
-    answered = dis = unsure = no_opinion = 0
+def audit_eligible(review: dict) -> List[str]:
+    """Tracklets the audit may draw: live (not overridden) in a cluster decided as a player with another live member."""
+    over = review.get("overrides", {})
+    out = []
+    for c in review["clusters"].values():
+        live = [t for t in c["tracklets"] if t not in over]
+        if c.get("decision") == "player" and len(live) >= 2:
+            out += live
+    return sorted(out)
+
+
+def audit_prefix(order: Sequence[str], answers: Dict[str, dict], min_comparable: int):
+    """The audit to score: the shortest prefix of the draw order holding min_comparable comparable answers.
+    Returns (prefix, complete); complete is False when an answer is missing or the order ran out first."""
+    n = 0
+    for k, t in enumerate(order):
+        a = answers.get(t)
+        if not a or a.get("decision") not in ("player", "reject", "unsure"):
+            return list(order[:k]), False
+        n += a["decision"] == "player"
+        if n >= min_comparable:
+            return list(order[:k + 1]), True
+    return list(order), False
+
+
+def audit_stats(review: dict, derived: Dict[str, tuple], prefix: Sequence[str], cfg: dict) -> dict:
+    ac = cfg["audit"]
+    comparable = dis = lost = 0
     rows = []
-    for tid, ans in sorted(review.get("audit", {}).items()):
-        a = _decision(ans)
-        if a[0] == "unsure":
-            unsure += 1
+    for tid in prefix:
+        a = _decision(review["audit"][tid])
+        c = derived[tid]
+        if a[0] != "player":
+            lost += 1                                                   # reject / unsure on a player cluster
+            rows.append({"tracklet": tid, "answer": list(a), "cluster": list(c), "kind": "lost_data"})
             continue
-        if derived[tid][0] is None:
-            no_opinion += 1
-            continue
-        answered += 1
-        bad = a != derived[tid]
+        comparable += 1
+        bad = a != c
         dis += bad
-        rows.append({"tracklet": tid, "answer": list(a), "cluster": list(derived[tid]), "disagree": bool(bad)})
-    rate = dis / answered if answered else None
-    return {"audited": len(review.get("audit", {})), "answered": answered, "unsure": unsure,
-            "no_cluster_opinion": no_opinion, "disagreements": dis,
-            "rate": rate, "ci": wilson(dis, answered, cfg["audit"]["ci"]), "ci_level": cfg["audit"]["ci"],
-            "limit": cfg["audit"]["max_disagreement_rate"], "rows": rows}
+        rows.append({"tracklet": tid, "answer": list(a), "cluster": list(c), "kind": "disagree" if bad else "agree"})
+    return {"drawn": len(prefix), "comparable": comparable, "disagreements": dis, "lost_data": lost,
+            "rate": dis / comparable if comparable else None,
+            "upper_bound": upper_bound(dis, comparable, ac["confidence"]), "confidence": ac["confidence"],
+            "bound": "exact one-sided (Clopper-Pearson)", "wilson": wilson(dis, comparable, ac["confidence"]),
+            "limit": ac["max_disagreement_rate"], "min_comparable": ac["min_comparable"], "rows": rows}
 
 
 def check_cluster_export(pack: dict, tl: Dict[str, dict], ex: dict, cfg: dict, cfg_sha256: str) -> dict:
@@ -291,38 +347,44 @@ def check_cluster_export(pack: dict, tl: Dict[str, dict], ex: dict, cfg: dict, c
     the pack and the export; raises ReidLabelError, or returns the audit statistics."""
     rv = ex.get("cluster_review") or {}
     if (rv.get("schema"), rv.get("schema_version")) != REVIEW_SCHEMA:
-        raise ReidLabelError("cluster_confirm export without a valid cluster_review block")
+        raise ReidLabelError(f"cluster_confirm export needs a cluster_review block {REVIEW_SCHEMA} "
+                             "(1.0.0 audits are not accepted: records/reid_audit_diagnose_2026-11-18)")
     if rv.get("config_sha256") != cfg_sha256:
         raise ReidLabelError("cluster_review was made with another config/reid_cluster.yaml")
     flagged = sorted(t for t, v in tl.items() if is_flagged(v)) if cfg["clustering"]["exclude_tracker_flagged"] else []
     if sorted(rv.get("excluded", [])) != flagged:
         raise ReidLabelError("excluded tracklets are not exactly the tracker-flagged ones")
     eligible = sorted(set(tl) - set(flagged))
-    sample = audit_sample(eligible, cfg)
     in_clusters = sorted(t for c in rv["clusters"].values() for t in c["tracklets"])
     if in_clusters != eligible:
         raise ReidLabelError("clusters do not hold every non-excluded tracklet exactly once")
+    over = rv.get("overrides", {})
+    for tid, o in over.items():
+        if o.get("decision") not in ("reject", "unsure"):
+            raise ReidLabelError(f"override for {tid} must be reject or unsure")
     for cid, c in rv["clusters"].items():
-        live = [t for t in c["tracklets"] if t not in rv.get("overrides", {})]
-        if any(t not in sample for t in live) and c.get("decision") not in ("player", "reject", "unsure"):
+        live = [t for t in c["tracklets"] if t not in over]
+        if live and c.get("decision") not in ("player", "reject", "unsure"):
             raise ReidLabelError(f"cluster {cid} is undecided")
+        if c.get("decision") == "player" and not c.get("player"):
+            raise ReidLabelError(f"cluster {cid} is a player cluster without a player")
         seen: Dict[int, str] = {}
         for t in live:
             for f in tl[t]["frames"]:
                 if f in seen:
                     raise ReidLabelError(f"CONFLICT: cluster {cid} holds {seen[f]} and {t} on frame {f}")
                 seen[f] = t
-    for tid, o in rv.get("overrides", {}).items():
-        if o.get("decision") not in ("reject", "unsure"):
-            raise ReidLabelError(f"override for {tid} must be reject or unsure")
-    if sorted(rv.get("audit", {})) != sample:
-        raise ReidLabelError("audit answers do not cover exactly the audit sample")
+    order = audit_order(audit_eligible(rv), cfg["audit"]["seed"])
+    prefix, complete = audit_prefix(order, rv.get("audit", {}), cfg["audit"]["min_comparable"])
+    if sorted(rv.get("audit", {})) != sorted(prefix):
+        raise ReidLabelError("audit answers are not exactly the shortest prefix of the draw order")
+    if not complete:
+        raise ReidLabelError(f"audit incomplete: fewer than {cfg['audit']['min_comparable']} comparable answers "
+                             f"({len(order)} tracklets could be drawn)")
     derived = derived_decisions(rv, sorted(tl))
     final = dict(derived)
-    for tid, ans in rv["audit"].items():
-        if ans.get("decision") not in ("player", "reject", "unsure"):
-            raise ReidLabelError(f"audit tracklet {tid} has no answer")
-        final[tid] = _decision(ans)                                      # the human answer is what gets frozen
+    for tid in prefix:
+        final[tid] = _decision(rv["audit"][tid])                        # the human answer is what gets frozen
     parts: Dict[str, List[dict]] = {}
     for p in ex.get("parts", []):
         parts.setdefault(p.get("tracklet"), []).append(p)
@@ -334,12 +396,11 @@ def check_cluster_export(pack: dict, tl: Dict[str, dict], ex: dict, cfg: dict, c
             raise ReidLabelError(f"tracklet {tid}: exported decision differs from the cluster review")
         if (tid in flagged) != (ps[0].get("status") == EXCLUDED_STATUS):
             raise ReidLabelError(f"tracklet {tid}: status {EXCLUDED_STATUS} must mark exactly the excluded ones")
-    st = audit_stats(rv, derived, cfg)
-    if not st["answered"]:
-        raise ReidLabelError("audit has no answered tracklet (all unsure)")
-    if st["rate"] > cfg["audit"]["max_disagreement_rate"]:
-        raise ReidLabelError(f"audit disagreement {st['disagreements']}/{st['answered']} = {st['rate']:.3f} is above "
-                             f"the limit {cfg['audit']['max_disagreement_rate']}: refusing to freeze")
+    st = audit_stats(rv, derived, prefix, cfg)
+    if st["upper_bound"] > cfg["audit"]["max_disagreement_rate"]:
+        raise ReidLabelError(f"audit: {st['disagreements']} of {st['comparable']} comparable answers disagree; the "
+                             f"{st['confidence']:.0%} upper bound {st['upper_bound']:.3f} is above the limit "
+                             f"{cfg['audit']['max_disagreement_rate']}: refusing to freeze")
     return st
 
 
@@ -386,20 +447,18 @@ def build(pack_dir, out, cfg_path=DEFAULT_CONFIG, model=None, embed: Optional[Ca
     embed = embed or onnx_embedder(model)
     app_cfg = app_cfg or load_config(Path(__file__).resolve().parent.parent / "config" / "default.yaml").appearance
     pr = propose(pack_dir, pack, tracklets, embed, cfg, app_cfg)
-    audit = audit_sample(pr["use"], cfg)
-    z = NormalDist().inv_cdf(0.5 + cfg["audit"]["ci"] / 2.0)
     data = {
         "schema": REVIEW_SCHEMA[0], "schema_version": REVIEW_SCHEMA[1], "match": pack["match"],
         "tracklets_sha256": pack["tracklets_sha256"], "config_sha256": config_sha(cfg_path),
         "model_sha256": hashlib.sha256(Path(model).read_bytes()).hexdigest() if model else None,
-        "excluded_status": EXCLUDED_STATUS, "config": cfg, "z": z,
+        "excluded_status": EXCLUDED_STATUS, "config": cfg,
         "tracklets": [{"id": t["id"], "track": t["track"], "first_frame": t["frames"][0],
                        "last_frame": t["frames"][-1], "frames": t["frames"], "observed": len(t["frames"]),
                        "thumbs": [th["file"] for th in t["thumbs"]], "flagged": is_flagged(t)} for t in tracklets],
-        "clusters": pr["clusters"], "excluded": pr["excluded"], "audit": audit,
+        "clusters": pr["clusters"], "excluded": pr["excluded"],
         "stats": {"tracklets": len(tracklets), "excluded": len(pr["excluded"]), "clustered": len(pr["use"]),
                   "clusters": len(pr["clusters"]), "singletons": sum(len(c["tracklets"]) == 1 for c in pr["clusters"].values()),
-                  "audit": len(audit), "missing_colour": pr["missing_colour"]},
+                  "missing_colour": pr["missing_colour"]},
     }
     tmp = out.with_name(out.name + ".partial")
     if tmp.exists():
@@ -410,6 +469,33 @@ def build(pack_dir, out, cfg_path=DEFAULT_CONFIG, model=None, embed: Optional[Ca
     (tmp / "review.js").write_text("window.SPANA_CLUSTER_REVIEW = " + text + ";\n")
     shutil.copy(PAGE, tmp / "index.html")
     tmp.rename(out)
+    return data
+
+
+def upgrade(review_dir, cfg_path=DEFAULT_CONFIG) -> dict:
+    """Bring an existing review folder to the current review format and config WITHOUT re-clustering: tracklets,
+    clusters and exclusions are kept byte for byte; config, config hash and schema are updated, the pre-drawn
+    1.0.0 audit sample is dropped, and the page is replaced. Old files are kept as *.<old version>.bak."""
+    rd = Path(review_dir)
+    data = json.loads((rd / "review.json").read_text())
+    old = data.get("schema_version")
+    if old == REVIEW_SCHEMA[1] and data.get("config_sha256") == config_sha(cfg_path):
+        return data
+    cfg = load_cluster_config(cfg_path)
+    for name in ("review.json", "review.js", "index.html"):
+        bak = rd / f"{name}.{old}.bak"
+        if not bak.exists():
+            shutil.copy(rd / name, bak)
+    if "audit" in data:                       # 1.0.0: these were hidden from the cluster sheets during the review
+        data["previously_hidden"] = sorted(data.pop("audit"))
+    data.pop("z", None)
+    data["stats"].pop("audit", None)
+    data.update({"schema_version": REVIEW_SCHEMA[1], "config": cfg, "config_sha256": config_sha(cfg_path),
+                 "upgraded_from": old})
+    text = json.dumps(data, separators=(",", ":"))
+    (rd / "review.json").write_text(text)
+    (rd / "review.js").write_text("window.SPANA_CLUSTER_REVIEW = " + text + ";\n")
+    shutil.copy(PAGE, rd / "index.html")
     return data
 
 
@@ -446,7 +532,7 @@ def evaluate(pack_dir, labels_dir, model=None, cfg_path=DEFAULT_CONFIG, min_obse
     return {"tracklets": len(tracklets), "excluded": len(pr["excluded"]), "clustered": len(pr["use"]),
             "clusters": len(pr["clusters"]), "singletons": sum(len(c["tracklets"]) == 1 for c in pr["clusters"].values()),
             "labelled_single_player": n, "errors": err, "error_rate": round(err / n, 4) if n else None,
-            "error_ci": wilson(err, n, cfg["audit"]["ci"]), "players": len(players_in),
+            "error_ci": wilson(err, n, cfg["audit"]["confidence"]), "players": len(players_in),
             "clusters_per_player_median": float(np.median([len(v) for v in players_in.values()])) if players_in else None,
             "max_distance": cfg["clustering"]["max_distance"]}
 
@@ -459,6 +545,9 @@ def main(argv=None) -> int:
     b.add_argument("--model", required=True)
     b.add_argument("--out", required=True)
     b.add_argument("--config", default=str(DEFAULT_CONFIG))
+    u = sub.add_parser("upgrade")
+    u.add_argument("--review", required=True)
+    u.add_argument("--config", default=str(DEFAULT_CONFIG))
     e = sub.add_parser("evaluate")
     e.add_argument("--pack", required=True)
     e.add_argument("--labels", required=True)
@@ -466,6 +555,11 @@ def main(argv=None) -> int:
     e.add_argument("--min-observed", type=int, default=0)
     e.add_argument("--config", default=str(DEFAULT_CONFIG))
     a = p.parse_args(argv)
+    if a.cmd == "upgrade":
+        d = upgrade(a.review, a.config)
+        print(json.dumps({"review": a.review, "schema_version": d["schema_version"], "upgraded_from": d.get("upgraded_from"),
+                          "clusters": len(d["clusters"]), "config_sha256": d["config_sha256"]}))
+        return 0
     if a.cmd == "build":
         d = build(a.pack, a.out, a.config, a.model)
         print(json.dumps({"out": a.out, **d["stats"]}))

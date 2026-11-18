@@ -117,6 +117,7 @@ def diagnose(review_dir, pack_dir, state: dict, out_dir, embed=None, light="unkn
     if out_dir.exists():
         raise SystemExit(f"refusing to overwrite {out_dir}")
     R = json.loads((review_dir / "review.json").read_text())
+    R.setdefault("audit", R.get("previously_hidden", []))            # 1.0.0 audit sample (kept by `upgrade`)
     pack, tracklets = RC._load_pack(pack_dir)
     if pack["tracklets_sha256"] != R["tracklets_sha256"]:
         raise SystemExit("review and pack disagree")

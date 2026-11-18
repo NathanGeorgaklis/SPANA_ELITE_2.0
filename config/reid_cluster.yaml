@@ -14,9 +14,8 @@ clustering:
   exclude_tracker_flagged: true   # tracklets the tracker flagged (identity contest) -> excluded_tracker_uncertain
 review:
   sheet_thumbs_per_tracklet: 3 # contact sheet: thumbnails shown per tracklet (odd ones out first)
-audit:
-  fraction: 0.05               # share of the clustered (non-excluded) tracklets shown alone, without their cluster
-  min_tracklets: 10            # at least this many
-  seed: 0
-  ci: 0.95                     # Wilson interval on the disagreement rate
-  max_disagreement_rate: 0.05  # freeze refused above this (point estimate)
+audit:                         # drawn after the review is locked (records/reid_audit_diagnose_2026-11-18)
+  seed: 0                      # fixed draw order (FNV-1a of "<seed>:<tracklet>")
+  min_comparable: 60           # answers that name a player (Nathan, 2026-11-18)
+  confidence: 0.95             # exact one-sided (Clopper-Pearson) upper bound of the disagreement rate
+  max_disagreement_rate: 0.05  # freeze refused when the upper bound is above this
