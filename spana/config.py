@@ -21,7 +21,7 @@ import yaml
 
 CONFIG_SCHEMA_VERSION = "2.4.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.4.0: + tracking appearance
 #   doubt link (+ self-consistent resolution), extent-change link, low-score recovery, target.tap_vouches_doubt /
-#   resume_after_doubt_resolved (2.3.0 is taken by unmerged branches: tracking.exit_hold_s, inference /
+#   resume_after_doubt_resolved / review_min_gap_s (2.3.0 is taken by unmerged branches: tracking.exit_hold_s, inference /
 #   profiling / performance)
 
 
@@ -204,9 +204,12 @@ class TargetConfig:
                                    #   answers TARGET (USER_VOUCHED) for the rest of that doubt episode
     resume_after_doubt_resolved: bool  # an uncertainty episode that was only ever a no-rival doubt does not taint
                                    #   the followed track: it is answered again once the tracker resolves the doubt
+    review_min_gap_s: float        # after-match review list: only gaps at least this long (0 = every gap)
 
     def validate(self) -> None:
         _pos("target.relink_max_gap_s", self.relink_max_gap_s)
+        if not (isinstance(self.review_min_gap_s, (int, float)) and self.review_min_gap_s >= 0):
+            raise ConfigError("target.review_min_gap_s must be >= 0")
 
 
 @dataclass(frozen=True)

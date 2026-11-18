@@ -379,6 +379,18 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
     return out, {"track_ends": track_ends, "relinks": relinks}
 
 
+def gap_duration_s(gap: dict) -> float:
+    """Length of a spana.target gap: from its first to its last frame time (a one-frame gap is 0 s)."""
+    return gap["end_t"] - gap["start_t"]
+
+
+def review_list(gaps: Sequence[dict], cfg: SpanaConfig) -> List[dict]:
+    """The gaps the after-match review shows the user, in time order: those lasting at least
+    target.review_min_gap_s (decision 2026-11-16: the gap list is the primary recovery UI). Shorter gaps stay in the
+    document and on the timeline, but are not offered as review items."""
+    return [g for g in gaps if gap_duration_s(g) >= cfg.target.review_min_gap_s - _EPS]
+
+
 def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Sequence[str] = (),
                     actions: Iterable[dict] = ()) -> dict:
     """Validated spana.target 2.3.0 document for one selection (and the user's actions) on one validated

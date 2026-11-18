@@ -39,7 +39,7 @@ from spana.config import load_config
 from spana.evaluation import NESTED_V2, _match
 from spana.artifacts import gaps_of
 from spana.identity.follower import (Selection, confirm_candidate, confirm_relink, follow, reject_candidate, reselect,
-                                     target_document)
+                                     review_list, target_document)
 from tools.benchmark import IGNORE_IOA, _ioa, load_frozen
 
 RULE = NESTED_V2
@@ -127,12 +127,13 @@ def offer_verdict(r: dict, gt, attr, pid: str) -> str:
 def simulated_review(tracks_doc: dict, sel: Selection, cfg, gt, attr, pid: str, max_steps: int = 1000) -> List[dict]:
     """An after-match reviewer working through the gap list (decision 2026-11-16), knowing the truth: for each gap in
     turn, it confirms an offer judged right or rejects one judged wrong (on the offer's first frame); otherwise it taps
-    the player on the gap's first labelled frame where they have an unambiguous track. Best case of the review UI."""
+    the player on the gap's first labelled frame where they have an unambiguous track. Best case of the review UI.
+    Only the gaps the review list shows (target.review_min_gap_s) are worked through."""
     actions: List[dict] = []
     handled: set = set()
     for _ in range(max_steps):
         frames, info = follow(tracks_doc, sel, cfg, actions)
-        todo = [g for g in gaps_of(frames, info["relinks"]) if g["start_frame"] not in handled]
+        todo = [g for g in review_list(gaps_of(frames, info["relinks"]), cfg) if g["start_frame"] not in handled]
         if not todo:
             return actions
         g = todo[0]

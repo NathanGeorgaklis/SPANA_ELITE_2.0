@@ -101,6 +101,8 @@ Follow the user's chosen player through a clip, and say so when unsure.
 | `reject_candidate` 1.0.0 | `frame, from_track, to_track, proposed_frame` | decline an offer: withdrawn (`REJECTED_BY_USER`), never re-proposed for that loss |
 | `track_at_frame` 1.0.0 | `frame, track_id` | a tap on an observed box mid-clip: re-selects the player from that frame on; earlier answers kept |
 
+  - Review list (not part of the document): `spana.identity.follower.review_list(gaps, cfg)` returns the gaps
+    lasting at least `target.review_min_gap_s` (`gap_duration_s` = end_t - start_t); 0 lists every gap.
   - `gaps` (2.1.0): the review timeline. Maximal runs of frames without a TARGET answer:
     `{start_frame, end_frame, start_t, end_t, frames, states, offers: [[from_track, to_track, proposed_frame]]}`.
     The validator recomputes them from the frames.

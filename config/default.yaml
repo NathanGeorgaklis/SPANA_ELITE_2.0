@@ -127,6 +127,9 @@ target:
   # once the tracker resolves it (resume_after_uncertain stays false for every episode with a rival). Measured with
   # the doubt link (records/resume_after_doubt_2026-11-18).
   resume_after_doubt_resolved: false
+  # After-match review list (spana.identity.follower.review_list): only gaps without a TARGET answer lasting at least
+  # this long are listed for the user to fix. 0 = every gap. The spana.target document always keeps every gap.
+  review_min_gap_s: 0.0
 
 output:
   box_decimals: 1
