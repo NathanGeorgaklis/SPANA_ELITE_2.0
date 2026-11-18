@@ -48,7 +48,13 @@ Per frame:
      unconfirmed track older than unconfirmed_max_s is terminated.
   6. Unmatched: OCCLUDED if >= occlusion_min_ioa of the predicted box is covered by an observed box and the gap is
      <= occlusion_max_s (sticky while that occluder is still observed: a re-emerging body is often missed),
-     else LOST; an unconfirmed track unobserved longer than rematch_max_s is TERMINATED; TERMINATED after lost_max_s or when the prediction leaves the image.
+     else LOST; an unconfirmed track unobserved longer than rematch_max_s is TERMINATED; TERMINATED after lost_max_s.
+     Leaving the picture: an unconfirmed track whose prediction leaves the image is TERMINATED (LEFT_FRAME). A
+     confirmed one is HELD (LOST, velocity frozen where it left, still camera-compensated) for exit_hold_s and stays
+     recoverable in S4 under the long-gap rules (appearance required beyond rematch_max_s); after exit_hold_s out
+     of the picture it is TERMINATED (LEFT_FRAME). exit_hold_s = 0 (the default) ends it on leaving, as before:
+     on DEV the hold cost more recoveries than it gained, because torso colour cannot tell teammates apart
+     (records/exit_hold_2026-11-18).
 
 Track confidence (documented, uncalibrated, not a probability): over the last confidence_window_s of the track's
 frames, the mean detection score with unobserved frames counted as 0. Range [0, 1]; high = detected strongly and
@@ -98,6 +104,7 @@ class _Track:
     missed_frames: int = 0
     velocity_frozen: bool = False
     occluder: Optional[str] = None
+    exited_t: Optional[float] = None       # time the prediction left the picture (held, see exit_hold_s)
     appearance: Optional[np.ndarray] = None
     appearance_t: Optional[float] = None
     recoveries: int = 0
@@ -360,6 +367,8 @@ class MultiPlayerTracker:
         if t.observed_last_frame:
             return False
         gap = time_s - t.last_observed_t
+        if t.confirmed and t.exited_t is not None and time_s - t.exited_t <= self.tc.exit_hold_s + _EPS:
+            return True                       # held after leaving the picture (long-gap rules apply in S4)
         if t.confirmed and t.state == TrackState.OCCLUDED:
             return gap <= self.tc.occlusion_max_s + _EPS
         return gap <= self.tc.rematch_max_s + _EPS
@@ -576,7 +585,7 @@ class MultiPlayerTracker:
                 t.last_observed_t, t.last_observed_frame = time_s, frame_index
                 t.observed_frames += 1
                 t.velocity_frozen, t.observed_last_frame, t.missed_frames = False, True, 0
-                t.state, t.occluder = TrackState.ACTIVE, None
+                t.state, t.occluder, t.exited_t = TrackState.ACTIVE, None, None
                 if not contested and self._clean(i, dets, matched) and desc[i] is not None:
                     self._clean_crops[t.track_id] = (time_s, desc[i])   # evidence only, never the model
                     if not t.identity_rivals:
@@ -618,16 +627,24 @@ class MultiPlayerTracker:
                    time_s: float, out: FrameTracks) -> None:
         keep: List[_Track] = []
         remap: Dict[int, int] = {}
+        # Matched tracks first: confirmation, or the end of an unconfirmed track that ran out of time. Only matched
+        # tracks that survive this frame may be an occluder (real DEV finding: an occluder ending on the same frame
+        # left a hidden track naming a track that was no longer live).
+        ending: Dict[int, EndReason] = {}
+        for k in matched:
+            t = self._tracks[k]
+            if not t.confirmed:
+                if t.observed_frames >= 2 and t.last_observed_t - t.first_observed_t >= self.tc.confirm_s - _EPS \
+                        and not self._nested(dets[matched[k][0]].as_array(), k, matched, dets):
+                    t.confirmed = True
+                elif time_s - t.first_observed_t > self.tc.unconfirmed_max_s + _EPS:
+                    ending[k] = EndReason.UNCONFIRMED_TIMEOUT
+        survivors = {k: v for k, v in matched.items() if k not in ending}
         for k, t in enumerate(self._tracks):
             reason: Optional[EndReason] = None
             gap = time_s - t.last_observed_t
             if k in matched:
-                if not t.confirmed:
-                    if t.observed_frames >= 2 and t.last_observed_t - t.first_observed_t >= self.tc.confirm_s - _EPS \
-                            and not self._nested(dets[matched[k][0]].as_array(), k, matched, dets):
-                        t.confirmed = True
-                    elif time_s - t.first_observed_t > self.tc.unconfirmed_max_s + _EPS:
-                        reason = EndReason.UNCONFIRMED_TIMEOUT
+                reason = ending.get(k)
             elif not t.confirmed and gap > self.tc.rematch_max_s + _EPS:
                 reason = EndReason.UNCONFIRMED_MISSED
             else:
@@ -635,15 +652,21 @@ class MultiPlayerTracker:
                 if gap <= self.tc.occlusion_max_s + _EPS:
                     # Sticky while the occluder is still observed: an occluded body is often missed while it
                     # re-emerges (partly covered). Recovery rules, not the state, keep it safe.
-                    occ = self._occluder(t, matched, dets)
+                    occ = self._occluder(t, survivors, dets)
                     if occ is None and t.state == TrackState.OCCLUDED and \
-                            any(self._tracks[j].track_id == t.occluder for j in matched):
+                            any(self._tracks[j].track_id == t.occluder for j in survivors):
                         occ = t.occluder
                 t.state, t.occluder = (TrackState.OCCLUDED, occ) if occ else (TrackState.LOST, None)
                 if gap > self.tc.lost_max_s + _EPS:
                     reason = EndReason.LOST_EXPIRED
                 elif self._left_frame(t):
-                    reason = EndReason.LEFT_FRAME
+                    if t.confirmed and t.exited_t is None:          # first frame out of the picture: hold it
+                        t.exited_t = time_s
+                        t.kf.freeze_velocity()
+                        t.velocity_frozen = True
+                        out.decisions.append({"kind": "exit_hold", "track_id": t.track_id})
+                    if not t.confirmed or time_s - t.exited_t >= self.tc.exit_hold_s - _EPS:
+                        reason = EndReason.LEFT_FRAME
             if reason is not None:
                 self._end(t, reason, frame_index, out)
             else:
