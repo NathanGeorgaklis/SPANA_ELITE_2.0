@@ -123,6 +123,10 @@ def cmd_track(a: argparse.Namespace) -> int:
     det_frames = {fr["frame"]: fr for fr in ddoc["frames"]}
     cam = CameraMotionEstimator(cfg.camera, video.meta.width, video.meta.height, video.meta.fps)
     trk = MultiPlayerTracker(cfg, video.meta.width, video.meta.height)
+    embedder = None
+    if cfg.reid.enabled:                       # re-ID evidence for IDENTITY_UNCERTAIN (pinned, calibrated model)
+        from .identity.reid import ReidEmbedder
+        embedder = ReidEmbedder(cfg.reid.model_record, cfg.reid.model_sha256)
     frames, log = [], []
     first, last, stride = min(det_frames), max(det_frames), ddoc["frame_stride"]
     if sorted(det_frames) != list(range(first, last + 1, stride)):
@@ -132,7 +136,8 @@ def cmd_track(a: argparse.Namespace) -> int:
             continue
         dets = detections_from_frame(det_frames[i])
         boxes = [d.box for d in dets]
-        ft = trk.update(i, t, dets, cam.observe(img, boxes), describe(img, boxes, cfg.appearance))
+        reid_fn = (lambda idx, img=img, boxes=boxes: embedder.embed(img, [boxes[k] for k in idx])) if embedder else None
+        ft = trk.update(i, t, dets, cam.observe(img, boxes), describe(img, boxes, cfg.appearance), reid_fn)
         frames.append(tracks_frame(ft, cfg.output))
         log.extend({"frame": i, **d} for d in ft.decisions)
     if not frames or frames[-1]["frame"] != last:
@@ -140,7 +145,8 @@ def cmd_track(a: argparse.Namespace) -> int:
     doc = {
         "schema": TRACKS_SCHEMA[0], "schema_version": TRACKS_SCHEMA[1],
         "provenance": build_provenance(config_sha256=cfg.sha256(), argv=sys.argv,
-                                       inputs={"video": video.meta.sha256, "detections": sha256_doc(ddoc)}),
+                                       inputs={"video": video.meta.sha256, "detections": sha256_doc(ddoc),
+                                               **({"reid_model": embedder.sha256} if embedder else {})}),
         "video": video.meta.to_dict(), "detections_sha256": sha256_doc(ddoc), "frames": frames,
         "tracklets": tracklet_rows(trk.summaries()),
     }

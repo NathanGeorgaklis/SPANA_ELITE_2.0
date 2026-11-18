@@ -1,0 +1,16 @@
+{
+  "name": "SPANA re-ID v2 (DINOv2 ViT-S/14 fine-tuned, part-pooled 256-d embedding)",
+  "version": "spana-reid-v2",
+  "onnx_path": "spana_reid_v2/spana_reid.onnx",
+  "onnx_sha256": "c269450e871cb28b4020b715618edc9dcda328faf951503a9e09f8e7a3032f84",
+  "input_hw": [224, 112],
+  "crop_pad": 0.05,
+  "embedding_dim": 256,
+  "preprocessing": "box + crop_pad on each side, clipped; resize to input_hw (INTER_AREA when shrinking, else INTER_LINEAR); BGR->RGB; /255; ImageNet mean/std (tools/reid_crops.cut_crop + tools/reid_train.to_input)",
+  "trained_on": ["data/reid/TRAIN/TRAIN_M001_MORETON_CITY/v1", "data/reid/TRAIN/TRAIN_M002_EASTERN_SUBURBS/v1"],
+  "backbone": "models/dinov2_small.json (Apache-2.0)",
+  "licence": "weights trained by SPANA on SPANA-licensed TRAIN matches; backbone Apache-2.0",
+  "training_record": "records/reid_retrain_m001_m002_2026-11-18",
+  "calibration_record": "records/reid_calibration_dev_2026-11-18",
+  "note": "The ONNX file is not in git (*.onnx ignored); place it at models/spana_reid_v2/spana_reid.onnx. A different file is refused."
+}

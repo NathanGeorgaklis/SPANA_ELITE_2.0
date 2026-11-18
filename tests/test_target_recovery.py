@@ -96,12 +96,17 @@ class GapsAndValidatorTest(unittest.TestCase):
         frames2, info2 = follow(doc, SEL, CFG, [confirm_relink(info["relinks"][0], 5)])
         self.assertEqual([(x["start_frame"], x["end_frame"]) for x in gaps_of(frames2, info2["relinks"])], [(2, 4)])
 
-    def test_document_2_1_0(self):
+    def test_document_2_2_0_and_2_1_0(self):
         tracks = dropped_offer()
         r = follow(tracks, SEL, CFG)[1]["relinks"][0]
         doc = target_document(tracks, SEL, CFG, ["test"], [confirm_relink(r, 5)])
-        self.assertEqual(doc["schema_version"], "2.1.0")
+        self.assertEqual(doc["schema_version"], "2.2.0")
         validate_target(doc, tracks)
+        v21 = dict(doc, schema_version="2.1.0",                             # 2.1.0 = without resume_after_reid
+                   target_config={k: v for k, v in doc["target_config"].items() if k != "resume_after_reid"})
+        validate_target(v21, tracks)
+        with self.assertRaises(ArtifactError):
+            validate_target(dict(v21, target_config=doc["target_config"]), tracks)
 
         def broken(edit):
             d = copy.deepcopy(doc)
@@ -132,7 +137,8 @@ class GapsAndValidatorTest(unittest.TestCase):
         d = target_document(tracks, SEL, CFG, ["test"], [confirm_candidate("t3", 4)])
         v2 = {k: v for k, v in d.items() if k not in ("user_actions", "gaps")}
         v2.update(schema_version="2.0.0", confirmations=d["user_actions"],
-                  relinks=[{k: v for k, v in r.items() if k != "rejection"} for r in d["relinks"]])
+                  relinks=[{k: v for k, v in r.items() if k != "rejection"} for r in d["relinks"]],
+                  target_config={k: v for k, v in d["target_config"].items() if k != "resume_after_reid"})
         validate_target(v2, tracks)
         v2["confirmations"].append(reselect("t2", 3))                       # 2.0.0 knows confirmations only
         with self.assertRaises(ArtifactError):

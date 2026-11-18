@@ -9,7 +9,8 @@ The ANSWERED track starts as the selected one. Per frame, from the selection fra
   ABSTAIN   NOT_CONFIRMED       ... ACTIVE but not yet confirmed
   ABSTAIN   IDENTITY_UNCERTAIN  ... IDENTITY_UNCERTAIN now
   ABSTAIN   AFTER_UNCERTAIN     ... was uncertain since it became the answered track and
-                                target.resume_after_uncertain is false
+                                target.resume_after_uncertain is false (unless the latest episode was cleared
+                                by the calibrated re-ID margin, resolved_by REID, and target.resume_after_reid)
   ABSTAIN   TRACK_OCCLUDED      ... OCCLUDED
   LOST      TRACK_LOST          ... LOST
   LOST      TRACK_ENDED         ... ended (any EndReason)
@@ -264,6 +265,8 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                 episodes0 = tr["uncertain_episodes"] - int(uncertain)
             if uncertain or tr["uncertain_episodes"] > episodes0:
                 tainted = not tc.resume_after_uncertain
+            if tainted and not uncertain and tc.resume_after_reid and tr.get("resolved_by") == "REID":
+                tainted, episodes0 = False, tr["uncertain_episodes"]   # cleared by the calibrated re-ID margin
             box = None
             if uncertain:
                 state, reason = TargetState.ABSTAIN, TargetReason.IDENTITY_UNCERTAIN
@@ -358,7 +361,8 @@ def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Se
         "user_actions": actions,
         "target_config": {"resume_after_uncertain": cfg.target.resume_after_uncertain,
                           "relink_max_gap_s": cfg.target.relink_max_gap_s,
-                          "relink_auto_confirm": cfg.target.relink_auto_confirm},
+                          "relink_auto_confirm": cfg.target.relink_auto_confirm,
+                          "resume_after_reid": cfg.target.resume_after_reid},
         "track_ends": info["track_ends"], "relinks": info["relinks"], "frames": frames,
         "gaps": gaps_of(frames, info["relinks"]),
     }

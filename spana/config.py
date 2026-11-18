@@ -19,7 +19,8 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.3.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s
+CONFIG_SCHEMA_VERSION = "2.4.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+                                  # 2.4.0: + reid section, target.resume_after_reid
 
 
 class ConfigError(ValueError):
@@ -188,9 +189,28 @@ class TargetConfig:
     relink_max_gap_s: float        # a relink candidate must be born within this time of the lost track's last
                                    #   observation (spana.identity.follower)
     relink_auto_confirm: bool      # promote a CANDIDATE to TARGET without the user's confirmation (measurement only)
+    resume_after_reid: bool        # answer again after an IDENTITY_UNCERTAIN episode that the calibrated re-ID margin
+                                   #   cleared for every rival (track resolved_by == REID); others stay as above
 
     def validate(self) -> None:
         _pos("target.relink_max_gap_s", self.relink_max_gap_s)
+
+
+@dataclass(frozen=True)
+class ReidConfig:
+    """Re-ID evidence for clearing IDENTITY_UNCERTAIN (spana.identity.reid; calibration records/reid_calibration_dev_*)."""
+    enabled: bool                  # off by default: the tracker then behaves exactly as without this section
+    model_record: str              # models/<name>.json (ONNX path + sha256 + preprocessing), relative to the repo
+    model_sha256: str              # the margin below was calibrated for exactly this ONNX file
+    margin: float                  # sim(query, own reference) - sim(query, rival reference) needed to clear a rival;
+                                   #   the opposite margin is evidence against
+    ref_update_s: float            # a CERTAIN track's reference embedding is refreshed at most this often
+
+    def validate(self) -> None:
+        _pos("reid.margin", self.margin)
+        _pos("reid.ref_update_s", self.ref_update_s)
+        if self.enabled and not (len(self.model_sha256) == 64 and all(c in "0123456789abcdef" for c in self.model_sha256)):
+            raise ConfigError("reid.model_sha256 must be a sha256 hex digest when reid is enabled")
 
 
 @dataclass(frozen=True)
@@ -212,6 +232,7 @@ class SpanaConfig:
     tracking: TrackingConfig
     appearance: AppearanceConfig
     target: TargetConfig
+    reid: ReidConfig
     output: OutputConfig
 
     def validate(self) -> None:

@@ -123,6 +123,8 @@ class TrackObservation:
     identity: IdentityState = IdentityState.CERTAIN
     identity_rivals: Tuple[str, ...] = ()   # tracks this one could not be told apart from (while uncertain)
     uncertain_episodes: int = 0             # times the track has entered IDENTITY_UNCERTAIN
+    resolved_by: Optional[str] = None       # rule that cleared the latest episode: "APPEARANCE" (colour) or "REID"
+                                            #   (every rival cleared by the calibrated re-ID margin); None if none
 
 
 @dataclass(frozen=True)
