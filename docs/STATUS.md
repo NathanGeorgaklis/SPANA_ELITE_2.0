@@ -1,6 +1,6 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reentry-reid-offers, on main 65949b1).
+As of 2026-11-18 (branch identity/reid-reentry-eval, on main f787af5).
 - Full suite: `python -m pytest tests -q` → 465 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
   training tests skip).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
@@ -140,7 +140,11 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      (a) re-identification across pans / re-entries and at crossings. Built for testing (Nathan's option 1): re-entry
          OFFERS by re-ID v2 (`target.reentry_offer`, `spana.cli embed`, `spana.target` 2.4.0;
          `records/reentry_reid_offers_2026-11-18`): at 0.75 / 0.10 offers right 16, wrong 1, undecided 2 on DEV;
-         reviewer 0.776 / 2 wrong / 5.57 actions per min (no offers: 0.778 / 2 / 5.64). Nathan tests in the app. A
+         reviewer 0.776 / 2 wrong / 5.57 actions per min (no offers: 0.778 / 2 / 5.64). Nathan tests in the app.
+         Automatic re-entry links ruled out (`records/reid_reentry_eval_2026-11-18`): 79 labelled re-entries, best
+         match right 78 %; at ~40–50 % coverage about 1 pick in 10 is wrong; 0-wrong settings cover < 20 % with a
+         >= 18 % bound. Crossing resolution by re-ID likewise not built. Next for re-ID: more TRAIN identities
+         (TRAIN_M003) and/or team classification. A
          re-entry OFFER costs the reviewer one action, like a tap: it eases the action but does not lower actions
          per minute; only re-ID that acts without the user (auto-link at a strict margin, or crossing resolution)
          would, and both touch the 2026-11-16 rule that relinks need the user. Nathan to choose;

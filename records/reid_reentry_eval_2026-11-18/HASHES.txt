@@ -1,0 +1,4 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/ (code b1e414c extracted to code12/). Inputs: today's
+# default tracks and their re-ID signatures, out/F0x_mdefault.trk.json / .emb.json
+# (records/reentry_reid_offers_2026-11-18/HASHES.txt).
+5e219a9f6fb2b2285f40eb19dacd04cacb6b771f32cd48cffc81ed45d7907248  ~/spana-continuity-run/out/reid_reentry_eval.json
