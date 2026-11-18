@@ -1,0 +1,5 @@
+# sha256, files on Nathan's Mac (code e3c8975 extracted to spana-audit-diagnose/)
+41ce2d09219289b36ef313de16aa1246cb7fbdea2469a17f62ce929a4582e74c  Downloads/TRAIN_M002_cluster_review_state.json (review page progress, saved by Nathan)
+374501a6b6f4f08c643988153c59e7b0bbc874a4d8e684c668c00e226e390161  Downloads/SPANA_reid/TRAIN_M002/TRAIN_M002_EASTERN_SUBURBS_cluster_review/review.json
+6b047f10eda25f25f5bbc53df0299984e5d32704acede6f460da3f9f82bc79b4  spana-audit-diagnose/out/diagnosis.json
+b8aae3c4e043d72b667a4735e46b7876d26442ca74674c9c443eb6d0b1e7b26a  spana-audit-diagnose/out/index.html (contact sheets sheet_<tracklet>.jpg next to it)
