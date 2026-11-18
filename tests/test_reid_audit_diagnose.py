@@ -78,5 +78,35 @@ class Diagnose(unittest.TestCase):
         self.assertEqual(res["rate_a_real_conflicts"]["disagreements"], 1)
 
 
+class DiagnoseV11(unittest.TestCase):
+    """1.1.0 review: the audit tracklets are the scored prefix of the post-review draw, recomputed from the state."""
+    def test_post_review_audit(self):
+        td = Path(tempfile.mkdtemp())
+        try:
+            pack = make_pack(td)
+            cfg = write_cfg(td, min_tracklets=3)
+            c = RC.load_cluster_config(cfg)
+            R = RC.build(pack, td / "review", cfg, embed=colour_embed)
+            members = {k: list(v["tracklets"]) for k, v in R["clusters"].items()}
+            cdec = {}
+            for k, m in members.items():
+                who = {TRACKLETS[t][0] for t in m}
+                cdec[k] = {"decision": "player", "player": who.pop()} if len(who) == 1 else {"decision": "unsure", "player": None}
+            rv = {"clusters": {k: {"tracklets": m, **cdec[k]} for k, m in members.items()}, "overrides": {}}
+            order = RC.audit_order(RC.audit_eligible(rv), c["audit"]["seed"])
+            audit = {t: {"decision": "player", "player": TRACKLETS[t][0]} for t in order[:c["audit"]["min_comparable"]]}
+            wrong = order[0]
+            audit[wrong] = {"decision": "player", "player": "C" if TRACKLETS[wrong][0] != "C" else "A"}
+            S = {"players": {"A": {"side": "A"}, "B": {"side": "A"}, "C": {"side": "B"}}, "members": members,
+                 "cdec": cdec, "overrides": {}, "audit": audit, "locked": True}
+            res = diagnose(td / "review", pack, S, td / "diag", cfg_path=cfg)
+            self.assertEqual(res["audit_tracklets"], c["audit"]["min_comparable"])
+            self.assertEqual([r["tracklet"] for r in res["disagreements"]], [wrong])
+            self.assertEqual(res["rate_a_real_conflicts"]["disagreements"], 1)
+            self.assertEqual(res["rate_a_real_conflicts"]["n"], c["audit"]["min_comparable"])
+        finally:
+            shutil.rmtree(td, ignore_errors=True)
+
+
 if __name__ == "__main__":
     unittest.main()

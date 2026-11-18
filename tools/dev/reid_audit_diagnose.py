@@ -4,6 +4,8 @@
         [--model SPANA_REID.onnx] [--light day|night|unknown]
 
 STATE.json = the review page's saved progress (its localStorage value: players, members, cdec, overrides, audit).
+Audit tracklets: 1.0.0 reviews = the sample drawn at build; 1.1.0 = the scored prefix of the post-review draw order
+(tools.reid_cluster.audit_order / audit_prefix), recomputed from the state.
 
 For every audit tracklet, three cluster labels are compared with the audit answer:
   tool       what the page / freeze gate count: the decision stored on the tracklet's current cluster
@@ -117,7 +119,14 @@ def diagnose(review_dir, pack_dir, state: dict, out_dir, embed=None, light="unkn
     if out_dir.exists():
         raise SystemExit(f"refusing to overwrite {out_dir}")
     R = json.loads((review_dir / "review.json").read_text())
-    R.setdefault("audit", R.get("previously_hidden", []))            # 1.0.0 audit sample (kept by `upgrade`)
+    if R.get("schema_version") == "1.0.0" or "audit" in R:
+        R.setdefault("audit", [])                                   # 1.0.0: the sample drawn at build time
+    else:                                                           # 1.1.0: the scored prefix of the post-review draw
+        cfg0 = RC.load_cluster_config(cfg_path)
+        rv = {"clusters": {k: {"tracklets": m, **(state["cdec"].get(k) or {"decision": None, "player": None})}
+                           for k, m in state["members"].items()}, "overrides": state.get("overrides", {})}
+        order = RC.audit_order(RC.audit_eligible(rv), cfg0["audit"]["seed"])
+        R["audit"] = RC.audit_prefix(order, state.get("audit", {}), cfg0["audit"]["min_comparable"])[0]
     pack, tracklets = RC._load_pack(pack_dir)
     if pack["tracklets_sha256"] != R["tracklets_sha256"]:
         raise SystemExit("review and pack disagree")
