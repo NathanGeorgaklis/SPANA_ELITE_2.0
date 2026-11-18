@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reid-audit-diagnose, on tracking/bytetrack-dev-compare 5b560f6; main 11b5a80).
-- Full suite: `python -m pytest tests -q` → 378 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+As of 2026-11-18 (branch identity/reid-audit-fix, on identity/reid-audit-diagnose 7b350cb; main 11b5a80).
+- Full suite: `python -m pytest tests -q` → 383 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -129,7 +129,9 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
    - Audit diagnosis (`records/reid_audit_diagnose_2026-11-18`): 3 / 7 counted (43 %), but only 1 real
      player-vs-player conflict (a mixed cluster A22 / A24; the hidden audit tracklet could not follow the split); 2
      are clusters marked unsure. Audit bugs found (unsure / reject counted, stale decisions possible, n = 1 usable):
-     fix proposed, waiting for Nathan's approval; freeze stays refused.
+     fixed (4791913): audit after the review is locked, player vs player only, 60 comparable answers, exact
+     one-sided 95 % bound <= 5 %; the M002 review was upgraded in place (clusters unchanged; 79 eligible tracklets
+     in the saved state). Waiting for Nathan to re-check the 18 "not seen" tracklets, lock and audit.
 4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
    ByteTrack shows how much continuity is possible on the same detections (F07 11 / F08 22 fragments) and what it
    costs without flags (silent swaps): measure ByteTrack-style continuity inside our tracker, keeping the flags

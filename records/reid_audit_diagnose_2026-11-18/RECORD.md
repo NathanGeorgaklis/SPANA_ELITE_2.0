@@ -86,3 +86,25 @@ The limit is 5 %.
 ## Other observation
 11 of the 18 randomly sampled long tracklets were rejected by Nathan, so a large share of the 8 s pack is not a
 single on-pitch player. Not investigated further here.
+
+## Fix applied (2026-11-18, Nathan: "apply the audit fix, minimum 60 comparable answers"), commit 4791913
+1. **What counts:** disagreement = player vs player only. Reject / unsure answers are reported as lost data and are
+   not counted.
+2. **When the audit is drawn:** after the clusters are locked.
+   - It draws from tracklets of player clusters that still have another live member, in a fixed order (FNV-1a of
+     `<seed>:<tracklet>`, identical in the page and the freeze check).
+   - It stops at the 60th answer that names a player. The freeze requires exactly that shortest prefix.
+   - Nothing is hidden during the review any more.
+3. **No stale decisions:** a split or move clears the decision of the clusters it changes.
+4. **Gate:** the exact one-sided (Clopper-Pearson) 95 % upper bound must be ≤ 0.05.
+   - With 60 comparable answers, 0 errors gives 4.87 % (passes) and 1 error gives 7.66 % (fails).
+   - The two-sided Wilson bound used in the previous display gives 6.02 % even at 0 errors in 60 and needs 73. It
+     could never pass at 60, which is why the gate uses the exact bound.
+5. **The 1.0.0 audit format is refused at freeze.**
+6. **TRAIN_M002 review folder upgraded in place** (`tools.reid_cluster upgrade`).
+   - Clusters, tracklets and exclusions are byte-identical; the old files are kept as `*.1.0.0.bak`.
+   - New review.json sha `a1ed4f75072ae92e0b242a04b00c33cb27c993873e24e961526c6448458d5290`.
+   - The page carries Nathan's saved review over (decisions kept, old audit dropped).
+   - The 18 tracklets hidden before are marked "not seen", with the earlier audit answer.
+7. **Feasibility:** in Nathan's saved state, 79 tracklets are eligible (player clusters with a live mate) for 60
+   comparable answers. Feasible, but tight if many answers are reject / unsure.
