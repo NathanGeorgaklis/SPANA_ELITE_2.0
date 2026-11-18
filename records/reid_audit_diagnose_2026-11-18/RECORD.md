@@ -108,3 +108,28 @@ single on-pitch player. Not investigated further here.
    - The 18 tracklets hidden before are marked "not seen", with the earlier audit answer.
 7. **Feasibility:** in Nathan's saved state, 79 tracklets are eligible (player clusters with a live mate) for 60
    comparable answers. Feasible, but tight if many answers are reject / unsure.
+
+## Post-fix audit on TRAIN_M002: 4 of 60 disagree (freeze refused, correctly)
+- Inputs (Nathan's Mac):
+  - state `Downloads/TRAIN_M002_cluster_review_state_v2.json`, sha `0f24700d…2fb3`;
+  - diagnosis `spana-audit-diagnose3/out/diagnosis.json`, sha `0e146eac…8044`;
+  - code 5d22b7a.
+- **Audit:**
+  - 86 tracklets could be drawn; 66 were drawn: 60 comparable plus 6 unsure (lost data, 4 of them in A6 clusters).
+  - 4 disagreements: 6.7 %, Wilson 2.6–15.9 %, exact one-sided 95 % bound about 14.7 % (limit 5 %).
+- **The 4** (all red, team A, night; boxes 108–140 px; no tracklet switches player partway):
+
+| tracklet | Nathan | cluster | what the sheets show |
+|---|---|---|---|
+| T000696-1 | A42 | C003 = A5 | #42 readable in the audit; the 4 cluster-mates show no number (side / back views) |
+| T006553-1 | A5 | C017 = A14 | #5 readable; its 3 cluster-mates clearly show #14: a mixed cluster |
+| T004400-1 | A22 | C052 = B22 | #22 in the red kit, so team A; the cluster was given the team-B key B22 |
+| T005798-1 | A14 | C052 = B22 | #14 in the red kit: C052 mixed two team-A players and was labelled with a team-B key |
+
+- **Pattern:**
+  1. The clustering merges same-kit team-mates (3 of 4).
+  2. The reviewer saw only 3 thumbnails per tracklet in the cluster sheet (`review.sheet_thumbs_per_tracklet`), where
+     the number was not readable. The 8 audit thumbnails showed it.
+  3. One player-key slip: B22 for a red #22, while A22 exists.
+- **Remaining risk:** 20 drawable tracklets are unaudited. These are player labels propagated by a cluster and never
+  seen alone. 21 player clusters are singletons, decided one tracklet at a time.

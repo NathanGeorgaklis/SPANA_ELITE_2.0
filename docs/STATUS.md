@@ -131,7 +131,8 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      are clusters marked unsure. Audit bugs found (unsure / reject counted, stale decisions possible, n = 1 usable):
      fixed (4791913): audit after the review is locked, player vs player only, 60 comparable answers, exact
      one-sided 95 % bound <= 5 %; the M002 review was upgraded in place (clusters unchanged; 79 eligible tracklets
-     in the saved state). Waiting for Nathan to re-check the 18 "not seen" tracklets, lock and audit.
+     in the saved state). Audit run: 4 / 60 disagree (same-kit mixes, 3-thumbnail sheets, one B22-for-A22 key
+     slip), freeze refused; 20 drawable tracklets unaudited. Options proposed to Nathan (record).
 4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
    ByteTrack shows how much continuity is possible on the same detections (F07 11 / F08 22 fragments) and what it
    costs without flags (silent swaps): measure ByteTrack-style continuity inside our tracker, keeping the flags
