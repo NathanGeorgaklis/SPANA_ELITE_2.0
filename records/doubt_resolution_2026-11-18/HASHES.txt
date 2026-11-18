@@ -1,0 +1,29 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/. Code: 3980327 (vouch) extracted to code2/, b3b351a
+# (vouch + self-consistent resolution) to code3/. Re-tracked inputs: the local-detector detections of
+# runs/person_view_compare (hashes in records/bytetrack_compare_2026-11-18/HASHES.txt); "on" tracks from
+# records/continuity_attribution_2026-11-18/HASHES.txt.
+c74cf6470f46074125201989305aef497c089b5eff0a93b05602943c4a2e29a1  ~/spana-continuity-run/run_vouch.sh
+bcda65603f96a9af6752788cbeb5643fd29b369dc23efbb00c35402f9599127d  ~/spana-continuity-run/run_selfres.sh
+b083ba299f826016911f9bf2d96cf9614de072a7e5ac55c0e981d9224b27d4a2  ~/spana-continuity-run/vouch_on.yaml (doubt link on, vouch on)
+017190ea9dbdddbcde8a775ba4897f4ee383452cc08fc32a0d468914f97930b0  ~/spana-continuity-run/selfres.yaml (doubt link on, self-consistent on, vouch off)
+65335aaa4a0d6cbec2d217a24715d9d881ad18c306632f03fddf0f3eb1ee2c75  ~/spana-continuity-run/selfres_vouch.yaml (all three on)
+5a5479022abed13d52174c676cce712f44679c53bdd63e17074fab6d5e03d71b  ~/spana-continuity-run/out/target_off_vouch_default.json
+b504dde4ed768b4d6f9fa45a82573f716e277412f94c7a1ec605ff9eac0977c3  ~/spana-continuity-run/out/target_off_vouch_reviewer.json
+3364b68a385f8e087fe5af15927efe6282195d587c0b9830afacaa84c780923f  ~/spana-continuity-run/out/target_on_vouch_default.json
+04006cb1865b02e7ab24546b379f73b0b3179ed83408b407fba3bb595673bbeb  ~/spana-continuity-run/out/target_on_vouch_reviewer.json
+85a1777925a7a8956e4d9b0bbafe076550c16e2e5f6bbbfbc6426e569129e176  ~/spana-continuity-run/out/target_selfres_default.json
+3c4a2bf0a9df6369e0c8b71a9af7509e3d37438395aa85fbf9f35626cdd784f2  ~/spana-continuity-run/out/target_selfres_reviewer.json
+36400ed2dab734332fbec447124dd4c25fe690e2dc510e730d4bd7c8dc46445f  ~/spana-continuity-run/out/target_selfres_vouch_default.json
+85195929ff5223813a71cb112f1b2a64a23d9f8b1b10ca4fa5308530c74392de  ~/spana-continuity-run/out/target_selfres_vouch_reviewer.json
+3bb103f5dd7212289d7a3ce8ea5fa79925406c5467f3cf61b88a39ea3ec0fdc7  ~/spana-continuity-run/out/F02_selfres.trk.json
+3a14ae1a7741ff5fed1c62ebda7cb110e48a94c27b26ad7c4c654628ddd153c4  ~/spana-continuity-run/out/F05_selfres.trk.json
+da880e7d0611d54716b6e0091de08cb2a21659b5663934bf3517463e2689fc2f  ~/spana-continuity-run/out/F07_selfres.trk.json
+63c933b75155720befc043449d369cd5e1cafe07c2f6ecf6a5e917e72f3c67aa  ~/spana-continuity-run/out/F08_selfres.trk.json
+bc42d1e9753d5e6cbb77858b20862927e2d9fb530842ca8b635bc5595f6a6659  ~/spana-continuity-run/out/F02_selfres.trk.decisions.jsonl
+fe0bd0d043f98e077f745be075959cd3265efd75ae943792d1df41289ba2f4c2  ~/spana-continuity-run/out/F05_selfres.trk.decisions.jsonl
+1bd927b03a28201601703e823fa2b8e713de0e73df2d12d8b18a860f3abe3096  ~/spana-continuity-run/out/F07_selfres.trk.decisions.jsonl
+c934c471765cfa061866a73492088949c843f309cdb55603a02cbb32bf676265  ~/spana-continuity-run/out/F08_selfres.trk.decisions.jsonl
+da1fc9598ca5ecdd548a1c761dc4a5616be30b903cb91798d610972743b01b91  ~/spana-continuity-run/out/F02_selfres.bench.json (= F02_on.bench.json)
+f98716f9610ec1c022c737eed1cddee8fe6fae96b5ecb7bd948546c9c43722d4  ~/spana-continuity-run/out/F05_selfres.bench.json (= F05_on.bench.json)
+3827df2eb58764c746d7bd95703913fbf028e6f5d300d4681c6fa0ffb52c6520  ~/spana-continuity-run/out/F07_selfres.bench.json (= F07_on.bench.json)
+8b840b692b18413a0a1452acbab3567055b54c5fdaf3d11d47c61137c9ead61e  ~/spana-continuity-run/out/F08_selfres.bench.json

@@ -108,7 +108,7 @@ target:
   # A tap (selection or re-selection) on a track that is IDENTITY_UNCERTAIN only by an appearance doubt
   # (tracking.appearance_doubt_link: no rival track, its colour disagreed) is the user's identity evidence: TARGET
   # (USER_VOUCHED) until the track ends, gains a rival, or starts a new uncertainty episode. Rival ambiguities are
-  # never vouched. Measured with the doubt link (records/tap_vouches_doubt_2026-11-18).
+  # never vouched. Measured with the doubt link (records/doubt_resolution_2026-11-18).
   tap_vouches_doubt: false
 
 output:
