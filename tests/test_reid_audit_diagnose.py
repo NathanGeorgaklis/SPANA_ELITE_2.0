@@ -104,6 +104,8 @@ class DiagnoseV11(unittest.TestCase):
             self.assertEqual([r["tracklet"] for r in res["disagreements"]], [wrong])
             self.assertEqual(res["rate_a_real_conflicts"]["disagreements"], 1)
             self.assertEqual(res["rate_a_real_conflicts"]["n"], c["audit"]["min_comparable"])
+            self.assertEqual(res["rate_b_as_tool_counts"]["disagreements"], 1)        # 1.1.0: (a) == (b)
+            self.assertFalse(res["disagreements"][0]["category"].startswith("other: stale"))
         finally:
             shutil.rmtree(td, ignore_errors=True)
 

@@ -140,8 +140,13 @@ def diagnose(review_dir, pack_dir, state: dict, out_dir, embed=None, light="unkn
     cur = {t: k for k, m in state["members"].items() for t in m}
     over = state.get("overrides", {})
 
+    v11 = R.get("schema_version") != "1.0.0"
+
     def mates(members, t):
-        return [m for m in members if m != t and m not in audit and m not in over]
+        # 1.0.0: audit tracklets were hidden, so they are not evidence; 1.1.0: nothing is hidden, every live mate counts
+        return [m for m in members if m != t and (v11 or m not in audit) and m not in over]
+
+    label_of = der if v11 else final        # 1.1.0: what the reviewed clusters say (not the mates' audit answers)
 
     change, pct = {}, {}
     if embed is not None:
@@ -156,8 +161,8 @@ def diagnose(review_dir, pack_dir, state: dict, out_dir, embed=None, light="unkn
     for t in R["audit"]:
         ans = _key(RC._decision(state["audit"][t])) if state.get("audit", {}).get(t) else None
         tool = der.get(t)
-        post = majority([final.get(m) for m in mates(state["members"][cur[t]], t)])
-        pre = majority([final.get(m) for m in mates(R["clusters"][orig[t]]["tracklets"], t)])
+        post = majority([label_of.get(m) for m in mates(state["members"][cur[t]], t)])
+        pre = majority([label_of.get(m) for m in mates(R["clusters"][orig[t]]["tracklets"], t)])
         if ans is None:
             rows.append({"tracklet": t, "answer": None, "note": "unanswered"})
             continue
