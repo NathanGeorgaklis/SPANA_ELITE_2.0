@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reid-fusion-dev-eval, on identity/reid-pilot-v1 12077e0; main 11b5a80).
-- Full suite: `python -m pytest tests -q` → 363 passed, 4 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+As of 2026-11-18 (branch identity/reid-cluster-labelling, on identity/reid-fusion-dev-eval f3718a0; main 11b5a80).
+- Full suite: `python -m pytest tests -q` → 373 passed, 4 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -117,4 +117,8 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      identity labels, retrain on 2–3 matches, then rerun the colour + re-ID comparison (`--fusion=config/reid_fusion.yaml`).
    - Combined cue (`records/reid_fusion_dev_2026-11-18`): helps pooled at strict settings, fails where colour is
      already decisive (FRESH_05, one player pair). Not adopted.
+   - TRAIN labelling is now group-then-confirm (`tools/reid_cluster.py`, review page, audited freeze;
+     `records/reid_cluster_labelling_2026-11-18`). TRAIN_M002: 224 clusters from 355 tracklets (59 excluded), 18
+     audit tracklets, waiting for Nathan's review. The pilot model groups by kit at loose thresholds, so clusters
+     are kept small (max_distance 0.15).
 4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.

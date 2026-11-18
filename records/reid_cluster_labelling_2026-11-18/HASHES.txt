@@ -1,0 +1,6 @@
+# sha256. Everything except the config snapshot stays on Nathan's Mac (paths relative to the home folder).
+9558110ed5ee4ba7716c973ef78f80140b8c0ee7b1eb7e664a5d5ab20f2bb005  config/reid_cluster.yaml at fe08621 (= reid_cluster.config_snapshot.yaml)
+1bf50896b4c95ebcaba63fb804cbaf2117f8d42373bc8565a809fca6fedb2015  Downloads/SPANA_reid/TRAIN_M002/TRAIN_M002_EASTERN_SUBURBS_reid_pack_8s/tracklets.json (input pack)
+682d0a09298f4b21ec5e6d20ea80d5783f8dc030bade906175b31c882e5239a5  spana-reid-eval/models_p1/spana_reid.onnx (re-ID pilot v1, TRAIN_M001 only)
+374501a6b6f4f08c643988153c59e7b0bbc874a4d8e684c668c00e226e390161  Downloads/SPANA_reid/TRAIN_M002/TRAIN_M002_EASTERN_SUBURBS_cluster_review/review.json (the review to do)
+61b97d3a8101d404db3bbf196798da35d0e7e39157ab25833457701840e86b12  Downloads/SPANA_reid/TRAIN_M001/TRAIN_M001_MORETON_CITY_reid_pack/tracklets.json (sweep, labels v1)

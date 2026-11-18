@@ -57,3 +57,7 @@ Nothing has been trained. DEV and EVAL are not involved.
 - tracklets sha `1bf50896b4c95ebcaba63fb804cbaf2117f8d42373bc8565a809fca6fedb2015`.
 - The full pack is kept unchanged. Shorter tracklets (crowded moments) can be added later as a second label
   version if the retrained model is weak there.
+- **Superseded for labelling (2026-11-18):** the 8 s pack is reviewed by group-then-confirm, not tracklet by
+  tracklet: `Downloads/SPANA_reid/TRAIN_M002/TRAIN_M002_EASTERN_SUBURBS_cluster_review/` (224 clusters, 59 excluded,
+  18 audit tracklets; review.json sha `374501a6b6f4f08c643988153c59e7b0bbc874a4d8e684c668c00e226e390161`;
+  `records/reid_cluster_labelling_2026-11-18`). Freeze still uses this pack (`--pack …_reid_pack_8s`).
