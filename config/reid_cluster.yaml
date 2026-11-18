@@ -10,7 +10,7 @@ distance:                      # d = w_emb * (1 - cosine of mean embeddings) + w
   weight_colour: 0.3           # a tracklet without a torso histogram uses the embedding term alone
 clustering:
   linkage: average             # agglomerative, average linkage, with the same-frame cannot-link rule
-  max_distance: 0.30           # stop merging above this distance
+  max_distance: 0.35           # stop merging above this distance (TRAIN_M001 check: records/reid_cluster_labelling_2026-11-18)
   exclude_tracker_flagged: true   # tracklets the tracker flagged (identity contest) -> excluded_tracker_uncertain
 review:
   sheet_thumbs_per_tracklet: 3 # contact sheet: thumbnails shown per tracklet (odd ones out first)
