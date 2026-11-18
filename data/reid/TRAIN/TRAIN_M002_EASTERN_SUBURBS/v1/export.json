@@ -1,0 +1,5644 @@
+{
+ "schema": "spana.reid_label_export",
+ "schema_version": "1.0.0",
+ "match_id": "TRAIN_M002_EASTERN_SUBURBS",
+ "split": "TRAIN",
+ "tracklets_sha256": "1bf50896b4c95ebcaba63fb804cbaf2117f8d42373bc8565a809fca6fedb2015",
+ "annotator": "nathan",
+ "label_version": 1,
+ "reason": "",
+ "exported_utc": "2026-11-18T07:08:52.209Z",
+ "players": {
+  "B9": {
+   "side": "B",
+   "shirt_number": "9"
+  },
+  "A14": {
+   "side": "A",
+   "shirt_number": "14"
+  },
+  "B8": {
+   "side": "B",
+   "shirt_number": "8"
+  },
+  "B7": {
+   "side": "B",
+   "shirt_number": "7"
+  },
+  "GKA": {
+   "side": "GK_A",
+   "shirt_number": "A"
+  },
+  "B2": {
+   "side": "B",
+   "shirt_number": "2"
+  },
+  "B18": {
+   "side": "B",
+   "shirt_number": "18"
+  },
+  "B3": {
+   "side": "B",
+   "shirt_number": "3"
+  },
+  "GKB": {
+   "side": "GK_B",
+   "shirt_number": "B"
+  },
+  "REF1": {
+   "side": "REF",
+   "shirt_number": null
+  },
+  "A13": {
+   "side": "A",
+   "shirt_number": "13"
+  },
+  "A24": {
+   "side": "A",
+   "shirt_number": "24"
+  },
+  "B14": {
+   "side": "B",
+   "shirt_number": "14"
+  },
+  "A22": {
+   "side": "A",
+   "shirt_number": "22"
+  },
+  "B6": {
+   "side": "B",
+   "shirt_number": "6"
+  },
+  "A6": {
+   "side": "A",
+   "shirt_number": "6"
+  },
+  "B16": {
+   "side": "B",
+   "shirt_number": "16"
+  },
+  "A15": {
+   "side": "A",
+   "shirt_number": "15"
+  },
+  "A42": {
+   "side": "A",
+   "shirt_number": "42"
+  },
+  "ref": {
+   "side": "REF",
+   "shirt_number": null
+  },
+  "A5": {
+   "side": "A",
+   "shirt_number": "5"
+  }
+ },
+ "parts": [
+  {
+   "tracklet": "T000001-1",
+   "first_frame": 0,
+   "last_frame": 1656,
+   "decision": "player",
+   "player": "A5"
+  },
+  {
+   "tracklet": "T000003-1",
+   "first_frame": 0,
+   "last_frame": 1220,
+   "decision": "player",
+   "player": "B3"
+  },
+  {
+   "tracklet": "T000004-1",
+   "first_frame": 0,
+   "last_frame": 1656,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T000007-1",
+   "first_frame": 0,
+   "last_frame": 1268,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T000008-1",
+   "first_frame": 0,
+   "last_frame": 1656,
+   "decision": "player",
+   "player": "A6"
+  },
+  {
+   "tracklet": "T000018-1",
+   "first_frame": 108,
+   "last_frame": 1352,
+   "decision": "player",
+   "player": "B14"
+  },
+  {
+   "tracklet": "T000020-1",
+   "first_frame": 156,
+   "last_frame": 1196,
+   "decision": "player",
+   "player": "REF1"
+  },
+  {
+   "tracklet": "T000023-1",
+   "first_frame": 264,
+   "last_frame": 1072,
+   "decision": "player",
+   "player": "GKB"
+  },
+  {
+   "tracklet": "T000027-1",
+   "first_frame": 284,
+   "last_frame": 1652,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T000039-1",
+   "first_frame": 456,
+   "last_frame": 1164,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T000067-1",
+   "first_frame": 1088,
+   "last_frame": 1652,
+   "decision": "player",
+   "player": "ref"
+  },
+  {
+   "tracklet": "T000321-1",
+   "first_frame": 1968,
+   "last_frame": 2580,
+   "decision": "player",
+   "player": "B2"
+  },
+  {
+   "tracklet": "T000330-1",
+   "first_frame": 1968,
+   "last_frame": 2600,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T000335-1",
+   "first_frame": 1972,
+   "last_frame": 2620,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T000336-1",
+   "first_frame": 1972,
+   "last_frame": 2760,
+   "decision": "player",
+   "player": "B7"
+  },
+  {
+   "tracklet": "T000341-1",
+   "first_frame": 1984,
+   "last_frame": 2584,
+   "decision": "player",
+   "player": "A6"
+  },
+  {
+   "tracklet": "T000378-1",
+   "first_frame": 2104,
+   "last_frame": 2768,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T000394-1",
+   "first_frame": 2132,
+   "last_frame": 2608,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T000399-1",
+   "first_frame": 2152,
+   "last_frame": 2704,
+   "decision": "player",
+   "player": "A42"
+  },
+  {
+   "tracklet": "T000337-2",
+   "first_frame": 2176,
+   "last_frame": 2680,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T000428-1",
+   "first_frame": 2248,
+   "last_frame": 2768,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T000690-1",
+   "first_frame": 2892,
+   "last_frame": 3368,
+   "decision": "player",
+   "player": "B7"
+  },
+  {
+   "tracklet": "T000696-1",
+   "first_frame": 2892,
+   "last_frame": 3408,
+   "decision": "player",
+   "player": "A42"
+  },
+  {
+   "tracklet": "T000840-1",
+   "first_frame": 3256,
+   "last_frame": 4224,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T000888-1",
+   "first_frame": 3340,
+   "last_frame": 4388,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T000945-1",
+   "first_frame": 3500,
+   "last_frame": 4376,
+   "decision": "player",
+   "player": "A42"
+  },
+  {
+   "tracklet": "T000958-1",
+   "first_frame": 3520,
+   "last_frame": 4348,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T000968-1",
+   "first_frame": 3544,
+   "last_frame": 4376,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T000971-1",
+   "first_frame": 3552,
+   "last_frame": 4600,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T000975-1",
+   "first_frame": 3572,
+   "last_frame": 4284,
+   "decision": "player",
+   "player": "B2"
+  },
+  {
+   "tracklet": "T000990-1",
+   "first_frame": 3608,
+   "last_frame": 4172,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001014-1",
+   "first_frame": 3684,
+   "last_frame": 4336,
+   "decision": "player",
+   "player": "ref"
+  },
+  {
+   "tracklet": "T001016-1",
+   "first_frame": 3732,
+   "last_frame": 4996,
+   "decision": "player",
+   "player": "B7"
+  },
+  {
+   "tracklet": "T001017-2",
+   "first_frame": 3800,
+   "last_frame": 5104,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T001034-1",
+   "first_frame": 3864,
+   "last_frame": 4340,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001037-1",
+   "first_frame": 3880,
+   "last_frame": 4388,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001043-1",
+   "first_frame": 3896,
+   "last_frame": 4436,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001048-1",
+   "first_frame": 3916,
+   "last_frame": 4412,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001063-1",
+   "first_frame": 4008,
+   "last_frame": 4756,
+   "decision": "player",
+   "player": "B3"
+  },
+  {
+   "tracklet": "T001067-1",
+   "first_frame": 4076,
+   "last_frame": 4724,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T001096-2",
+   "first_frame": 4352,
+   "last_frame": 4880,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T001066-2",
+   "first_frame": 4380,
+   "last_frame": 5160,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T001128-1",
+   "first_frame": 4500,
+   "last_frame": 5004,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001129-1",
+   "first_frame": 4500,
+   "last_frame": 5252,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001141-2",
+   "first_frame": 4712,
+   "last_frame": 6876,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T001146-1",
+   "first_frame": 4752,
+   "last_frame": 5312,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T001153-2",
+   "first_frame": 4972,
+   "last_frame": 5684,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T001155-2",
+   "first_frame": 5108,
+   "last_frame": 6024,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T001171-2",
+   "first_frame": 5228,
+   "last_frame": 5984,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T001176-1",
+   "first_frame": 5320,
+   "last_frame": 6876,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T001161-2",
+   "first_frame": 5364,
+   "last_frame": 6648,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T001177-1",
+   "first_frame": 5660,
+   "last_frame": 6164,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T001185-1",
+   "first_frame": 5788,
+   "last_frame": 6904,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T001205-1",
+   "first_frame": 5988,
+   "last_frame": 6876,
+   "decision": "player",
+   "player": "GKA"
+  },
+  {
+   "tracklet": "T001211-2",
+   "first_frame": 6064,
+   "last_frame": 6552,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T001347-1",
+   "first_frame": 6972,
+   "last_frame": 7464,
+   "decision": "player",
+   "player": "A42"
+  },
+  {
+   "tracklet": "T001359-1",
+   "first_frame": 6980,
+   "last_frame": 7740,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T001371-1",
+   "first_frame": 7044,
+   "last_frame": 8704,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T001378-1",
+   "first_frame": 7116,
+   "last_frame": 7608,
+   "decision": "player",
+   "player": "B6"
+  },
+  {
+   "tracklet": "T001386-1",
+   "first_frame": 7148,
+   "last_frame": 7660,
+   "decision": "player",
+   "player": "B18"
+  },
+  {
+   "tracklet": "T001410-1",
+   "first_frame": 7252,
+   "last_frame": 8076,
+   "decision": "player",
+   "player": "B16"
+  },
+  {
+   "tracklet": "T001422-1",
+   "first_frame": 7284,
+   "last_frame": 8096,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001411-2",
+   "first_frame": 7296,
+   "last_frame": 8000,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T001428-1",
+   "first_frame": 7300,
+   "last_frame": 8044,
+   "decision": "player",
+   "player": "B2"
+  },
+  {
+   "tracklet": "T001440-1",
+   "first_frame": 7368,
+   "last_frame": 7916,
+   "decision": "player",
+   "player": "A14"
+  },
+  {
+   "tracklet": "T001465-2",
+   "first_frame": 7452,
+   "last_frame": 8376,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T001496-1",
+   "first_frame": 7548,
+   "last_frame": 8300,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001498-1",
+   "first_frame": 7548,
+   "last_frame": 8096,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001504-1",
+   "first_frame": 7552,
+   "last_frame": 8072,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001427-2",
+   "first_frame": 7576,
+   "last_frame": 8896,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T001512-1",
+   "first_frame": 7588,
+   "last_frame": 8176,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001534-1",
+   "first_frame": 7672,
+   "last_frame": 8276,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001536-1",
+   "first_frame": 7676,
+   "last_frame": 8288,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001545-1",
+   "first_frame": 7740,
+   "last_frame": 8308,
+   "decision": "player",
+   "player": "A42"
+  },
+  {
+   "tracklet": "T001555-2",
+   "first_frame": 7860,
+   "last_frame": 8344,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T001564-1",
+   "first_frame": 7888,
+   "last_frame": 9020,
+   "decision": "player",
+   "player": "B3"
+  },
+  {
+   "tracklet": "T001568-1",
+   "first_frame": 7912,
+   "last_frame": 8884,
+   "decision": "player",
+   "player": "A6"
+  },
+  {
+   "tracklet": "T001577-1",
+   "first_frame": 7940,
+   "last_frame": 9020,
+   "decision": "player",
+   "player": "A14"
+  },
+  {
+   "tracklet": "T001580-1",
+   "first_frame": 7972,
+   "last_frame": 8908,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001589-1",
+   "first_frame": 8024,
+   "last_frame": 8844,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001625-1",
+   "first_frame": 8148,
+   "last_frame": 8828,
+   "decision": "player",
+   "player": "B2"
+  },
+  {
+   "tracklet": "T001566-2",
+   "first_frame": 8180,
+   "last_frame": 8828,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T001644-1",
+   "first_frame": 8256,
+   "last_frame": 8844,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001664-1",
+   "first_frame": 8308,
+   "last_frame": 8856,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001674-1",
+   "first_frame": 8340,
+   "last_frame": 8900,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T001691-1",
+   "first_frame": 8388,
+   "last_frame": 9020,
+   "decision": "player",
+   "player": "B14"
+  },
+  {
+   "tracklet": "T001963-1",
+   "first_frame": 9216,
+   "last_frame": 9828,
+   "decision": "player",
+   "player": "A5"
+  },
+  {
+   "tracklet": "T001964-1",
+   "first_frame": 9216,
+   "last_frame": 10840,
+   "decision": "player",
+   "player": "B3"
+  },
+  {
+   "tracklet": "T002053-2",
+   "first_frame": 9372,
+   "last_frame": 9896,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T002184-2",
+   "first_frame": 9700,
+   "last_frame": 10188,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T002190-1",
+   "first_frame": 9720,
+   "last_frame": 10324,
+   "decision": "player",
+   "player": "A15"
+  },
+  {
+   "tracklet": "T002200-1",
+   "first_frame": 9836,
+   "last_frame": 11372,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T002202-1",
+   "first_frame": 9844,
+   "last_frame": 10764,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T002203-1",
+   "first_frame": 9864,
+   "last_frame": 10408,
+   "decision": "player",
+   "player": "GKA"
+  },
+  {
+   "tracklet": "T002206-1",
+   "first_frame": 9904,
+   "last_frame": 10784,
+   "decision": "player",
+   "player": "B14"
+  },
+  {
+   "tracklet": "T002209-1",
+   "first_frame": 9928,
+   "last_frame": 10884,
+   "decision": "player",
+   "player": "A6"
+  },
+  {
+   "tracklet": "T002215-1",
+   "first_frame": 10200,
+   "last_frame": 10996,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T002219-1",
+   "first_frame": 10384,
+   "last_frame": 11144,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T002225-1",
+   "first_frame": 10452,
+   "last_frame": 10996,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T002230-2",
+   "first_frame": 10504,
+   "last_frame": 11232,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T002237-1",
+   "first_frame": 10572,
+   "last_frame": 11116,
+   "decision": "player",
+   "player": "B8"
+  },
+  {
+   "tracklet": "T002293-1",
+   "first_frame": 10892,
+   "last_frame": 11472,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002252-2",
+   "first_frame": 10952,
+   "last_frame": 11488,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T002419-1",
+   "first_frame": 11236,
+   "last_frame": 12788,
+   "decision": "player",
+   "player": "A42"
+  },
+  {
+   "tracklet": "T002250-3",
+   "first_frame": 11260,
+   "last_frame": 12560,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T002449-1",
+   "first_frame": 11316,
+   "last_frame": 12668,
+   "decision": "player",
+   "player": "B8"
+  },
+  {
+   "tracklet": "T002471-1",
+   "first_frame": 11384,
+   "last_frame": 11908,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002486-1",
+   "first_frame": 11428,
+   "last_frame": 11996,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002487-1",
+   "first_frame": 11436,
+   "last_frame": 12296,
+   "decision": "player",
+   "player": "A24"
+  },
+  {
+   "tracklet": "T002503-1",
+   "first_frame": 11484,
+   "last_frame": 12200,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002510-1",
+   "first_frame": 11500,
+   "last_frame": 12256,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002546-1",
+   "first_frame": 11584,
+   "last_frame": 12680,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002547-1",
+   "first_frame": 11584,
+   "last_frame": 12220,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002570-1",
+   "first_frame": 11620,
+   "last_frame": 12164,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002584-1",
+   "first_frame": 11652,
+   "last_frame": 12684,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002587-1",
+   "first_frame": 11656,
+   "last_frame": 12440,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002596-1",
+   "first_frame": 11668,
+   "last_frame": 12204,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002597-1",
+   "first_frame": 11668,
+   "last_frame": 12392,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002599-1",
+   "first_frame": 11676,
+   "last_frame": 12540,
+   "decision": "player",
+   "player": "B7"
+  },
+  {
+   "tracklet": "T002234-4",
+   "first_frame": 11720,
+   "last_frame": 13264,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T002641-1",
+   "first_frame": 11768,
+   "last_frame": 12304,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002670-1",
+   "first_frame": 11856,
+   "last_frame": 12668,
+   "decision": "player",
+   "player": "B6"
+  },
+  {
+   "tracklet": "T002673-1",
+   "first_frame": 11872,
+   "last_frame": 12700,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002501-2",
+   "first_frame": 11900,
+   "last_frame": 12572,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T002689-1",
+   "first_frame": 11924,
+   "last_frame": 12668,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002705-1",
+   "first_frame": 11976,
+   "last_frame": 12688,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002739-1",
+   "first_frame": 12056,
+   "last_frame": 12704,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002743-1",
+   "first_frame": 12064,
+   "last_frame": 12696,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002839-1",
+   "first_frame": 12308,
+   "last_frame": 13084,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002879-1",
+   "first_frame": 12392,
+   "last_frame": 13004,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002895-1",
+   "first_frame": 12432,
+   "last_frame": 12984,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002914-1",
+   "first_frame": 12508,
+   "last_frame": 13132,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002922-1",
+   "first_frame": 12528,
+   "last_frame": 13096,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002860-2",
+   "first_frame": 12548,
+   "last_frame": 13056,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T002934-1",
+   "first_frame": 12548,
+   "last_frame": 13196,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002936-1",
+   "first_frame": 12552,
+   "last_frame": 13196,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002947-1",
+   "first_frame": 12568,
+   "last_frame": 13084,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T002975-1",
+   "first_frame": 12616,
+   "last_frame": 13532,
+   "decision": "player",
+   "player": "A6"
+  },
+  {
+   "tracklet": "T002989-1",
+   "first_frame": 12656,
+   "last_frame": 13204,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003014-1",
+   "first_frame": 12716,
+   "last_frame": 13200,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003017-1",
+   "first_frame": 12732,
+   "last_frame": 13208,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003027-1",
+   "first_frame": 12768,
+   "last_frame": 13384,
+   "decision": "player",
+   "player": "B3"
+  },
+  {
+   "tracklet": "T003176-1",
+   "first_frame": 13424,
+   "last_frame": 14580,
+   "decision": "player",
+   "player": "ref"
+  },
+  {
+   "tracklet": "T003186-1",
+   "first_frame": 13468,
+   "last_frame": 14492,
+   "decision": "player",
+   "player": "A42"
+  },
+  {
+   "tracklet": "T003195-1",
+   "first_frame": 13496,
+   "last_frame": 14540,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003199-1",
+   "first_frame": 13508,
+   "last_frame": 14204,
+   "decision": "player",
+   "player": "B8"
+  },
+  {
+   "tracklet": "T003201-1",
+   "first_frame": 13508,
+   "last_frame": 14536,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003204-1",
+   "first_frame": 13516,
+   "last_frame": 14536,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003205-1",
+   "first_frame": 13516,
+   "last_frame": 14548,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003193-2",
+   "first_frame": 13564,
+   "last_frame": 14588,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T003220-1",
+   "first_frame": 13564,
+   "last_frame": 14092,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003228-1",
+   "first_frame": 13576,
+   "last_frame": 14540,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003241-1",
+   "first_frame": 13608,
+   "last_frame": 14540,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003261-1",
+   "first_frame": 13644,
+   "last_frame": 14384,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003262-1",
+   "first_frame": 13644,
+   "last_frame": 14396,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003263-1",
+   "first_frame": 13644,
+   "last_frame": 14352,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003266-1",
+   "first_frame": 13648,
+   "last_frame": 14540,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003287-1",
+   "first_frame": 13728,
+   "last_frame": 14288,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003288-1",
+   "first_frame": 13756,
+   "last_frame": 14540,
+   "decision": "player",
+   "player": "B6"
+  },
+  {
+   "tracklet": "T003315-1",
+   "first_frame": 13924,
+   "last_frame": 14540,
+   "decision": "player",
+   "player": "B2"
+  },
+  {
+   "tracklet": "T003308-2",
+   "first_frame": 13964,
+   "last_frame": 14444,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T003329-1",
+   "first_frame": 13968,
+   "last_frame": 14536,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003334-1",
+   "first_frame": 13988,
+   "last_frame": 14536,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T003442-1",
+   "first_frame": 14616,
+   "last_frame": 15692,
+   "decision": "player",
+   "player": "B3"
+  },
+  {
+   "tracklet": "T003456-1",
+   "first_frame": 14796,
+   "last_frame": 15692,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T003462-1",
+   "first_frame": 14876,
+   "last_frame": 15548,
+   "decision": "player",
+   "player": "A42"
+  },
+  {
+   "tracklet": "T003465-1",
+   "first_frame": 14912,
+   "last_frame": 15692,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T003466-2",
+   "first_frame": 15008,
+   "last_frame": 15668,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T003469-1",
+   "first_frame": 15188,
+   "last_frame": 15692,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T003570-1",
+   "first_frame": 15720,
+   "last_frame": 16536,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T003571-1",
+   "first_frame": 15720,
+   "last_frame": 16988,
+   "decision": "player",
+   "player": "ref"
+  },
+  {
+   "tracklet": "T003572-1",
+   "first_frame": 15720,
+   "last_frame": 16476,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T003577-1",
+   "first_frame": 15724,
+   "last_frame": 16532,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T003585-1",
+   "first_frame": 15744,
+   "last_frame": 16512,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T003624-1",
+   "first_frame": 15920,
+   "last_frame": 16488,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T003631-1",
+   "first_frame": 15960,
+   "last_frame": 17096,
+   "decision": "player",
+   "player": "B7"
+  },
+  {
+   "tracklet": "T003666-2",
+   "first_frame": 16120,
+   "last_frame": 16868,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T003675-1",
+   "first_frame": 16160,
+   "last_frame": 17104,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T003736-1",
+   "first_frame": 17100,
+   "last_frame": 17608,
+   "decision": "player",
+   "player": "B7"
+  },
+  {
+   "tracklet": "T003749-1",
+   "first_frame": 17180,
+   "last_frame": 17688,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T003765-1",
+   "first_frame": 17260,
+   "last_frame": 17752,
+   "decision": "player",
+   "player": "B8"
+  },
+  {
+   "tracklet": "T003766-1",
+   "first_frame": 17264,
+   "last_frame": 18084,
+   "decision": "player",
+   "player": "A42"
+  },
+  {
+   "tracklet": "T003775-1",
+   "first_frame": 17288,
+   "last_frame": 17820,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T003787-1",
+   "first_frame": 17320,
+   "last_frame": 18084,
+   "decision": "player",
+   "player": "B6"
+  },
+  {
+   "tracklet": "T003792-2",
+   "first_frame": 17352,
+   "last_frame": 18020,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T003794-1",
+   "first_frame": 17364,
+   "last_frame": 17860,
+   "decision": "player",
+   "player": "ref"
+  },
+  {
+   "tracklet": "T003916-1",
+   "first_frame": 18088,
+   "last_frame": 18608,
+   "decision": "player",
+   "player": "A24"
+  },
+  {
+   "tracklet": "T003917-1",
+   "first_frame": 18088,
+   "last_frame": 19172,
+   "decision": "player",
+   "player": "A42"
+  },
+  {
+   "tracklet": "T003918-1",
+   "first_frame": 18088,
+   "last_frame": 18668,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T003919-1",
+   "first_frame": 18088,
+   "last_frame": 18584,
+   "decision": "player",
+   "player": "ref"
+  },
+  {
+   "tracklet": "T003921-1",
+   "first_frame": 18088,
+   "last_frame": 18608,
+   "decision": "player",
+   "player": "A22"
+  },
+  {
+   "tracklet": "T003973-1",
+   "first_frame": 18204,
+   "last_frame": 18756,
+   "decision": "player",
+   "player": "B8"
+  },
+  {
+   "tracklet": "T003997-1",
+   "first_frame": 18280,
+   "last_frame": 18812,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T004350-1",
+   "first_frame": 19104,
+   "last_frame": 21312,
+   "decision": "player",
+   "player": "ref"
+  },
+  {
+   "tracklet": "T004377-2",
+   "first_frame": 19260,
+   "last_frame": 20476,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T004400-1",
+   "first_frame": 19272,
+   "last_frame": 19812,
+   "decision": "player",
+   "player": "A22"
+  },
+  {
+   "tracklet": "T004478-1",
+   "first_frame": 19428,
+   "last_frame": 19988,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004496-1",
+   "first_frame": 19460,
+   "last_frame": 20060,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004502-1",
+   "first_frame": 19476,
+   "last_frame": 20768,
+   "decision": "player",
+   "player": "B3"
+  },
+  {
+   "tracklet": "T004527-1",
+   "first_frame": 19504,
+   "last_frame": 21100,
+   "decision": "player",
+   "player": "B2"
+  },
+  {
+   "tracklet": "T004597-1",
+   "first_frame": 19704,
+   "last_frame": 20460,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004600-1",
+   "first_frame": 19712,
+   "last_frame": 20240,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004601-1",
+   "first_frame": 19712,
+   "last_frame": 21020,
+   "decision": "player",
+   "player": "A15"
+  },
+  {
+   "tracklet": "T004607-1",
+   "first_frame": 19720,
+   "last_frame": 20268,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004632-1",
+   "first_frame": 19800,
+   "last_frame": 21112,
+   "decision": "player",
+   "player": "A14"
+  },
+  {
+   "tracklet": "T004652-1",
+   "first_frame": 19848,
+   "last_frame": 20620,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T004653-1",
+   "first_frame": 19848,
+   "last_frame": 20356,
+   "decision": "player",
+   "player": "B9"
+  },
+  {
+   "tracklet": "T004705-1",
+   "first_frame": 20024,
+   "last_frame": 21028,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004709-1",
+   "first_frame": 20028,
+   "last_frame": 20516,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004734-1",
+   "first_frame": 20136,
+   "last_frame": 20984,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004744-1",
+   "first_frame": 20180,
+   "last_frame": 20976,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004751-1",
+   "first_frame": 20212,
+   "last_frame": 20992,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004754-1",
+   "first_frame": 20216,
+   "last_frame": 21084,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004773-1",
+   "first_frame": 20252,
+   "last_frame": 20884,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004788-1",
+   "first_frame": 20300,
+   "last_frame": 20864,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004792-1",
+   "first_frame": 20316,
+   "last_frame": 20880,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004802-1",
+   "first_frame": 20364,
+   "last_frame": 20964,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004805-1",
+   "first_frame": 20368,
+   "last_frame": 20880,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004806-1",
+   "first_frame": 20372,
+   "last_frame": 20964,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004814-1",
+   "first_frame": 20400,
+   "last_frame": 20984,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004817-1",
+   "first_frame": 20416,
+   "last_frame": 20940,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004842-1",
+   "first_frame": 20504,
+   "last_frame": 21048,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004844-1",
+   "first_frame": 20520,
+   "last_frame": 21132,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T004502-3",
+   "first_frame": 21116,
+   "last_frame": 21856,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T005201-1",
+   "first_frame": 21304,
+   "last_frame": 22112,
+   "decision": "player",
+   "player": "A6"
+  },
+  {
+   "tracklet": "T005263-1",
+   "first_frame": 21420,
+   "last_frame": 21932,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005288-1",
+   "first_frame": 21468,
+   "last_frame": 22356,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005350-1",
+   "first_frame": 21568,
+   "last_frame": 22620,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005368-1",
+   "first_frame": 21612,
+   "last_frame": 22824,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005365-2",
+   "first_frame": 21756,
+   "last_frame": 22308,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T005497-1",
+   "first_frame": 21852,
+   "last_frame": 22424,
+   "decision": "player",
+   "player": "B2"
+  },
+  {
+   "tracklet": "T005501-1",
+   "first_frame": 21860,
+   "last_frame": 22556,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005506-1",
+   "first_frame": 21872,
+   "last_frame": 23156,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005509-1",
+   "first_frame": 21880,
+   "last_frame": 23268,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005534-1",
+   "first_frame": 21924,
+   "last_frame": 22444,
+   "decision": "player",
+   "player": "B14"
+  },
+  {
+   "tracklet": "T005589-1",
+   "first_frame": 22016,
+   "last_frame": 22628,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005592-1",
+   "first_frame": 22020,
+   "last_frame": 23180,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005606-1",
+   "first_frame": 22044,
+   "last_frame": 23352,
+   "decision": "player",
+   "player": "B3"
+  },
+  {
+   "tracklet": "T005659-1",
+   "first_frame": 22196,
+   "last_frame": 23276,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005645-2",
+   "first_frame": 22216,
+   "last_frame": 22836,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T005670-1",
+   "first_frame": 22220,
+   "last_frame": 23284,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005674-1",
+   "first_frame": 22228,
+   "last_frame": 22928,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005699-2",
+   "first_frame": 22296,
+   "last_frame": 23004,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T005707-1",
+   "first_frame": 22300,
+   "last_frame": 22980,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005710-1",
+   "first_frame": 22304,
+   "last_frame": 22936,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005725-1",
+   "first_frame": 22324,
+   "last_frame": 23284,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005734-1",
+   "first_frame": 22348,
+   "last_frame": 23276,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005740-1",
+   "first_frame": 22364,
+   "last_frame": 22880,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005743-1",
+   "first_frame": 22372,
+   "last_frame": 23100,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005749-2",
+   "first_frame": 22408,
+   "last_frame": 23060,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T005775-1",
+   "first_frame": 22444,
+   "last_frame": 23764,
+   "decision": "player",
+   "player": "ref"
+  },
+  {
+   "tracklet": "T005780-1",
+   "first_frame": 22456,
+   "last_frame": 23108,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005793-1",
+   "first_frame": 22468,
+   "last_frame": 23268,
+   "decision": "player",
+   "player": "B14"
+  },
+  {
+   "tracklet": "T005795-1",
+   "first_frame": 22472,
+   "last_frame": 23272,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005798-1",
+   "first_frame": 22480,
+   "last_frame": 23336,
+   "decision": "player",
+   "player": "A14"
+  },
+  {
+   "tracklet": "T005805-1",
+   "first_frame": 22496,
+   "last_frame": 23276,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005806-1",
+   "first_frame": 22496,
+   "last_frame": 23272,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005818-1",
+   "first_frame": 22520,
+   "last_frame": 23276,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005827-1",
+   "first_frame": 22540,
+   "last_frame": 23292,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005828-2",
+   "first_frame": 22552,
+   "last_frame": 23284,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T005840-1",
+   "first_frame": 22556,
+   "last_frame": 23280,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005843-1",
+   "first_frame": 22564,
+   "last_frame": 23228,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005871-1",
+   "first_frame": 22628,
+   "last_frame": 23280,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005886-1",
+   "first_frame": 22656,
+   "last_frame": 23392,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005889-1",
+   "first_frame": 22664,
+   "last_frame": 23400,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005908-1",
+   "first_frame": 22700,
+   "last_frame": 23292,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005911-1",
+   "first_frame": 22700,
+   "last_frame": 23280,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005913-1",
+   "first_frame": 22704,
+   "last_frame": 23248,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005920-1",
+   "first_frame": 22740,
+   "last_frame": 23268,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005930-1",
+   "first_frame": 22760,
+   "last_frame": 23260,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T005968-1",
+   "first_frame": 22856,
+   "last_frame": 23332,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006144-1",
+   "first_frame": 23268,
+   "last_frame": 23884,
+   "decision": "player",
+   "player": "B2"
+  },
+  {
+   "tracklet": "T006148-1",
+   "first_frame": 23280,
+   "last_frame": 23884,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T006246-1",
+   "first_frame": 23432,
+   "last_frame": 24244,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006248-1",
+   "first_frame": 23436,
+   "last_frame": 25104,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006251-1",
+   "first_frame": 23440,
+   "last_frame": 24672,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006291-1",
+   "first_frame": 23500,
+   "last_frame": 23996,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006292-1",
+   "first_frame": 23500,
+   "last_frame": 25420,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006308-1",
+   "first_frame": 23524,
+   "last_frame": 24140,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006311-1",
+   "first_frame": 23528,
+   "last_frame": 24092,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006313-1",
+   "first_frame": 23528,
+   "last_frame": 24596,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006314-1",
+   "first_frame": 23532,
+   "last_frame": 25820,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006322-1",
+   "first_frame": 23540,
+   "last_frame": 24064,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006324-1",
+   "first_frame": 23540,
+   "last_frame": 25412,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006329-1",
+   "first_frame": 23556,
+   "last_frame": 24032,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006348-1",
+   "first_frame": 23588,
+   "last_frame": 25996,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006385-1",
+   "first_frame": 23664,
+   "last_frame": 25520,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006395-1",
+   "first_frame": 23704,
+   "last_frame": 24248,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006398-1",
+   "first_frame": 23708,
+   "last_frame": 25404,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006407-1",
+   "first_frame": 23752,
+   "last_frame": 24748,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006409-1",
+   "first_frame": 23752,
+   "last_frame": 24260,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006410-1",
+   "first_frame": 23752,
+   "last_frame": 24264,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006414-1",
+   "first_frame": 23756,
+   "last_frame": 25280,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006419-1",
+   "first_frame": 23768,
+   "last_frame": 24316,
+   "decision": "player",
+   "player": "A24"
+  },
+  {
+   "tracklet": "T006428-1",
+   "first_frame": 23800,
+   "last_frame": 24596,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006426-2",
+   "first_frame": 23812,
+   "last_frame": 25292,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T006441-1",
+   "first_frame": 23840,
+   "last_frame": 25028,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006442-1",
+   "first_frame": 23844,
+   "last_frame": 27200,
+   "decision": "player",
+   "player": "B3"
+  },
+  {
+   "tracklet": "T006148-2",
+   "first_frame": 23888,
+   "last_frame": 25640,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T006457-1",
+   "first_frame": 23912,
+   "last_frame": 26204,
+   "decision": "player",
+   "player": "B2"
+  },
+  {
+   "tracklet": "T006472-1",
+   "first_frame": 23944,
+   "last_frame": 25196,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006482-1",
+   "first_frame": 23984,
+   "last_frame": 25180,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006483-1",
+   "first_frame": 23988,
+   "last_frame": 25636,
+   "decision": "player",
+   "player": "ref"
+  },
+  {
+   "tracklet": "T006490-1",
+   "first_frame": 24004,
+   "last_frame": 24480,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006491-1",
+   "first_frame": 24008,
+   "last_frame": 25156,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006477-2",
+   "first_frame": 24012,
+   "last_frame": 25244,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T006505-1",
+   "first_frame": 24060,
+   "last_frame": 25040,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006506-1",
+   "first_frame": 24060,
+   "last_frame": 25140,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006518-1",
+   "first_frame": 24104,
+   "last_frame": 25120,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006522-1",
+   "first_frame": 24120,
+   "last_frame": 24836,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006521-2",
+   "first_frame": 24212,
+   "last_frame": 25736,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T006550-1",
+   "first_frame": 24224,
+   "last_frame": 25132,
+   "decision": "player",
+   "player": "A13"
+  },
+  {
+   "tracklet": "T006553-1",
+   "first_frame": 24228,
+   "last_frame": 25556,
+   "decision": "player",
+   "player": "A5"
+  },
+  {
+   "tracklet": "T006246-2",
+   "first_frame": 24248,
+   "last_frame": 25788,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T006492-2",
+   "first_frame": 24248,
+   "last_frame": 25716,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T006560-1",
+   "first_frame": 24252,
+   "last_frame": 25284,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006561-1",
+   "first_frame": 24252,
+   "last_frame": 25176,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006565-1",
+   "first_frame": 24256,
+   "last_frame": 24880,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006577-1",
+   "first_frame": 24272,
+   "last_frame": 25488,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006578-1",
+   "first_frame": 24288,
+   "last_frame": 24948,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006579-1",
+   "first_frame": 24288,
+   "last_frame": 24848,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006583-1",
+   "first_frame": 24304,
+   "last_frame": 25412,
+   "decision": "player",
+   "player": "A22"
+  },
+  {
+   "tracklet": "T006591-1",
+   "first_frame": 24336,
+   "last_frame": 25496,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006592-1",
+   "first_frame": 24352,
+   "last_frame": 24828,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006612-1",
+   "first_frame": 24484,
+   "last_frame": 25104,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006615-1",
+   "first_frame": 24508,
+   "last_frame": 25248,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006632-1",
+   "first_frame": 24588,
+   "last_frame": 25372,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006313-2",
+   "first_frame": 24600,
+   "last_frame": 25316,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T006428-2",
+   "first_frame": 24600,
+   "last_frame": 25092,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T006637-1",
+   "first_frame": 24644,
+   "last_frame": 25580,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006643-1",
+   "first_frame": 24676,
+   "last_frame": 25748,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006656-1",
+   "first_frame": 24752,
+   "last_frame": 25264,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006658-1",
+   "first_frame": 24756,
+   "last_frame": 26036,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006665-1",
+   "first_frame": 24820,
+   "last_frame": 25436,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T006691-1",
+   "first_frame": 24972,
+   "last_frame": 25772,
+   "decision": "player",
+   "player": "A24"
+  },
+  {
+   "tracklet": "T006713-1",
+   "first_frame": 25064,
+   "last_frame": 26068,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006655-2",
+   "first_frame": 25128,
+   "last_frame": 25688,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T006728-1",
+   "first_frame": 25128,
+   "last_frame": 25752,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006730-1",
+   "first_frame": 25136,
+   "last_frame": 26076,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006731-1",
+   "first_frame": 25140,
+   "last_frame": 25656,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006750-1",
+   "first_frame": 25228,
+   "last_frame": 25868,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006760-1",
+   "first_frame": 25260,
+   "last_frame": 25996,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T006769-1",
+   "first_frame": 25284,
+   "last_frame": 25988,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006785-1",
+   "first_frame": 25320,
+   "last_frame": 25968,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006818-1",
+   "first_frame": 25420,
+   "last_frame": 26108,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T006846-1",
+   "first_frame": 25480,
+   "last_frame": 26124,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T006148-3",
+   "first_frame": 25644,
+   "last_frame": 26284,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T006902-1",
+   "first_frame": 25644,
+   "last_frame": 26272,
+   "decision": "player",
+   "player": "ref"
+  },
+  {
+   "tracklet": "T007076-1",
+   "first_frame": 26020,
+   "last_frame": 26564,
+   "decision": "player",
+   "player": "B7"
+  },
+  {
+   "tracklet": "T007104-1",
+   "first_frame": 26076,
+   "last_frame": 26940,
+   "decision": "player",
+   "player": "A5"
+  },
+  {
+   "tracklet": "T007157-1",
+   "first_frame": 26152,
+   "last_frame": 27200,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T007076-2",
+   "first_frame": 26568,
+   "last_frame": 27068,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T007325-1",
+   "first_frame": 26580,
+   "last_frame": 27200,
+   "decision": "player",
+   "player": "GKA"
+  },
+  {
+   "tracklet": "T007449-1",
+   "first_frame": 27644,
+   "last_frame": 29316,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T007459-1",
+   "first_frame": 27668,
+   "last_frame": 29316,
+   "decision": "player",
+   "player": "B6"
+  },
+  {
+   "tracklet": "T007461-1",
+   "first_frame": 27672,
+   "last_frame": 28452,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T007466-1",
+   "first_frame": 27680,
+   "last_frame": 28184,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T007506-1",
+   "first_frame": 27848,
+   "last_frame": 28916,
+   "decision": "player",
+   "player": "A22"
+  },
+  {
+   "tracklet": "T007508-2",
+   "first_frame": 27872,
+   "last_frame": 28960,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T007516-1",
+   "first_frame": 27900,
+   "last_frame": 28628,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T007525-1",
+   "first_frame": 27956,
+   "last_frame": 29084,
+   "decision": "player",
+   "player": "B16"
+  },
+  {
+   "tracklet": "T007526-1",
+   "first_frame": 27956,
+   "last_frame": 28632,
+   "decision": "player",
+   "player": "B8"
+  },
+  {
+   "tracklet": "T007534-2",
+   "first_frame": 28112,
+   "last_frame": 29316,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T007541-2",
+   "first_frame": 28180,
+   "last_frame": 29044,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T007569-2",
+   "first_frame": 28320,
+   "last_frame": 29316,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T008068-1",
+   "first_frame": 29856,
+   "last_frame": 30348,
+   "decision": "player",
+   "player": "ref"
+  },
+  {
+   "tracklet": "T008074-1",
+   "first_frame": 29856,
+   "last_frame": 30600,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T008067-2",
+   "first_frame": 30068,
+   "last_frame": 30608,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T008090-2",
+   "first_frame": 30096,
+   "last_frame": 30608,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T008149-1",
+   "first_frame": 30128,
+   "last_frame": 30608,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T008476-1",
+   "first_frame": 30712,
+   "last_frame": 31348,
+   "decision": "player",
+   "player": "A5"
+  },
+  {
+   "tracklet": "T008477-1",
+   "first_frame": 30712,
+   "last_frame": 31556,
+   "decision": "player",
+   "player": "B3"
+  },
+  {
+   "tracklet": "T008497-1",
+   "first_frame": 30876,
+   "last_frame": 31424,
+   "decision": "player",
+   "player": "B14"
+  },
+  {
+   "tracklet": "T008500-1",
+   "first_frame": 30928,
+   "last_frame": 31504,
+   "decision": "player",
+   "player": "A6"
+  },
+  {
+   "tracklet": "T008699-1",
+   "first_frame": 31624,
+   "last_frame": 32484,
+   "decision": "player",
+   "player": "A24"
+  },
+  {
+   "tracklet": "T008744-1",
+   "first_frame": 31792,
+   "last_frame": 32312,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T008746-1",
+   "first_frame": 31792,
+   "last_frame": 32700,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T008758-1",
+   "first_frame": 31820,
+   "last_frame": 32416,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T008762-1",
+   "first_frame": 31820,
+   "last_frame": 32856,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T008784-1",
+   "first_frame": 31872,
+   "last_frame": 32624,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T008791-1",
+   "first_frame": 31884,
+   "last_frame": 32780,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T008852-1",
+   "first_frame": 31960,
+   "last_frame": 32848,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T008863-1",
+   "first_frame": 31976,
+   "last_frame": 32896,
+   "decision": "player",
+   "player": "ref"
+  },
+  {
+   "tracklet": "T008842-2",
+   "first_frame": 32040,
+   "last_frame": 32708,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T008896-1",
+   "first_frame": 32048,
+   "last_frame": 32760,
+   "decision": "player",
+   "player": "B8"
+  },
+  {
+   "tracklet": "T008902-1",
+   "first_frame": 32056,
+   "last_frame": 32804,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T008912-1",
+   "first_frame": 32080,
+   "last_frame": 32648,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T008940-1",
+   "first_frame": 32172,
+   "last_frame": 32708,
+   "decision": "player",
+   "player": "B3"
+  },
+  {
+   "tracklet": "T008941-1",
+   "first_frame": 32172,
+   "last_frame": 32832,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T008945-1",
+   "first_frame": 32176,
+   "last_frame": 32884,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T008964-2",
+   "first_frame": 32240,
+   "last_frame": 32760,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T008979-1",
+   "first_frame": 32264,
+   "last_frame": 32756,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T008989-1",
+   "first_frame": 32288,
+   "last_frame": 32896,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T008995-1",
+   "first_frame": 32300,
+   "last_frame": 32788,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T009002-1",
+   "first_frame": 32316,
+   "last_frame": 32892,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T009003-1",
+   "first_frame": 32316,
+   "last_frame": 32892,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T008758-2",
+   "first_frame": 32420,
+   "last_frame": 32908,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T009205-1",
+   "first_frame": 32884,
+   "last_frame": 33428,
+   "decision": "player",
+   "player": "A15"
+  },
+  {
+   "tracklet": "T009625-1",
+   "first_frame": 33836,
+   "last_frame": 34368,
+   "decision": "player",
+   "player": "A15"
+  },
+  {
+   "tracklet": "T010042-1",
+   "first_frame": 34748,
+   "last_frame": 35592,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T010093-1",
+   "first_frame": 35004,
+   "last_frame": 35596,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T010059-2",
+   "first_frame": 35024,
+   "last_frame": 35672,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T010105-1",
+   "first_frame": 35052,
+   "last_frame": 35780,
+   "decision": "player",
+   "player": "A14"
+  },
+  {
+   "tracklet": "T010106-1",
+   "first_frame": 35056,
+   "last_frame": 35572,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T010107-1",
+   "first_frame": 35060,
+   "last_frame": 35636,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T010126-1",
+   "first_frame": 35092,
+   "last_frame": 35592,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T010132-1",
+   "first_frame": 35100,
+   "last_frame": 35612,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T010138-1",
+   "first_frame": 35112,
+   "last_frame": 35588,
+   "decision": "reject",
+   "player": null
+  },
+  {
+   "tracklet": "T010143-1",
+   "first_frame": 35124,
+   "last_frame": 35900,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T010044-2",
+   "first_frame": 35152,
+   "last_frame": 35720,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T010178-2",
+   "first_frame": 35192,
+   "last_frame": 35720,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  },
+  {
+   "tracklet": "T010188-1",
+   "first_frame": 35204,
+   "last_frame": 35720,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T010190-1",
+   "first_frame": 35208,
+   "last_frame": 35720,
+   "decision": "unsure",
+   "player": null
+  },
+  {
+   "tracklet": "T010395-2",
+   "first_frame": 35780,
+   "last_frame": 36296,
+   "decision": "unsure",
+   "player": null,
+   "status": "excluded_tracker_uncertain"
+  }
+ ],
+ "labelling_flow": "cluster_confirm",
+ "cluster_review": {
+  "schema": "spana.reid_cluster_review",
+  "schema_version": "1.2.0",
+  "config_sha256": "bebf9b203868f8aa5a40cc82e4c26672134b03c399077cd43a18f5aa67214ff5",
+  "model_sha256": "682d0a09298f4b21ec5e6d20ea80d5783f8dc030bade906175b31c882e5239a5",
+  "clusters": {
+   "C001": {
+    "tracklets": [
+     "T003919-1",
+     "T006483-1",
+     "T005775-1",
+     "T003176-1",
+     "T006902-1",
+     "T008863-1",
+     "T004350-1"
+    ],
+    "decision": "player",
+    "player": "ref"
+   },
+   "C002": {
+    "tracklets": [
+     "T001625-1",
+     "T003315-1",
+     "T006457-1",
+     "T004527-1",
+     "T005497-1",
+     "T006144-1"
+    ],
+    "decision": "player",
+    "player": "B2"
+   },
+   "C003": {
+    "tracklets": [
+     "T007104-1",
+     "T001963-1",
+     "T000001-1",
+     "T008476-1"
+    ],
+    "decision": "player",
+    "player": "A5"
+   },
+   "C004": {
+    "tracklets": [
+     "T008477-1",
+     "T003442-1",
+     "T001564-1",
+     "T000003-1",
+     "T001964-1"
+    ],
+    "decision": "player",
+    "player": "B3"
+   },
+   "C005": {
+    "tracklets": [
+     "T000341-1",
+     "T001568-1",
+     "T008500-1",
+     "T000008-1",
+     "T002209-1"
+    ],
+    "decision": "player",
+    "player": "A6"
+   },
+   "C006": {
+    "tracklets": [
+     "T003571-1",
+     "T000067-1",
+     "T001014-1",
+     "T008068-1",
+     "T003794-1"
+    ],
+    "decision": "player",
+    "player": "ref"
+   },
+   "C007": {
+    "tracklets": [
+     "T000945-1",
+     "T003462-1",
+     "T003917-1",
+     "T001545-1",
+     "T001347-1",
+     "T000696-1"
+    ],
+    "decision": "player",
+    "player": "A42"
+   },
+   "C008": {
+    "tracklets": [
+     "T003997-1",
+     "T002200-1",
+     "T003572-1",
+     "T001371-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C009": {
+    "tracklets": [
+     "T004502-1",
+     "T003027-1",
+     "T005606-1",
+     "T006442-1",
+     "T008940-1"
+    ],
+    "decision": "player",
+    "player": "B3"
+   },
+   "C010": {
+    "tracklets": [
+     "T005710-1",
+     "T006730-1",
+     "T008852-1",
+     "T004802-1",
+     "T004496-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C011": {
+    "tracklets": [
+     "T006407-1",
+     "T009002-1",
+     "T006656-1",
+     "T006769-1",
+     "T008744-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C012": {
+    "tracklets": [
+     "T003624-1",
+     "T000968-1",
+     "T002202-1",
+     "T000004-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C013": {
+    "tracklets": [
+     "T000018-1",
+     "T008497-1",
+     "T002206-1",
+     "T001691-1"
+    ],
+    "decision": "player",
+    "player": "B14"
+   },
+   "C014": {
+    "tracklets": [
+     "T000321-1",
+     "T001378-1",
+     "T002670-1",
+     "T003288-1"
+    ],
+    "decision": "player",
+    "player": "B6"
+   },
+   "C015": {
+    "tracklets": [
+     "T007466-1",
+     "T000335-1",
+     "T003570-1",
+     "T001185-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C016": {
+    "tracklets": [
+     "T000888-1",
+     "T003469-1",
+     "T002219-1",
+     "T007461-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C017": {
+    "tracklets": [
+     "T001440-1",
+     "T006553-1",
+     "T001577-1",
+     "T010105-1",
+     "T005798-1"
+    ],
+    "decision": "player",
+    "player": "A14"
+   },
+   "C018": {
+    "tracklets": [
+     "T002471-1",
+     "T005707-1",
+     "T005263-1",
+     "T002689-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C019": {
+    "tracklets": [
+     "T000007-1",
+     "T000971-1",
+     "T002225-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C020": {
+    "tracklets": [
+     "T007325-1",
+     "T000023-1",
+     "T001205-1"
+    ],
+    "decision": "player",
+    "player": "GKA"
+   },
+   "C021": {
+    "tracklets": [
+     "T000990-1",
+     "T002293-1",
+     "T000378-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C022": {
+    "tracklets": [
+     "T000399-1",
+     "T003186-1",
+     "T002419-1"
+    ],
+    "decision": "player",
+    "player": "A42"
+   },
+   "C023": {
+    "tracklets": [
+     "T003465-1",
+     "T001146-1",
+     "T001176-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C024": {
+    "tracklets": [
+     "T001177-1",
+     "T003456-1",
+     "T007157-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C025": {
+    "tracklets": [
+     "T002190-1",
+     "T009625-1",
+     "T009205-1"
+    ],
+    "decision": "player",
+    "player": "A15"
+   },
+   "C026": {
+    "tracklets": [
+     "T006583-1"
+    ],
+    "decision": "player",
+    "player": "A22"
+   },
+   "C027": {
+    "tracklets": [
+     "T004744-1",
+     "T006578-1",
+     "T008945-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C028": {
+    "tracklets": [
+     "T008784-1",
+     "T006643-1",
+     "T006251-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C029": {
+    "tracklets": [
+     "T008699-1",
+     "T006419-1",
+     "T006691-1",
+     "T002487-1"
+    ],
+    "decision": "player",
+    "player": "A24"
+   },
+   "C030": {
+    "tracklets": [
+     "T006818-1",
+     "T007449-1",
+     "T010143-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C031": {
+    "tracklets": [
+     "T000330-1",
+     "T001067-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C032": {
+    "tracklets": [
+     "T000394-1",
+     "T003918-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C033": {
+    "tracklets": [
+     "T001410-1",
+     "T007525-1"
+    ],
+    "decision": "player",
+    "player": "B16"
+   },
+   "C034": {
+    "tracklets": [
+     "T001498-1",
+     "T001664-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C035": {
+    "tracklets": [
+     "T002237-1",
+     "T007526-1"
+    ],
+    "decision": "player",
+    "player": "B8"
+   },
+   "C036": {
+    "tracklets": [
+     "T002547-1",
+     "T005506-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C037": {
+    "tracklets": [
+     "T002584-1",
+     "T009003-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C038": {
+    "tracklets": [
+     "T002641-1",
+     "T005725-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C039": {
+    "tracklets": [
+     "T002705-1",
+     "T005288-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C040": {
+    "tracklets": [
+     "T002739-1",
+     "T005350-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C041": {
+    "tracklets": [
+     "T002895-1",
+     "T003220-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C042": {
+    "tracklets": [
+     "T002934-1",
+     "T003195-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C043": {
+    "tracklets": [
+     "T002936-1",
+     "T003201-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C044": {
+    "tracklets": [
+     "T002975-1",
+     "T005201-1"
+    ],
+    "decision": "player",
+    "player": "A6"
+   },
+   "C045": {
+    "tracklets": [
+     "T002989-1",
+     "T003205-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C046": {
+    "tracklets": [
+     "T003014-1",
+     "T003204-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C047": {
+    "tracklets": [
+     "T003017-1",
+     "T003261-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C048": {
+    "tracklets": [
+     "T003199-1",
+     "T008896-1"
+    ],
+    "decision": "player",
+    "player": "B8"
+   },
+   "C049": {
+    "tracklets": [
+     "T003766-1",
+     "T003916-1"
+    ],
+    "decision": "player",
+    "player": "A24"
+   },
+   "C050": {
+    "tracklets": [
+     "T003787-1",
+     "T007459-1"
+    ],
+    "decision": "player",
+    "player": "B6"
+   },
+   "C051": {
+    "tracklets": [
+     "T003921-1",
+     "T007506-1",
+     "T004400-1"
+    ],
+    "decision": "player",
+    "player": "A22"
+   },
+   "C053": {
+    "tracklets": [
+     "T004478-1",
+     "T004844-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C054": {
+    "tracklets": [
+     "T004600-1",
+     "T004773-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C055": {
+    "tracklets": [
+     "T004607-1",
+     "T006785-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C056": {
+    "tracklets": [
+     "T004805-1",
+     "T006518-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C057": {
+    "tracklets": [
+     "T004806-1",
+     "T006612-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C058": {
+    "tracklets": [
+     "T004817-1",
+     "T006506-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C059": {
+    "tracklets": [
+     "T004842-1",
+     "T006713-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C060": {
+    "tracklets": [
+     "T005501-1",
+     "T005843-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C061": {
+    "tracklets": [
+     "T005534-1",
+     "T005793-1"
+    ],
+    "decision": "player",
+    "player": "B14"
+   },
+   "C062": {
+    "tracklets": [
+     "T006246-1",
+     "T008758-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C063": {
+    "tracklets": [
+     "T006248-1",
+     "T006728-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C064": {
+    "tracklets": [
+     "T006314-1",
+     "T008912-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C065": {
+    "tracklets": [
+     "T006395-1",
+     "T006577-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C066": {
+    "tracklets": [
+     "T006414-1",
+     "T008989-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C067": {
+    "tracklets": [
+     "T006760-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C068": {
+    "tracklets": [
+     "T006579-1",
+     "T008941-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C069": {
+    "tracklets": [
+     "T006592-1",
+     "T008791-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C070": {
+    "tracklets": [
+     "T000020-1"
+    ],
+    "decision": "player",
+    "player": "REF1"
+   },
+   "C071": {
+    "tracklets": [
+     "T000027-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C072": {
+    "tracklets": [
+     "T000039-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C073": {
+    "tracklets": [
+     "T000336-1"
+    ],
+    "decision": "player",
+    "player": "B7"
+   },
+   "C074": {
+    "tracklets": [
+     "T000428-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C075": {
+    "tracklets": [
+     "T000690-1"
+    ],
+    "decision": "player",
+    "player": "B7"
+   },
+   "C076": {
+    "tracklets": [
+     "T000840-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C077": {
+    "tracklets": [
+     "T000975-1"
+    ],
+    "decision": "player",
+    "player": "B2"
+   },
+   "C078": {
+    "tracklets": [
+     "T001016-1"
+    ],
+    "decision": "player",
+    "player": "B7"
+   },
+   "C079": {
+    "tracklets": [
+     "T001034-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C080": {
+    "tracklets": [
+     "T001037-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C081": {
+    "tracklets": [
+     "T001043-1"
+    ],
+    "decision": "player",
+    "player": "GKB"
+   },
+   "C082": {
+    "tracklets": [
+     "T001048-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C083": {
+    "tracklets": [
+     "T001063-1"
+    ],
+    "decision": "player",
+    "player": "B3"
+   },
+   "C084": {
+    "tracklets": [
+     "T001128-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C085": {
+    "tracklets": [
+     "T001129-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C086": {
+    "tracklets": [
+     "T001359-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C087": {
+    "tracklets": [
+     "T001386-1"
+    ],
+    "decision": "player",
+    "player": "B18"
+   },
+   "C088": {
+    "tracklets": [
+     "T001422-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C089": {
+    "tracklets": [
+     "T001428-1"
+    ],
+    "decision": "player",
+    "player": "B2"
+   },
+   "C090": {
+    "tracklets": [
+     "T001496-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C091": {
+    "tracklets": [
+     "T001504-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C092": {
+    "tracklets": [
+     "T001512-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C093": {
+    "tracklets": [
+     "T001534-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C094": {
+    "tracklets": [
+     "T001536-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C095": {
+    "tracklets": [
+     "T001580-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C096": {
+    "tracklets": [
+     "T001589-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C097": {
+    "tracklets": [
+     "T001644-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C098": {
+    "tracklets": [
+     "T001674-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C099": {
+    "tracklets": [
+     "T002203-1"
+    ],
+    "decision": "player",
+    "player": "GKA"
+   },
+   "C100": {
+    "tracklets": [
+     "T002215-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C101": {
+    "tracklets": [
+     "T002449-1"
+    ],
+    "decision": "player",
+    "player": "B8"
+   },
+   "C102": {
+    "tracklets": [
+     "T002486-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C103": {
+    "tracklets": [
+     "T002503-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C104": {
+    "tracklets": [
+     "T002510-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C105": {
+    "tracklets": [
+     "T002546-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C106": {
+    "tracklets": [
+     "T002570-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C107": {
+    "tracklets": [
+     "T002587-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C108": {
+    "tracklets": [
+     "T002596-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C109": {
+    "tracklets": [
+     "T002597-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C110": {
+    "tracklets": [
+     "T002599-1"
+    ],
+    "decision": "player",
+    "player": "B7"
+   },
+   "C111": {
+    "tracklets": [
+     "T002673-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C112": {
+    "tracklets": [
+     "T002743-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C113": {
+    "tracklets": [
+     "T002839-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C114": {
+    "tracklets": [
+     "T002879-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C115": {
+    "tracklets": [
+     "T002914-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C116": {
+    "tracklets": [
+     "T002922-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C117": {
+    "tracklets": [
+     "T002947-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C118": {
+    "tracklets": [
+     "T003228-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C119": {
+    "tracklets": [
+     "T003241-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C120": {
+    "tracklets": [
+     "T003262-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C121": {
+    "tracklets": [
+     "T003263-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C122": {
+    "tracklets": [
+     "T003266-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C123": {
+    "tracklets": [
+     "T003287-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C124": {
+    "tracklets": [
+     "T003329-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C125": {
+    "tracklets": [
+     "T003334-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C126": {
+    "tracklets": [
+     "T003577-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C127": {
+    "tracklets": [
+     "T003585-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C128": {
+    "tracklets": [
+     "T003631-1"
+    ],
+    "decision": "player",
+    "player": "B7"
+   },
+   "C129": {
+    "tracklets": [
+     "T003675-1"
+    ],
+    "decision": "player",
+    "player": "B7"
+   },
+   "C130": {
+    "tracklets": [
+     "T003736-1"
+    ],
+    "decision": "player",
+    "player": "B7"
+   },
+   "C131": {
+    "tracklets": [
+     "T003749-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C132": {
+    "tracklets": [
+     "T003765-1"
+    ],
+    "decision": "player",
+    "player": "B8"
+   },
+   "C133": {
+    "tracklets": [
+     "T003775-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C134": {
+    "tracklets": [
+     "T003973-1"
+    ],
+    "decision": "player",
+    "player": "B8"
+   },
+   "C135": {
+    "tracklets": [
+     "T004597-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C136": {
+    "tracklets": [
+     "T004601-1"
+    ],
+    "decision": "player",
+    "player": "A15"
+   },
+   "C137": {
+    "tracklets": [
+     "T004632-1"
+    ],
+    "decision": "player",
+    "player": "A14"
+   },
+   "C138": {
+    "tracklets": [
+     "T004653-1"
+    ],
+    "decision": "player",
+    "player": "B9"
+   },
+   "C139": {
+    "tracklets": [
+     "T004705-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C140": {
+    "tracklets": [
+     "T004709-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C141": {
+    "tracklets": [
+     "T004734-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C142": {
+    "tracklets": [
+     "T004751-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C143": {
+    "tracklets": [
+     "T004754-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C144": {
+    "tracklets": [
+     "T004788-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C145": {
+    "tracklets": [
+     "T004792-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C146": {
+    "tracklets": [
+     "T004814-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C147": {
+    "tracklets": [
+     "T005368-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C148": {
+    "tracklets": [
+     "T005509-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C149": {
+    "tracklets": [
+     "T005589-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C150": {
+    "tracklets": [
+     "T005592-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C151": {
+    "tracklets": [
+     "T005659-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C152": {
+    "tracklets": [
+     "T005670-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C153": {
+    "tracklets": [
+     "T005674-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C154": {
+    "tracklets": [
+     "T005734-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C155": {
+    "tracklets": [
+     "T005740-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C156": {
+    "tracklets": [
+     "T005743-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C157": {
+    "tracklets": [
+     "T005780-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C158": {
+    "tracklets": [
+     "T005795-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C159": {
+    "tracklets": [
+     "T005805-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C160": {
+    "tracklets": [
+     "T005806-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C161": {
+    "tracklets": [
+     "T005818-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C162": {
+    "tracklets": [
+     "T005827-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C163": {
+    "tracklets": [
+     "T005840-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C164": {
+    "tracklets": [
+     "T005871-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C165": {
+    "tracklets": [
+     "T005886-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C166": {
+    "tracklets": [
+     "T005889-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C167": {
+    "tracklets": [
+     "T005908-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C168": {
+    "tracklets": [
+     "T005911-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C169": {
+    "tracklets": [
+     "T005913-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C170": {
+    "tracklets": [
+     "T005920-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C171": {
+    "tracklets": [
+     "T005930-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C172": {
+    "tracklets": [
+     "T005968-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C173": {
+    "tracklets": [
+     "T006148-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C174": {
+    "tracklets": [
+     "T006291-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C175": {
+    "tracklets": [
+     "T006292-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C176": {
+    "tracklets": [
+     "T006308-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C177": {
+    "tracklets": [
+     "T006311-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C178": {
+    "tracklets": [
+     "T006313-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C179": {
+    "tracklets": [
+     "T006322-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C180": {
+    "tracklets": [
+     "T006324-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C181": {
+    "tracklets": [
+     "T006329-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C182": {
+    "tracklets": [
+     "T006348-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C183": {
+    "tracklets": [
+     "T006385-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C184": {
+    "tracklets": [
+     "T006398-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C185": {
+    "tracklets": [
+     "T006409-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C186": {
+    "tracklets": [
+     "T006410-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C187": {
+    "tracklets": [
+     "T006428-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C188": {
+    "tracklets": [
+     "T006441-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C189": {
+    "tracklets": [
+     "T006472-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C190": {
+    "tracklets": [
+     "T006482-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C191": {
+    "tracklets": [
+     "T006490-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C192": {
+    "tracklets": [
+     "T006491-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C193": {
+    "tracklets": [
+     "T006505-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C194": {
+    "tracklets": [
+     "T006522-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C195": {
+    "tracklets": [
+     "T006560-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C196": {
+    "tracklets": [
+     "T006561-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C197": {
+    "tracklets": [
+     "T006565-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C198": {
+    "tracklets": [
+     "T006591-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C199": {
+    "tracklets": [
+     "T006615-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C200": {
+    "tracklets": [
+     "T006632-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C201": {
+    "tracklets": [
+     "T006637-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C202": {
+    "tracklets": [
+     "T006658-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C203": {
+    "tracklets": [
+     "T006665-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C204": {
+    "tracklets": [
+     "T006731-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C205": {
+    "tracklets": [
+     "T006750-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C206": {
+    "tracklets": [
+     "T006846-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C207": {
+    "tracklets": [
+     "T007076-1"
+    ],
+    "decision": "player",
+    "player": "B7"
+   },
+   "C208": {
+    "tracklets": [
+     "T007516-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C209": {
+    "tracklets": [
+     "T008074-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C210": {
+    "tracklets": [
+     "T008149-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C211": {
+    "tracklets": [
+     "T008746-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C212": {
+    "tracklets": [
+     "T008762-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C213": {
+    "tracklets": [
+     "T008902-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C214": {
+    "tracklets": [
+     "T008979-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C215": {
+    "tracklets": [
+     "T008995-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C216": {
+    "tracklets": [
+     "T010042-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C217": {
+    "tracklets": [
+     "T010093-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C218": {
+    "tracklets": [
+     "T010106-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C219": {
+    "tracklets": [
+     "T010107-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C220": {
+    "tracklets": [
+     "T010126-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C221": {
+    "tracklets": [
+     "T010132-1"
+    ],
+    "decision": null,
+    "player": null
+   },
+   "C222": {
+    "tracklets": [
+     "T010138-1"
+    ],
+    "decision": "reject",
+    "player": null
+   },
+   "C223": {
+    "tracklets": [
+     "T010188-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C224": {
+    "tracklets": [
+     "T010190-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C225s": {
+    "tracklets": [
+     "T006550-1"
+    ],
+    "decision": "player",
+    "player": "A13"
+   },
+   "C226s": {
+    "tracklets": [
+     "T004652-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   },
+   "C227s": {
+    "tracklets": [
+     "T000958-1"
+    ],
+    "decision": "unsure",
+    "player": null
+   }
+  },
+  "overrides": {
+   "T010138-1": {
+    "decision": "reject"
+   },
+   "T010132-1": {
+    "decision": "reject"
+   },
+   "T010126-1": {
+    "decision": "reject"
+   },
+   "T010107-1": {
+    "decision": "reject"
+   },
+   "T010106-1": {
+    "decision": "reject"
+   },
+   "T008995-1": {
+    "decision": "reject"
+   },
+   "T008979-1": {
+    "decision": "reject"
+   },
+   "T008902-1": {
+    "decision": "reject"
+   },
+   "T008762-1": {
+    "decision": "reject"
+   },
+   "T008746-1": {
+    "decision": "reject"
+   },
+   "T006846-1": {
+    "decision": "reject"
+   },
+   "T006750-1": {
+    "decision": "reject"
+   },
+   "T006731-1": {
+    "decision": "reject"
+   },
+   "T006658-1": {
+    "decision": "reject"
+   },
+   "T006637-1": {
+    "decision": "reject"
+   },
+   "T006491-1": {
+    "decision": "reject"
+   },
+   "T006522-1": {
+    "decision": "reject"
+   },
+   "T006490-1": {
+    "decision": "reject"
+   },
+   "T006482-1": {
+    "decision": "reject"
+   },
+   "T006472-1": {
+    "decision": "reject"
+   },
+   "T006441-1": {
+    "decision": "reject"
+   },
+   "T006428-1": {
+    "decision": "reject"
+   },
+   "T006410-1": {
+    "decision": "reject"
+   },
+   "T006409-1": {
+    "decision": "reject"
+   },
+   "T006398-1": {
+    "decision": "reject"
+   },
+   "T006385-1": {
+    "decision": "reject"
+   },
+   "T006329-1": {
+    "decision": "reject"
+   },
+   "T006324-1": {
+    "decision": "reject"
+   },
+   "T006322-1": {
+    "decision": "reject"
+   },
+   "T006313-1": {
+    "decision": "reject"
+   },
+   "T006311-1": {
+    "decision": "reject"
+   },
+   "T006308-1": {
+    "decision": "reject"
+   },
+   "T006292-1": {
+    "decision": "reject"
+   },
+   "T006291-1": {
+    "decision": "reject"
+   },
+   "T005968-1": {
+    "decision": "reject"
+   },
+   "T005930-1": {
+    "decision": "reject"
+   },
+   "T005920-1": {
+    "decision": "reject"
+   },
+   "T005913-1": {
+    "decision": "reject"
+   },
+   "T005911-1": {
+    "decision": "reject"
+   },
+   "T005908-1": {
+    "decision": "reject"
+   },
+   "T005889-1": {
+    "decision": "reject"
+   },
+   "T005886-1": {
+    "decision": "reject"
+   },
+   "T005871-1": {
+    "decision": "reject"
+   },
+   "T005827-1": {
+    "decision": "reject"
+   },
+   "T005780-1": {
+    "decision": "reject"
+   },
+   "T005806-1": {
+    "decision": "reject"
+   },
+   "T005805-1": {
+    "decision": "reject"
+   },
+   "T005795-1": {
+    "decision": "reject"
+   },
+   "T005740-1": {
+    "decision": "reject"
+   },
+   "T005734-1": {
+    "decision": "reject"
+   },
+   "T005674-1": {
+    "decision": "reject"
+   },
+   "T005670-1": {
+    "decision": "reject"
+   },
+   "T005659-1": {
+    "decision": "reject"
+   },
+   "T005592-1": {
+    "decision": "reject"
+   },
+   "T005589-1": {
+    "decision": "reject"
+   },
+   "T005509-1": {
+    "decision": "reject"
+   },
+   "T005368-1": {
+    "decision": "reject"
+   },
+   "T004814-1": {
+    "decision": "reject"
+   },
+   "T004792-1": {
+    "decision": "reject"
+   },
+   "T004788-1": {
+    "decision": "reject"
+   },
+   "T004754-1": {
+    "decision": "reject"
+   },
+   "T004751-1": {
+    "decision": "reject"
+   },
+   "T004734-1": {
+    "decision": "reject"
+   },
+   "T004709-1": {
+    "decision": "reject"
+   },
+   "T004705-1": {
+    "decision": "reject"
+   },
+   "T003775-1": {
+    "decision": "unsure"
+   },
+   "T003749-1": {
+    "decision": "unsure"
+   },
+   "T003675-1": {
+    "decision": "unsure"
+   },
+   "T003585-1": {
+    "decision": "unsure"
+   },
+   "T003577-1": {
+    "decision": "unsure"
+   },
+   "T003334-1": {
+    "decision": "reject"
+   },
+   "T003329-1": {
+    "decision": "reject"
+   },
+   "T003287-1": {
+    "decision": "reject"
+   },
+   "T003266-1": {
+    "decision": "reject"
+   },
+   "T003263-1": {
+    "decision": "reject"
+   },
+   "T003262-1": {
+    "decision": "reject"
+   },
+   "T003241-1": {
+    "decision": "reject"
+   },
+   "T003228-1": {
+    "decision": "reject"
+   },
+   "T002947-1": {
+    "decision": "reject"
+   },
+   "T002922-1": {
+    "decision": "reject"
+   },
+   "T002914-1": {
+    "decision": "reject"
+   },
+   "T002879-1": {
+    "decision": "reject"
+   },
+   "T002839-1": {
+    "decision": "reject"
+   },
+   "T002673-1": {
+    "decision": "reject"
+   },
+   "T002597-1": {
+    "decision": "reject"
+   },
+   "T002596-1": {
+    "decision": "reject"
+   },
+   "T002587-1": {
+    "decision": "reject"
+   },
+   "T002570-1": {
+    "decision": "reject"
+   },
+   "T002510-1": {
+    "decision": "reject"
+   },
+   "T002503-1": {
+    "decision": "reject"
+   },
+   "T002486-1": {
+    "decision": "reject"
+   },
+   "T002215-1": {
+    "decision": "unsure"
+   },
+   "T001674-1": {
+    "decision": "reject"
+   },
+   "T001644-1": {
+    "decision": "reject"
+   },
+   "T001589-1": {
+    "decision": "reject"
+   },
+   "T001580-1": {
+    "decision": "reject"
+   },
+   "T001536-1": {
+    "decision": "reject"
+   },
+   "T001534-1": {
+    "decision": "reject"
+   },
+   "T001512-1": {
+    "decision": "reject"
+   },
+   "T001422-1": {
+    "decision": "reject"
+   },
+   "T001359-1": {
+    "decision": "unsure"
+   },
+   "T001129-1": {
+    "decision": "reject"
+   },
+   "T001128-1": {
+    "decision": "reject"
+   },
+   "T001048-1": {
+    "decision": "reject"
+   },
+   "T001043-1": {
+    "decision": "reject"
+   },
+   "T001037-1": {
+    "decision": "reject"
+   },
+   "T001034-1": {
+    "decision": "reject"
+   },
+   "T000840-1": {
+    "decision": "unsure"
+   },
+   "T000428-1": {
+    "decision": "reject"
+   },
+   "T000039-1": {
+    "decision": "unsure"
+   },
+   "T000027-1": {
+    "decision": "unsure"
+   },
+   "T008791-1": {
+    "decision": "reject"
+   },
+   "T006579-1": {
+    "decision": "reject"
+   },
+   "T008941-1": {
+    "decision": "reject"
+   },
+   "T008989-1": {
+    "decision": "reject"
+   },
+   "T006395-1": {
+    "decision": "reject"
+   },
+   "T006577-1": {
+    "decision": "reject"
+   },
+   "T008912-1": {
+    "decision": "reject"
+   },
+   "T006314-1": {
+    "decision": "reject"
+   },
+   "T006248-1": {
+    "decision": "reject"
+   },
+   "T006728-1": {
+    "decision": "reject"
+   },
+   "T008758-1": {
+    "decision": "reject"
+   },
+   "T006246-1": {
+    "decision": "reject"
+   },
+   "T001496-1": {
+    "decision": "reject"
+   },
+   "T001504-1": {
+    "decision": "reject"
+   },
+   "T004597-1": {
+    "decision": "reject"
+   },
+   "T006148-1": {
+    "decision": "unsure"
+   },
+   "T006348-1": {
+    "decision": "reject"
+   },
+   "T006591-1": {
+    "decision": "reject"
+   },
+   "T006615-1": {
+    "decision": "reject"
+   },
+   "T006665-1": {
+    "decision": "unsure"
+   },
+   "T003997-1": {
+    "decision": "unsure"
+   },
+   "T002200-1": {
+    "decision": "unsure"
+   },
+   "T003572-1": {
+    "decision": "unsure"
+   },
+   "T000958-1": {
+    "decision": "reject"
+   },
+   "T001371-1": {
+    "decision": "unsure"
+   },
+   "T004652-1": {
+    "decision": "unsure"
+   },
+   "T006643-1": {
+    "decision": "reject"
+   },
+   "T002584-1": {
+    "decision": "reject"
+   },
+   "T009003-1": {
+    "decision": "reject"
+   },
+   "T002641-1": {
+    "decision": "reject"
+   },
+   "T006713-1": {
+    "decision": "reject"
+   },
+   "T004842-1": {
+    "decision": "reject"
+   },
+   "T006414-1": {
+    "decision": "reject"
+   },
+   "T006592-1": {
+    "decision": "reject"
+   },
+   "T006251-1": {
+    "decision": "reject"
+   },
+   "T008784-1": {
+    "decision": "reject"
+   },
+   "T005725-1": {
+    "decision": "reject"
+   },
+   "T002546-1": {
+    "decision": "reject"
+   },
+   "T002743-1": {
+    "decision": "reject"
+   },
+   "T005743-1": {
+    "decision": "reject"
+   },
+   "T005818-1": {
+    "decision": "reject"
+   },
+   "T005840-1": {
+    "decision": "reject"
+   }
+  },
+  "excluded": [
+   "T000337-2",
+   "T001017-2",
+   "T001066-2",
+   "T001096-2",
+   "T001141-2",
+   "T001153-2",
+   "T001155-2",
+   "T001161-2",
+   "T001171-2",
+   "T001211-2",
+   "T001411-2",
+   "T001427-2",
+   "T001465-2",
+   "T001555-2",
+   "T001566-2",
+   "T002053-2",
+   "T002184-2",
+   "T002230-2",
+   "T002234-4",
+   "T002250-3",
+   "T002252-2",
+   "T002501-2",
+   "T002860-2",
+   "T003193-2",
+   "T003308-2",
+   "T003466-2",
+   "T003666-2",
+   "T003792-2",
+   "T004377-2",
+   "T004502-3",
+   "T005365-2",
+   "T005645-2",
+   "T005699-2",
+   "T005749-2",
+   "T005828-2",
+   "T006148-2",
+   "T006148-3",
+   "T006246-2",
+   "T006313-2",
+   "T006426-2",
+   "T006428-2",
+   "T006477-2",
+   "T006492-2",
+   "T006521-2",
+   "T006655-2",
+   "T007076-2",
+   "T007508-2",
+   "T007534-2",
+   "T007541-2",
+   "T007569-2",
+   "T008067-2",
+   "T008090-2",
+   "T008758-2",
+   "T008842-2",
+   "T008964-2",
+   "T010044-2",
+   "T010059-2",
+   "T010178-2",
+   "T010395-2"
+  ],
+  "audit": {
+   "T006457-1": {
+    "decision": "player",
+    "player": "B2"
+   },
+   "T002975-1": {
+    "decision": "player",
+    "player": "A6"
+   },
+   "T003916-1": {
+    "decision": "player",
+    "player": "A24"
+   },
+   "T008500-1": {
+    "decision": "player",
+    "player": "A6"
+   },
+   "T005793-1": {
+    "decision": "player",
+    "player": "B14"
+   },
+   "T002419-1": {
+    "decision": "player",
+    "player": "A42"
+   },
+   "T003921-1": {
+    "decision": "player",
+    "player": "A22"
+   },
+   "T006442-1": {
+    "decision": "player",
+    "player": "B3"
+   },
+   "T003787-1": {
+    "decision": "player",
+    "player": "B6"
+   },
+   "T002209-1": {
+    "decision": "player",
+    "player": "A6"
+   },
+   "T001577-1": {
+    "decision": "player",
+    "player": "A14"
+   },
+   "T007525-1": {
+    "decision": "player",
+    "player": "B16"
+   },
+   "T004527-1": {
+    "decision": "player",
+    "player": "B2"
+   },
+   "T005497-1": {
+    "decision": "player",
+    "player": "B2"
+   },
+   "T010105-1": {
+    "decision": "player",
+    "player": "A14"
+   },
+   "T008699-1": {
+    "decision": "player",
+    "player": "A24"
+   },
+   "T003766-1": {
+    "decision": "player",
+    "player": "A42"
+   },
+   "T001545-1": {
+    "decision": "player",
+    "player": "A42"
+   },
+   "T000023-1": {
+    "decision": "player",
+    "player": "GKB"
+   },
+   "T000696-1": {
+    "decision": "player",
+    "player": "A42"
+   },
+   "T003462-1": {
+    "decision": "player",
+    "player": "A42"
+   },
+   "T007459-1": {
+    "decision": "player",
+    "player": "B6"
+   },
+   "T001963-1": {
+    "decision": "player",
+    "player": "A5"
+   },
+   "T003442-1": {
+    "decision": "player",
+    "player": "B3"
+   },
+   "T001378-1": {
+    "decision": "player",
+    "player": "B6"
+   },
+   "T005201-1": {
+    "decision": "player",
+    "player": "A6"
+   },
+   "T003176-1": {
+    "decision": "player",
+    "player": "ref"
+   },
+   "T002237-1": {
+    "decision": "player",
+    "player": "B8"
+   },
+   "T000341-1": {
+    "decision": "player",
+    "player": "A6"
+   },
+   "T002206-1": {
+    "decision": "player",
+    "player": "B14"
+   },
+   "T001205-1": {
+    "decision": "player",
+    "player": "GKA"
+   },
+   "T003315-1": {
+    "decision": "player",
+    "player": "B2"
+   },
+   "T009625-1": {
+    "decision": "player",
+    "player": "A15"
+   },
+   "T008497-1": {
+    "decision": "player",
+    "player": "B14"
+   },
+   "T003186-1": {
+    "decision": "player",
+    "player": "A42"
+   },
+   "T007104-1": {
+    "decision": "player",
+    "player": "A5"
+   },
+   "T008477-1": {
+    "decision": "player",
+    "player": "B3"
+   },
+   "T005606-1": {
+    "decision": "player",
+    "player": "B3"
+   },
+   "T006419-1": {
+    "decision": "player",
+    "player": "A24"
+   },
+   "T007506-1": {
+    "decision": "player",
+    "player": "A22"
+   },
+   "T000008-1": {
+    "decision": "player",
+    "player": "A6"
+   },
+   "T002670-1": {
+    "decision": "player",
+    "player": "B6"
+   },
+   "T008940-1": {
+    "decision": "player",
+    "player": "B3"
+   },
+   "T008863-1": {
+    "decision": "player",
+    "player": "ref"
+   },
+   "T001347-1": {
+    "decision": "player",
+    "player": "A42"
+   },
+   "T006691-1": {
+    "decision": "player",
+    "player": "A24"
+   },
+   "T004400-1": {
+    "decision": "player",
+    "player": "A22"
+   },
+   "T000399-1": {
+    "decision": "player",
+    "player": "A42"
+   },
+   "T002487-1": {
+    "decision": "player",
+    "player": "A24"
+   },
+   "T003571-1": {
+    "decision": "player",
+    "player": "ref"
+   },
+   "T003288-1": {
+    "decision": "player",
+    "player": "B6"
+   },
+   "T003794-1": {
+    "decision": "player",
+    "player": "ref"
+   },
+   "T000001-1": {
+    "decision": "player",
+    "player": "A5"
+   },
+   "T004350-1": {
+    "decision": "player",
+    "player": "ref"
+   },
+   "T001625-1": {
+    "decision": "player",
+    "player": "B2"
+   },
+   "T008896-1": {
+    "decision": "player",
+    "player": "B8"
+   },
+   "T008068-1": {
+    "decision": "player",
+    "player": "ref"
+   },
+   "T002190-1": {
+    "decision": "player",
+    "player": "A15"
+   },
+   "T005534-1": {
+    "decision": "player",
+    "player": "B14"
+   },
+   "T001568-1": {
+    "decision": "player",
+    "player": "A6"
+   },
+   "T001691-1": {
+    "decision": "player",
+    "player": "B14"
+   },
+   "T007325-1": {
+    "decision": "player",
+    "player": "GKA"
+   },
+   "T006144-1": {
+    "decision": "player",
+    "player": "B2"
+   },
+   "T005798-1": {
+    "decision": "player",
+    "player": "A14"
+   },
+   "T006902-1": {
+    "decision": "player",
+    "player": "ref"
+   },
+   "T006553-1": {
+    "decision": "player",
+    "player": "A5"
+   },
+   "T000067-1": {
+    "decision": "player",
+    "player": "ref"
+   },
+   "T000945-1": {
+    "decision": "player",
+    "player": "A42"
+   },
+   "T006483-1": {
+    "decision": "player",
+    "player": "ref"
+   },
+   "T000321-1": {
+    "decision": "player",
+    "player": "B2"
+   },
+   "T000003-1": {
+    "decision": "player",
+    "player": "B3"
+   },
+   "T001964-1": {
+    "decision": "player",
+    "player": "B3"
+   },
+   "T004502-1": {
+    "decision": "player",
+    "player": "B3"
+   },
+   "T009205-1": {
+    "decision": "player",
+    "player": "A15"
+   },
+   "T001014-1": {
+    "decision": "player",
+    "player": "ref"
+   },
+   "T007526-1": {
+    "decision": "player",
+    "player": "B8"
+   },
+   "T003919-1": {
+    "decision": "player",
+    "player": "ref"
+   },
+   "T003199-1": {
+    "decision": "player",
+    "player": "B8"
+   },
+   "T003917-1": {
+    "decision": "player",
+    "player": "A42"
+   },
+   "T000018-1": {
+    "decision": "player",
+    "player": "B14"
+   },
+   "T003027-1": {
+    "decision": "player",
+    "player": "B3"
+   },
+   "T001410-1": {
+    "decision": "player",
+    "player": "B16"
+   },
+   "T008476-1": {
+    "decision": "player",
+    "player": "A5"
+   },
+   "T001564-1": {
+    "decision": "player",
+    "player": "B3"
+   },
+   "T005775-1": {
+    "decision": "player",
+    "player": "ref"
+   },
+   "T001440-1": {
+    "decision": "player",
+    "player": "A14"
+   }
+  }
+ }
+}
