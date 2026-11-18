@@ -147,13 +147,15 @@ target:
   reentry_offer: true
   reentry_max_gap_s: 10.0
   reentry_min_similarity: 0.75
-  reentry_min_margin: 0.10
+  reentry_min_margin: 0.0       # with reentry_mutual, the two-way best match replaces the margin
   # Safety rules for the offer (records/reentry_position_mutual_2026-11-18): position = the candidate must be
   # reachable from the lost player's last position carried through the camera motion, within tracking.gate_base_h +
   # tracking.max_speed_h_per_s * gap body heights (not judged across a cut or when the player left the picture);
   # mutual = the lost track must also be the candidate's best match among the tracks lost before it appeared.
+  # DEV result: mutual removed the wrong offers (16 right / 0 wrong / 1 undecided vs 16 / 1 / 2); the position
+  # gate changed nothing (wrong picks were born later, when the speed bound reaches almost anywhere): off.
   reentry_position_gate: false
-  reentry_mutual: false
+  reentry_mutual: true
 
 reid:
   # Which observations are embedded into a track's first / last re-ID signature (spana.identity.reid).

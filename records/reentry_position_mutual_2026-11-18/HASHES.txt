@@ -1,0 +1,14 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/ (code 7fd992a extracted to code13/). Inputs: today's
+# default tracks and signatures out/F0x_mdefault.trk.json / .emb.json (records/reentry_reid_offers_2026-11-18).
+1a516abcf0f6600de4cb33f8b36fabb7f84b5d7e42ac8e89a606467a6a474bc4  ~/spana-continuity-run/run_mutual.sh
+a066c924515153bf891a864e282e2056f641f99bcee099239d7e5492572993ba  ~/spana-continuity-run/out/reid_reentry_eval_v2.json
+81b0973c7581688a6830716f312e604028b8b00974c188dab871667a6c8ef200  ~/spana-continuity-run/out/target_mu_plain_0.75_0.10_default.json (= shipped rule)
+5d1cd6be30d3b28ffcdb79523304951547d1dc2140c350af8e2b51c27925b55a  ~/spana-continuity-run/out/target_mu_plain_0.75_0.10_reviewer.json
+d4145b923afaaece80c23431163d44f310c9873543ffb00dc3caec1276894320  ~/spana-continuity-run/out/target_mu_mutual_0.75_0.10_default.json
+9198984c8fda647a3d5aed2f934ebb87afc7f0f237d0d5ae4eec1104a7b8bf69  ~/spana-continuity-run/out/target_mu_mutual_0.75_0.10_reviewer.json
+0b4e5aee7008a9077ccecdca7d2311c10b4679db842f8be0229b05e68abb682d  ~/spana-continuity-run/out/target_mu_mutual_0.75_0.00_default.json (new default)
+b0c960d7f9d787a639bf89a6e4317ef5f56ae88e5dbfe58119f10789a25d5b89  ~/spana-continuity-run/out/target_mu_mutual_0.75_0.00_reviewer.json (new default)
+1aeb732707cc70a78b0ee3697f54104923f8ea15ad7cbb347e7562726fd50782  ~/spana-continuity-run/out/target_mu_mutual_0.70_0.00_default.json
+ed5ba8b8ae2cbbd60fc1b049d789a347b618db786f846dcb77340bbb290df71e  ~/spana-continuity-run/out/target_mu_mutual_0.70_0.00_reviewer.json
+c21b10a9059921bcbe7e8d6f89cd365a7b20d43a87e84da1817e9d35cd69d554  ~/spana-continuity-run/out/target_mu_both_0.75_0.00_default.json
+364f0b5c0a87d51ad60fb357edc816721fef53a02ec45e6b978c3e98aa3e3e7c  ~/spana-continuity-run/out/target_mu_both_0.75_0.00_reviewer.json

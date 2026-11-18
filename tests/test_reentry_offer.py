@@ -146,6 +146,46 @@ class Offer(unittest.TestCase):
         self.assertFalse(follow(tr, SEL, cfg(reentry_offer=False), (), emb)[1]["relinks"])
 
 
+def two_lost():
+    """t1 (followed) and t4 both leave the picture after frame 3; t2 appears at frame 8."""
+    frames = [{"t1": N, "t4": N}, {"t1": A, "t4": A}, {"t1": A, "t4": A}, {"t1": A, "t4": A}]
+    for n in range(4, 14):
+        frames.append({} if n < 8 else {"t2": N} if n == 8 else {"t2": A})
+    return tracks_doc(frames, ended={4: [("t1", "LEFT_FRAME"), ("t4", "LEFT_FRAME")]})
+
+
+class SafetyRules(unittest.TestCase):
+    def test_mutual_refuses_a_track_that_matches_another_lost_player_better(self):
+        tr = two_lost()
+        other = unit(0.96, 0.28, 0)                  # t4 looks even more like t2 than t1 does
+        emb = emb_doc(tr, {"t1": (ME, ME), "t4": (other, other), "t2": (ME_AGAIN, ME_AGAIN)})
+        self.assertTrue(follow(tr, SEL, cfg(reentry_mutual=False, reentry_min_margin=0.0), (), emb)[1]["relinks"])
+        self.assertFalse(follow(tr, SEL, cfg(reentry_mutual=True, reentry_min_margin=0.0), (), emb)[1]["relinks"])
+
+    def test_mutual_keeps_a_clear_two_way_match(self):
+        tr = two_lost()
+        emb = emb_doc(tr, {"t1": (ME, ME), "t4": (SOMEONE, SOMEONE), "t2": (ME_AGAIN, ME_AGAIN)})
+        r = follow(tr, SEL, cfg(reentry_mutual=True, reentry_min_margin=0.0), (), emb)[1]["relinks"]
+        self.assertEqual([x["to_track"] for x in r], ["t2"])
+
+    def test_reachable(self):
+        from spana.identity.reid import reachable
+        tc = CFG.tracking
+        ident = {"status": "OK", "affine": [[1, 0, 0], [0, 1, 0]]}
+        pan = {"status": "OK", "affine": [[1, 0, -50], [0, 1, 0]]}       # camera pans: scene moves 50 px left
+        frames = [{"t": k / 10, "camera": ident} for k in range(3)] + [{"t": 0.3, "camera": pan}]
+        lost = [100, 100, 140, 200]                                         # 100 px tall, centre (120, 150)
+        near = [52, 100, 92, 200]                                           # where the pan carried him
+        far = [600, 100, 640, 200]
+        self.assertTrue(reachable(frames, lost, 0, 3, near, tc, 1280, 720))
+        self.assertFalse(reachable(frames, lost, 0, 3, far, tc, 1280, 720))
+        cut = frames[:3] + [{"t": 0.3, "camera": {"status": "CUT", "affine": [[1, 0, 0], [0, 1, 0]]}}]
+        self.assertIsNone(reachable(cut, lost, 0, 3, far, tc, 1280, 720))  # across a cut: cannot judge
+        out = frames[:3] + [{"t": 0.3, "camera": {"status": "OK", "affine": [[1, 0, -500], [0, 1, 0]]}}]
+        self.assertIsNone(reachable(out, lost, 0, 3, far, tc, 1280, 720))  # carried out of the picture
+        self.assertIsNone(reachable(frames, lost, 0, 3, far, tc, None, None))
+
+
 class Validation(unittest.TestCase):
     def setUp(self):
         self.tr = returning(others={"t3": None})

@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reid-reentry-eval, on main f787af5).
-- Full suite: `python -m pytest tests -q` → 465 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
+As of 2026-11-18 (branch identity/reentry-position-mutual, on main bdb33b9).
+- Full suite: `python -m pytest tests -q` → 468 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
   training tests skip).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -143,7 +143,9 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
          Automatic re-entry links ruled out (`records/reid_reentry_eval_2026-11-18`): 79 labelled re-entries, best
          match right 78 %; at ~40–50 % coverage about 1 pick in 10 is wrong; 0-wrong settings cover < 20 % with a
          >= 18 % bound. Crossing resolution by re-ID likewise not built. Next for re-ID: more TRAIN identities
-         (TRAIN_M003) and/or team classification. A
+         (TRAIN_M003) and/or team classification. Two-way (mutual) best match now on (`target.reentry_mutual`,
+         margin 0; `records/reentry_position_mutual_2026-11-18`): offers 16 right / 0 wrong / 1 undecided (was
+         16 / 1 / 2), offline 33 / 2 (was 28 / 3); the camera-carried position bound changed nothing (off). A
          re-entry OFFER costs the reviewer one action, like a tap: it eases the action but does not lower actions
          per minute; only re-ID that acts without the user (auto-link at a strict margin, or crossing resolution)
          would, and both touch the 2026-11-16 rule that relinks need the user. Nathan to choose;
