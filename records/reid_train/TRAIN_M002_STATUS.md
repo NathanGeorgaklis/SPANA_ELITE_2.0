@@ -44,3 +44,16 @@ Nothing has been trained. DEV and EVAL are not involved.
   `…36f0e470`, so the shortened suffix was a transcription error. The file itself is unchanged:
   `TRAIN_M002.trk.json` (which matches its record) stores `detections_sha256` =
   `30d82a9f8d34bdffbb638aa66196d2ae5c5e6d7964f44cc4d079109436f0e470`, equal to the file on the Mac.
+
+## Long-tracklet pack (2026-11-18): the one to label
+- Reason: the full pack (3,023 tracklets, half shorter than 2.7 s) is too much labelling for its value; the re-ID
+  pilot needs more identities more than more short crops (`records/reid_pilot_v1_2026-11-18`,
+  `records/reid_fusion_dev_2026-11-18`). Nathan chose the 8 s cut.
+- Built with `tools.reid_pack --min-observed 120` (120 observed frames at 15 Hz = 8 s; code at 88a9632), same
+  video, tracks and manifest as above.
+- Location: `Downloads/SPANA_reid/TRAIN_M002/TRAIN_M002_EASTERN_SUBURBS_reid_pack_8s/`.
+- 414 tracklets (a subset of the full pack's proposal), median 179 observed frames, 85,184 observed boxes (43 % of
+  the full pack's), 59 flagged by the tracker, 3,312 thumbnails.
+- tracklets sha `1bf50896b4c95ebcaba63fb804cbaf2117f8d42373bc8565a809fca6fedb2015`.
+- The full pack is kept unchanged. Shorter tracklets (crowded moments) can be added later as a second label
+  version if the retrained model is weak there.
