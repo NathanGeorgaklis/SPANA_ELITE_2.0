@@ -1,6 +1,6 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/resume-after-doubt, on tracking/doubt-self-resolve, on identity/tap-vouches-doubt on tracking/continuity-attribution
+As of 2026-11-18 (branch tracking/gate-break-diagnosis, on identity/resume-after-doubt, on tracking/doubt-self-resolve, on identity/tap-vouches-doubt on tracking/continuity-attribution
 on identity/reid-retrain-v2 8d62866; main 11b5a80).
 - Full suite: `python -m pytest tests -q` → 415 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
   training tests skip).
@@ -162,5 +162,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
    (b) tap vouch measured (`records/doubt_resolution_2026-11-18`): 106 fragments, 0 silent, reviewer 0.783 / 2 wrong,
    but 6.27 actions per min (= today): a doubt costs one tap like a fragment did. Resume after a no-rival doubt
    (`records/resume_after_doubt_2026-11-18`): unaided 0.547, reviewer 0.783 / 6.27 or 0.753 / 5.92; pass bar not
-   met, all off (Nathan may relax the bar to "no more actions"). Doubt path closed for now. Next: diagnose the
-   height-ratio / motion-gate breaks (15) and low-score continuation (7).
+   met, all off (Nathan may relax the bar to "no more actions"). Doubt path closed for now. Gate / low-score
+   breaks diagnosed (`records/gate_break_diagnosis_2026-11-18`): the 15 gate breaks are partial-body extent
+   changes (box shrinks to 0.59–0.67 behind an occluder, or grows 1.13–1.57× on re-emerging, so the centre gate
+   fails); this overlaps the deferred M2 decision. 4 low-score breaks are short-gap re-associations S4 refuses
+   because of the low score. Proposed, not built:
+   - A, extent-change continuation (15; needs Nathan, certain or flagged?);
+   - B, low-score short-gap recovery (4).

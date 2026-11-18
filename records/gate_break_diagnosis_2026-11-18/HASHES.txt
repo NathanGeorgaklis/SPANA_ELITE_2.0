@@ -1,0 +1,5 @@
+# sha256. Files on Nathan's Mac (code b87733e extracted to ~/spana-continuity-run/code5/). Inputs: today's tracks
+# runs/person_view_compare/F0x_local.* and ~/spana-continuity-run/out/attribution_baseline.json
+# (records/continuity_attribution_2026-11-18/HASHES.txt).
+fbbfdfc703614d0537d93b36d2eca0c7faebc97f2562017827b02f311b00608f  tools/dev/gate_break_trace.py
+510401ad8ada1becf201dbcd813e8804394d55a0a6ab1f2e67e2b7982b427e72  ~/spana-continuity-run/out/gate_break_trace.json
