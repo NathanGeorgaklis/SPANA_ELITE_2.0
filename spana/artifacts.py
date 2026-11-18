@@ -25,6 +25,9 @@ Change log:
   2.1.0 target: user_actions (confirm_candidate, confirm_relink, reject_candidate, track_at_frame re-selection)
         replace confirmations; relinks + rejection; + gaps (stretches without a TARGET answer, for the review
         timeline). 2.0.0 documents keep their 2.0.0 meaning.
+  2.2.0 target: + target_config.tap_vouches_doubt; TARGET may carry reason USER_VOUCHED: on an ACTIVE, confirmed
+        track uncertain only by an appearance doubt (tracks 2.2.0 identity_doubt, no rivals), tapped by the user
+        (selection or re-selection) earlier in the same uncertainty episode. 2.1.0 documents keep their meaning.
 
 Any change to keys, types, units or meaning increments the version. Writers are atomic and never overwrite.
 """
@@ -45,7 +48,7 @@ from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityS
 DETECTIONS_SCHEMA = ("spana.detections", "1.4.0")   # 1.4.0: class_names (class_id indexes it)
 TRACKS_SCHEMA = ("spana.tracks", "2.2.0")   # 2.1.0 documents still validate (validate_tracks)
 TRACKS_ACCEPTED = ("2.1.0", "2.2.0")
-TARGET_SCHEMA = ("spana.target", "2.1.0")   # 1.0.0 / 2.0.0 documents still validate (validate_target)
+TARGET_SCHEMA = ("spana.target", "2.2.0")   # 1.0.0 / 2.0.0 / 2.1.0 documents still validate (validate_target)
 
 
 class ArtifactError(ValueError):
@@ -343,14 +346,15 @@ _SELECTIONS = {("track_at_frame", "1.0.0"): ("kind", "version", "frame", "track_
 
 
 def validate_target(doc: Any, tracks: Optional[dict] = None) -> None:
-    """Validate a spana.target document of any supported version (2.1.0 current; 2.0.0 / 1.0.0 as written then)."""
+    """Validate a spana.target document of any supported version (2.2.0 current; 2.1.0 / 2.0.0 / 1.0.0 as written
+    then)."""
     if not isinstance(doc, dict):
         raise ArtifactError("target document must be an object")
     version = doc.get("schema_version")
     if version == "1.0.0":
         return _validate_target_v1(doc, tracks)
-    if version in ("2.0.0", "2.1.0"):
-        return _validate_target_v2(doc, tracks, v21=version == "2.1.0")
+    if version in ("2.0.0", "2.1.0", "2.2.0"):
+        return _validate_target_v2(doc, tracks, version)
     raise ArtifactError(f"unsupported spana.target version {version!r}")
 
 
@@ -426,6 +430,8 @@ def _validate_target_v1(doc: Any, tracks: Optional[dict] = None) -> None:
 
 _TARGET_REASONS_V2 = {**_TARGET_REASONS,
                       TargetState.CANDIDATE.value: {TargetReason.RELINK_PREDECESSOR.value}}
+_TARGET_REASONS_V22 = {**_TARGET_REASONS_V2,
+                       TargetState.TARGET.value: {TargetReason.TRACK_OBSERVED.value, TargetReason.USER_VOUCHED.value}}
 _RELINK_KEYS = ("from_track", "to_track", "lost_frame", "proposed_frame", "gap_s", "evidence", "confirmation",
                 "outcome", "dropped_reason")
 _CONFIRM = ("confirm_candidate", "1.0.0")
@@ -463,9 +469,10 @@ def gaps_of(frames: Sequence[dict], relinks: Sequence[dict]) -> List[dict]:
     return out
 
 
-def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, v21: bool = True) -> None:
-    """2.0.0 / 2.1.0. Structure, then (with the source tracks) every answer and every relink against the tracks."""
-    version = "2.1.0" if v21 else "2.0.0"
+def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = "2.2.0") -> None:
+    """2.0.0 / 2.1.0 / 2.2.0. Structure, then (with the source tracks) every answer and every relink against the
+    tracks."""
+    v21, v22 = version in ("2.1.0", "2.2.0"), version == "2.2.0"
     _header(doc, ("spana.target", version),
             ("schema", "schema_version", "provenance", "video", "tracks_sha256", "selection",
              "user_actions" if v21 else "confirmations", "target_config", "track_ends", "relinks", "frames")
@@ -477,8 +484,10 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, v21: bool = Tru
     if not (isinstance(sel["frame"], int) and not isinstance(sel["frame"], bool) and isinstance(sel["track_id"], str)):
         raise ArtifactError("bad selection frame / track_id")
     tc = doc["target_config"]
-    _keys(tc, ("resume_after_uncertain", "relink_max_gap_s", "relink_auto_confirm"), "target_config")
+    _keys(tc, ("resume_after_uncertain", "relink_max_gap_s", "relink_auto_confirm")
+          + (("tap_vouches_doubt",) if v22 else ()), "target_config")
     if not (isinstance(tc["resume_after_uncertain"], bool) and isinstance(tc["relink_auto_confirm"], bool)
+            and isinstance(tc.get("tap_vouches_doubt", False), bool)
             and _num(tc["relink_max_gap_s"]) and tc["relink_max_gap_s"] > 0):
         raise ArtifactError("bad target_config")
     confs = doc["user_actions" if v21 else "confirmations"]
@@ -557,7 +566,7 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, v21: bool = Tru
         if not _num(fr["t"]) or fr["t"] <= prev_t:
             raise ArtifactError(f"{where}: time not strictly increasing")
         prev_t = fr["t"]
-        if fr["reason"] not in _TARGET_REASONS_V2.get(fr["state"], set()):
+        if fr["reason"] not in (_TARGET_REASONS_V22 if v22 else _TARGET_REASONS_V2).get(fr["state"], set()):
             raise ArtifactError(f"{where}: state {fr['state']!r} with reason {fr['reason']!r}")
         tid, b = fr["track_id"], fr["box"]
         if not isinstance(tid, str):
@@ -621,13 +630,50 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, v21: bool = Tru
                   and r["lost_frame"] < v["frame"] <= r["proposed_frame"] and v["t"] - t0 <= tc["relink_max_gap_s"] + 1e-9]
         if rivals:
             raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: not the only candidate ({rivals})")
-    for tf, fr in zip(src, frames):
-        if fr["state"] in (TargetState.TARGET.value, TargetState.CANDIDATE.value):
+    taps = sorted([(sel["frame"], sel["track_id"])] + [(g, tid) for tid, fs in reselected.items() for g in fs])
+    for k, (tf, fr) in enumerate(zip(src, frames)):
+        if fr["reason"] == TargetReason.USER_VOUCHED.value:
+            _check_vouched(tc, src, frames, k, taps)
+        elif fr["state"] in (TargetState.TARGET.value, TargetState.CANDIDATE.value):
             tr = next((t for t in tf["tracks"] if t["track_id"] == fr["track_id"]), None)
             if not (tr is not None and tr["state"] == TrackState.ACTIVE.value and tr["confirmed"]
                     and tr["identity"] == IdentityState.CERTAIN.value and tr["box"] == fr["box"]):
                 raise ArtifactError(f"frame {tf['frame']}: {fr['state']} not backed by an ACTIVE, confirmed, CERTAIN "
                                     "track box")
+
+
+def _doubt_only(t: dict) -> bool:
+    return t["identity"] != IdentityState.CERTAIN.value and bool(t.get("identity_doubt")) and not t["identity_rivals"]
+
+
+def _check_vouched(tc: dict, src: List[dict], frames: List[dict], k: int, taps: List[tuple]) -> None:
+    """A USER_VOUCHED answer at index k: the latest tap at or before it is on this track, made while the track was
+    doubt-only; from that tap to now the track never had a rival and stayed in the same uncertainty episode, and
+    the answered track did not change (CANDIDATE offers in between excepted); now it is ACTIVE, confirmed and
+    doubt-only with the answer's box."""
+    fr, tid = frames[k], frames[k]["track_id"]
+    where = f"frame {fr['frame']}: USER_VOUCHED"
+    if not tc.get("tap_vouches_doubt"):
+        raise ArtifactError(f"{where} while tap_vouches_doubt is false")
+    g = max((g for g, _ in taps if g <= fr["frame"]), default=None)
+    if g is None or (g, tid) not in taps:
+        raise ArtifactError(f"{where}: the latest tap is not on {tid}")
+    first = next(j for j, x in enumerate(src) if x["frame"] == g)
+    episodes = None
+    for j in range(first, k + 1):
+        t = next((x for x in src[j]["tracks"] if x["track_id"] == tid), None)
+        if t is None or t["identity_rivals"]:
+            raise ArtifactError(f"{where}: {tid} gone or with a rival since the tap")
+        if j == first:
+            if not _doubt_only(t):
+                raise ArtifactError(f"{where}: {tid} was not doubt-only when tapped")
+            episodes = t["uncertain_episodes"]
+        elif t["uncertain_episodes"] != episodes:
+            raise ArtifactError(f"{where}: {tid} entered a new uncertainty episode since the tap")
+        if frames[j]["track_id"] != tid and frames[j]["state"] != TargetState.CANDIDATE.value:
+            raise ArtifactError(f"{where}: the answered track changed since the tap")
+    if not (t["state"] == TrackState.ACTIVE.value and t["confirmed"] and _doubt_only(t) and t["box"] == fr["box"]):
+        raise ArtifactError(f"{where}: not backed by an ACTIVE, confirmed, doubt-only track box")
 
 
 # ----------------------------------------------------------------------------- helpers

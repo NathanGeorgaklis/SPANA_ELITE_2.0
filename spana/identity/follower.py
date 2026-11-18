@@ -1,4 +1,4 @@
-"""Target follower with relink proposals (spana.target 2.0.0).
+"""Target follower with relink proposals (spana.target 2.0.0) and user-vouched doubts (2.2.0).
 
 Selection (versioned, see SELECTION_KINDS): `track_at_frame` 1.0.0 = a track id at a frame, i.e. a tap on a box the
 app showed. The track must be live and OBSERVED (ACTIVE) on that frame, otherwise the selection is refused.
@@ -40,6 +40,15 @@ Each is versioned, applied on its own frame, and refused (UserActionError) if it
   track_at_frame    1.0.0 {frame, track_id}  a tap on a box mid-clip: re-selects the player from that frame on
                     (the track must be ACTIVE there); earlier frames keep their answers
 At most one action that changes the answered track (confirm_relink / track_at_frame) per frame.
+
+User-vouched doubt (spana.target 2.2.0, target.tap_vouches_doubt; decision 2026-11-18). A track can be
+IDENTITY_UNCERTAIN only because its own appearance disagreed on an exclusive continuation (tracks 2.2.0
+`identity_doubt`, no `identity_rivals`). When the user taps such a track (the selection or a `track_at_frame`
+re-selection) during that doubt, the tap is the identity evidence the colour model lacks:
+  TARGET    USER_VOUCHED        answered track ACTIVE, confirmed, doubt only (no rival), and still in the uncertainty
+                                episode the user tapped it in (same uncertain_episodes)
+The vouch ends, fail closed, as soon as the track gains a rival (ABSTAIN IDENTITY_UNCERTAIN, then AFTER_UNCERTAIN)
+or a new uncertainty episode starts; it never covers a rival ambiguity, and a tap on a CERTAIN track vouches nothing.
 """
 from __future__ import annotations
 
@@ -153,6 +162,12 @@ def _parse_actions(actions: Iterable[dict]) -> List[dict]:
     return out
 
 
+def _doubt_only(tr: dict) -> bool:
+    """IDENTITY_UNCERTAIN only by an appearance doubt: no rival track to confuse it with (tracks 2.2.0)."""
+    return tr["identity"] != IdentityState.CERTAIN.value and bool(tr.get("identity_doubt")) and \
+        not tr["identity_rivals"]
+
+
 def _usable(tr: Optional[dict]) -> bool:
     return tr is not None and tr["state"] == TrackState.ACTIVE.value and tr["confirmed"] and \
         tr["identity"] == IdentityState.CERTAIN.value
@@ -184,6 +199,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
     relinks: List[dict] = []
     cur, cur_ended = sel.track_id, False
     tainted, episodes0 = False, None
+    vouch: Optional[Tuple[str, int]] = None   # (track, uncertainty episode) the user tapped during a doubt
     last_obs: Optional[int] = None         # index of cur's last observation
     relinkable = False                     # cur was confirmed, CERTAIN and untainted at its last observation
     search_done = False                    # this loss of cur gets no (further) proposal
@@ -196,13 +212,20 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
             pending = None
         search_done = True
 
-    def answer_on(tid: str, why: str) -> None:
+    def vouch_for(tr: dict) -> Optional[Tuple[str, int]]:
+        """The user's tap on tr: a vouch when tr is uncertain only by an appearance doubt (and the policy is on)."""
+        if tc.tap_vouches_doubt and _doubt_only(tr):
+            return tr["track_id"], tr["uncertain_episodes"]
+        return None
+
+    def answer_on(tid: str, why: str, tapped: Optional[dict] = None) -> None:
         """Make tid the answered track from this frame on (a confirmed relink or a re-selection)."""
-        nonlocal cur, cur_ended, tainted, episodes0, last_obs, relinkable, search_done
+        nonlocal cur, cur_ended, tainted, episodes0, last_obs, relinkable, search_done, vouch
         if pending is not None:
             drop(why)
         cur, cur_ended, tainted, episodes0 = tid, False, False, None
         last_obs, relinkable, search_done = None, False, False
+        vouch = None if tapped is None else vouch_for(tapped)
 
     def find_relink(a: dict) -> dict:
         r = next((r for r in relinks if (r["from_track"], r["to_track"], r["proposed_frame"]) ==
@@ -211,6 +234,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
             raise UserActionError(f"{a['kind']} names no offer made by its frame: {a!r}")
         return r
 
+    vouch = vouch_for(next(t for t in frames[start]["tracks"] if t["track_id"] == sel.track_id))
     for n in range(start, len(frames)):
         fr = frames[n]
         f, t = fr["frame"], fr["t"]
@@ -247,7 +271,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                 tr_sel = live.get(a["track_id"])
                 if tr_sel is None or tr_sel["state"] != TrackState.ACTIVE.value:
                     raise UserActionError(f"re-selection must tap an observed box on its frame: {a!r}")
-                answer_on(a["track_id"], "RESELECTED")
+                answer_on(a["track_id"], "RESELECTED", tapped=tr_sel)
             used.add(id(a))
 
         # ---------------------------------------------------------------- v1 state of the answered track
@@ -259,7 +283,11 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
         if tr is None:
             state, reason, box = TargetState.LOST, TargetReason.TRACK_ENDED, None
         else:
-            uncertain = tr["identity"] != IdentityState.CERTAIN.value
+            vouched = vouch is not None and vouch[0] == cur and _doubt_only(tr) and \
+                tr["uncertain_episodes"] == vouch[1]
+            uncertain = tr["identity"] != IdentityState.CERTAIN.value and not vouched
+            if vouch is not None and (vouch[0] != cur or tr["identity_rivals"] or tr["uncertain_episodes"] != vouch[1]):
+                vouch = None                                   # a rival or a new episode: the tap no longer covers it
             if episodes0 is None:
                 episodes0 = tr["uncertain_episodes"] - int(uncertain)
             if uncertain or tr["uncertain_episodes"] > episodes0:
@@ -276,7 +304,8 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
             elif not tr["confirmed"]:
                 state, reason = TargetState.ABSTAIN, TargetReason.NOT_CONFIRMED
             else:
-                state, reason, box = TargetState.TARGET, TargetReason.TRACK_OBSERVED, list(tr["box"])
+                state, box = TargetState.TARGET, list(tr["box"])
+                reason = TargetReason.USER_VOUCHED if vouched else TargetReason.TRACK_OBSERVED
             if observed:
                 if pending is not None:
                     drop("ORIGINAL_OBSERVED")
@@ -331,7 +360,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                         used.add(id(confs[key]))
                     pending.update(confirmation=confs.get(key, {"kind": "auto_confirm", "frame": f}),
                                    outcome="CONFIRMED")
-                    cur, cur_ended, pending = b, False, None
+                    cur, cur_ended, pending, vouch = b, False, None, None
                     tainted, episodes0 = False, live[b]["uncertain_episodes"]
                     last_obs, relinkable, search_done = n, True, False
                     answer.update(state=TargetState.TARGET.value, reason=TargetReason.TRACK_OBSERVED.value)
@@ -345,7 +374,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
 
 def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Sequence[str] = (),
                     actions: Iterable[dict] = ()) -> dict:
-    """Validated spana.target 2.1.0 document for one selection (and the user's actions) on one validated
+    """Validated spana.target 2.2.0 document for one selection (and the user's actions) on one validated
     spana.tracks document."""
     actions = [dict(a) for a in actions]
     frames, info = follow(tracks_doc, sel, cfg, actions)
@@ -358,7 +387,8 @@ def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Se
         "user_actions": actions,
         "target_config": {"resume_after_uncertain": cfg.target.resume_after_uncertain,
                           "relink_max_gap_s": cfg.target.relink_max_gap_s,
-                          "relink_auto_confirm": cfg.target.relink_auto_confirm},
+                          "relink_auto_confirm": cfg.target.relink_auto_confirm,
+                          "tap_vouches_doubt": cfg.target.tap_vouches_doubt},
         "track_ends": info["track_ends"], "relinks": info["relinks"], "frames": frames,
         "gaps": gaps_of(frames, info["relinks"]),
     }

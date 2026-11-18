@@ -20,7 +20,8 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 import yaml
 
 CONFIG_SCHEMA_VERSION = "2.4.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.4.0: + tracking appearance
-#   doubt link (2.3.0 is taken by unmerged branches: tracking.exit_hold_s, inference / profiling / performance)
+#   doubt link, target.tap_vouches_doubt (2.3.0 is taken by unmerged branches: tracking.exit_hold_s, inference /
+#   profiling / performance)
 
 
 class ConfigError(ValueError):
@@ -187,6 +188,8 @@ class TargetConfig:
     relink_max_gap_s: float        # a relink candidate must be born within this time of the lost track's last
                                    #   observation (spana.identity.follower)
     relink_auto_confirm: bool      # promote a CANDIDATE to TARGET without the user's confirmation (measurement only)
+    tap_vouches_doubt: bool        # a user's tap on a track that is uncertain ONLY by an appearance doubt (no rival)
+                                   #   answers TARGET (USER_VOUCHED) for the rest of that doubt episode
 
     def validate(self) -> None:
         _pos("target.relink_max_gap_s", self.relink_max_gap_s)

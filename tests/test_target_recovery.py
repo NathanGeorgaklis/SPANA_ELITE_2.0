@@ -100,7 +100,7 @@ class GapsAndValidatorTest(unittest.TestCase):
         tracks = dropped_offer()
         r = follow(tracks, SEL, CFG)[1]["relinks"][0]
         doc = target_document(tracks, SEL, CFG, ["test"], [confirm_relink(r, 5)])
-        self.assertEqual(doc["schema_version"], "2.1.0")
+        self.assertEqual(doc["schema_version"], "2.2.0")
         validate_target(doc, tracks)
 
         def broken(edit):
@@ -132,6 +132,7 @@ class GapsAndValidatorTest(unittest.TestCase):
         d = target_document(tracks, SEL, CFG, ["test"], [confirm_candidate("t3", 4)])
         v2 = {k: v for k, v in d.items() if k not in ("user_actions", "gaps")}
         v2.update(schema_version="2.0.0", confirmations=d["user_actions"],
+                  target_config={k: v for k, v in d["target_config"].items() if k != "tap_vouches_doubt"},
                   relinks=[{k: v for k, v in r.items() if k != "rejection"} for r in d["relinks"]])
         validate_target(v2, tracks)
         v2["confirmations"].append(reselect("t2", 3))                       # 2.0.0 knows confirmations only

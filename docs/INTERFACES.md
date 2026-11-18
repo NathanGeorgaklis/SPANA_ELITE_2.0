@@ -71,7 +71,7 @@ What the tracking layer receives from any detector, the football detector includ
 | `CameraStatus` | OK, UNKNOWN, CUT, FIRST |
 | `EndReason` | UNCONFIRMED_MISSED, UNCONFIRMED_TIMEOUT, LOST_EXPIRED, CAMERA_CUT, CAMERA_MOTION_UNKNOWN, LEFT_FRAME |
 | `TargetState` (target identity) | TARGET, CANDIDATE (2.0.0: proposed relink awaiting confirmation), LOST, ABSTAIN |
-| `TargetReason` (target identity) | TRACK_OBSERVED, NOT_CONFIRMED, IDENTITY_UNCERTAIN, AFTER_UNCERTAIN, TRACK_OCCLUDED, TRACK_LOST, TRACK_ENDED, RELINK_PREDECESSOR (2.0.0) |
+| `TargetReason` (target identity) | TRACK_OBSERVED, NOT_CONFIRMED, IDENTITY_UNCERTAIN, AFTER_UNCERTAIN, TRACK_OCCLUDED, TRACK_LOST, TRACK_ENDED, RELINK_PREDECESSOR (2.0.0), USER_VOUCHED (2.2.0) |
 
 ## Target identity — `spana/identity/` (defined 2026-11-16)
 Follow the user's chosen player through a clip, and say so when unsure.
@@ -80,13 +80,15 @@ Follow the user's chosen player through a clip, and say so when unsure.
   - `track_at_frame` 1.0.0 = a tap on a box the app showed: the track must be live and ACTIVE (observed) on that
     frame. Otherwise `SelectionError` (refused, never guessed).
   - Tap is the chosen way to pick (decision 2026-11-16). Shirt number / photo may come later as hints.
-- Out: **`spana.target` 2.1.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
-  2.0.0 and 1.0.0 documents still validate with their own meaning.
+- Out: **`spana.target` 2.2.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
+  2.1.0, 2.0.0 and 1.0.0 documents still validate with their own meaning.
+  - 2.1.0: no `target_config.tap_vouches_doubt`, no USER_VOUCHED.
   - 2.0.0: `confirmations` instead of `user_actions`, no `gaps`, no `rejection` in relinks.
   - 1.0.0: TARGET only on the selected track, `track_end`, `track_id` null without an answer, CANDIDATE refused.
   - Top level: `schema, schema_version, provenance, video, tracks_sha256, selection, user_actions, target_config,
     track_ends, relinks, frames, gaps`.
-  - `target_config`: `{resume_after_uncertain, relink_max_gap_s, relink_auto_confirm}` from default.yaml `target`.
+  - `target_config`: `{resume_after_uncertain, relink_max_gap_s, relink_auto_confirm, tap_vouches_doubt}` from
+    default.yaml `target`.
   - `user_actions` (2.1.0; decisions 2026-11-16: non-blocking offer, tap to re-select, after-match review).
     Versioned records, each applied on its own frame and refused (`UserActionError`) if it does not apply. At most
     one track-changing action (`confirm_relink` / `track_at_frame`) per frame.
@@ -110,7 +112,10 @@ Follow the user's chosen player through a clip, and say so when unsure.
     `track_id` always names the track the answer refers to; `box` is set exactly for TARGET and CANDIDATE.
   - Validated against the tracks artifact:
     - same frames;
-    - TARGET / CANDIDATE boxes are those of an ACTIVE, confirmed, CERTAIN track;
+    - TARGET / CANDIDATE boxes are those of an ACTIVE, confirmed, CERTAIN track, except TARGET USER_VOUCHED (2.2.0):
+      an ACTIVE, confirmed track uncertain only by an appearance doubt (tracks `identity_doubt`, no rivals), whose
+      latest tap (selection / re-selection) is on it, made during the doubt, with no rival and the same
+      `uncertain_episodes` since, and `tap_vouches_doubt` true;
     - TARGET only on the selection, a re-selection or a relink confirmed at or before that frame;
     - every re-selection is an observed box on its frame;
     - every relink supported by the tracks: the new track names the lost one, it is the only such track born in
@@ -120,6 +125,7 @@ Follow the user's chosen player through a clip, and say so when unsure.
 | state | reason | when |
 |---|---|---|
 | TARGET | TRACK_OBSERVED | answered track ACTIVE, confirmed, CERTAIN |
+| TARGET | USER_VOUCHED | ... ACTIVE, confirmed, uncertain only by an appearance doubt that the user tapped it during (`target.tap_vouches_doubt`; ends on a rival or a new episode) |
 | ABSTAIN | NOT_CONFIRMED | ... not yet confirmed |
 | ABSTAIN | IDENTITY_UNCERTAIN | ... IDENTITY_UNCERTAIN now |
 | ABSTAIN | AFTER_UNCERTAIN | ... was uncertain since it became the answered track and `target.resume_after_uncertain` is false |
