@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-18 (branch repo/merge-main-2026-11-18: the 2026-11-18 tracking / identity stack merged with main f86a47e).
-- Full suite: `python -m pytest tests -q` → 448 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
+As of 2026-11-18 (branch identity/reentry-reid-offers, on main 65949b1).
+- Full suite: `python -m pytest tests -q` → 465 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
   training tests skip).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -137,7 +137,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
    - Review actions on the DEV clips by cause (`records/review_min_gap_2026-11-18` reviewer run, 81 actions):
      track lost 24 (13 offer confirmations), identity uncertain at a crossing 20, left the picture 18, occluded 12.
    - Priorities:
-     (a) re-identification across pans / re-entries and at crossings (re-ID v2 is "promising", uncalibrated). A
+     (a) re-identification across pans / re-entries and at crossings. Built for testing (Nathan's option 1): re-entry
+         OFFERS by re-ID v2 (`target.reentry_offer`, `spana.cli embed`, `spana.target` 2.4.0;
+         `records/reentry_reid_offers_2026-11-18`): at 0.75 / 0.10 offers right 16, wrong 1, undecided 2 on DEV;
+         reviewer 0.776 / 2 wrong / 5.57 actions per min (no offers: 0.778 / 2 / 5.64). Nathan tests in the app. A
          re-entry OFFER costs the reviewer one action, like a tap: it eases the action but does not lower actions
          per minute; only re-ID that acts without the user (auto-link at a strict margin, or crossing resolution)
          would, and both touch the 2026-11-16 rule that relinks need the user. Nathan to choose;

@@ -142,10 +142,11 @@ target:
   # confirms) the one track born within reentry_max_gap_s whose first re-ID signature is closest to the lost track's
   # last signature, if it reaches reentry_min_similarity and beats every other such track by reentry_min_margin.
   # Needs a spana.track_embeddings document (spana.cli embed); without one, no offer.
-  # Thresholds: set on the DEV clips (records/reentry_reid_offers_2026-11-18).
+  # Thresholds set on the 4 DEV clips (records/reentry_reid_offers_2026-11-18): at 0.75 / 0.10 offers were right
+  # 16, wrong 1, undecided 2; reviewer correct 0.776 vs 0.778 without offers. Fitted on DEV, small sample.
   reentry_offer: true
   reentry_max_gap_s: 10.0
-  reentry_min_similarity: 0.60
+  reentry_min_similarity: 0.75
   reentry_min_margin: 0.10
 
 reid:

@@ -38,6 +38,7 @@ REASON_TEXT = {
     "TRACK_LOST": "out of sight",
     "TRACK_ENDED": "track ended: tap your player",
     "RELINK_PREDECESSOR": "likely the same player: confirm?",
+    "REENTRY_REID": "looks like your player coming back: confirm?",
 }
 ACTION_MARK = {"track_at_frame": "^", "confirm_candidate": "+", "confirm_relink": "+", "reject_candidate": "x"}
 

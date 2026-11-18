@@ -1,0 +1,15 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/ (code 45261f8 extracted to code11/, with the re-ID v2
+# ONNX copied to code11/models/spana_reid_v2/). Tracks: today's default, out/F0x_mdefault.trk.json
+# (records/extent_link_window_2026-11-18 / merge check).
+6f8cebb7a835ed1850b4e3b7491dbcc589838ef9d923fade77980ef9a985409f  ~/spana-continuity-run/run_reid_offers.sh
+df8956180adff061211b206526d974d782fe0a79aaaf74a7e8da7e4f9d31b62f  ~/spana-continuity-run/run_reid_sweep.sh
+c269450e871cb28b4020b715618edc9dcda328faf951503a9e09f8e7a3032f84  ~/spana-continuity-run/code11/models/spana_reid_v2/spana_reid.onnx (= models/spana_reid_v2.json)
+8c31f04f4dca2c3cfad4ec669f31083d9bc18ffa84a7c4c55cdecf4efb687f98  ~/spana-continuity-run/out/F02_mdefault.emb.json
+4ae322c556f0936ce5c956301cc270aa041e852507d9c79eccc2bf95a259f1e5  ~/spana-continuity-run/out/F05_mdefault.emb.json
+4daaa85808ab3bc4a33cf8a3421587776827ed51c653e068b4d691d6992a1ab1  ~/spana-continuity-run/out/F07_mdefault.emb.json
+36be829661a2c347e19a5d7449d98070005c27b4936faef7f5ccc7fb9aa71d3a  ~/spana-continuity-run/out/F08_mdefault.emb.json
+8bf1d3c2278b9833092e6fb950c0b379d04e331fff833ed0c6ff83971da92c5e  ~/spana-continuity-run/out/target_reid_default.json (0.60 / 0.10)
+ec79ccd94daf3361e11f511cc7d8a0bd1e1b673fcc9d752292ebb85371d1b843  ~/spana-continuity-run/out/target_reid_reviewer.json (0.60 / 0.10)
+c90ba498b9ef2165e91bea30add29bc9940da0d6ce8b1e33cfaa9e49d1abf205  ~/spana-continuity-run/out/target_noreid_reviewer.json
+22c478e987ec34bfe1644913a3885e90dbadde351a5914ded851c8d5e8d36317  ~/spana-continuity-run/out/target_ro_0.75_0.10_default.json (chosen)
+6a90f9ae77ae9273c3b52e902bb4781d645d6981e92fc482b2d5b5d833569304  ~/spana-continuity-run/out/target_ro_0.75_0.10_reviewer.json (chosen)
