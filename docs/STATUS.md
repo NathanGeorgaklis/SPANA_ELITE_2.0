@@ -2,7 +2,7 @@
 
 As of 2026-11-18 (branch tracking/extent-and-low-score-v1, on tracking/gate-break-diagnosis, on identity/resume-after-doubt, on tracking/doubt-self-resolve, on identity/tap-vouches-doubt on tracking/continuity-attribution
 on identity/reid-retrain-v2 8d62866; main 11b5a80).
-- Full suite: `python -m pytest tests -q` → 426 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
+- Full suite: `python -m pytest tests -q` → 431 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
   training tests skip).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -172,6 +172,9 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
    Both built and measured (`records/extent_and_low_score_2026-11-18`; `tracking.extent_change_link`,
    `tracking.low_score_recovery`): fragments 120 → 115 / 116 / 114 (A / B / both), silent 0, but flagged
    transfers 7 / 7 / 8 (knock-on crossings, not on linked tracks) and reviewer correct 0.768 / 0.769 / 0.761. Pass
-   bar not met: both OFF. Across the four attempts fewer fragments did not reduce review effort: longer tracks
+   bar not met: both OFF. After the code review (`826d41f`: gap links recorded as recoveries with S4's motion rule;
+   the linked box replaces the Kalman extent) A v2: fragments 110, reviewer 0.779 / 2 wrong / 6.06 actions, unaided
+   0.532, silent 0, but 7 transfers (the same flagged knock-on FRESH_07 crossing): meets every condition but
+   "transfers <= 6"; OFF pending Nathan. Across the four attempts fewer fragments did not reduce review effort: longer tracks
    collect uncertainty and the reviewer still spends about one action per gap. Better levers: the reviewer's own
    effort (handle only gaps above a configured length, old next-task 1) and re-ID evidence for crossings.

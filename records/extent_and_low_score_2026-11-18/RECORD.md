@@ -101,3 +101,58 @@ Per clip, fragments today → A → B:
     frames with the reviewer (2 → 1) and actions (6.13). Shipping it would mean trading about 1 point of correct
     time for 1 wrong frame and 0.14 actions per minute fewer.
   - A should stay off until the FRESH_08 drop is understood.
+
+## Update: code review and re-measure of A (commit `826d41f`)
+An independent code review of `eecbc72` found that an S3c link across an unobserved gap (track LOST / OCCLUDED for
+2–6 frames) was not recorded as a bridged gap and skipped S4's own-motion bound. Fixed:
+- such a link must pass `_motion_consistent`;
+- it is logged as a `recovery` (stage S3c, rule EXTENT_CHANGE) and counted in `recoveries` / `last_gap_s`.
+
+While testing that fix, a second defect appeared, and it explains most of A's weak first result:
+- the Kalman update averaged the old and new extents;
+- so on the frame after a link neither box edge matched the prediction, and the track broke again.
+- The linked box now replaces the box state (`BoxKalman.rebase_extent`, velocity kept).
+
+Tests: 4 new cases (15 → 16 with the rebase case), each failing on the previous code; full suite 431 passed,
+6 skipped. Re-tracked on the same detections (all-off again identical to the recorded tracks); B unchanged.
+
+**Tracking:**
+
+| | fragments | ID switches | transfers | silent | S3c links (continuing / across a gap) |
+|---|---|---|---|---|---|
+| today | 120 | 121 | 6 | 0 | — |
+| A v1 (`eecbc72`) | 115 | 116 | 7 | 0 | 23 |
+| **A v2** | **110** | **112** | 7 | 0 | 21 / 4 |
+| A v2 + B | 109 | 111 | 8 | 0 | 20 / 2 |
+
+**Following:**
+
+| | correct, no help | wrong, no help | correct, reviewer | wrong, reviewer | actions / min |
+|---|---|---|---|---|---|
+| today | 0.509 | 1 | 0.778 | 2 | 6.27 |
+| A v1 | 0.519 | 1 | 0.768 | 2 | 6.20 |
+| **A v2** | **0.532** | 1 | **0.779** | 2 | **6.06** |
+| A v2 + B | 0.540 | 1 | 0.772 | 1 | 5.85 |
+
+Per clip, A v2: FRESH_07 fragments 38 → 29 and unaided 0.586 → 0.651; FRESH_08 no longer drops (51 fragments,
+reviewer 0.688 vs 0.689).
+
+**A v2 against the pass bar:**
+
+| condition | result | met |
+|---|---|---|
+| reviewer correct >= 0.778 | 0.779 | ✓ |
+| actions < 6.27 per min | 6.06 | ✓ |
+| wrong frames <= 2 / unaided <= 1 | 2 / 1 | ✓ |
+| silent transfers 0 | 0 | ✓ |
+| transfers <= 6 | **7** | ✗ |
+
+The one extra transfer:
+- It is the same flagged FRESH_07 crossing as in v1 (track T000037, frame 366, IDENTITY_UNCERTAIN).
+- Neither T000037 nor any rival of it received an S3c link.
+
+A + B misses on correct time (0.772) and transfers (8).
+
+**Status:** A and B stay OFF under the agreed bar. A v2 misses only on one flagged knock-on transfer. Nathan to
+decide whether "transfers <= 6" may count only transfers on linked tracks, or only silent ones. In either case A v2
+would ship.
