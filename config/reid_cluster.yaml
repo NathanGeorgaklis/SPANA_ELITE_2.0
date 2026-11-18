@@ -1,0 +1,22 @@
+# TRAIN re-ID labelling by group-then-confirm (tools/reid_cluster.py, tools/reid_cluster_review.html,
+# freeze gate in tools/freeze_reid_labels.py). Labelling tooling only; the product never reads this file.
+schema: spana.reid_cluster_config
+schema_version: 1.0.0
+features:
+  crop_pad: 0.05               # model crop = box + this padding, cut from the pack thumbnail (as reid_crops)
+  size_hw: [224, 112]          # model input (the spana re-ID ONNX)
+distance:                      # d = w_emb * (1 - cosine of mean embeddings) + w_col * (1 - Bhattacharyya sim of mean torso hists)
+  weight_embedding: 0.7
+  weight_colour: 0.3           # a tracklet without a torso histogram uses the embedding term alone
+clustering:
+  linkage: average             # agglomerative, average linkage, with the same-frame cannot-link rule
+  max_distance: 0.30           # stop merging above this distance
+  exclude_tracker_flagged: true   # tracklets the tracker flagged (identity contest) -> excluded_tracker_uncertain
+review:
+  sheet_thumbs_per_tracklet: 3 # contact sheet: thumbnails shown per tracklet (odd ones out first)
+audit:
+  fraction: 0.05               # share of the clustered (non-excluded) tracklets shown alone, without their cluster
+  min_tracklets: 10            # at least this many
+  seed: 0
+  ci: 0.95                     # Wilson interval on the disagreement rate
+  max_disagreement_rate: 0.05  # freeze refused above this (point estimate)

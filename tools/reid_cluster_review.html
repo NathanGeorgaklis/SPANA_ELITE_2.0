@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SPANA re-ID cluster review</title>
+<style>
+  :root { --bg:#111418; --panel:#1b2027; --line:#2c333d; --text:#e6e9ee; --muted:#8b95a3; --ok:#3fb950; --warn:#d29922; --bad:#f85149; --acc:#58a6ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:13px/1.4 system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  header { position:sticky; top:0; z-index:5; background:var(--panel); border-bottom:1px solid var(--line); padding:8px 12px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  input, select { background:#0d1014; color:var(--text); border:1px solid var(--line); padding:4px 6px; border-radius:4px; }
+  button { background:#262c35; color:var(--text); border:1px solid var(--line); border-radius:4px; padding:4px 8px; cursor:pointer; }
+  button:hover { border-color:var(--acc); }
+  button.primary { background:#1f6feb; border-color:#1f6feb; }
+  button.on { outline:2px solid var(--acc); }
+  .muted { color:var(--muted); }
+  .bad { color:var(--bad); } .ok { color:var(--ok); } .warn { color:var(--warn); }
+  main { display:grid; grid-template-columns: 250px 1fr; gap:12px; padding:12px; }
+  aside { position:sticky; top:62px; align-self:start; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:10px; max-height:calc(100vh - 80px); overflow:auto; }
+  aside .player { display:flex; justify-content:space-between; padding:4px 6px; border-radius:4px; cursor:pointer; margin:2px 0; }
+  aside .player.active { outline:2px solid var(--acc); }
+  aside input, aside select { width:100%; margin:2px 0; }
+  .swatch { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px; margin-bottom:12px; }
+  .card.conflict { border-color:var(--bad); }
+  .card h3 { margin:0 0 6px; font-size:14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .row { display:flex; align-items:center; gap:8px; padding:3px 0; border-top:1px solid var(--line); flex-wrap:wrap; }
+  .row.over { opacity:.45; }
+  .row img { height:84px; border-radius:3px; }
+  .tag { padding:1px 6px; border-radius:10px; border:1px solid var(--line); font-size:11px; }
+  .tag.c { border-color:var(--bad); color:var(--bad); }
+  #status.bad { color:var(--bad); } #status.ok { color:var(--ok); } #status.warn { color:var(--warn); }
+</style>
+</head>
+<body>
+<header>
+  <b>SPANA re-ID cluster review</b>
+  <span id="match" class="muted"></span>
+  <button id="tabClusters" class="on">Clusters</button>
+  <button id="tabAudit">Audit</button>
+  <select id="filter"><option value="all">all clusters</option><option value="open">undecided</option><option value="conflict">CONFLICT</option></select>
+  <span id="progress" class="muted"></span>
+  <button id="export" class="primary">Export frozen labels</button>
+  <span id="status"></span>
+</header>
+<main>
+  <aside>
+    <div class="muted">Annotator</div><input id="annotator" placeholder="your name">
+    <div class="muted" style="margin-top:6px">Label version / reason (version &gt; 1)</div>
+    <input id="version" type="number" min="1" value="1"><input id="reason" placeholder="reason for a new version">
+    <h4 style="margin:10px 0 4px">Players (this match)</h4>
+    <div class="muted" style="font-size:11px">Click a player to make it active. "Assign" gives a whole cluster (or an audit tracklet) to the active player.</div>
+    <input id="pkey" placeholder="key, e.g. A7"><select id="pside"><option>A</option><option>B</option><option>GK_A</option><option>GK_B</option><option>REF</option><option>OTHER</option></select>
+    <input id="pnum" placeholder="shirt number (optional)"><button id="padd" style="width:100%">Add player</button>
+    <div id="players"></div>
+    <h4 style="margin:10px 0 4px">Summary</h4><div id="summary" class="muted"></div>
+  </aside>
+  <section id="view"></section>
+</main>
+<script src="review.js"></script>
+<script>
+"use strict";
+const R = window.SPANA_CLUSTER_REVIEW;
+const $ = id => document.getElementById(id);
+function status(msg, cls) { const s = $("status"); s.textContent = msg; s.className = cls || ""; }
+if (!R || !R.clusters) { status("review.js missing: open index.html from inside a cluster review folder.", "bad"); throw new Error("no review"); }
+const KEY = "spana_reid_cluster_" + R.tracklets_sha256 + "_" + R.config_sha256;
+const COLORS = ["#58a6ff","#3fb950","#d29922","#f778ba","#a371f7","#39c5cf","#ff7b72","#e3b341","#7ee787","#79c0ff","#ffa657","#d2a8ff"];
+const TL = Object.fromEntries(R.tracklets.map(t => [t.id, t]));
+const AUDIT = new Set(R.audit), EXCL = new Set(R.excluded);
+const ODD = {}; for (const c of Object.values(R.clusters)) c.tracklets.forEach((t, i) => ODD[t] = c.odd[i]);
+const FRAMES = Object.fromEntries(R.tracklets.map(t => [t.id, new Set(t.frames)]));
+function fresh() {
+  return { players: {}, annotator: "", version: 1, reason: "", members: Object.fromEntries(Object.entries(R.clusters).map(([k, c]) => [k, c.tracklets.slice()])),
+           cdec: {}, overrides: {}, audit: {}, next: Object.keys(R.clusters).length + 1 };
+}
+let S = load() || fresh(), active = null, tab = "clusters", selected = new Set();
+function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); return s && s.members ? s : null; } catch (e) { return null; } }
+function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { status("Browser storage unavailable: export often.", "warn"); } }
+function color(p) { const keys = Object.keys(S.players).sort(); return COLORS[keys.indexOf(p) % COLORS.length]; }
+function overlap(a, b) { const A = FRAMES[a], B = FRAMES[b]; const [s, l] = A.size < B.size ? [A, B] : [B, A]; for (const f of s) if (l.has(f)) return true; return false; }
+
+// decisions: excluded -> unsure; override wins over the cluster; audit answer is what gets exported for audit tracklets
+function clusterOf(tid) { for (const [k, m] of Object.entries(S.members)) if (m.includes(tid)) return k; return null; }
+function derived(tid) {
+  if (EXCL.has(tid)) return { decision: "unsure", player: null };
+  if (S.overrides[tid]) return { decision: S.overrides[tid].decision, player: null };
+  const d = S.cdec[clusterOf(tid)]; return d ? { decision: d.decision, player: d.decision === "player" ? d.player : null } : null;
+}
+function finalD(tid) { return AUDIT.has(tid) && S.audit[tid] ? S.audit[tid] : derived(tid); }
+function live(cid) { return S.members[cid].filter(t => !S.overrides[t]); }
+function needsDecision(cid) { return live(cid).some(t => !AUDIT.has(t)); }   // audit-only clusters give no opinion
+function conflicts() {           // cluster ids in CONFLICT: two live members on one frame, or a player in two places
+  const bad = new Set(), m = Object.entries(S.members);
+  for (const [cid] of m) { const L = live(cid); outer: for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) if (overlap(L[i], L[j])) { bad.add(cid); break outer; } }
+  const byP = {};
+  for (const t of R.tracklets) { const d = finalD(t.id); if (d && d.decision === "player") (byP[d.player] = byP[d.player] || []).push(t.id); }
+  for (const ts of Object.values(byP)) for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++)
+    if (overlap(ts[i], ts[j])) { for (const t of [ts[i], ts[j]]) { const c = clusterOf(t); if (c) bad.add(c); } }
+  return bad;
+}
+function auditStats() {
+  let answered = 0, dis = 0, unsure = 0, noOpinion = 0;
+  for (const t of R.audit) { const a = S.audit[t]; if (!a) continue; if (a.decision === "unsure") { unsure++; continue; }
+    const d = derived(t); if (!d) { noOpinion++; continue; }
+    answered++; if (d.decision !== a.decision || (a.decision === "player" && d.player !== a.player)) dis++; }
+  let ci = null; if (answered) { const z = R.z, n = answered, p = dis / n, den = 1 + z * z / n, c = (p + z * z / (2 * n)) / den,
+    h = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / den; ci = [Math.max(0, c - h), Math.min(1, c + h)]; }
+  return { answered, dis, unsure, noOpinion, done: R.audit.filter(t => S.audit[t]).length, rate: answered ? dis / answered : null, ci };
+}
+function img(t, k) { const im = document.createElement("img"); im.src = TL[t].thumbs[k]; im.loading = "lazy"; return im; }
+function sheetThumbs(t) { const n = TL[t].thumbs.length, m = Math.min(n, R.config.review.sheet_thumbs_per_tracklet); const out = []; for (let i = 0; i < m; i++) out.push(Math.round(i * (n - 1) / Math.max(1, m - 1))); return [...new Set(out)]; }
+function decLabel(d) { return !d ? '<span class="muted">undecided</span>' : d.decision === "player" ? `<b style="color:${color(d.player)}">${d.player}</b>` : `<b>${d.decision.toUpperCase()}</b>`; }
+function btn(txt, fn) { const b = document.createElement("button"); b.textContent = txt; b.onclick = fn; return b; }
+
+function renderPlayers() {
+  const el = $("players"); el.innerHTML = "";
+  for (const k of Object.keys(S.players).sort()) {
+    const p = S.players[k], d = document.createElement("div");
+    d.className = "player" + (active === k ? " active" : "");
+    d.innerHTML = `<span><span class="swatch" style="background:${color(k)}"></span>${k} <span class="muted">${p.side}${p.shirt_number ? " #" + p.shirt_number : ""}</span></span>`;
+    d.onclick = () => { active = k; render(); };
+    el.appendChild(d);
+  }
+}
+function renderClusters(bad) {
+  const v = $("view"), filt = $("filter").value; v.innerHTML = "";
+  const hiddenAudit = R.audit.length;
+  const note = document.createElement("div"); note.className = "muted"; note.style.margin = "0 0 8px";
+  note.textContent = `${R.excluded.length} tracker-flagged tracklets excluded (${R.excluded_status}: decided, not trained on). ${hiddenAudit} audit tracklets are hidden here; answer them in the Audit tab.`;
+  v.appendChild(note);
+  for (const cid of Object.keys(S.members)) {
+    const mem = S.members[cid].filter(t => !AUDIT.has(t));
+    if (!mem.length) continue;
+    const d = S.cdec[cid], isBad = bad.has(cid), open = !d && needsDecision(cid);
+    if ((filt === "open" && !open) || (filt === "conflict" && !isBad)) continue;
+    const card = document.createElement("div"); card.className = "card" + (isBad ? " conflict" : ""); card.dataset.cid = cid;
+    const h = document.createElement("h3");
+    h.innerHTML = `${cid} <span class="muted">${mem.length} tracklets</span> ${decLabel(d)} ${isBad ? '<span class="tag c">CONFLICT: same frame or player in two places</span>' : ""}`;
+    h.appendChild(btn("Assign cluster to active player", () => { if (!active) return status("Select a player on the left first.", "warn"); S.cdec[cid] = { decision: "player", player: active }; persist(); render(); }));
+    h.appendChild(btn("Reject cluster", () => { S.cdec[cid] = { decision: "reject", player: null }; persist(); render(); }));
+    h.appendChild(btn("Unsure cluster", () => { S.cdec[cid] = { decision: "unsure", player: null }; persist(); render(); }));
+    h.appendChild(btn("Clear", () => { delete S.cdec[cid]; persist(); render(); }));
+    h.appendChild(btn("Split selected → new cluster", () => {
+      const sel = mem.filter(t => selected.has(t)); if (!sel.length) return status("Tick tracklets in this cluster first.", "warn");
+      const nid = "C" + String(S.next++).padStart(3, "0") + "s"; S.members[nid] = sel; S.members[cid] = S.members[cid].filter(t => !sel.includes(t));
+      sel.forEach(t => selected.delete(t)); persist(); render(); }));
+    card.appendChild(h);
+    for (const t of mem) {
+      const row = document.createElement("div"); row.className = "row" + (S.overrides[t] ? " over" : "");
+      const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = selected.has(t); cb.onchange = () => cb.checked ? selected.add(t) : selected.delete(t);
+      row.appendChild(cb);
+      for (const k of sheetThumbs(t)) row.appendChild(img(t, k));
+      const info = document.createElement("span"); info.className = "muted";
+      info.innerHTML = `${t} · ${TL[t].observed} obs · odd ${ODD[t] !== undefined ? ODD[t].toFixed(3) : "-"}${S.overrides[t] ? ` · <b>${S.overrides[t].decision.toUpperCase()}</b>` : ""}`;
+      row.appendChild(info);
+      row.appendChild(btn("Reject", () => { S.overrides[t] = { decision: "reject" }; persist(); render(); }));
+      row.appendChild(btn("Unsure", () => { S.overrides[t] = { decision: "unsure" }; persist(); render(); }));
+      if (S.overrides[t]) row.appendChild(btn("Clear", () => { delete S.overrides[t]; persist(); render(); }));
+      const mv = document.createElement("select");
+      mv.innerHTML = `<option value="">move to…</option><option value="__new">new cluster</option>` + Object.keys(S.members).filter(k => k !== cid).map(k => `<option>${k}</option>`).join("");
+      mv.onchange = () => { const to = mv.value; if (!to) return; const dest = to === "__new" ? "C" + String(S.next++).padStart(3, "0") + "s" : to;
+        S.members[cid] = S.members[cid].filter(x => x !== t); (S.members[dest] = S.members[dest] || []).push(t); persist(); render(); };
+      row.appendChild(mv);
+      card.appendChild(row);
+    }
+    v.appendChild(card);
+  }
+}
+function renderAudit() {
+  const v = $("view"); v.innerHTML = "";
+  const note = document.createElement("div"); note.className = "muted"; note.style.margin = "0 0 8px";
+  note.textContent = `Random ${R.audit.length} tracklets, shown alone. Say who each one is (active player), or Reject / Unsure. Your answer is what gets frozen for these tracklets; the agreement with the clusters is measured.`;
+  v.appendChild(note);
+  R.audit.forEach((t, i) => {
+    const card = document.createElement("div"); card.className = "card";
+    const h = document.createElement("h3"); h.innerHTML = `Audit ${i + 1} / ${R.audit.length} ${decLabel(S.audit[t])}`;
+    h.appendChild(btn("Assign active player", () => { if (!active) return status("Select a player on the left first.", "warn"); S.audit[t] = { decision: "player", player: active }; persist(); render(); }));
+    h.appendChild(btn("Reject", () => { S.audit[t] = { decision: "reject", player: null }; persist(); render(); }));
+    h.appendChild(btn("Unsure", () => { S.audit[t] = { decision: "unsure", player: null }; persist(); render(); }));
+    if (S.audit[t]) h.appendChild(btn("Clear", () => { delete S.audit[t]; persist(); render(); }));
+    card.appendChild(h);
+    const row = document.createElement("div"); row.className = "row";
+    TL[t].thumbs.forEach((_, k) => row.appendChild(img(t, k)));
+    card.appendChild(row); v.appendChild(card);
+  });
+}
+function render() {
+  for (const [k, c] of Object.entries(S.members)) if (!c.length) { delete S.members[k]; delete S.cdec[k]; }
+  renderPlayers();
+  const bad = conflicts();
+  if (tab === "clusters") renderClusters(bad); else renderAudit();
+  const cl = Object.keys(S.members).filter(needsDecision), dec = cl.filter(k => S.cdec[k]).length, a = auditStats();
+  $("progress").textContent = `${dec}/${cl.length} clusters decided · ${bad.size} CONFLICT · audit ${a.done}/${R.audit.length}`;
+  $("tabAudit").textContent = `Audit (${a.done}/${R.audit.length})`;
+  $("summary").innerHTML = `${R.stats.tracklets} tracklets · ${R.stats.clustered} clustered into ${R.stats.clusters} · ${R.stats.excluded} excluded` +
+    (a.done === R.audit.length && a.answered ? `<br>Audit disagreement ${a.dis}/${a.answered} = ${(100 * a.rate).toFixed(1)} % (CI ${(100 * a.ci[0]).toFixed(1)}–${(100 * a.ci[1]).toFixed(1)} %), limit ${(100 * R.config.audit.max_disagreement_rate).toFixed(1)} %` : "");
+}
+$("tabClusters").onclick = () => { tab = "clusters"; $("tabClusters").className = "on"; $("tabAudit").className = ""; render(); };
+$("tabAudit").onclick = () => { tab = "audit"; $("tabAudit").className = "on"; $("tabClusters").className = ""; render(); };
+$("filter").onchange = render;
+$("annotator").value = S.annotator; $("annotator").oninput = e => { S.annotator = e.target.value; persist(); };
+$("version").value = S.version; $("version").oninput = e => { S.version = e.target.value; persist(); };
+$("reason").value = S.reason; $("reason").oninput = e => { S.reason = e.target.value; persist(); };
+$("padd").onclick = () => {
+  const k = $("pkey").value.trim(), side = $("pside").value, num = $("pnum").value.trim();
+  if (!/^[A-Za-z0-9_-]{1,16}$/.test(k)) return status("Player key: 1-16 letters, digits, _ or -", "bad");
+  if (S.players[k]) return status("Player " + k + " already exists", "warn");
+  S.players[k] = { side, shirt_number: num || null }; active = k; $("pkey").value = ""; $("pnum").value = ""; persist(); render();
+};
+$("export").onclick = () => {
+  const undecided = Object.keys(S.members).filter(k => needsDecision(k) && !S.cdec[k]);
+  if (undecided.length) { status(`${undecided.length} clusters undecided: assign, reject or mark unsure.`, "bad"); $("filter").value = "open"; tab = "clusters"; render(); return; }
+  if (conflicts().size) { status("CONFLICT: resolve the red clusters first (split / move / remove a tracklet).", "bad"); $("filter").value = "conflict"; tab = "clusters"; render(); return; }
+  const missing = R.audit.filter(t => !S.audit[t]);
+  if (missing.length) { status(`${missing.length} audit tracklets unanswered.`, "bad"); $("tabAudit").onclick(); return; }
+  const a = auditStats();
+  if (!a.answered) { status("Every audit answer is Unsure: the clusters cannot be checked.", "bad"); return; }
+  if (a.rate > R.config.audit.max_disagreement_rate) { status(`Audit disagreement ${a.dis}/${a.answered} = ${(100 * a.rate).toFixed(1)} % is above the limit: fix the clusters (the freeze would refuse).`, "bad"); return; }
+  if (!String(S.annotator || "").trim()) return status("Annotator name required.", "bad");
+  const v = parseInt(S.version || 1, 10);
+  if (v > 1 && !String(S.reason || "").trim()) return status("A new version needs a reason.", "bad");
+  const parts = R.tracklets.map(t => { const d = finalD(t.id); const p = { tracklet: t.id, first_frame: t.first_frame, last_frame: t.last_frame, decision: d.decision, player: d.decision === "player" ? d.player : null };
+    if (EXCL.has(t.id)) p.status = R.excluded_status; return p; });
+  const used = new Set(parts.filter(o => o.decision === "player").map(o => o.player));
+  const players = Object.fromEntries(Object.entries(S.players).filter(([k]) => used.has(k)));
+  const clusters = Object.fromEntries(Object.entries(S.members).map(([k, m]) => [k, { tracklets: m, decision: S.cdec[k] ? S.cdec[k].decision : null, player: S.cdec[k] && S.cdec[k].decision === "player" ? S.cdec[k].player : null }]));
+  const doc = { schema: "spana.reid_label_export", schema_version: "1.0.0", match_id: R.match.match_id, split: R.match.split,
+    tracklets_sha256: R.tracklets_sha256, annotator: S.annotator.trim(), label_version: v, reason: S.reason || "",
+    exported_utc: new Date().toISOString(), players, parts, labelling_flow: "cluster_confirm",
+    cluster_review: { schema: R.schema, schema_version: R.schema_version, config_sha256: R.config_sha256, model_sha256: R.model_sha256,
+      clusters, overrides: S.overrides, excluded: R.excluded, audit: Object.fromEntries(R.audit.map(t => [t, S.audit[t]])) } };
+  const el = document.createElement("a");
+  el.href = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 1)], { type: "application/json" }));
+  el.download = `${R.match.match_id}_reid_v${v}.json`; el.click();
+  status("Exported " + el.download + " — freeze it with tools/freeze_reid_labels.py", "ok");
+};
+$("match").textContent = `${R.match.match_id} · ${R.match.split}`;
+render();
+status(Object.keys(S.cdec).length || Object.keys(S.audit).length ? "Progress restored from this browser." : "Add players, assign each cluster (odd ones out are at the top of each sheet), then answer the audit.", "ok");
+</script>
+</body>
+</html>

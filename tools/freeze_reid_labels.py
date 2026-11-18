@@ -5,7 +5,10 @@
 Checks: the match manifest is complete (split, rights, consent; TRAIN needs training_permitted); the export belongs
 to this pack (match_id, split, tracklets sha256); every proposed tracklet is fully decided by contiguous parts that
 start and end on its observed frames; every player decision names a declared player with a valid side; one player
-never occupies two parts on the same frame; a version > 1 carries a reason. Writes
+never occupies two parts on the same frame; a version > 1 carries a reason. A group-then-confirm export
+(labelling_flow cluster_confirm, tools/reid_cluster.py) is also re-checked from its cluster_review block (clusters,
+same-frame conflicts, exclusions, audit sample) and refused when the audit disagreement rate is above
+config/reid_cluster.yaml audit.max_disagreement_rate. Writes
 data/reid/<split>/<match_id>/v<N>/{manifest.json, players.json, identities.jsonl, boxes.mot.txt, export.json,
 FROZEN.json} with the sha256 of every file, and never overwrites an existing version.
 """
@@ -93,7 +96,8 @@ def _check_export(pack: dict, tl: Dict[str, dict], ex: dict) -> List[dict]:
     return rows
 
 
-def freeze(pack_dir: str, export_path: str, video: str | None = None, root: Path = REPO) -> Path:
+def freeze(pack_dir: str, export_path: str, video: str | None = None, root: Path = REPO,
+           cluster_config: str | Path | None = None) -> Path:
     pd = Path(pack_dir)
     pack = json.loads((pd / "pack.json").read_text())
     manifest = validate_manifest(pack["match"])
@@ -106,6 +110,13 @@ def freeze(pack_dir: str, export_path: str, video: str | None = None, root: Path
     ex_bytes = Path(export_path).read_bytes()
     ex = json.loads(ex_bytes)
     rows = _check_export(pack, tl, ex)
+    audit = None
+    if ex.get("labelling_flow") == "cluster_confirm":
+        from tools.reid_cluster import DEFAULT_CONFIG, check_cluster_export, config_sha, load_cluster_config
+        cpath = cluster_config or DEFAULT_CONFIG
+        audit = check_cluster_export(pack, tl, ex, load_cluster_config(cpath), config_sha(cpath))
+    elif ex.get("labelling_flow") not in (None, "manual"):
+        raise ReidLabelError(f"unknown labelling_flow {ex.get('labelling_flow')!r}")
     dest = root / "data" / "reid" / manifest["split"] / manifest["match_id"] / f"v{ex['label_version']}"
     if dest.exists():
         raise ReidLabelError(f"{dest} already exists: frozen labels are never overwritten")
@@ -146,6 +157,7 @@ def freeze(pack_dir: str, export_path: str, video: str | None = None, root: Path
         "files": {name: sha256_bytes(data) for name, data in files.items()},
         "rule": "Frozen. Never edit; a correction is a new version with a reason. EVAL is never used for "
                 "training or tuning (spana.reid_labels.split_guard).",
+        **({"labelling_flow": "cluster_confirm", "cluster_audit": audit} if audit else {}),
     })
     return dest
 
