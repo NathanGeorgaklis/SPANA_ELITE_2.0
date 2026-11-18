@@ -153,7 +153,28 @@ def auc(pos, neg):
     return float((order[:len(pos)].sum() - len(pos) * (len(pos) + 1) / 2) / (len(pos) * len(neg)))
 
 
+def fusion_table(name, crops, cues, sim_fn, same, diff_all, same_hard, diff_hard, triplets):
+    """The eval's own test items for tools/dev/cue_fusion.py: one score per cue (NaN = no score for that cue)."""
+    from tools.dev.cue_fusion import make_table
+    t = make_table(name)
+    key = lambda a, b: "|".join(sorted((str(crops[a]["player"]), str(crops[b]["player"]))))  # noqa: E731
+    for k, sd in (("all", (same, diff_all)), ("hard", (same_hard, diff_hard))):
+        for s, items in zip(("same", "diff"), sd):
+            t["pairs"][k][s]["scores"] = {c: np.array([sim_fn(c, a, b) for a, b in items], float) for c in cues}
+            t["pairs"][k][s]["occluded"] = np.array([crops[a]["occluded"] or crops[b]["occluded"] for a, b in items], bool)
+            t["pairs"][k][s]["players"] = [key(a, b) for a, b in items]
+    t["rival"]["qa"] = {c: np.array([sim_fn(c, q, a) for q, a, _, _ in triplets], float) for c in cues}
+    t["rival"]["qb"] = {c: np.array([sim_fn(c, q, b) for q, _, b, _ in triplets], float) for c in cues}
+    t["rival"]["occluded"] = np.array([crops[q]["occluded"] for q, _, _, _ in triplets], bool)
+    t["rival"]["pair"] = ["|".join(sorted((str(p), str(q)))) for _, _, _, (p, q) in triplets]
+    return t
+
+
 def main(out_json, model_dir, *specs):
+    # optional "--fusion=CONFIG": also write OUT_JSON.fusion.json (tools/dev/cue_fusion.py); the main report is unchanged
+    fusion_cfg = next((s.split("=", 1)[1] for s in specs if s.startswith("--fusion=")), None)
+    specs = [s for s in specs if not s.startswith("--fusion=")]
+    tables = []
     cfg = load_config("config/default.yaml")
     md = Path(model_dir)
     # each embedding cue is used only if its ONNX file is in MODEL_DIR; "spana" = the SPANA re-ID model
@@ -204,6 +225,12 @@ def main(out_json, model_dir, *specs):
                     rb = [k for k in by_player.get(B, []) if crops[qk]["t"] - crops[k]["t"] >= MIN_GAP_S]
                     if ra and rb:
                         triplets.append((qk, ra[-1], rb[-1], (p, q)))
+        if fusion_cfg:
+            def sim_or_nan(cue, a, b):
+                if cue == "hist" and (crops[a]["hist"] is None or crops[b]["hist"] is None):
+                    return float("nan")
+                return sim(cue, a, b)
+            tables.append(fusion_table(name, crops, cues, sim_or_nan, same, diff_all, same_hard, diff_hard, triplets))
         for cue in cues:
             ok = lambda a, b: crops[a]["hist"] is not None and crops[b]["hist"] is not None if cue == "hist" else True  # noqa
             S = [sim(cue, a, b) for a, b in same if ok(a, b)]
@@ -260,6 +287,16 @@ def main(out_json, model_dir, *specs):
                   f"vis={r['rival_acc_query_visible']} gaps={[r[f'rival_acc_gap{lo}-{hi}s'] for lo, hi in GAP_BINS]} "
                   f"rival_pairs={r['rival_pair_accuracy']}")
     Path(out_json).write_text(json.dumps(report, indent=1, default=str))
+    if fusion_cfg:
+        from tools.dev.cue_fusion import load_fusion_config, report as fusion_report
+        fc = load_fusion_config(fusion_cfg)
+        missing = [c for c in fc["cues"] if c not in cues]
+        if missing:
+            raise SystemExit(f"fusion cues {missing} not available (models in {model_dir}?)")
+        fr = fusion_report(tables, fc)
+        fr["config"] = fc
+        Path(str(out_json) + ".fusion.json").write_text(json.dumps(fr, indent=1, default=str))
+        print(json.dumps({"fusion_verdict": fr["verdict"]}))
 
 
 if __name__ == "__main__":

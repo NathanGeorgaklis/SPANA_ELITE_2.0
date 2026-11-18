@@ -1,0 +1,20 @@
+# DEV evaluation only: combining two appearance cues (tools/dev/cue_fusion.py, used by
+# tools/dev/appearance_cue_eval.py). The product never reads this file.
+schema: spana.reid_fusion_config
+schema_version: 1.0.0
+cues: [hist, spana]            # [colour cue, re-ID cue]; the combined option is named "<first>+<second>"
+normalisation: zscore          # zscore | rank: per cue, statistics from the OTHER matches only (leave-one-match-out)
+on_missing: abstain            # abstain | single_cue: a pair where either cue has no score
+weight:
+  mode: lomo                   # lomo: weight of the first cue fitted on the other matches | fixed
+  fixed: 0.5                   # used when mode is fixed; also reported as a secondary "fixed" option
+  grid: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+  fit_far: 0.005               # objective: TAR at this FAR ...
+  fit_pairs: hard              # ... on these pairs (hard | all), pooled over the fitting matches
+report:
+  fars: [0.01, 0.005]
+  bootstrap: 1000
+  seed: 0
+  ci: 0.95
+  colour_hard_pair_acc: 0.85   # a hard player pair is "colour-hard" when the first cue's rival accuracy is below this
+  decision_far: 0.005          # decision rule: TAR at this FAR on hard pairs
