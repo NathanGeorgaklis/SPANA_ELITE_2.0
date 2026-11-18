@@ -184,35 +184,23 @@ def _doubt_only(tr: dict) -> bool:
         not tr["identity_rivals"]
 
 
-def _reentry_offer(cur: str, last_obs: int, n: int, frames: List[dict], birth: Dict[str, int], live: Dict[str, dict],
-                   sig: Dict[str, dict], done: set, tc) -> Optional[dict]:
-    """Re-entry offer by re-ID (spana.target 2.4.0): among tracks born after cur's last observation and within
-    reentry_max_gap_s of it, usable now and not yet offered for this loss, the one whose first signature is closest
-    to cur's last signature, if it reaches reentry_min_similarity and beats the runner-up by reentry_min_margin.
-    Tracks without a signature are never offered (no evidence, no guess)."""
-    from .reid import cosine
-    last = sig.get(cur, {}).get("last")
-    if last is None:
+def _reentry_offer(cur: str, last_obs: int, n: int, ctx, sig: Dict[str, dict], done: set, live: Dict[str, dict],
+                   cfg: SpanaConfig) -> Optional[dict]:
+    """Re-entry offer by re-ID (spana.target 2.4.0): the shared rule spana.identity.reid.reentry_choice, restricted
+    to tracks usable now and not yet offered for this loss. Tracks without a signature are never offered."""
+    from .reid import reentry_choice
+    frames = ctx.frames
+    ch = reentry_choice(cur, last_obs, n, ctx, sig, cfg.target, cfg.tracking,
+                        allowed=lambda c: c not in done and _usable(live.get(c)))
+    if ch is None:
         return None
-    t0 = frames[last_obs]["t"]
-    cands = sorted(c for c, b in birth.items() if c != cur and last_obs < b <= n
-                   and frames[b]["t"] - t0 <= tc.reentry_max_gap_s + _EPS)
-    sims = {c: cosine(last, sig.get(c, {}).get("first")) for c in cands}
-    sims = {c: s for c, s in sims.items() if s is not None}
-    offerable = {c: s for c, s in sims.items() if c not in done and _usable(live.get(c))}
-    if not offerable:
-        return None
-    best = max(offerable, key=lambda c: (offerable[c], c))
-    others = [s for c, s in sims.items() if c != best]
-    second = max(others) if others else None
-    if sims[best] < tc.reentry_min_similarity - _EPS or \
-            (second is not None and sims[best] - second < tc.reentry_min_margin - _EPS):
-        return None
+    best = ch["track"]
     return {"from_track": cur, "to_track": best, "lost_frame": frames[last_obs]["frame"],
-            "proposed_frame": frames[n]["frame"], "gap_s": round(frames[birth[best]]["t"] - t0, 6),
-            "evidence": {"kind": "reid", "similarity": round(sims[best], 6),
-                         "second_similarity": None if second is None else round(second, 6),
-                         "candidates": sorted(sims)},
+            "proposed_frame": frames[n]["frame"], "gap_s": round(frames[ctx.birth[best]]["t"] - frames[last_obs]["t"], 6),
+            "evidence": {"kind": "reid", "similarity": round(ch["similarity"], 6),
+                         "second_similarity": None if ch["second_similarity"] is None
+                         else round(ch["second_similarity"], 6),
+                         "candidates": ch["candidates"]},
             "confirmation": None, "rejection": None, "outcome": "PENDING", "dropped_reason": None}
 
 
@@ -255,6 +243,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
     pending: Optional[dict] = None         # relink log entry of the current CANDIDATE
     reid_done: set = set()                 # tracks already offered by re-ID for this loss (never offered again)
     sig = (embeddings or {}).get("tracks", {}) if tc.reentry_offer else {}
+    rctx = None                            # spana.identity.reid.ReentryContext, built on the first re-entry search
 
     def drop(reason: str) -> None:
         nonlocal pending, search_done
@@ -399,7 +388,10 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
             if reid_pending and not _usable(live.get(pending["to_track"])):
                 drop("CANDIDATE_NOT_USABLE")
             if pending is None and sig and (search_done or fr["t"] - t0 > tc.relink_max_gap_s + _EPS):
-                pending = _reentry_offer(cur, last_obs, n, frames, birth, live, sig, reid_done, tc)
+                if rctx is None:
+                    from .reid import ReentryContext
+                    rctx = ReentryContext.of(tracks_doc)
+                pending = _reentry_offer(cur, last_obs, n, rctx, sig, reid_done, live, cfg)
                 if pending is not None:
                     relinks.append(pending)
             base = dict(answer)

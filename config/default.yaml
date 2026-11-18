@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.5.0"
+schema_version: "2.6.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -148,6 +148,12 @@ target:
   reentry_max_gap_s: 10.0
   reentry_min_similarity: 0.75
   reentry_min_margin: 0.10
+  # Safety rules for the offer (records/reentry_position_mutual_2026-11-18): position = the candidate must be
+  # reachable from the lost player's last position carried through the camera motion, within tracking.gate_base_h +
+  # tracking.max_speed_h_per_s * gap body heights (not judged across a cut or when the player left the picture);
+  # mutual = the lost track must also be the candidate's best match among the tracks lost before it appeared.
+  reentry_position_gate: false
+  reentry_mutual: false
 
 reid:
   # Which observations are embedded into a track's first / last re-ID signature (spana.identity.reid).

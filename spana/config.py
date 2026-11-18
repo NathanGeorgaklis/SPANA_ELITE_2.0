@@ -19,10 +19,10 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.5.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.6.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
-#   offer keys
+#   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual
 
 
 class ConfigError(ValueError):
@@ -214,6 +214,8 @@ class TargetConfig:
     reentry_max_gap_s: float       # ... born at most this long after the lost track's last observation
     reentry_min_similarity: float  # ... cosine similarity of the lost track's last and the candidate's first signature
     reentry_min_margin: float      # ... and above every other candidate's similarity by at least this
+    reentry_position_gate: bool    # ... and reachable from where the lost player was (camera-carried, speed bound)
+    reentry_mutual: bool           # ... and the lost track is also the candidate's best match among lost tracks
 
     def validate(self) -> None:
         _pos("target.relink_max_gap_s", self.relink_max_gap_s)
