@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reid-audit-fix, on identity/reid-audit-diagnose 7b350cb; main 11b5a80).
-- Full suite: `python -m pytest tests -q` → 383 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+As of 2026-11-18 (branch identity/reid-confirmed-labels, on identity/reid-audit-diagnose-v2 21dd906; main 11b5a80).
+- Full suite: `python -m pytest tests -q` → 385 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -132,7 +132,8 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      fixed (4791913): audit after the review is locked, player vs player only, 60 comparable answers, exact
      one-sided 95 % bound <= 5 %; the M002 review was upgraded in place (clusters unchanged; 79 eligible tracklets
      in the saved state). Audit run: 4 / 60 disagree (same-kit mixes, 3-thumbnail sheets, one B22-for-A22 key
-     slip), freeze refused; 20 drawable tracklets unaudited. Options proposed to Nathan (record).
+     slip), freeze refused; after Nathan's re-label and re-audit 2 / 60. Freeze rule now `confirmed_only` (Nathan):
+     only his direct answers become player labels, unconfirmed cluster labels are frozen as unsure.
 4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
    ByteTrack shows how much continuity is possible on the same detections (F07 11 / F08 22 fragments) and what it
    costs without flags (silent swaps): measure ByteTrack-style continuity inside our tracker, keeping the flags

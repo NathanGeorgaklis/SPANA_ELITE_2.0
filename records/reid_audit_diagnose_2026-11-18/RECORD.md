@@ -133,3 +133,15 @@ single on-pitch player. Not investigated further here.
   3. One player-key slip: B22 for a red #22, while A22 exists.
 - **Remaining risk:** 20 drawable tracklets are unaudited. These are player labels propagated by a cluster and never
   seen alone. 21 player clusters are singletons, decided one tracklet at a time.
+
+## Re-label and re-audit: 2 of 60 disagree; freeze rule changed to confirmed_only (Nathan)
+- Nathan re-labelled and re-audited: 2 of 60 comparable answers still differ from their cluster (exact one-sided
+  95 % bound about 10 %), so the 60 / 5 % gate refused again.
+- Nathan's decision: go with the audit answers, which are easier to label and more accurate than cluster labels.
+- Implemented as rule `confirmed_only` (commit on identity/reid-confirmed-labels):
+  - a player label is frozen only where Nathan gave it directly: an audit answer, or a single-tracklet cluster;
+  - every other tracklet of a multi-tracklet player cluster is frozen as unsure (`unconfirmed_cluster_label`), so
+    it is decided but never trained on;
+  - the audit can continue past 60 to keep more data (answers stay a prefix of the fixed order);
+  - the disagreement rate and its bound are still reported, against 60 / 5 % as a reference for cluster quality.
+- No unconfirmed cluster label reaches training, so the fail-closed intent of the gate is kept.
