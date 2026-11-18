@@ -161,7 +161,9 @@ target:
   # lost player's camera-carried last position to where the candidate first appears. Fit = 0 (appearance decides)
   # beyond max_gap_s, across a cut / unknown camera, after LEFT_FRAME, out of the picture, or after a pan moving the
   # scene by more than max_pan_frac of the frame width. The appearance floor and the margin / mutual rules use it.
-  reentry_position_weight: 0.0
+  # Fitted on the 4 DEV clips (coarse grid; records/reentry_position_score_2026-11-18): offers right 33 -> 36,
+  # wrong 2 -> 2; rank-1 wrong picks 17 -> 13. base_h = tracking.gate_base_h; max_pan_frac not fitted (prior).
+  reentry_position_weight: 0.5
   reentry_position_base_h: 0.35
   reentry_position_speed_h_per_s: 2.0
   reentry_position_time_scale_s: 1.0
