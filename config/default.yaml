@@ -84,8 +84,10 @@ tracking:
   # ByteTrack were a confirmed player's box shrinking behind an occluder (height 0.59-0.67 of the prediction) or
   # growing back (1.13-1.57x, centre moving with it). A recent confirmed track may take such a box when it is nested
   # with the prediction (>= confirm_nested_ioa), keeps its top or bottom edge, and the pair is exclusive. Certain
-  # (Nathan, 2026-11-18). Priors, not fitted on the 15 cases:
-  extent_change_link: false
+  # (Nathan, 2026-11-18). Priors, not fitted on the 15 cases. ON by default since 2026-11-18 (Nathan; v2 after the code
+  # review: DEV fragments 120 -> 110, reviewer 0.779 / 6.06 actions / 2 wrong, silent 0, no transfer on a linked
+  # track; records/extent_and_low_score_2026-11-18). Bar used: silent transfers 0 and none on a linked track.
+  extent_change_link: true
   extent_edge_max_h: 0.15
   extent_max_ratio: 2.0
   # Low-score short-gap recovery in S4: a confirmed track unobserved <= rematch_max_s may recover on a low-score

@@ -18,8 +18,9 @@ X0, VX, TOP, H, W = 100.0, 3.0, 400.0, 150.0, 60.0
 
 
 def cfg(**tracking):
+    """default.yaml with both rules OFF unless a test turns one on (extent_change_link ships on)."""
     raw = copy.deepcopy(RAW)
-    raw["tracking"].update(tracking)
+    raw["tracking"].update({"extent_change_link": False, "low_score_recovery": False, **tracking})
     return config_from_dict(raw)
 
 
