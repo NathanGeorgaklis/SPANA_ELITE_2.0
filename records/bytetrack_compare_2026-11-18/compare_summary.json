@@ -1,0 +1,373 @@
+{
+ "note": "DEV FRESH_02/05/07/08, local-detector detections (same for both trackers). Tracking: tools/benchmark.py NESTED_V2. Following: tools/target_score.py (default: no user action; reviewer: simulated after-match reviewer). Full reports on Nathan's Mac (HASHES.txt).",
+ "tracking": {
+  "ours": {
+   "FRESH_02": {
+    "id_switches": 24,
+    "identity_transfers": 3,
+    "unflagged_transfers": 0,
+    "fragments": 24,
+    "track_coverage": 0.9686
+   },
+   "FRESH_05": {
+    "id_switches": 7,
+    "identity_transfers": 0,
+    "unflagged_transfers": 0,
+    "fragments": 7,
+    "track_coverage": 0.9978
+   },
+   "FRESH_07": {
+    "id_switches": 38,
+    "identity_transfers": 2,
+    "unflagged_transfers": 0,
+    "fragments": 38,
+    "track_coverage": 0.962
+   },
+   "FRESH_08": {
+    "id_switches": 52,
+    "identity_transfers": 1,
+    "unflagged_transfers": 0,
+    "fragments": 51,
+    "track_coverage": 0.9324
+   },
+   "pooled": {
+    "id_switches": 121,
+    "identity_transfers": 6,
+    "unflagged_transfers": 0,
+    "fragments": 120
+   }
+  },
+  "bytetrack": {
+   "FRESH_02": {
+    "id_switches": 10,
+    "identity_transfers": 5,
+    "unflagged_transfers": 5,
+    "fragments": 9,
+    "track_coverage": 0.9735
+   },
+   "FRESH_05": {
+    "id_switches": 7,
+    "identity_transfers": 0,
+    "unflagged_transfers": 0,
+    "fragments": 7,
+    "track_coverage": 0.9978
+   },
+   "FRESH_07": {
+    "id_switches": 12,
+    "identity_transfers": 6,
+    "unflagged_transfers": 6,
+    "fragments": 11,
+    "track_coverage": 0.9703
+   },
+   "FRESH_08": {
+    "id_switches": 23,
+    "identity_transfers": 3,
+    "unflagged_transfers": 3,
+    "fragments": 22,
+    "track_coverage": 0.9362
+   },
+   "pooled": {
+    "id_switches": 52,
+    "identity_transfers": 14,
+    "unflagged_transfers": 14,
+    "fragments": 49
+   }
+  }
+ },
+ "track_life": {
+  "ours": {
+   "FRESH_02": {
+    "confirmed_tracks": 40,
+    "life_s_median": 4.4
+   },
+   "FRESH_05": {
+    "confirmed_tracks": 24,
+    "life_s_median": 3.62
+   },
+   "FRESH_07": {
+    "confirmed_tracks": 61,
+    "life_s_median": 2.13
+   },
+   "FRESH_08": {
+    "confirmed_tracks": 69,
+    "life_s_median": 1.47
+   }
+  },
+  "bytetrack": {
+   "FRESH_02": {
+    "confirmed_tracks": 25,
+    "life_s_median": 8.07
+   },
+   "FRESH_05": {
+    "confirmed_tracks": 25,
+    "life_s_median": 3.47
+   },
+   "FRESH_07": {
+    "confirmed_tracks": 32,
+    "life_s_median": 9.02
+   },
+   "FRESH_08": {
+    "confirmed_tracks": 41,
+    "life_s_median": 2.6
+   }
+  }
+ },
+ "following": {
+  "ours_default": {
+   "clips": {
+    "FRESH_02": {
+     "correct": 491,
+     "wrong": 0,
+     "unverified": 15,
+     "abstain": 139,
+     "lost": 332,
+     "candidate_correct": 37,
+     "candidate_wrong": 1,
+     "candidate_unverified": 3,
+     "actions": 0
+    },
+    "FRESH_05": {
+     "correct": 322,
+     "wrong": 0,
+     "unverified": 1,
+     "abstain": 11,
+     "lost": 116,
+     "candidate_correct": 0,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 0
+    },
+    "FRESH_07": {
+     "correct": 706,
+     "wrong": 1,
+     "unverified": 8,
+     "abstain": 94,
+     "lost": 364,
+     "candidate_correct": 32,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 0
+    },
+    "FRESH_08": {
+     "correct": 237,
+     "wrong": 0,
+     "unverified": 3,
+     "abstain": 57,
+     "lost": 379,
+     "candidate_correct": 100,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 0
+    }
+   },
+   "pooled": {
+    "correct": 1756,
+    "wrong": 1,
+    "unverified": 27,
+    "abstain": 301,
+    "lost": 1191,
+    "candidate_correct": 169,
+    "candidate_wrong": 1,
+    "candidate_unverified": 3,
+    "actions": 0,
+    "scored": 3449,
+    "correct_share": 0.5091,
+    "wrong_share": 0.0003,
+    "no_answer_share": 0.4326,
+    "actions_per_followed_min": 0.0
+   }
+  },
+  "ours_reviewer": {
+   "clips": {
+    "FRESH_02": {
+     "correct": 785,
+     "wrong": 1,
+     "unverified": 19,
+     "abstain": 146,
+     "lost": 67,
+     "candidate_correct": 0,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 18
+    },
+    "FRESH_05": {
+     "correct": 434,
+     "wrong": 0,
+     "unverified": 2,
+     "abstain": 14,
+     "lost": 0,
+     "candidate_correct": 0,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 7
+    },
+    "FRESH_07": {
+     "correct": 931,
+     "wrong": 1,
+     "unverified": 9,
+     "abstain": 138,
+     "lost": 126,
+     "candidate_correct": 0,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 26
+    },
+    "FRESH_08": {
+     "correct": 535,
+     "wrong": 0,
+     "unverified": 3,
+     "abstain": 115,
+     "lost": 123,
+     "candidate_correct": 0,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 39
+    }
+   },
+   "pooled": {
+    "correct": 2685,
+    "wrong": 2,
+    "unverified": 33,
+    "abstain": 413,
+    "lost": 316,
+    "candidate_correct": 0,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "actions": 90,
+    "scored": 3449,
+    "correct_share": 0.7785,
+    "wrong_share": 0.0006,
+    "no_answer_share": 0.2114,
+    "actions_per_followed_min": 6.27
+   }
+  },
+  "bytetrack_default": {
+   "clips": {
+    "FRESH_02": {
+     "correct": 717,
+     "wrong": 58,
+     "unverified": 40,
+     "abstain": 14,
+     "lost": 189,
+     "candidate_correct": 0,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 0
+    },
+    "FRESH_05": {
+     "correct": 322,
+     "wrong": 0,
+     "unverified": 2,
+     "abstain": 10,
+     "lost": 116,
+     "candidate_correct": 0,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 0
+    },
+    "FRESH_07": {
+     "correct": 874,
+     "wrong": 159,
+     "unverified": 22,
+     "abstain": 18,
+     "lost": 132,
+     "candidate_correct": 0,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 0
+    },
+    "FRESH_08": {
+     "correct": 382,
+     "wrong": 0,
+     "unverified": 17,
+     "abstain": 18,
+     "lost": 359,
+     "candidate_correct": 0,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 0
+    }
+   },
+   "pooled": {
+    "correct": 2295,
+    "wrong": 217,
+    "unverified": 81,
+    "abstain": 60,
+    "lost": 796,
+    "candidate_correct": 0,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "actions": 0,
+    "scored": 3449,
+    "correct_share": 0.6654,
+    "wrong_share": 0.0629,
+    "no_answer_share": 0.2482,
+    "actions_per_followed_min": 0.0
+   }
+  },
+  "bytetrack_reviewer": {
+   "clips": {
+    "FRESH_02": {
+     "correct": 840,
+     "wrong": 93,
+     "unverified": 47,
+     "abstain": 14,
+     "lost": 24,
+     "candidate_correct": 0,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 5
+    },
+    "FRESH_05": {
+     "correct": 437,
+     "wrong": 0,
+     "unverified": 3,
+     "abstain": 10,
+     "lost": 0,
+     "candidate_correct": 0,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 7
+    },
+    "FRESH_07": {
+     "correct": 978,
+     "wrong": 158,
+     "unverified": 27,
+     "abstain": 18,
+     "lost": 24,
+     "candidate_correct": 0,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 8
+    },
+    "FRESH_08": {
+     "correct": 594,
+     "wrong": 27,
+     "unverified": 45,
+     "abstain": 23,
+     "lost": 87,
+     "candidate_correct": 0,
+     "candidate_wrong": 0,
+     "candidate_unverified": 0,
+     "actions": 19
+    }
+   },
+   "pooled": {
+    "correct": 2849,
+    "wrong": 278,
+    "unverified": 122,
+    "abstain": 65,
+    "lost": 135,
+    "candidate_correct": 0,
+    "candidate_wrong": 0,
+    "candidate_unverified": 0,
+    "actions": 39,
+    "scored": 3449,
+    "correct_share": 0.826,
+    "wrong_share": 0.0806,
+    "no_answer_share": 0.058,
+    "actions_per_followed_min": 2.72
+   }
+  }
+ }
+}

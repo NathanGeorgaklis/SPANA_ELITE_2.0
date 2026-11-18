@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reid-cluster-labelling, on identity/reid-fusion-dev-eval f3718a0; main 11b5a80).
-- Full suite: `python -m pytest tests -q` → 373 passed, 4 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+As of 2026-11-18 (branch tracking/bytetrack-dev-compare, on identity/reid-cluster-labelling eeeecd3; main 11b5a80).
+- Full suite: `python -m pytest tests -q` → 376 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -94,6 +94,11 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   second-hop relink (FRESH_02 player 15 → player 16's track).
 - Target identity, DEV F07: 1 wrong player-frame. A two-person box at a crossing, unflagged by the detector and the
   tracker.
+- Tracking vs Roboflow ByteTrack, DEV (`records/bytetrack_compare_2026-11-18`): on the same detections ByteTrack has
+  less than half our fragments / ID switches and longer tracks, but all 14 of its identity transfers are silent; a
+  follower on it shows the wrong player 6.3 % of the time (8.1 % with the after-match reviewer) vs ours 0.03 % /
+  0.06 %. Not adopted; its continuity (low-score second association, motion-only lost pool) is worth porting with
+  our uncertainty flags.
 - README pipeline table is stale (artifact versions listed as 1.1.0 / 2.0.0; code is detections 1.3.0, tracks 2.1.0).
 
 ## Hardcoded values / magic numbers found
@@ -122,3 +127,6 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      audit tracklets, waiting for Nathan's review. The pilot model groups by kit at loose thresholds, so clusters
      are kept small (max_distance 0.15).
 4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
+   ByteTrack shows how much continuity is possible on the same detections (F07 11 / F08 22 fragments) and what it
+   costs without flags (silent swaps): measure ByteTrack-style continuity inside our tracker, keeping the flags
+   (`records/bytetrack_compare_2026-11-18`).
