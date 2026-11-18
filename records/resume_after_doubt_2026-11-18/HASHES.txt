@@ -1,0 +1,18 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/ (code 673127a extracted to code4/). Tracks scored:
+# out/F0x_off|on|selfres.trk.json (hashes in records/continuity_attribution_2026-11-18 and
+# records/doubt_resolution_2026-11-18). No re-tracking, no detection.
+0dcc9d14bf57fe9f3fc7cde4fe16528af77476c227cf91cb9985da1b544f9535  ~/spana-continuity-run/run_resume.sh
+f21e0b814b84b1a018ba28f850067fe4a90991d7a2de407f4cd4547aa3c5bc6c  ~/spana-continuity-run/resume.yaml (resume on, vouch off)
+545c875808f2e2e12c8c8ed743d39bae45f03c682423a700696cdd86da65181d  ~/spana-continuity-run/resume_vouch.yaml (resume on, vouch on)
+276da212ae828a0b2ca47f35309842ace927ee1ced91f6f02fc9470645e6c5d6  ~/spana-continuity-run/out/target_off_resume_default.json
+3e6e4f4945f501ed9dbdee4148e5614e63f0af351bbd42f85d2db4d4a6da33ab  ~/spana-continuity-run/out/target_off_resume_reviewer.json
+ba8899e02bfefbbd176ee4ce7dfdf0c3cc9df4ab2dcde0ed94e70182d62846a8  ~/spana-continuity-run/out/target_off_resume_vouch_default.json
+1f41483946bc027b3c4d197ac45d167c8d42bcde8d2e7a6875be65b7f825787b  ~/spana-continuity-run/out/target_off_resume_vouch_reviewer.json
+1faed268060068ffcf6185f392eb1a8834f7e28eb7104b57a6d8a7baab96d020  ~/spana-continuity-run/out/target_on_resume_default.json
+0d9845973675601de12165d2aa9f562a371e809667fc02cf4bf371ea8e02eac8  ~/spana-continuity-run/out/target_on_resume_reviewer.json
+1e0e6d40ca3ccf311f02bc48b51b7ebccbb024cd51d020b9b9ecc62fd3b88df9  ~/spana-continuity-run/out/target_on_resume_vouch_default.json
+2437e52aa6eb03500dab0beea722ed4518e0ff60c6ab12fae341fd58689e7de6  ~/spana-continuity-run/out/target_on_resume_vouch_reviewer.json
+c99f00574bdfb648775b9927b121916c437a26857877584bbfe08e873c63bfb5  ~/spana-continuity-run/out/target_selfres_resume_default.json
+d07936a1b32c3f64e70dd0ffc0246eba2434ae045b44df5a14575f659a60a077  ~/spana-continuity-run/out/target_selfres_resume_reviewer.json
+69b8445973a3fc492d6f9ea44cb6c6cea86fea406129b184ccfce34de167c5de  ~/spana-continuity-run/out/target_selfres_resume_vouch_default.json
+71ef89e2360dea5e42c3373236e263fe5119c55b47a1799ca1b14c5a54a8d602  ~/spana-continuity-run/out/target_selfres_resume_vouch_reviewer.json

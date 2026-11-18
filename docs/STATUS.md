@@ -1,8 +1,8 @@
 # STATUS
 
-As of 2026-11-18 (branch tracking/doubt-self-resolve, on identity/tap-vouches-doubt on tracking/continuity-attribution
+As of 2026-11-18 (branch identity/resume-after-doubt, on tracking/doubt-self-resolve, on identity/tap-vouches-doubt on tracking/continuity-attribution
 on identity/reid-retrain-v2 8d62866; main 11b5a80).
-- Full suite: `python -m pytest tests -q` → 409 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
+- Full suite: `python -m pytest tests -q` → 415 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
   training tests skip).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -85,7 +85,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   (`records/benchmark_FRESH_02_v1/BENCHMARK_RECORD.md`).
 - Target identity: `target.tap_vouches_doubt` (`spana.target` 2.2.0, reason USER_VOUCHED) lets a tap answer on a
   doubt-only track for that episode; built and validated, off by default (no action saving on DEV,
-  `records/doubt_resolution_2026-11-18`).
+  `records/doubt_resolution_2026-11-18`). `target.resume_after_doubt_resolved` (`spana.target` 2.3.0): a resolved
+  no-rival doubt no longer taints the track. With doubt link + (a): unaided 0.509 → 0.547 (1 wrong frame), reviewer
+  0.783 / 6.27 actions with the vouch or 0.753 / 5.92 without; pass bar not met, off
+  (`records/resume_after_doubt_2026-11-18`).
 - Target identity, DEV: 30 tapped players followed with 0 wrong player-frames.
   - Time without an answer: F02 0.50, F05 0.28. Main causes: the track ends while the player is still in the
     picture (F02 340, F05 116 player-frames), then IDENTITY_UNCERTAIN (F02 100).
@@ -157,7 +160,7 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
    (`records/continuity_attribution_2026-11-18`): identity gate 44, other 17 (height-ratio gate 8, motion gate 7),
    low-score 7, LOST timeout 4, M2 nested 4. The colour-veto part: doubt link + (a) self-consistent resolution +
    (b) tap vouch measured (`records/doubt_resolution_2026-11-18`): 106 fragments, 0 silent, reviewer 0.783 / 2 wrong,
-   but 6.27 actions per min (= today): a doubt costs one tap like a fragment did. All off. Next options:
-   - resume the follower after a no-rival doubt resolution only (narrow `resume_after_uncertain`), measured the
-     same way; or
-   - diagnose the height-ratio / motion-gate breaks (15) and low-score continuation (7).
+   but 6.27 actions per min (= today): a doubt costs one tap like a fragment did. Resume after a no-rival doubt
+   (`records/resume_after_doubt_2026-11-18`): unaided 0.547, reviewer 0.783 / 6.27 or 0.753 / 5.92; pass bar not
+   met, all off (Nathan may relax the bar to "no more actions"). Doubt path closed for now. Next: diagnose the
+   height-ratio / motion-gate breaks (15) and low-score continuation (7).
