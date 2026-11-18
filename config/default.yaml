@@ -80,6 +80,17 @@ tracking:
   # is exclusive (its gate holds only its detection and no other track gates it), continuously for
   # identity_resolve_s; the track then adopts that appearance. Weaker evidence than the pre-doubt appearance: off.
   doubt_resolve_self_consistent: false
+  # Extent-change link, S3c (DEV 2026-11-18, records/gate_break_diagnosis_2026-11-18): 14 of 15 gate breaks bridged by
+  # ByteTrack were a confirmed player's box shrinking behind an occluder (height 0.59-0.67 of the prediction) or
+  # growing back (1.13-1.57x, centre moving with it). A recent confirmed track may take such a box when it is nested
+  # with the prediction (>= confirm_nested_ioa), keeps its top or bottom edge, and the pair is exclusive. Certain
+  # (Nathan, 2026-11-18). Priors, not fitted on the 15 cases:
+  extent_change_link: false
+  extent_edge_max_h: 0.15
+  extent_max_ratio: 2.0
+  # Low-score short-gap recovery in S4: a confirmed track unobserved <= rematch_max_s may recover on a low-score
+  # detection with IoU >= low_score_min_iou with its prediction (all other S4 rules apply). Unconfirmed tracks never.
+  low_score_recovery: false
 
 appearance:
   enabled: true

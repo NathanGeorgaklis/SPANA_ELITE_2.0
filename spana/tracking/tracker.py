@@ -28,6 +28,15 @@ Per frame:
           identity_resolve_s. Real DEV finding (records/continuity_attribution_2026-11-18): the torso-colour veto
           ended 25 continuing tracks on their own player's next box, each re-spawned one frame later.
           Every later check (hidden rivals, multi-body, identity ambiguity) still applies to the link.
+       S3c extent-change link (tracking.extent_change_link): a confirmed track observed within rematch_max_s and
+          still unmatched may take a remaining high-score detection whose box changed EXTENT rather than position
+          (part of the body hidden behind another player, or re-emerging): the smaller of the detection and the
+          predicted box lies in the larger by >= confirm_nested_ioa, their top or bottom edges differ by
+          <= extent_edge_max_h body heights, the height ratio is within extent_max_ratio, the horizontal centre is
+          within the gate radius, and appearance does not veto. Exclusive only: no other track gates or extent-fits
+          the detection, and the track has no other candidate. Real DEV finding
+          (records/gate_break_diagnosis_2026-11-18): such boxes failed the height or centre (Kalman) gate and
+          spawned a new track. Every later check still applies.
        Hidden-rival check: a continuing match is refused when an unobserved confirmed track (gap <= occlusion_max_s,
           and whose own motion can reach the detection) explains the
           detection better by more than contest_margin (the continuing player may have dropped while the hidden
@@ -36,7 +45,9 @@ Per frame:
           margin are CONTESTED. A refused detection goes through S4 and, if refused there, spawns a new track
           naming both candidates as possible_predecessors.
        S4 recovery of an unobserved track: LOST or unconfirmed (gap <= rematch_max_s), or confirmed OCCLUDED
-          (gap <= occlusion_max_s). The max-speed gate must hold exactly one unexplained high-score detection, no
+          (gap <= occlusion_max_s). The max-speed gate must hold exactly one unexplained high-score detection (with
+          tracking.low_score_recovery a low-score one also counts for a confirmed track within rematch_max_s whose
+          prediction it overlaps by >= low_score_min_iou), no
           detection whose association was contested, and that detection must lie in no other unmatched track's
           gate. It must also fit the hidden player's own motion: within gate_base_h + 0.5 * max_accel_h_per_s2 *
           gap^2 body heights of the constant-velocity prediction (OCCLUDED tracks keep their velocity). A gap
@@ -183,6 +194,7 @@ class MultiPlayerTracker:
         rem_high = self._stage("S3", [k for k in s3 if k not in matched], rem_high, dets, time_s, matched, out,
                                False, desc)
         rem_high = self._doubt_links(rem_high, dets, desc, time_s, matched, out)
+        rem_high = self._extent_links(rem_high, dets, desc, time_s, matched, out)
         rem_high = self._refuse_hidden_rivals(rem_high, dets, desc, time_s, matched, out)
         rem_high = self._recover(rem_high, dets, desc, time_s, matched, out)   # low scores never recover/spawn
         self._log_unmatched(dets, desc, time_s, matched, out)                    # read-only diagnostics
@@ -303,6 +315,56 @@ class MultiPlayerTracker:
             self._pending_doubt[t.track_id] = i
             out.decisions.append({"kind": "doubt_link", "stage": "S3b", "track_id": t.track_id, "detection": i,
                                   "iou": round(float(ious[k, i]), 4), "similarity": round(sim, 4)})
+        return [i for i in rem_high if i not in used]
+
+    def _extent_fit(self, t: _Track, d: Detection, time_s: float) -> bool:
+        """The detection could be this track's body with part of it hidden or re-emerging (S3c geometry only)."""
+        p, b = t.box(), d.as_array()
+        hp, hb = max(p[3] - p[1], _EPS), max(b[3] - b[1], _EPS)
+        if not 1.0 / self.tc.extent_max_ratio <= hb / hp <= self.tc.extent_max_ratio:
+            return False
+        iw = max(0.0, min(p[2], b[2]) - max(p[0], b[0]))
+        ih = max(0.0, min(p[3], b[3]) - max(p[1], b[1]))
+        small = min((p[2] - p[0]) * hp, (b[2] - b[0]) * hb)
+        if iw * ih / max(small, _EPS) < self.tc.confirm_nested_ioa:
+            return False
+        if min(abs(b[1] - p[1]), abs(b[3] - p[3])) / hp > self.tc.extent_edge_max_h:
+            return False
+        return abs((b[0] + b[2]) / 2 - (p[0] + p[2]) / 2) / hp <= self._gate_radius_h(t, time_s)
+
+    def _extent_links(self, rem_high: List[int], dets: Sequence[Detection], desc: Sequence[Optional[np.ndarray]],
+                      time_s: float, matched: Dict[int, Tuple[int, bool]], out: FrameTracks) -> List[int]:
+        """S3c (see module docstring). Certain links, exclusive pairs only."""
+        if not self.tc.extent_change_link or not rem_high:
+            return rem_high
+        cand = [k for k, t in enumerate(self._tracks) if k not in matched and t.confirmed
+                and time_s - t.last_observed_t <= self.tc.rematch_max_s + _EPS]
+        if not cand:
+            return rem_high
+        all_t, all_d = list(range(len(self._tracks))), list(range(len(dets)))
+        gated = self._cost_matrix(all_t, all_d, dets, time_s, iou_only=False)[0] < _INVALID   # motion gates
+        fit = {(k, i): self._extent_fit(self._tracks[k], dets[i], time_s) for k in all_t for i in rem_high}
+        used: Set[int] = set()
+        for k in cand:
+            t = self._tracks[k]
+            mine = [i for i in rem_high if fit[(k, i)] and i not in used]
+            if len(mine) != 1:
+                continue
+            i = mine[0]
+            if any(gated[k, j] for j in all_d if j != i):
+                continue                      # the track's own gate holds another detection
+            if any(gated[j, i] or fit[(j, i)] for j in all_t if j != k):
+                continue                      # another track could take this box
+            sim = similarity(desc[i], t.appearance)
+            if sim is not None and sim < self.ac.min_similarity:
+                continue
+            matched[k] = (i, False)
+            used.add(i)
+            p, b = t.box(), dets[i].as_array()
+            out.decisions.append({"kind": "extent_link", "stage": "S3c", "track_id": t.track_id, "detection": i,
+                                  "height_ratio": round(float((b[3] - b[1]) / max(p[3] - p[1], _EPS)), 4),
+                                  "gap_s": round(time_s - t.last_observed_t, 6),
+                                  "similarity": None if sim is None else round(sim, 4)})
         return [i for i in rem_high if i not in used]
 
     def _uncertain(self, t: _Track) -> bool:
@@ -493,7 +555,7 @@ class MultiPlayerTracker:
     def _recover(self, rem_high: List[int], dets: Sequence[Detection], desc: Sequence[Optional[np.ndarray]],
                  time_s: float, matched: Dict[int, Tuple[int, bool]], out: FrameTracks) -> List[int]:
         cand = [k for k, t in enumerate(self._tracks) if k not in matched and self._recoverable(t, time_s)]
-        if not cand or not rem_high:
+        if not cand or not (rem_high or self.tc.low_score_recovery):
             return rem_high
         all_t, all_d = list(range(len(self._tracks))), list(range(len(dets)))
         gated = self._cost_matrix(all_t, all_d, dets, time_s, iou_only=False)[0] < _INVALID
@@ -512,7 +574,7 @@ class MultiPlayerTracker:
                 reason = "CONTESTED_NEIGHBOUR"
             elif len(unexplained) != 1:
                 reason = "NO_UNEXPLAINED_DETECTION" if not unexplained else "AMBIGUOUS_DETECTIONS"
-            elif unexplained[0] not in rem_high:
+            elif unexplained[0] not in rem_high and not self._low_score_recoverable(t, dets[unexplained[0]], gap):
                 reason = "LOW_SCORE"
             else:
                 i = unexplained[0]
@@ -549,6 +611,12 @@ class MultiPlayerTracker:
             matched[k] = (i, False)
             used.add(i)
         return [i for i in rem_high if i not in used]
+
+    def _low_score_recoverable(self, t: _Track, d: Detection, gap: float) -> bool:
+        """tracking.low_score_recovery: a confirmed track's short gap may close on a low-score box that overlaps
+        its prediction (ByteTrack's second pass, restricted to S4's exclusive rules)."""
+        return self.tc.low_score_recovery and t.confirmed and gap <= self.tc.rematch_max_s + _EPS and \
+            float(iou_matrix(t.box()[None], d.as_array()[None])[0, 0]) >= self.tc.low_score_min_iou
 
     def _motion_consistent(self, t: _Track, d: Detection, gap: float) -> bool:
         ph = t.kf.height

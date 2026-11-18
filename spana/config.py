@@ -20,7 +20,8 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 import yaml
 
 CONFIG_SCHEMA_VERSION = "2.4.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.4.0: + tracking appearance
-#   doubt link (+ self-consistent resolution), target.tap_vouches_doubt / resume_after_doubt_resolved (2.3.0 is taken by unmerged branches: tracking.exit_hold_s, inference /
+#   doubt link (+ self-consistent resolution), extent-change link, low-score recovery, target.tap_vouches_doubt /
+#   resume_after_doubt_resolved (2.3.0 is taken by unmerged branches: tracking.exit_hold_s, inference /
 #   profiling / performance)
 
 
@@ -133,6 +134,12 @@ class TrackingConfig:
     appearance_doubt_min_iou: float  # ... only when the detection overlaps the predicted box by at least this IoU
     doubt_resolve_self_consistent: bool  # a doubt (no rival) may also clear on crops consistent with each other
                                    #   while the track stays exclusive, for identity_resolve_s; adopts that appearance
+    extent_change_link: bool       # S3c: continue a recent confirmed track through a box that changed extent
+                                   #   (part of the body hidden / re-emerging): nested, one edge kept, exclusive
+    extent_edge_max_h: float       # ... the kept (top or bottom) edge moves at most this many body heights
+    extent_max_ratio: float        # ... detection / predicted height within [1/r, r] (wider than max_height_ratio)
+    low_score_recovery: bool       # S4: a confirmed track unobserved <= rematch_max_s may recover on a low-score
+                                   #   detection overlapping its prediction by >= low_score_min_iou
 
     def validate(self) -> None:
         for n in ("low_score_min_iou", "iou_weight", "contest_margin", "duplicate_iou", "duplicate_ioa",
@@ -144,6 +151,9 @@ class TrackingConfig:
             _pos(f"tracking.{n}", getattr(self, n))
         if self.max_height_ratio < 1.0:
             raise ConfigError("tracking.max_height_ratio must be >= 1")
+        _pos("tracking.extent_edge_max_h", self.extent_edge_max_h)
+        if self.extent_max_ratio < self.max_height_ratio:
+            raise ConfigError("tracking.extent_max_ratio must be >= tracking.max_height_ratio")
         if self.gate_base_h > self.gate_max_h:
             raise ConfigError("tracking.gate_base_h must be <= tracking.gate_max_h")
         if self.confirm_nested_ioa > self.duplicate_ioa:
