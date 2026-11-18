@@ -28,6 +28,11 @@ Change log:
   2.2.0 target: + target_config.tap_vouches_doubt; TARGET may carry reason USER_VOUCHED: on an ACTIVE, confirmed
         track uncertain only by an appearance doubt (tracks 2.2.0 identity_doubt, no rivals), tapped by the user
         (selection or re-selection) earlier in the same uncertainty episode. 2.1.0 documents keep their meaning.
+  2.5.0 target: re-entry offers ranked by appearance + position. + top-level reentry_log (the re-entry rule's
+        decisions, logged when they change during a loss: offer / abstention reason, appearance, position, combined
+        scores, margin, every candidate); + target_config reentry_mutual / reentry_position_weight; reid evidence
+        {similarity (appearance), position, combined, position_informative, second_combined, candidates}.
+        2.4.0 documents keep their meaning.
   2.4.0 target: re-entry offers by re-ID. + top-level embeddings_sha256 (the spana.track_embeddings document used, or
         null); + target_config reentry_offer / reentry_max_gap_s / reentry_min_similarity / reentry_min_margin; relink
         evidence has a `kind`: "predecessor" {possible_predecessors, candidates} or "reid" {similarity,
@@ -55,7 +60,7 @@ from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityS
 DETECTIONS_SCHEMA = ("spana.detections", "1.4.0")   # 1.4.0: class_names (class_id indexes it)
 TRACKS_SCHEMA = ("spana.tracks", "2.2.0")   # 2.1.0 documents still validate (validate_tracks)
 TRACKS_ACCEPTED = ("2.1.0", "2.2.0")
-TARGET_SCHEMA = ("spana.target", "2.4.0")   # 1.0.0 / 2.0.0 / 2.1.0 / 2.2.0 / 2.3.0 documents still validate
+TARGET_SCHEMA = ("spana.target", "2.5.0")   # 1.0.0 / 2.0.0 / 2.1.0 / 2.2.0 / 2.3.0 / 2.4.0 still validate
 
 
 class ArtifactError(ValueError):
@@ -360,7 +365,7 @@ def validate_target(doc: Any, tracks: Optional[dict] = None, embeddings: Optiona
     version = doc.get("schema_version")
     if version == "1.0.0":
         return _validate_target_v1(doc, tracks)
-    if version in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0"):
+    if version in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0"):
         return _validate_target_v2(doc, tracks, version, embeddings)
     raise ArtifactError(f"unsupported spana.target version {version!r}")
 
@@ -483,12 +488,13 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
                         embeddings: Optional[dict] = None) -> None:
     """2.0.0 / 2.1.0 / 2.2.0. Structure, then (with the source tracks) every answer and every relink against the
     tracks."""
-    v21, v22 = version in ("2.1.0", "2.2.0", "2.3.0", "2.4.0"), version in ("2.2.0", "2.3.0", "2.4.0")
-    v23, v24 = version in ("2.3.0", "2.4.0"), version == "2.4.0"
+    v21 = version in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")
+    v22, v23 = version in ("2.2.0", "2.3.0", "2.4.0", "2.5.0"), version in ("2.3.0", "2.4.0", "2.5.0")
+    v24, v25 = version in ("2.4.0", "2.5.0"), version == "2.5.0"
     _header(doc, ("spana.target", version),
             ("schema", "schema_version", "provenance", "video", "tracks_sha256", "selection",
              "user_actions" if v21 else "confirmations", "target_config", "track_ends", "relinks", "frames")
-            + (("gaps",) if v21 else ()) + (("embeddings_sha256",) if v24 else ()))
+            + (("gaps",) if v21 else ()) + (("embeddings_sha256",) if v24 else ()) + (("reentry_log",) if v25 else ()))
     if v24 and doc["embeddings_sha256"] is not None and not isinstance(doc["embeddings_sha256"], str):
         raise ArtifactError("embeddings_sha256 must be a string or null")
     sel = doc["selection"]
@@ -500,7 +506,8 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
     tc = doc["target_config"]
     _keys(tc, ("resume_after_uncertain", "relink_max_gap_s", "relink_auto_confirm")
           + (("tap_vouches_doubt",) if v22 else ()) + (("resume_after_doubt_resolved",) if v23 else ())
-          + (("reentry_offer", "reentry_max_gap_s", "reentry_min_similarity", "reentry_min_margin") if v24 else ()),
+          + (("reentry_offer", "reentry_max_gap_s", "reentry_min_similarity", "reentry_min_margin") if v24 else ())
+          + (("reentry_mutual", "reentry_position_weight") if v25 else ()),
           "target_config")
     if v24 and not (isinstance(tc["reentry_offer"], bool) and _num(tc["reentry_max_gap_s"]) and
                     _num(tc["reentry_min_similarity"]) and _num(tc["reentry_min_margin"])):
@@ -540,8 +547,9 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
         _keys(r, _RELINK_KEYS + (("rejection",) if v21 else ()), "relink")
         kind = _relink_kind(r)
         if v24:
-            _keys(r["evidence"], _EVIDENCE_KEYS.get(kind, ("kind",)), "relink evidence")
-            if kind not in _EVIDENCE_KEYS:
+            keys = _EVIDENCE_KEYS_V25 if v25 else _EVIDENCE_KEYS
+            _keys(r["evidence"], keys.get(kind, ("kind",)), "relink evidence")
+            if kind not in keys:
                 raise ArtifactError(f"relink evidence kind {kind!r} unknown")
         else:
             _keys(r["evidence"], ("possible_predecessors", "candidates"), "relink evidence")
@@ -560,10 +568,16 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
             used_confs.append(rej)
         if kind == "reid":
             ev = r["evidence"]
-            sec = ev["second_similarity"]
+            sec = ev["second_combined"] if v25 else ev["second_similarity"]
+            top = ev["combined"] if v25 else ev["similarity"]
+            if v25 and not (_num(ev["position"]) and 0.0 <= ev["position"] <= 1.0 and _num(ev["combined"]) and
+                            isinstance(ev["position_informative"], bool) and
+                            abs(ev["combined"] - ev["similarity"] - tc["reentry_position_weight"] * ev["position"])
+                            <= 1e-5):
+                raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: bad re-ID scores")
             if not (tc["reentry_offer"] and doc["embeddings_sha256"] is not None and r["to_track"] in ev["candidates"]
                     and _num(ev["similarity"]) and ev["similarity"] >= tc["reentry_min_similarity"] - 1e-9
-                    and (sec is None or (_num(sec) and ev["similarity"] - sec >= tc["reentry_min_margin"] - 1e-9))):
+                    and (sec is None or (_num(sec) and top - sec >= tc["reentry_min_margin"] - 1e-9))):
                 raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: re-ID evidence does not support it")
             if not (_num(r["gap_s"]) and 0 <= r["gap_s"] <= tc["reentry_max_gap_s"] + 1e-9):
                 raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: gap outside reentry_max_gap_s")
@@ -632,6 +646,16 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
                 raise ArtifactError(f"re-selection of {tid} on frame {g} is not reflected in the answers")
     if v21 and doc["gaps"] != gaps_of(frames, rels):
         raise ArtifactError("gaps do not match the frames")
+    if v25:
+        if not isinstance(doc["reentry_log"], list):
+            raise ArtifactError("reentry_log must be a list")
+        for e in doc["reentry_log"]:
+            _keys(e, _REENTRY_LOG_KEYS, "reentry_log entry")
+            if not (isinstance(e["frame"], int) and isinstance(e["offer"], bool) and e["reason"] in _REENTRY_REASONS
+                    and (e["offer"] == (e["reason"] is None)) and isinstance(e["candidates"], list)):
+                raise ArtifactError(f"bad reentry_log entry at frame {e.get('frame')}")
+        if doc["reentry_log"] and not tc["reentry_offer"]:
+            raise ArtifactError("reentry_log entries while reentry_offer is false")
     if tracks is None:
         return
     if sha256_doc(tracks) != doc["tracks_sha256"]:
@@ -675,7 +699,7 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
         if rivals:
             raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: not the only candidate ({rivals})")
     if embeddings is not None and v24:
-        _check_reid_offers(doc, rels, embeddings)
+        _check_reid_offers(doc, rels, embeddings, v25)
     taps = sorted([(sel["frame"], sel["track_id"])] + [(g, tid) for tid, fs in reselected.items() for g in fs])
     for k, (tf, fr) in enumerate(zip(src, frames)):
         if fr["reason"] == TargetReason.USER_VOUCHED.value:
@@ -694,6 +718,13 @@ def _relink_kind(r: dict) -> str:
 
 _EVIDENCE_KEYS = {"predecessor": ("kind", "possible_predecessors", "candidates"),
                   "reid": ("kind", "similarity", "second_similarity", "candidates")}
+_EVIDENCE_KEYS_V25 = {"predecessor": ("kind", "possible_predecessors", "candidates"),
+                      "reid": ("kind", "similarity", "position", "combined", "position_informative", "second_combined",
+                               "candidates")}
+_REENTRY_LOG_KEYS = ("frame", "from_track", "offer", "reason", "track", "appearance", "position",
+                     "position_informative", "position_reason", "combined", "second_combined", "margin",
+                     "reverse_second_combined", "candidates")
+_REENTRY_REASONS = (None, "NO_SIGNATURE", "NO_CANDIDATE", "BELOW_MIN_SIMILARITY", "MARGIN", "NOT_MUTUAL")
 
 
 def _cos(a, b) -> Optional[float]:
@@ -704,8 +735,9 @@ def _cos(a, b) -> Optional[float]:
     return sum(x * y for x, y in zip(a, b)) / max(na * nb, 1e-12)
 
 
-def _check_reid_offers(doc: dict, rels: List[dict], emb: dict) -> None:
-    """Every re-ID offer's similarity (lost track's last vs offered track's first signature) and runner-up."""
+def _check_reid_offers(doc: dict, rels: List[dict], emb: dict, v25: bool = False) -> None:
+    """Every re-ID offer's appearance similarity (lost track's last vs offered track's first signature); for 2.4.0
+    also the appearance runner-up (2.5.0 ranks by appearance + position, checked for consistency in the structure)."""
     if sha256_doc(emb) != doc["embeddings_sha256"]:
         raise ArtifactError("embeddings document does not match embeddings_sha256")
     if emb["tracks_sha256"] != doc["tracks_sha256"]:
@@ -718,6 +750,11 @@ def _check_reid_offers(doc: dict, rels: List[dict], emb: dict) -> None:
         last = sig.get(r["from_track"], {}).get("last")
         sims = {c: _cos(last, sig.get(c, {}).get("first")) for c in ev["candidates"]}
         best = sims.get(r["to_track"])
+        if v25:
+            if best is None or abs(best - ev["similarity"]) > 1e-4:
+                raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: re-ID similarity disagrees with the "
+                                    "embeddings")
+            continue
         others = [v for c, v in sims.items() if c != r["to_track"] and v is not None]
         second, claimed = (max(others) if others else None), ev["second_similarity"]
         second_ok = (second is None and claimed is None) or \

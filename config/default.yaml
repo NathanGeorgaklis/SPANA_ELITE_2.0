@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.6.0"
+schema_version: "2.7.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -156,6 +156,17 @@ target:
   # gate changed nothing (wrong picks were born later, when the speed bound reaches almost anywhere): off.
   reentry_position_gate: false
   reentry_mutual: true
+  # Position as a SCORE (records/reentry_position_score_2026-11-18): combined = appearance + weight * fit, fit =
+  # max(0, 1 - d / (base_h + speed_h_per_s * gap)) * exp(-gap / time_scale_s), d = distance in body heights from the
+  # lost player's camera-carried last position to where the candidate first appears. Fit = 0 (appearance decides)
+  # beyond max_gap_s, across a cut / unknown camera, after LEFT_FRAME, out of the picture, or after a pan moving the
+  # scene by more than max_pan_frac of the frame width. The appearance floor and the margin / mutual rules use it.
+  reentry_position_weight: 0.0
+  reentry_position_base_h: 0.35
+  reentry_position_speed_h_per_s: 2.0
+  reentry_position_time_scale_s: 1.0
+  reentry_position_max_gap_s: 3.0
+  reentry_position_max_pan_frac: 0.25
 
 reid:
   # Which observations are embedded into a track's first / last re-ID signature (spana.identity.reid).

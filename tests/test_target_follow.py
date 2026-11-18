@@ -99,7 +99,7 @@ class FollowerTest(unittest.TestCase):
         self.assertEqual([f["frame"] for f in frames], [2, 3, 4])          # from the selection on, never earlier
         self.assertTrue(all(f["state"] == "TARGET" and f["track_id"] == "t1" for f in frames))
         self.assertTrue(all(f["box"] == [0.0, 100.0, 40.0, 200.0] for f in frames))
-        self.assertEqual(info, {"track_ends": [], "relinks": []})
+        self.assertEqual(info, {"track_ends": [], "relinks": [], "reentry_log": []})
 
     def test_track_end_is_lost_for_the_rest(self):
         doc = tracks_doc([W, {"t1": A, "t2": A}, {"t1": A, "t2": A}, {"t2": A}, {"t2": A}],

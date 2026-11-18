@@ -91,7 +91,7 @@ class Offer(unittest.TestCase):
         r = info["relinks"][0]
         self.assertEqual((r["evidence"]["kind"], r["outcome"]), ("reid", "PENDING"))
         self.assertAlmostEqual(r["evidence"]["similarity"], 0.95, places=2)
-        self.assertAlmostEqual(r["evidence"]["second_similarity"], 0.10, places=2)
+        self.assertAlmostEqual(r["evidence"]["second_combined"], 0.10, places=2)
         doc = target_document(tr, SEL, cfg(), ["test"], (), emb)
         validate_target(doc, tr, emb)
 
@@ -194,7 +194,9 @@ class Validation(unittest.TestCase):
 
     def test_tampered_similarity_is_refused(self):
         d = copy.deepcopy(self.doc)
-        d["relinks"][0]["evidence"]["second_similarity"] = 0.5
+        ev = d["relinks"][0]["evidence"]
+        ev["similarity"] = round(ev["similarity"] - 0.01, 6)          # consistent scores, wrong appearance
+        ev["combined"] = round(ev["combined"] - 0.01, 6)
         validate_target(d, self.tr)                                   # structurally fine without the embeddings
         with self.assertRaises(ArtifactError):
             validate_target(d, self.tr, self.emb)
@@ -228,3 +230,99 @@ class Validation(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ------------------------------------------------------------------ position as a score (target.reentry_position_*)
+from spana.identity.reid import ReentryContext, reentry_choice  # noqa: E402
+
+IDENT = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
+
+
+def scene(births, pan_px: float = 0.0, left_frame: bool = False, n: int = 20):
+    """Hand-made tracks rows (10 fps, 1280 x 720): t1 observed on frames 0-3 at x 100-140 (100 px tall), then lost;
+    births = {track: (frame, x)}: a candidate first seen on that frame at that x. pan_px: camera translation per
+    frame from frame 4 on (the scene moves left). left_frame: t1 ends LEFT_FRAME on frame 4."""
+    frames = []
+    for k in range(n):
+        cam = {"status": "FIRST" if k == 0 else "OK", "inliers": 0, "hist_distance": None,
+               "affine": [[1.0, 0.0, -pan_px if k >= 4 else 0.0], [0.0, 1.0, 0.0]]}
+        tracks = [{"track_id": "t1", "source": "OBSERVED", "box": [100.0, 100.0, 140.0, 200.0]}] if k < 4 else []
+        for tid, (f, x) in births.items():
+            if k >= f:
+                tracks.append({"track_id": tid, "source": "OBSERVED", "box": [x, 100.0, x + 40.0, 200.0]})
+        ended = [["t1", "LEFT_FRAME"]] if (left_frame and k == 4) else []
+        frames.append({"frame": k, "t": k / 10.0, "camera": cam, "tracks": tracks, "ended": ended})
+    return {"video": {"width": 1280, "height": 720}, "frames": frames}
+
+
+def tc(**kw):
+    base = dict(reentry_offer=True, reentry_max_gap_s=10.0, reentry_min_similarity=0.6, reentry_min_margin=0.0,
+                reentry_mutual=False, reentry_position_gate=False, reentry_position_weight=0.3,
+                reentry_position_base_h=0.35, reentry_position_speed_h_per_s=2.0, reentry_position_time_scale_s=1.0,
+                reentry_position_max_gap_s=3.0, reentry_position_max_pan_frac=0.25)
+    return dataclasses.replace(T, **{**base, **kw})
+
+
+def choose(doc, sigs, **kw):
+    ctx = ReentryContext.of(doc)
+    sig = {k: {"first": v, "last": v} for k, v in sigs.items()}
+    return reentry_choice("t1", 3, len(doc["frames"]) - 1, ctx, sig, tc(**kw), CFG.tracking)
+
+
+NEAR_LOOK = unit(0.80, 0.60, 0)          # cos 0.80 with ME
+FAR_LOOK = unit(0.85, 0.527, 0)          # cos 0.85 with ME: slightly more similar
+
+
+class PositionScore(unittest.TestCase):
+    def test_close_in_place_and_time_outranks_a_slightly_more_similar_far_late_track(self):
+        doc = scene({"t2": (4, 102.0), "t3": (15, 900.0)})
+        sigs = {"t1": ME, "t2": NEAR_LOOK, "t3": FAR_LOOK}
+        self.assertEqual(choose(doc, sigs, reentry_position_weight=0.0)["track"], "t3")   # appearance alone
+        ch = choose(doc, sigs)
+        self.assertEqual((ch["offer"], ch["track"], ch["position_informative"]), (True, "t2", True))
+        self.assertGreater(ch["position"], 0.5)
+        self.assertEqual(ch["candidates"]["t3"]["position"], 0.0)
+
+    def test_pan_or_exit_ranks_by_appearance_alone(self):
+        sigs = {"t1": ME, "t2": NEAR_LOOK, "t3": FAR_LOOK}
+        # pan: the scene moves 400 px right on frame 4 onwards (t2's birth: PAN; later: carried out of the picture)
+        for doc, why in ((scene({"t2": (5, 102.0), "t3": (15, 900.0)}, pan_px=-400.0), {"PAN", "OUT_OF_PICTURE"}),
+                         (scene({"t2": (5, 102.0), "t3": (15, 900.0)}, left_frame=True), {"LEFT_FRAME"})):
+            with_pos, without = choose(doc, sigs), choose(doc, sigs, reentry_position_weight=0.0)
+            self.assertEqual((with_pos["track"], with_pos["offer"]), (without["track"], without["offer"]))
+            self.assertEqual(with_pos["track"], "t3")
+            self.assertTrue(all(c["position"] == 0.0 and c["position_reason"] in why
+                                for c in with_pos["candidates"].values()))
+            if "PAN" in why:
+                self.assertEqual(with_pos["candidates"]["t2"]["position_reason"], "PAN")
+
+    def test_weight_zero_is_appearance_only_whatever_the_scales(self):
+        doc = scene({"t2": (4, 102.0), "t3": (15, 900.0)})
+        sigs = {"t1": ME, "t2": NEAR_LOOK, "t3": FAR_LOOK}
+        a = choose(doc, sigs, reentry_position_weight=0.0)
+        b = choose(doc, sigs, reentry_position_weight=0.0, reentry_position_speed_h_per_s=50.0,
+                   reentry_position_time_scale_s=99.0, reentry_position_max_gap_s=0.01)
+        self.assertEqual(a, b)
+        self.assertTrue(all(c["combined"] == c["appearance"] and c["position_reason"] == "WEIGHT_ZERO"
+                            for c in a["candidates"].values()))
+
+    def test_margin_still_abstains_when_the_top_two_are_close(self):
+        doc = scene({"t2": (4, 102.0), "t3": (15, 900.0)})
+        close = unit(0.99, 0.14, 0)                            # appearance ~0.99: combined within 0.1 of t2's
+        ch = choose(doc, {"t1": ME, "t2": NEAR_LOOK, "t3": close}, reentry_min_margin=0.10)
+        self.assertEqual((ch["offer"], ch["reason"]), (False, "MARGIN"))
+        self.assertLess(ch["margin"], 0.10)
+
+    def test_offers_and_abstentions_are_logged_with_their_scores(self):
+        tr = returning()
+        emb = emb_doc(tr, {"t1": (ME, ME), "t2": (ME_AGAIN, ME_AGAIN)})
+        log = follow(tr, SEL, cfg(), (), emb)[1]["reentry_log"]
+        offer = next(e for e in log if e["offer"])
+        self.assertIsNone(offer["reason"])
+        self.assertEqual(offer["track"], "t2")
+        self.assertEqual(offer["position_reason"], "NO_FRAME_SIZE" if CFG.target.reentry_position_weight > 0
+                         else "WEIGHT_ZERO")
+        self.assertEqual({c["track"] for c in offer["candidates"]}, {"t2"})
+        doc = target_document(tr, SEL, cfg(), ["test"], (), emb)
+        self.assertEqual(doc["reentry_log"], log)
+        validate_target(doc, tr, emb)

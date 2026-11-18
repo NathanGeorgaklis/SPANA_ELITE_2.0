@@ -90,7 +90,7 @@ def clip_events(label_dir: str, trk_p: str, emb_p: str, window_s: float, cfg=Non
                                                      reentry_min_similarity=smin, reentry_min_margin=mmin,
                                                      reentry_position_gate=pos, reentry_mutual=mut)
                             ch = reentry_choice(a, ctx.last_obs[a], end, ctx, sig, tc, cfg.tracking)
-                            picks[f"{name}|{smin}|{mmin}"] = None if ch is None else ch["track"]
+                            picks[f"{name}|{smin}|{mmin}"] = ch["track"] if ch["offer"] else None
             events.append({"player": p, "from": a, "to": b, "gap_s": round(gap, 3), "picks": picks,
                            "in_window": gap <= window_s, "lost_has_signature": last is not None,
                            "true_has_signature": b in sims,

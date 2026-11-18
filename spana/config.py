@@ -19,10 +19,10 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.6.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.7.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
-#   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual
+#   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score
 
 
 class ConfigError(ValueError):
@@ -216,6 +216,12 @@ class TargetConfig:
     reentry_min_margin: float      # ... and above every other candidate's similarity by at least this
     reentry_position_gate: bool    # ... and reachable from where the lost player was (camera-carried, speed bound)
     reentry_mutual: bool           # ... and the lost track is also the candidate's best match among lost tracks
+    reentry_position_weight: float # combined = appearance + weight * position fit (0 = appearance only)
+    reentry_position_base_h: float # position fit: reach = base_h + speed_h_per_s * gap (body heights) ...
+    reentry_position_speed_h_per_s: float
+    reentry_position_time_scale_s: float  # ... times exp(-gap / time_scale_s)
+    reentry_position_max_gap_s: float     # position carries no information beyond this gap
+    reentry_position_max_pan_frac: float  # ... nor when the camera moved the scene more than this share of the width
 
     def validate(self) -> None:
         _pos("target.relink_max_gap_s", self.relink_max_gap_s)
@@ -226,6 +232,12 @@ class TargetConfig:
             raise ConfigError("target.reentry_min_similarity must be a cosine in [-1, 1]")
         if not 0.0 <= self.reentry_min_margin <= 2.0:
             raise ConfigError("target.reentry_min_margin must be in [0, 2]")
+        if self.reentry_position_weight < 0:
+            raise ConfigError("target.reentry_position_weight must be >= 0")
+        for n in ("reentry_position_base_h", "reentry_position_speed_h_per_s", "reentry_position_time_scale_s",
+                  "reentry_position_max_gap_s"):
+            _pos(f"target.{n}", getattr(self, n))
+        _unit("target.reentry_position_max_pan_frac", self.reentry_position_max_pan_frac)
 
 
 @dataclass(frozen=True)

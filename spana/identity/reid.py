@@ -267,27 +267,82 @@ class ReentryContext:
         return None
 
 
+POSITION_REASONS = ("INFORMATIVE", "GAP_TOO_LONG", "CAMERA_BREAK", "LEFT_FRAME", "OUT_OF_PICTURE", "PAN",
+                    "NO_FRAME_SIZE", "WEIGHT_ZERO")
+
+
+def position_fit(ctx: "ReentryContext", lost: str, lost_idx: int, cand: str, tc_target) -> Tuple[float, str]:
+    """Spatiotemporal fit in [0, 1] of candidate `cand` (at its birth) for the lost track (at its last observation),
+    and why position was or was not informative. Same space as reachable(): the lost box centre carried through the
+    per-frame camera transforms, distances in the lost box's (carried) height.
+      dist_fit = max(0, 1 - d / (reentry_position_base_h + reentry_position_speed_h_per_s * gap))
+      time_fit = exp(-gap / reentry_position_time_scale_s)
+      fit      = dist_fit * time_fit
+    Not informative (fit 0): gap > reentry_position_max_gap_s; a CUT / UNKNOWN camera frame in the gap; the lost track
+    ended LEFT_FRAME by then; the carried point left the picture; the carried point moved more than
+    reentry_position_max_pan_frac of the frame width (the camera panned); no frame size."""
+    from ..geometry import affine_scale, apply_affine_points
+    frames = ctx.frames
+    b = ctx.birth[cand]
+    gap = frames[b]["t"] - frames[lost_idx]["t"]
+    if tc_target.reentry_position_weight <= 0:
+        return 0.0, "WEIGHT_ZERO"
+    if ctx.width is None or ctx.height is None:
+        return 0.0, "NO_FRAME_SIZE"
+    if gap > tc_target.reentry_position_max_gap_s + 1e-9:
+        return 0.0, "GAP_TOO_LONG"
+    x1, y1, x2, y2 = ctx.box_at[(lost, lost_idx)]
+    p0 = np.array([[(x1 + x2) / 2, (y1 + y2) / 2]])
+    p, h = p0.copy(), y2 - y1
+    for k in range(lost_idx + 1, b + 1):
+        cam = frames[k]["camera"]
+        if cam["status"] in _BREAK:
+            return 0.0, "CAMERA_BREAK"
+        if any(e[0] == lost and e[1] == "LEFT_FRAME" for e in frames[k]["ended"]):
+            return 0.0, "LEFT_FRAME"
+        A = np.asarray(cam["affine"], dtype=float)
+        p = apply_affine_points(A, p)
+        h *= affine_scale(A)
+    if not (0.0 <= p[0, 0] <= ctx.width and 0.0 <= p[0, 1] <= ctx.height):
+        return 0.0, "OUT_OF_PICTURE"
+    if float(np.hypot(*(p[0] - p0[0]))) > tc_target.reentry_position_max_pan_frac * ctx.width:
+        return 0.0, "PAN"
+    cb = ctx.box_at[(cand, b)]
+    d = float(np.hypot((cb[0] + cb[2]) / 2 - p[0, 0], (cb[1] + cb[3]) / 2 - p[0, 1])) / max(h, 1e-9)
+    reach = tc_target.reentry_position_base_h + tc_target.reentry_position_speed_h_per_s * gap
+    dist_fit = max(0.0, 1.0 - d / max(reach, 1e-9))
+    time_fit = float(np.exp(-gap / tc_target.reentry_position_time_scale_s))
+    return dist_fit * time_fit, "INFORMATIVE"
+
+
 def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, sig: Dict[str, dict], tc_target,
-                   tc_tracking, allowed=lambda c: True) -> Optional[dict]:
-    """The re-entry rule shared by the follower's offer and the DEV evaluation.
+                   tc_tracking, allowed=lambda c: True) -> dict:
+    """The re-entry rule shared by the follower's offer and the DEV evaluation. Always returns a decision:
+    {offer, reason, track, appearance, position, position_informative, position_reason, combined, second_combined,
+     margin, reverse_second_combined, candidates: {track: {appearance, position, position_reason, combined}}}.
 
     Candidates: tracks born after the lost track's last observation (frame index lost_idx), at most
-    target.reentry_max_gap_s later, born by now_idx, with a first signature, that `allowed` accepts (the follower
-    passes "usable now and not yet offered"). With target.reentry_position_gate, a candidate the lost player could not
-    have reached (reachable() is False) is dropped; where position cannot judge, appearance decides alone.
-    Choice: the highest cosine(lost.last, candidate.first); it must reach reentry_min_similarity and beat every other
-    candidate (allowed or not) by reentry_min_margin. With target.reentry_mutual, the lost track must also be the
-    chosen track's best match, by the same margin, among all tracks lost before it was born (within the window, with
-    a last signature, and - with the position gate - able to reach it).
-    Returns {track, similarity, second_similarity, candidates, reverse_second} or None."""
+    target.reentry_max_gap_s later, born by now_idx, with a first signature, that `allowed` accepts for the offer
+    (the follower: usable now and not yet offered). With target.reentry_position_gate, a candidate the lost player
+    could not have reached (reachable() is False) is dropped (unchanged).
+    Score: combined = appearance + reentry_position_weight * position_fit (position_fit() is 0 when position carries
+    no information, so the ranking falls back to appearance alone). The best combined offerable candidate is offered
+    when its APPEARANCE reaches reentry_min_similarity and its combined score beats every other candidate's (offerable
+    or not) by reentry_min_margin; with reentry_mutual, the lost track's combined score must also beat, by the same
+    margin, every other track that was lost when the candidate appeared (scored the same way, towards the candidate).
+    Abstention reasons: NO_SIGNATURE, NO_CANDIDATE, BELOW_MIN_SIMILARITY, MARGIN, NOT_MUTUAL."""
     frames = ctx.frames
+    w = tc_target.reentry_position_weight
+    out = {"offer": False, "reason": None, "track": None, "appearance": None, "position": None,
+           "position_informative": None, "position_reason": None, "combined": None, "second_combined": None,
+           "margin": None, "reverse_second_combined": None, "candidates": {}}
     last = sig.get(lost, {}).get("last")
     if last is None:
-        return None
+        return {**out, "reason": "NO_SIGNATURE"}
     t0 = frames[lost_idx]["t"]
     lost_box = ctx.box_at[(lost, lost_idx)]
 
-    def gate_ok(src: str, src_idx: int, src_box, c: str) -> bool:
+    def gate_ok(src_idx: int, src_box, c: str) -> bool:
         if not tc_target.reentry_position_gate:
             return True
         b = ctx.birth[c]
@@ -295,20 +350,31 @@ def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, 
             is not False
 
     pool = [c for c, b in ctx.birth.items() if c != lost and lost_idx < b <= now_idx
-            and frames[b]["t"] - t0 <= tc_target.reentry_max_gap_s + 1e-9 and gate_ok(lost, lost_idx, lost_box, c)]
-    sims = {c: cosine(last, sig.get(c, {}).get("first")) for c in pool}
-    sims = {c: s for c, s in sims.items() if s is not None}
-    offerable = {c: s for c, s in sims.items() if allowed(c)}
+            and frames[b]["t"] - t0 <= tc_target.reentry_max_gap_s + 1e-9 and gate_ok(lost_idx, lost_box, c)]
+    cands = {}
+    for c in pool:
+        a = cosine(last, sig.get(c, {}).get("first"))
+        if a is None:
+            continue
+        fit, why = position_fit(ctx, lost, lost_idx, c, tc_target)
+        cands[c] = {"appearance": round(a, 6), "position": round(fit, 6), "position_reason": why,
+                    "combined": round(a + w * fit, 6)}
+    out["candidates"] = cands
+    offerable = [c for c in cands if allowed(c)]
     if not offerable:
-        return None
-    best = max(offerable, key=lambda c: (offerable[c], c))
-    others = [s for c, s in sims.items() if c != best]
+        return {**out, "reason": "NO_CANDIDATE"}
+    best = max(offerable, key=lambda c: (cands[c]["combined"], c))
+    cb = cands[best]
+    others = [v["combined"] for c, v in cands.items() if c != best]
     second = max(others) if others else None
-    s = sims[best]
-    if s < tc_target.reentry_min_similarity - 1e-9 or \
-            (second is not None and s - second < tc_target.reentry_min_margin - 1e-9):
-        return None
-    reverse_second = None
+    out.update(track=best, appearance=cb["appearance"], position=cb["position"],
+               position_informative=cb["position_reason"] == "INFORMATIVE", position_reason=cb["position_reason"],
+               combined=cb["combined"], second_combined=second,
+               margin=None if second is None else round(cb["combined"] - second, 6))
+    if cb["appearance"] < tc_target.reentry_min_similarity - 1e-9:
+        return {**out, "reason": "BELOW_MIN_SIMILARITY"}
+    if second is not None and cb["combined"] - second < tc_target.reentry_min_margin - 1e-9:
+        return {**out, "reason": "MARGIN"}
     if tc_target.reentry_mutual:
         b = ctx.birth[best]
         first = sig[best]["first"]
@@ -321,12 +387,18 @@ def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, 
                     any(t["track_id"] == other and t["source"] == "OBSERVED" for t in frames[b]["tracks"]):
                 continue                          # not lost when the candidate appeared
             v = cosine(sig.get(other, {}).get("last"), first)
-            if v is None or not gate_ok(other, lo, ctx.box_at.get((other, lo)) or
-                                        next(t["box"] for t in frames[lo]["tracks"] if t["track_id"] == other), best):
+            if v is None:
                 continue
-            rival.append(v)
-        reverse_second = max(rival) if rival else None
-        if reverse_second is not None and s - reverse_second < tc_target.reentry_min_margin - 1e-9:
-            return None
-    return {"track": best, "similarity": s, "second_similarity": second, "candidates": sorted(sims),
-            "reverse_second": reverse_second}
+            obox = ctx.box_at.get((other, lo)) or next(t["box"] for t in frames[lo]["tracks"]
+                                                        if t["track_id"] == other)
+            if not gate_ok(lo, obox, best):
+                continue
+            if (other, lo) not in ctx.box_at:
+                ctx.box_at[(other, lo)] = obox
+            fit, _ = position_fit(ctx, other, lo, best, tc_target)
+            rival.append(v + w * fit)
+        rs = max(rival) if rival else None
+        out["reverse_second_combined"] = None if rs is None else round(rs, 6)
+        if rs is not None and cb["combined"] - rs < tc_target.reentry_min_margin - 1e-9:
+            return {**out, "reason": "NOT_MUTUAL"}
+    return {**out, "offer": True}

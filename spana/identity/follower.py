@@ -185,23 +185,32 @@ def _doubt_only(tr: dict) -> bool:
 
 
 def _reentry_offer(cur: str, last_obs: int, n: int, ctx, sig: Dict[str, dict], done: set, live: Dict[str, dict],
-                   cfg: SpanaConfig) -> Optional[dict]:
-    """Re-entry offer by re-ID (spana.target 2.4.0): the shared rule spana.identity.reid.reentry_choice, restricted
-    to tracks usable now and not yet offered for this loss. Tracks without a signature are never offered."""
+                   cfg: SpanaConfig) -> Tuple[Optional[dict], dict]:
+    """Re-entry offer by re-ID (spana.target 2.5.0): the shared rule spana.identity.reid.reentry_choice, restricted
+    to tracks usable now and not yet offered for this loss. Returns (relink entry or None, the rule's decision)."""
     from .reid import reentry_choice
     frames = ctx.frames
     ch = reentry_choice(cur, last_obs, n, ctx, sig, cfg.target, cfg.tracking,
                         allowed=lambda c: c not in done and _usable(live.get(c)))
-    if ch is None:
-        return None
+    if not ch["offer"]:
+        return None, ch
     best = ch["track"]
     return {"from_track": cur, "to_track": best, "lost_frame": frames[last_obs]["frame"],
             "proposed_frame": frames[n]["frame"], "gap_s": round(frames[ctx.birth[best]]["t"] - frames[last_obs]["t"], 6),
-            "evidence": {"kind": "reid", "similarity": round(ch["similarity"], 6),
-                         "second_similarity": None if ch["second_similarity"] is None
-                         else round(ch["second_similarity"], 6),
-                         "candidates": ch["candidates"]},
-            "confirmation": None, "rejection": None, "outcome": "PENDING", "dropped_reason": None}
+            "evidence": {"kind": "reid", "similarity": ch["appearance"], "position": ch["position"],
+                         "combined": ch["combined"], "position_informative": ch["position_informative"],
+                         "second_combined": ch["second_combined"], "candidates": sorted(ch["candidates"])},
+            "confirmation": None, "rejection": None, "outcome": "PENDING", "dropped_reason": None}, ch
+
+
+def _log_row(frame: int, cur: str, ch: dict) -> dict:
+    """One spana.target reentry_log entry: the re-entry rule's decision with every candidate's scores."""
+    return {"frame": frame, "from_track": cur, "offer": ch["offer"], "reason": ch["reason"], "track": ch["track"],
+            "appearance": ch["appearance"], "position": ch["position"],
+            "position_informative": ch["position_informative"], "position_reason": ch["position_reason"],
+            "combined": ch["combined"], "second_combined": ch["second_combined"], "margin": ch["margin"],
+            "reverse_second_combined": ch["reverse_second_combined"],
+            "candidates": [{"track": c, **v} for c, v in sorted(ch["candidates"].items())]}
 
 
 def _usable(tr: Optional[dict]) -> bool:
@@ -234,6 +243,8 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
     out: List[dict] = []
     track_ends: List[dict] = []
     relinks: List[dict] = []
+    reentry_log: List[dict] = []           # re-entry rule decisions, logged when they change during a loss
+    log_key = None
     cur, cur_ended = sel.track_id, False
     tainted, episodes0 = False, None
     vouch: Optional[Tuple[str, int]] = None   # (track, uncertainty episode) the user tapped during a doubt
@@ -391,7 +402,11 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                 if rctx is None:
                     from .reid import ReentryContext
                     rctx = ReentryContext.of(tracks_doc)
-                pending = _reentry_offer(cur, last_obs, n, rctx, sig, reid_done, live, cfg)
+                pending, decision = _reentry_offer(cur, last_obs, n, rctx, sig, reid_done, live, cfg)
+                key = (cur, last_obs, decision["offer"], decision["reason"], decision["track"])
+                if key != log_key:
+                    reentry_log.append(_log_row(f, cur, decision))
+                    log_key = key
                 if pending is not None:
                     relinks.append(pending)
             base = dict(answer)
@@ -432,7 +447,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
     if unused:
         raise UserActionError(f"user actions that do not apply (no candidate / offer / box on their frame, or "
                               f"before the selection): {unused}")
-    return out, {"track_ends": track_ends, "relinks": relinks}
+    return out, {"track_ends": track_ends, "relinks": relinks, "reentry_log": reentry_log}
 
 
 def gap_duration_s(gap: dict) -> float:
@@ -449,7 +464,7 @@ def review_list(gaps: Sequence[dict], cfg: SpanaConfig) -> List[dict]:
 
 def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Sequence[str] = (),
                     actions: Iterable[dict] = (), embeddings: Optional[dict] = None) -> dict:
-    """Validated spana.target 2.4.0 document for one selection (and the user's actions) on one validated
+    """Validated spana.target 2.5.0 document for one selection (and the user's actions) on one validated
     spana.tracks document (and, for re-entry offers, its validated spana.track_embeddings document)."""
     actions = [dict(a) for a in actions]
     frames, info = follow(tracks_doc, sel, cfg, actions, embeddings)
@@ -470,9 +485,11 @@ def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Se
                           "reentry_offer": cfg.target.reentry_offer,
                           "reentry_max_gap_s": cfg.target.reentry_max_gap_s,
                           "reentry_min_similarity": cfg.target.reentry_min_similarity,
-                          "reentry_min_margin": cfg.target.reentry_min_margin},
+                          "reentry_min_margin": cfg.target.reentry_min_margin,
+                          "reentry_mutual": cfg.target.reentry_mutual,
+                          "reentry_position_weight": cfg.target.reentry_position_weight},
         "track_ends": info["track_ends"], "relinks": info["relinks"], "frames": frames,
-        "gaps": gaps_of(frames, info["relinks"]),
+        "gaps": gaps_of(frames, info["relinks"]), "reentry_log": info["reentry_log"],
     }
     validate_target(doc, tracks_doc, embeddings)
     return doc
