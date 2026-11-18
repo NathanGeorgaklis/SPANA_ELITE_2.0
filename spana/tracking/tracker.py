@@ -20,6 +20,14 @@ Per frame:
                                      tracks never take low-score boxes (real DEV finding: a new track took its
                                      player's low-score partial box ahead of its own high-score full box in S3)
        S3 remaining high-score   <-> unconfirmed tracks observed on the previous frame
+       S3b appearance doubt link (tracking.appearance_doubt_link): a track observed on the previous frame and still
+          unmatched whose ONLY motion-gated detection (appearance ignored) is a remaining high-score detection that
+          no other track gates, overlapping its predicted box by >= appearance_doubt_min_iou, takes it even though
+          its appearance vetoed the pair. The link is never certain: the track becomes IDENTITY_UNCERTAIN
+          (identity_doubt, appearance frozen) and stays so until clean crops match its pre-doubt appearance for
+          identity_resolve_s. Real DEV finding (records/continuity_attribution_2026-11-18): the torso-colour veto
+          ended 25 continuing tracks on their own player's next box, each re-spawned one frame later.
+          Every later check (hidden rivals, multi-body, identity ambiguity) still applies to the link.
        Hidden-rival check: a continuing match is refused when an unobserved confirmed track (gap <= occlusion_max_s,
           and whose own motion can reach the detection) explains the
           detection better by more than contest_margin (the continuing player may have dropped while the hidden
@@ -106,6 +114,7 @@ class _Track:
     identity_rivals: Dict[str, "_Rival"] = field(default_factory=dict)   # rival id -> what is known about it
     uncertain_episodes: int = 0
     resolve_since_t: Optional[float] = None    # start of the current run of clean evidence favouring this track
+    appearance_doubt_since: Optional[float] = None   # latest S3b doubt link (None = no appearance doubt)
     scores: Deque[Tuple[float, float]] = field(default_factory=deque)      # (time, score or 0)
     history: Deque[HistoryEntry] = field(default_factory=deque)
 
@@ -125,6 +134,7 @@ class MultiPlayerTracker:
         self._epoch = 0
         self._last_frame: Optional[int] = None
         self._summaries: Dict[str, TrackletSummary] = {}
+        self._pending_doubt: Dict[str, int] = {}   # S3b links of this frame: track id -> detection index
 
     # ------------------------------------------------------------------ public
     def update(self, frame_index: int, time_s: float, detections: Sequence[Detection], camera: CameraObservation,
@@ -171,6 +181,7 @@ class MultiPlayerTracker:
         self._stage("S2", [k for k in s1 if k not in matched], low, dets, time_s, matched, out, True, desc)
         rem_high = self._stage("S3", [k for k in s3 if k not in matched], rem_high, dets, time_s, matched, out,
                                False, desc)
+        rem_high = self._doubt_links(rem_high, dets, desc, time_s, matched, out)
         rem_high = self._refuse_hidden_rivals(rem_high, dets, desc, time_s, matched, out)
         rem_high = self._recover(rem_high, dets, desc, time_s, matched, out)   # low scores never recover/spawn
         self._log_unmatched(dets, desc, time_s, matched, out)                    # read-only diagnostics
@@ -262,6 +273,40 @@ class MultiPlayerTracker:
             })
         return [i for i in det_idx if i not in used]
 
+    def _doubt_links(self, rem_high: List[int], dets: Sequence[Detection], desc: Sequence[Optional[np.ndarray]],
+                     time_s: float, matched: Dict[int, Tuple[int, bool]], out: FrameTracks) -> List[int]:
+        """S3b (see module docstring). Only pairs that the appearance veto alone refused; the link is flagged."""
+        self._pending_doubt = {}
+        if not self.tc.appearance_doubt_link:
+            return rem_high
+        cont = [k for k, t in enumerate(self._tracks) if t.observed_last_frame and k not in matched]
+        if not cont or not rem_high:
+            return rem_high
+        all_t, all_d = list(range(len(self._tracks))), list(range(len(dets)))
+        cost, ious, _ = self._cost_matrix(all_t, all_d, dets, time_s, iou_only=False)   # motion only
+        gated = cost < _INVALID
+        used: Set[int] = set()
+        for k in cont:
+            t = self._tracks[k]
+            in_gate = [i for i in all_d if gated[k, i]]
+            if len(in_gate) != 1 or in_gate[0] not in rem_high or in_gate[0] in used:
+                continue
+            i = in_gate[0]
+            sim = similarity(desc[i], t.appearance)
+            if sim is None or sim >= self.ac.min_similarity:
+                continue                      # not an appearance veto: the ordinary stages decided
+            if any(gated[j, i] for j in all_t if j != k) or ious[k, i] < self.tc.appearance_doubt_min_iou:
+                continue                      # not exclusive, or too loose to call the same body
+            matched[k] = (i, False)
+            used.add(i)
+            self._pending_doubt[t.track_id] = i
+            out.decisions.append({"kind": "doubt_link", "stage": "S3b", "track_id": t.track_id, "detection": i,
+                                  "iou": round(float(ious[k, i]), 4), "similarity": round(sim, 4)})
+        return [i for i in rem_high if i not in used]
+
+    def _uncertain(self, t: _Track) -> bool:
+        return bool(t.identity_rivals) or t.appearance_doubt_since is not None
+
     def _contest_multi_body(self, matched: Dict[int, Tuple[int, bool]], dets: Sequence[Detection], out: FrameTracks) -> None:
         """A match through a box that may hold more than one person is CONTESTED (so it never updates appearance),
         whichever stage made it."""
@@ -291,7 +336,7 @@ class MultiPlayerTracker:
                 if s_own is not None and s_riv is not None and abs(s_own - s_riv) >= self.ac.min_margin:
                     continue                      # appearance tells them apart: an ordinary contest
                 for a, b in ((t, r), (r, t)):
-                    if not a.identity_rivals:
+                    if not self._uncertain(a):
                         a.uncertain_episodes += 1
                     prev = a.identity_rivals.get(b.track_id)
                     snap = prev.appearance if prev is not None else (None if b.appearance is None
@@ -314,14 +359,20 @@ class MultiPlayerTracker:
           OWN_ONLY   only own stored: own crop matches own, and the rival's latest clean crop taken after the
                      contest is clearly unlike own (<= min_similarity - min_margin); no such crop = no evidence;
           neither stored: never evidence.
+        An appearance doubt (S3b) is one more condition: own crop matches the track's frozen pre-doubt appearance
+        (>= min_similarity); evidence must come after the latest doubt link.
         Any pair with clean evidence against it resets the run; frames without evidence for a pair hold it."""
         clear_max = self.ac.min_similarity - self.ac.min_margin
         for k, (i, contested) in matched.items():
             t = self._tracks[k]
-            if not t.identity_rivals or contested or desc[i] is None or not self._clean(i, dets, matched):
+            if not self._uncertain(t) or contested or desc[i] is None or not self._clean(i, dets, matched):
                 continue
             s_own = similarity(desc[i], t.appearance)
             verdicts: Dict[str, Tuple[str, Optional[bool]]] = {}
+            if t.appearance_doubt_since is not None:
+                verdicts["(appearance_doubt)"] = ("APPEARANCE_DOUBT", None if s_own is None or
+                                                  time_s <= t.appearance_doubt_since + _EPS
+                                                  else s_own >= self.ac.min_similarity)
             for rid, rv in t.identity_rivals.items():
                 if t.appearance is not None and rv.appearance is not None:
                     ok = s_own >= self.ac.min_similarity and s_own - similarity(desc[i], rv.appearance) >= \
@@ -353,7 +404,7 @@ class MultiPlayerTracker:
                 out.decisions.append({"kind": "identity_resolved", "track_id": t.track_id, "detection": i,
                                       "rivals": {r: rule for r, (rule, _) in sorted(verdicts.items())},
                                       "own_similarity": s_own})
-                t.identity_rivals, t.resolve_since_t = {}, None
+                t.identity_rivals, t.resolve_since_t, t.appearance_doubt_since = {}, None, None
 
     def _recoverable(self, t: _Track, time_s: float) -> bool:
         """An unobserved track that a detection may still be re-associated to on this frame."""
@@ -577,9 +628,13 @@ class MultiPlayerTracker:
                 t.observed_frames += 1
                 t.velocity_frozen, t.observed_last_frame, t.missed_frames = False, True, 0
                 t.state, t.occluder = TrackState.ACTIVE, None
+                if self._pending_doubt.get(t.track_id) == i:
+                    if not self._uncertain(t):
+                        t.uncertain_episodes += 1
+                    t.appearance_doubt_since, t.resolve_since_t = time_s, None
                 if not contested and self._clean(i, dets, matched) and desc[i] is not None:
                     self._clean_crops[t.track_id] = (time_s, desc[i])   # evidence only, never the model
-                    if not t.identity_rivals:
+                    if not self._uncertain(t):
                         self._update_appearance(t, desc[i], time_s)     # frozen while IDENTITY_UNCERTAIN
             else:
                 t.observed_last_frame = False
@@ -736,8 +791,8 @@ class MultiPlayerTracker:
                 frame_index - t.created_frame, t.missed_frames, round(time_s - t.last_observed_t, 6),
                 t.observed_frames, t.epoch, t.occluder, round(o, 6), self._tracks[j].track_id if o > 0 else None,
                 t.recoveries, t.last_gap_s, t.predecessors,
-                IdentityState.IDENTITY_UNCERTAIN if t.identity_rivals else IdentityState.CERTAIN,
-                tuple(sorted(t.identity_rivals)), t.uncertain_episodes)
+                IdentityState.IDENTITY_UNCERTAIN if self._uncertain(t) else IdentityState.CERTAIN,
+                tuple(sorted(t.identity_rivals)), t.uncertain_episodes, t.appearance_doubt_since is not None)
             obs.append(rec)
             t.history.append(HistoryEntry(frame_index, time_s, t.state, src, box, score))
             while t.history and time_s - t.history[0].time_s > self.tc.history_s + _EPS:

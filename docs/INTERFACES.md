@@ -47,14 +47,18 @@ What the tracking layer receives from any detector, the football detector includ
 
 ## Player tracking — `spana/tracking/`
 - In: `spana.detections` (must match video sha256 and current `detection_config`) + video frames.
-- Artifact out: **`spana.tracks` 2.1.0** — top level `schema, schema_version, provenance, video,
+- Artifact out: **`spana.tracks` 2.2.0** — top level `schema, schema_version, provenance, video,
   detections_sha256, frames, tracklets`; frame `{frame, t, camera{status, affine, inliers, hist_distance},
   tracks[], ended[[track_id, EndReason]]}`; track keys: `track_id, state, confirmed, source, box,
   detection_index, detection_score, confidence, contested, age_frames, missed_frames, time_since_observed_s,
   observed_frames, epoch, occluder, max_overlap_iou, overlap_with, recoveries, last_gap_s,
-  possible_predecessors, identity, identity_rivals, uncertain_episodes`; tracklet keys: `track_id, epoch,
+  possible_predecessors, identity, identity_rivals, uncertain_episodes, identity_doubt`; tracklet keys: `track_id, epoch,
   first_frame, last_frame, last_observed_frame, observed_frames, confirmed, end_reason, recoveries,
   possible_predecessors`.
+  - 2.2.0: `identity_doubt` (bool) = the track continued through an appearance veto on an exclusive motion link
+    (`tracking.appearance_doubt_link`, decision `doubt_link`). `identity` is CERTAIN only with no
+    `identity_rivals` and no `identity_doubt`, so IDENTITY_UNCERTAIN may have no rivals. 2.1.0 documents still
+    validate with their 2.1.0 meaning (no `identity_doubt` key, uncertain <=> rivals).
 - Side output: decision log `*.decisions.jsonl` (every association, refusal, spawn, end).
 - CLI: `python -m spana.cli track --video --config --detections --out`.
 

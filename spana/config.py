@@ -19,7 +19,8 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.2.0"   # 2.1.0: + target section; 2.2.0: + target relink keys
+CONFIG_SCHEMA_VERSION = "2.4.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.4.0: + tracking appearance
+#   doubt link (2.3.0 is taken by unmerged branches: tracking.exit_hold_s, inference / profiling / performance)
 
 
 class ConfigError(ValueError):
@@ -126,10 +127,13 @@ class TrackingConfig:
     confidence_window_s: float     # window of the track confidence (see tracker docstring)
     history_s: float               # per-track history kept in memory (API), seconds
     identity_resolve_s: float      # IDENTITY_UNCERTAIN ends after clean appearance evidence favours the track this long
+    appearance_doubt_link: bool    # continue a track through an appearance veto on an exclusive motion link,
+                                   #   flagged IDENTITY_UNCERTAIN (identity_doubt) instead of ending it
+    appearance_doubt_min_iou: float  # ... only when the detection overlaps the predicted box by at least this IoU
 
     def validate(self) -> None:
         for n in ("low_score_min_iou", "iou_weight", "contest_margin", "duplicate_iou", "duplicate_ioa",
-                  "occlusion_min_ioa", "confirm_nested_ioa"):
+                  "occlusion_min_ioa", "confirm_nested_ioa", "appearance_doubt_min_iou"):
             _unit(f"tracking.{n}", getattr(self, n))
         for n in ("gate_base_h", "max_speed_h_per_s", "gate_max_h", "gate_chi2", "confirm_s", "unconfirmed_max_s", "rematch_max_s",
                   "occlusion_max_s", "max_accel_h_per_s2", "predict_max_s", "lost_max_s", "confidence_window_s", "history_s",

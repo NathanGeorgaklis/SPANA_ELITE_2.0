@@ -123,6 +123,8 @@ class TrackObservation:
     identity: IdentityState = IdentityState.CERTAIN
     identity_rivals: Tuple[str, ...] = ()   # tracks this one could not be told apart from (while uncertain)
     uncertain_episodes: int = 0             # times the track has entered IDENTITY_UNCERTAIN
+    identity_doubt: bool = False            # uncertain because its own appearance disagreed on an exclusive
+                                            #   continuation (no rival track to name); tracks 2.2.0
 
 
 @dataclass(frozen=True)

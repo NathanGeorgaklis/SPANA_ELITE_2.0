@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from spana.artifacts import tracklet_rows, tracks_frame, validate_tracks
+from spana.artifacts import TRACKS_SCHEMA, tracklet_rows, tracks_frame, validate_tracks
 from spana.config import load_config
 from spana.records import CameraObservation, CameraStatus, Detection
 from spana.reid_labels import ReidLabelError, load_frozen, manifest_template, split_guard, validate_manifest
@@ -32,7 +32,7 @@ def tracks_doc(video: Path, gap_frames=()):
             dets.append(Detection((200.0 - i, 40.0, 230.0 - i, 120.0), 0.9, 0))
         cam = CameraObservation.identity(CameraStatus.FIRST if i == 0 else CameraStatus.OK, inliers=100)
         frames.append(tracks_frame(trk.update(i, t, dets, cam), CFG.output))
-    doc = {"schema": "spana.tracks", "schema_version": "2.1.0", "provenance": {}, "video": src.meta.to_dict(),
+    doc = {"schema": TRACKS_SCHEMA[0], "schema_version": TRACKS_SCHEMA[1], "provenance": {}, "video": src.meta.to_dict(),
            "detections_sha256": "0" * 64, "frames": frames, "tracklets": tracklet_rows(trk.summaries())}
     validate_tracks(doc)
     return doc

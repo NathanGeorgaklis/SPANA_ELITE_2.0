@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.2.0"
+schema_version: "2.4.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -65,6 +65,13 @@ tracking:
   # marks both tracks uncertain (appearance frozen). Cleared only after clean appearance evidence favours the track
   # over every recorded rival by appearance.min_margin, continuously for this long.
   identity_resolve_s: 0.50
+  # Appearance doubt link (DEV 2026-11-18, records/continuity_attribution_2026-11-18): a track observed on the
+  # previous frame whose ONLY motion-gated detection is exclusive (no other track gates it) and overlaps its predicted
+  # box by >= appearance_doubt_min_iou is continued even when the torso colour vetoes it, but marked
+  # IDENTITY_UNCERTAIN (identity_doubt, appearance frozen) until clean crops match its pre-doubt appearance for
+  # identity_resolve_s. Without it the track ends and a new one starts on the same box one frame later.
+  appearance_doubt_link: true
+  appearance_doubt_min_iou: 0.40   # = low_score_min_iou (the strict IoU-only continuation); not tuned
 
 appearance:
   enabled: true

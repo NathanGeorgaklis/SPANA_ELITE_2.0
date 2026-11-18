@@ -14,6 +14,9 @@ Change log:
         missed_frames, occluder, recoveries (replaces gaps_bridged), possible_predecessors; + top-level
         `tracklets` summary. Not backward compatible (state vocabulary changed).
   2.1.0 tracks: + per-track identity (CERTAIN / IDENTITY_UNCERTAIN), identity_rivals, uncertain_episodes.
+  2.2.0 tracks: + per-track identity_doubt (bool). IDENTITY_UNCERTAIN may now have no rivals: the track continued
+        through an appearance disagreement on an exclusive motion link (tracking.appearance_doubt_link).
+        CERTAIN <=> no rivals and no doubt. 2.1.0 documents still validate (validate_tracks) with their meaning.
   1.0.0 target: selection (track_at_frame 1.0.0), target_config, track_end, frames {frame, t, state, reason,
         track_id, box}. CANDIDATE reserved (refused in 1.0.0).
   2.0.0 target: relinks. CANDIDATE (RELINK_PREDECESSOR) allowed; TARGET may be on a confirmed relinked track;
@@ -40,7 +43,8 @@ from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityS
                       TargetState, TrackletSummary, TrackState)
 
 DETECTIONS_SCHEMA = ("spana.detections", "1.4.0")   # 1.4.0: class_names (class_id indexes it)
-TRACKS_SCHEMA = ("spana.tracks", "2.1.0")
+TRACKS_SCHEMA = ("spana.tracks", "2.2.0")   # 2.1.0 documents still validate (validate_tracks)
+TRACKS_ACCEPTED = ("2.1.0", "2.2.0")
 TARGET_SCHEMA = ("spana.target", "2.1.0")   # 1.0.0 / 2.0.0 documents still validate (validate_target)
 
 
@@ -153,7 +157,7 @@ def tracks_frame(ft: FrameTracks, oc: OutputConfig) -> dict:
             "recoveries": o.recoveries, "last_gap_s": o.last_gap_s,
             "possible_predecessors": list(o.possible_predecessors),
             "identity": o.identity.value, "identity_rivals": list(o.identity_rivals),
-            "uncertain_episodes": o.uncertain_episodes,
+            "uncertain_episodes": o.uncertain_episodes, "identity_doubt": o.identity_doubt,
         } for o in ft.tracks],
         "ended": [[tid, r.value] for tid, r in ft.ended],
     }
@@ -180,8 +184,10 @@ _SOURCES_FOR_STATE = {TrackState.ACTIVE.value: {PositionSource.OBSERVED.value},
 def validate_tracks(doc: Any, detections: Optional[dict] = None) -> None:
     """Structural and temporal validation. With the source `detections` artifact, every observation is also
     checked against the detection it claims (index in range, same box and score)."""
-    _header(doc, TRACKS_SCHEMA, ("schema", "schema_version", "provenance", "video", "detections_sha256", "frames",
-                                 "tracklets"))
+    version = doc.get("schema_version") if isinstance(doc, dict) else None
+    _header(doc, (TRACKS_SCHEMA[0], version if version in TRACKS_ACCEPTED else TRACKS_SCHEMA[1]),
+            ("schema", "schema_version", "provenance", "video", "detections_sha256", "frames", "tracklets"))
+    track_keys = _TRACK_KEYS + (("identity_doubt",) if version != "2.1.0" else ())
     det_rows = None
     if detections is not None:
         if sha256_doc(detections) != doc["detections_sha256"]:
@@ -228,7 +234,7 @@ def validate_tracks(doc: Any, detections: Optional[dict] = None) -> None:
         used_dets: set = set()
         ids: set = set()
         for tr in fr["tracks"]:
-            _keys(tr, _TRACK_KEYS, where)
+            _keys(tr, track_keys, where)
             tid = tr["track_id"]
             if not isinstance(tid, str) or tid in ids:
                 raise ArtifactError(f"{where}: duplicate or bad track id {tid!r}")
@@ -278,7 +284,9 @@ def validate_tracks(doc: Any, detections: Optional[dict] = None) -> None:
                 raise ArtifactError(f"{where}: {tid} occluder {tr['occluder']} is not live")
             if tr["identity"] not in _IDENTITY or not isinstance(tr["identity_rivals"], list) or \
                     any(not isinstance(x, str) or x == tid for x in tr["identity_rivals"]) or \
-                    (tr["identity"] == IdentityState.CERTAIN.value) != (not tr["identity_rivals"]) or \
+                    not isinstance(tr.get("identity_doubt", False), bool) or \
+                    (tr["identity"] == IdentityState.CERTAIN.value) != \
+                    (not tr["identity_rivals"] and not tr.get("identity_doubt", False)) or \
                     not (isinstance(tr["uncertain_episodes"], int) and tr["uncertain_episodes"] >= 0) or \
                     (tr["identity"] != IdentityState.CERTAIN.value and tr["uncertain_episodes"] < 1):
                 raise ArtifactError(f"{where}: {tid} bad identity fields")
