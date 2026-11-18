@@ -20,7 +20,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 import yaml
 
 CONFIG_SCHEMA_VERSION = "2.4.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.4.0: + tracking appearance
-#   doubt link, target.tap_vouches_doubt (2.3.0 is taken by unmerged branches: tracking.exit_hold_s, inference /
+#   doubt link (+ self-consistent resolution), target.tap_vouches_doubt (2.3.0 is taken by unmerged branches: tracking.exit_hold_s, inference /
 #   profiling / performance)
 
 
@@ -131,6 +131,8 @@ class TrackingConfig:
     appearance_doubt_link: bool    # continue a track through an appearance veto on an exclusive motion link,
                                    #   flagged IDENTITY_UNCERTAIN (identity_doubt) instead of ending it
     appearance_doubt_min_iou: float  # ... only when the detection overlaps the predicted box by at least this IoU
+    doubt_resolve_self_consistent: bool  # a doubt (no rival) may also clear on crops consistent with each other
+                                   #   while the track stays exclusive, for identity_resolve_s; adopts that appearance
 
     def validate(self) -> None:
         for n in ("low_score_min_iou", "iou_weight", "contest_margin", "duplicate_iou", "duplicate_ioa",

@@ -115,6 +115,7 @@ class _Track:
     uncertain_episodes: int = 0
     resolve_since_t: Optional[float] = None    # start of the current run of clean evidence favouring this track
     appearance_doubt_since: Optional[float] = None   # latest S3b doubt link (None = no appearance doubt)
+    doubt_appearance: Optional[np.ndarray] = None    # self-consistent resolution: appearance seen during the doubt
     scores: Deque[Tuple[float, float]] = field(default_factory=deque)      # (time, score or 0)
     history: Deque[HistoryEntry] = field(default_factory=deque)
 
@@ -360,9 +361,14 @@ class MultiPlayerTracker:
                      contest is clearly unlike own (<= min_similarity - min_margin); no such crop = no evidence;
           neither stored: never evidence.
         An appearance doubt (S3b) is one more condition: own crop matches the track's frozen pre-doubt appearance
-        (>= min_similarity); evidence must come after the latest doubt link.
+        (>= min_similarity); evidence must come after the latest doubt link. With
+        tracking.doubt_resolve_self_consistent the doubt also passes (SELF_CONSISTENT) when the track is exclusive on
+        this frame (its motion gate holds only this detection, no other track gates it) and the crop matches the
+        appearance seen since the doubt began (the first such crop only starts that reference); a non-exclusive
+        frame or a disagreeing crop is evidence against. On resolution the track adopts that appearance.
         Any pair with clean evidence against it resets the run; frames without evidence for a pair hold it."""
         clear_max = self.ac.min_similarity - self.ac.min_margin
+        gated: Optional[np.ndarray] = None
         for k, (i, contested) in matched.items():
             t = self._tracks[k]
             if not self._uncertain(t) or contested or desc[i] is None or not self._clean(i, dets, matched):
@@ -370,9 +376,26 @@ class MultiPlayerTracker:
             s_own = similarity(desc[i], t.appearance)
             verdicts: Dict[str, Tuple[str, Optional[bool]]] = {}
             if t.appearance_doubt_since is not None:
-                verdicts["(appearance_doubt)"] = ("APPEARANCE_DOUBT", None if s_own is None or
-                                                  time_s <= t.appearance_doubt_since + _EPS
-                                                  else s_own >= self.ac.min_similarity)
+                v = None if s_own is None or time_s <= t.appearance_doubt_since + _EPS \
+                    else s_own >= self.ac.min_similarity
+                verdicts["(appearance_doubt)"] = ("APPEARANCE_DOUBT", v)
+                if v is False and self.tc.doubt_resolve_self_consistent and not t.identity_rivals:
+                    if gated is None:
+                        gated = self._cost_matrix(list(range(len(self._tracks))), list(range(len(dets))), dets,
+                                                  time_s, iou_only=False)[0] < _INVALID
+                    exclusive = int(gated[:, i].sum()) == 1 and int(gated[k].sum()) == 1 and bool(gated[k, i])
+                    if not exclusive:
+                        t.doubt_appearance = None
+                    elif t.doubt_appearance is None:
+                        t.doubt_appearance, v = desc[i].copy(), None        # the reference starts here
+                    else:
+                        v = similarity(desc[i], t.doubt_appearance) >= self.ac.min_similarity
+                        if v:
+                            t.doubt_appearance = 0.5 * (t.doubt_appearance + desc[i])
+                            t.doubt_appearance /= t.doubt_appearance.sum()
+                        else:
+                            t.doubt_appearance = desc[i].copy()             # restart the reference
+                    verdicts["(appearance_doubt)"] = ("SELF_CONSISTENT", v)
             for rid, rv in t.identity_rivals.items():
                 if t.appearance is not None and rv.appearance is not None:
                     ok = s_own >= self.ac.min_similarity and s_own - similarity(desc[i], rv.appearance) >= \
@@ -404,7 +427,11 @@ class MultiPlayerTracker:
                 out.decisions.append({"kind": "identity_resolved", "track_id": t.track_id, "detection": i,
                                       "rivals": {r: rule for r, (rule, _) in sorted(verdicts.items())},
                                       "own_similarity": s_own})
+                if verdicts.get("(appearance_doubt)", ("",))[0] == "SELF_CONSISTENT":
+                    t.appearance, t.appearance_t = t.doubt_appearance.copy(), time_s   # the look seen since
                 t.identity_rivals, t.resolve_since_t, t.appearance_doubt_since = {}, None, None
+                t.doubt_appearance = None
+                self._pending_doubt.pop(t.track_id, None)   # this frame's doubt link is what just resolved
 
     def _recoverable(self, t: _Track, time_s: float) -> bool:
         """An unobserved track that a detection may still be re-associated to on this frame."""
@@ -629,9 +656,14 @@ class MultiPlayerTracker:
                 t.velocity_frozen, t.observed_last_frame, t.missed_frames = False, True, 0
                 t.state, t.occluder = TrackState.ACTIVE, None
                 if self._pending_doubt.get(t.track_id) == i:
+                    starting = t.appearance_doubt_since is None
                     if not self._uncertain(t):
                         t.uncertain_episodes += 1
-                    t.appearance_doubt_since, t.resolve_since_t = time_s, None
+                    t.appearance_doubt_since = time_s
+                    if starting:
+                        t.doubt_appearance = None
+                    if starting or not self.tc.doubt_resolve_self_consistent:
+                        t.resolve_since_t = None        # a continuing doubt keeps a self-consistent run going
                 if not contested and self._clean(i, dets, matched) and desc[i] is not None:
                     self._clean_crops[t.track_id] = (time_s, desc[i])   # evidence only, never the model
                     if not self._uncertain(t):

@@ -75,6 +75,11 @@ tracking:
   # reviewer's correct time fell 0.778 -> 0.698. Pending Nathan's decision (DECISIONS.md 2026-11-18).
   appearance_doubt_link: false
   appearance_doubt_min_iou: 0.40   # = low_score_min_iou (the strict IoU-only continuation); not tuned
+  # Option (a) of DECISIONS 2026-11-18, measured against a user's tap (target.tap_vouches_doubt): a doubt with no
+  # rival also clears when clean crops agree with each other (>= appearance.min_similarity) on frames where the track
+  # is exclusive (its gate holds only its detection and no other track gates it), continuously for
+  # identity_resolve_s; the track then adopts that appearance. Weaker evidence than the pre-doubt appearance: off.
+  doubt_resolve_self_consistent: false
 
 appearance:
   enabled: true

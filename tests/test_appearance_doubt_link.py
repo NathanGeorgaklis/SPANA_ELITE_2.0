@@ -131,6 +131,34 @@ class DoubtLink(unittest.TestCase):
         self.assertTrue(all(ft.tracks[0].identity == IdentityState.CERTAIN for ft in out))
 
 
+class SelfConsistentResolution(unittest.TestCase):
+    """tracking.doubt_resolve_self_consistent (option (a)): off by default."""
+
+    def test_off_never_resolves_a_lasting_change(self):
+        _, out = run(cfg(), [walker(100, 3, lambda f: A if f < CHANGE else B)], 90)
+        self.assertEqual(out[-1].tracks[0].identity, IdentityState.IDENTITY_UNCERTAIN)
+
+    def test_on_resolves_consistent_crops_and_adopts_them(self):
+        c = cfg(doubt_resolve_self_consistent=True)
+        trk, out = run(c, [walker(100, 3, lambda f: A if f < CHANGE else B)], 90)
+        self.assertEqual(len(set.union(*ids_of(out))), 1)
+        need = int(np.ceil(c.tracking.identity_resolve_s * FPS))
+        self.assertEqual(out[CHANGE + 1].tracks[0].identity, IdentityState.IDENTITY_UNCERTAIN)
+        done = next(n for n in range(CHANGE, 90) if out[n].tracks[0].identity == IdentityState.CERTAIN)
+        self.assertGreaterEqual(done - CHANGE, need)
+        self.assertTrue(all(ft.tracks[0].identity == IdentityState.CERTAIN for ft in out[done:]))
+        from spana.appearance import similarity
+        self.assertGreater(similarity(trk._tracks[0].appearance, B), 0.9)          # adopted the new look
+        rules = [d.get("rivals") for ft in out for d in ft.decisions if d["kind"] == "identity_resolved"]
+        self.assertEqual(rules, [{"(appearance_doubt)": "SELF_CONSISTENT"}])
+
+    def test_on_inconsistent_crops_never_resolve(self):
+        flicker = lambda f: A if f < CHANGE else (B if f % 2 else hist(12))      # noqa: E731
+        _, out = run(cfg(doubt_resolve_self_consistent=True), [walker(100, 3, flicker)], 90)
+        self.assertEqual(len(set.union(*ids_of(out))), 1)
+        self.assertTrue(all(ft.tracks[0].identity == IdentityState.IDENTITY_UNCERTAIN for ft in out[CHANGE:]))
+
+
 class Artifact(unittest.TestCase):
     def _doc(self, version=TRACKS_SCHEMA[1]):
         c = cfg()
