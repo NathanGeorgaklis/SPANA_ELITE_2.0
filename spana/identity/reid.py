@@ -406,7 +406,9 @@ def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, 
                 continue
             if (other, lo) not in ctx.box_at:
                 ctx.box_at[(other, lo)] = obox
-            fit, _ = position_fit(ctx, other, lo, best, tc_target)
+            # A silenced decision is appearance-only on both sides: a pan / exit return must not lose the two-way
+            # check to another lost player that position happens to favour.
+            fit = 0.0 if silenced is not None else position_fit(ctx, other, lo, best, tc_target)[0]
             rival.append(v + w * fit)
         rs = max(rival) if rival else None
         out["reverse_second_combined"] = None if rs is None else round(rs, 6)

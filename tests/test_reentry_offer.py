@@ -307,6 +307,20 @@ class PositionScore(unittest.TestCase):
         self.assertEqual(ch["track"], "t3")
         self.assertTrue(all(c["position"] == 0.0 for c in ch["candidates"].values()))
 
+    def test_silenced_decision_is_appearance_only_in_the_two_way_check_too(self):
+        # t1 (followed) leaves the picture; t4 was lost right where t2 will appear; t2 looks most like t1. Position
+        # would favour t4 for t2 in the reverse check, but the decision is silenced by the exit: appearance decides.
+        doc = scene({"t2": (8, 300.0)}, left_frame=True)
+        for k in range(4):
+            doc["frames"][k]["tracks"].append({"track_id": "t4", "source": "OBSERVED", "box": [300.0, 100.0, 340.0, 200.0]})
+        sigs = {"t1": ME, "t2": ME_AGAIN, "t4": unit(0.9, 0.44, 0)}       # t4 ~ t2: 0.98 vs t1 ~ t2: 0.95
+        sig = {k: {"first": v, "last": v} for k, v in sigs.items()}
+        ctx = ReentryContext.of(doc)
+        on = reentry_choice("t1", 3, len(doc["frames"]) - 1, ctx, sig, tc(reentry_mutual=True), CFG.tracking)
+        off = reentry_choice("t1", 3, len(doc["frames"]) - 1, ReentryContext.of(doc), sig,
+                             tc(reentry_mutual=True, reentry_position_weight=0.0), CFG.tracking)
+        self.assertEqual((on["offer"], on["reason"]), (off["offer"], off["reason"]))
+
     def test_weight_zero_is_appearance_only_whatever_the_scales(self):
         doc = scene({"t2": (4, 102.0), "t3": (15, 900.0)})
         sigs = {"t1": ME, "t2": NEAR_LOOK, "t3": FAR_LOOK}
