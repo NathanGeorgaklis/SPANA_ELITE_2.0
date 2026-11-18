@@ -19,7 +19,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.2.0"   # 2.1.0: + target section; 2.2.0: + target relink keys
+CONFIG_SCHEMA_VERSION = "2.3.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s
 
 
 class ConfigError(ValueError):
@@ -121,6 +121,9 @@ class TrackingConfig:
     max_accel_h_per_s2: float      # long-gap recovery: plausible change of velocity while hidden, body heights/s^2
     predict_max_s: float           # after this unobserved time position is HELD (velocity frozen)
     lost_max_s: float              # unobserved track TERMINATED after this time
+    exit_hold_s: float             # a confirmed track whose prediction left the image is held (LOST, velocity frozen,
+                                   #   camera-compensated) this long, recoverable by the long-gap rules; then LEFT_FRAME
+                                   #   (0 = end on leaving, as before 2026-11-18)
     duplicate_iou: float           # unmatched det overlapping an observed box above this IoU does not spawn
     duplicate_ioa: float           # ... or lying inside an observed box by this share of its own area
     confidence_window_s: float     # window of the track confidence (see tracker docstring)
@@ -147,6 +150,8 @@ class TrackingConfig:
             raise ConfigError("tracking: need rematch_max_s <= occlusion_max_s <= lost_max_s")
         if self.predict_max_s > self.lost_max_s:
             raise ConfigError("tracking.predict_max_s must be <= tracking.lost_max_s")
+        if not 0.0 <= self.exit_hold_s <= self.lost_max_s:
+            raise ConfigError("tracking: need 0 <= exit_hold_s <= lost_max_s")
 
 
 @dataclass(frozen=True)

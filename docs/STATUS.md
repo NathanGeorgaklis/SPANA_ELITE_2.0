@@ -1,6 +1,6 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reid-calibration-dev, on identity/reid-retrain-v2 8d62866; main 11b5a80).
+As of 2026-11-18 (branch identity/reid-calibration-dev, main f86a47e merged in: PRs #11 exit hold, #10 review video).
 - Full suite: `python -m pytest tests -q` → 392 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -89,6 +89,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   - Only the tracker's own link within 0.5 s is safe (44 / 44).
   - Position + colour agreement picked 4 real wrong players in same-kit clusters.
   - `records/reid_headroom_F07_F08_2026-11-16/RECORD.md`.
+- Long run, DEV G2 10-minute window: the tracker emitted an occluder that was not live on its frame (fixed on
+  `tracking/occluder-live-fix`; DEV clip tracks unchanged).
+  - Follower: 0 wrong answers, but 0 answered time for the chosen player without user taps (his track was
+    uncertain, then ended on a camera pan after 7.3 s).
 - Target relink, DEV: with confirmation, FRESH_02 player 9 gets 1 wrong TARGET frame (276). Track T000045 was
   confirmed correctly at frame 270, then changed player; it names two predecessors. Auto-confirm adds a wrong
   second-hop relink (FRESH_02 player 15 → player 16's track).
@@ -111,22 +115,20 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
-1. Cut the after-match review effort (6.3 actions per followed player-minute on DEV, `records/target_recovery_v1_2026-11-17`):
-   - measure correct-time against actions when the reviewer only handles gaps above a configured length, or the
-     N longest per minute;
-   - measure on longer DEV footage (a full DEV half, if Nathan allows) for a realistic per-match rate.
-2. Relink v1 accepted as built (Nathan, 2026-11-16). Watch confirmed tracks that named several predecessors (the
-   one extra wrong frame); measure a guard if more such cases appear.
-3. Long re-entries (19 of 108 losses, LEFT_FRAME): the SPANA re-ID model and/or team classification.
-   - Re-ID pilot v1 (`records/reid_pilot_v1_2026-11-18`): one match is not enough. Next: freeze M002 / M003
+1. Long-play capability (`records/window_f05_2026-11-18`, 10-minute DEV window of match G2).
+   - Following one player unattended lasts one track. Median confirmed track life is 2.8 s on broadcast footage
+     (camera pans: LEFT_FRAME; crowds: LOST_EXPIRED), so about one user action every 3 s.
+   - Priorities:
+     (a) re-identification across pans / re-entries and in IDENTITY_UNCERTAIN (SPANA re-ID model):
+       - Re-ID pilot v1 (`records/reid_pilot_v1_2026-11-18`): one match is not enough. Next: freeze M002 / M003
      identity labels, retrain on 2–3 matches, then rerun the colour + re-ID comparison (`--fusion=config/reid_fusion.yaml`).
-   - Combined cue (`records/reid_fusion_dev_2026-11-18`): helps pooled at strict settings, fails where colour is
+       - Combined cue (`records/reid_fusion_dev_2026-11-18`): helps pooled at strict settings, fails where colour is
      already decisive (FRESH_05, one player pair). Not adopted.
-   - TRAIN labelling is now group-then-confirm (`tools/reid_cluster.py`, review page, audited freeze;
+       - TRAIN labelling is now group-then-confirm (`tools/reid_cluster.py`, review page, audited freeze;
      `records/reid_cluster_labelling_2026-11-18`). TRAIN_M002: 224 clusters from 355 tracklets (59 excluded), 18
      audit tracklets, waiting for Nathan's review. The pilot model groups by kit at loose thresholds, so clusters
      are kept small (max_distance 0.15).
-   - Audit diagnosis (`records/reid_audit_diagnose_2026-11-18`): 3 / 7 counted (43 %), but only 1 real
+       - Audit diagnosis (`records/reid_audit_diagnose_2026-11-18`): 3 / 7 counted (43 %), but only 1 real
      player-vs-player conflict (a mixed cluster A22 / A24; the hidden audit tracklet could not follow the split); 2
      are clusters marked unsure. Audit bugs found (unsure / reject counted, stale decisions possible, n = 1 usable):
      fixed (4791913): audit after the review is locked, player vs player only, 60 comparable answers, exact
@@ -134,13 +136,19 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      in the saved state). Audit run: 4 / 60 disagree (same-kit mixes, 3-thumbnail sheets, one B22-for-A22 key
      slip), freeze refused; after Nathan's re-label and re-audit 2 / 60. Freeze rule now `confirmed_only` (Nathan):
      only his direct answers become player labels, unconfirmed cluster labels are frozen as unsure.
-   - TRAIN_M002 labels v1 frozen (107 player tracklets, 21 players; `data/reid/TRAIN/TRAIN_M002_EASTERN_SUBURBS/v1`). Re-ID v2
+       - TRAIN_M002 labels v1 frozen (107 player tracklets, 21 players; `data/reid/TRAIN/TRAIN_M002_EASTERN_SUBURBS/v1`). Re-ID v2
      (M001 + M002, `records/reid_retrain_m001_m002_2026-11-18`): DEV rival 0.921 vs colour 0.902; colour + re-ID
      pooled TAR @ 0.5 % FAR hard 0.207 vs 0.133 / 0.061 -> "promising" under the fusion rule (FRESH_07
      marginal). Not adopted; next: calibrate a margin on DEV, try behind a flag.
-   - Margin calibrated on DEV (`records/reid_calibration_dev_2026-11-18`): only re-ID v2 alone meets <= 0.5 % wrong
+       - Margin calibrated on DEV (`records/reid_calibration_dev_2026-11-18`): only re-ID v2 alone meets <= 0.5 % wrong
      resolutions on held-out clips (1 / 1,036, bound 0.46 %, resolves 23 %); colour and colour + re-ID over-resolve
      on FRESH_08 when it is held out. Proposed: re-ID margin 0.481 (0.517 conservative), behind a flag. Not wired.
+     (b) tracker: keep tracks alive across pans, fewer LOST_EXPIRED in crowds. The exit hold was tried
+         (`records/exit_hold_2026-11-18`): no net gain without a stronger appearance signal; off by default.
+   - Re-measure track life and actions per minute on the same window after each.
+2. Cut the after-match review effort (6.3 actions per followed player-minute on the DEV clips,
+   `records/target_recovery_v1_2026-11-17`). Gap-length threshold / top-N per minute.
+3. Relink v1 accepted as built (Nathan, 2026-11-16). Watch confirmed tracks that named several predecessors.
 4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
    ByteTrack shows how much continuity is possible on the same detections (F07 11 / F08 22 fragments) and what it
    costs without flags (silent swaps): measure ByteTrack-style continuity inside our tracker, keeping the flags
