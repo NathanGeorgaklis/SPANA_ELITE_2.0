@@ -1,0 +1,12 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/. Code a209e5d (code24/). Inputs out/F0x_mdefault.trk.json,
+# out/F0x_sv2.emb.json (records/reid_signatures_v2_2026-11-19/HASHES.txt).
+7c5172c0f22871f73d3e9a718000e1a359fe1f749daf58a96ab7d76b2bba568a  run_hold.sh
+ab45e0ad99a0a0eb324225506a943ab2be6e270a8e209afa2923deff747b0e12  out/target_oh_0.0_default.json
+d7156e5f6602a13f49e92614aded1a8c42a51120e5edd05bd3d009837f138fcc  out/target_oh_0.0_reviewer.json
+6084f92582d153b100099f42814fa2cb1b1f3fa088865325b2ebdfe304aa0c65  out/target_oh_0.2_default.json
+8ec64a8f9b83f5226cba6099fafa0456c27ed243b2780205dc27a10e92078545  out/target_oh_0.2_reviewer.json
+18778e677a417a9da135ed3a5211e46a631ffefd3c02d0bd9bdec16b8ef4ea8b  out/target_oh_0.5_default.json
+45ab96138a98f45b230e2d1fee6eed0220db5ae4f203f564cb2b40cda30e2870  out/target_oh_0.5_reviewer.json
+3bd844b2e25db7bb156f265827b93c40ff5460e4940c228c3cee398084503e14  out/target_oh_1.0_default.json
+a4c01cfef401290992b0032cb378703099ff3e9e099fb291b66359542bf161f6  out/target_oh_1.0_reviewer.json
+ccf6ce8dd5ceb613461c87f82caa3f24b33b4b0579db297b53cffda47b4f3652  out/oh_0.5_art/FRESH_08_G3_2103_attack_into_box_clearance.player10.target.json
