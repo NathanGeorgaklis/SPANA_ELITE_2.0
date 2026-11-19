@@ -18,6 +18,9 @@ Clean subset (config clean_subset, tables 1.1.0): the same calibration on the ri
 clean - not labelled occluded, no other labelled player overlapping above appearance.clean_max_iou of the tracker's
 config - i.e. the only crops the tracker uses as re-ID evidence. Reported under "clean"; tables without the
 cleanliness fields give clean = unavailable (never all tests).
+Margin floor (config clean_subset.margin_floor, DECISIONS 2026-11-19): with "all_tests", every clean fit - the final
+one and each held-out one - uses max(clean margin, all-tests margin of the same fitting clips, same cue weights);
+if either is None the result is None (fail closed: nothing resolves). The floor only ever raises a margin.
 """
 from __future__ import annotations
 
@@ -39,7 +42,13 @@ def load_cfg(path) -> dict:
     c = yaml.safe_load(Path(path).read_text())
     if c.get("schema") != "spana.reid_calibration_config":
         raise SystemExit(f"{path}: not a spana.reid_calibration_config")
+    floor = (c.get("clean_subset") or {}).get("margin_floor", "none")
+    if floor not in MARGIN_FLOORS:
+        raise SystemExit(f"{path}: clean_subset.margin_floor must be one of {MARGIN_FLOORS}, not {floor!r}")
     return c
+
+
+MARGIN_FLOORS = ("none", "all_tests")
 
 
 def to_arrays(table: dict) -> dict:
@@ -143,12 +152,26 @@ def apply(m: np.ndarray, t: Optional[float], confidence: float) -> dict:
             "wrong_rate": round(k / n, 5) if n else None, "upper_bound": upper_bound(k, n, confidence) if n else None}
 
 
-def fit(tables: List[dict], option: str, cfg: dict, fcfg: dict) -> dict:
+def floored(t: Optional[float], fx: dict, option: str, floor_tables: Optional[List[dict]], cfg: dict):
+    """(final margin, own margin, floor margin). Without floor tables the own margin is final. With them the final
+    margin is max(own, floor), the floor being the margin the same rule finds on floor_tables (the same clips' tests
+    before any subset) with the same cue weights; None on either side gives None (fail closed)."""
+    if floor_tables is None:
+        return t, t, None
+    fm = choose_margin(margins(floor_tables, option, fx), cfg["target_false_rate"], cfg["confidence"])
+    final = None if t is None or fm is None else max(t, fm)
+    return final, t, fm
+
+
+def fit(tables: List[dict], option: str, cfg: dict, fcfg: dict, floor_tables: Optional[List[dict]] = None) -> dict:
     target, conf = cfg["target_false_rate"], cfg["confidence"]
     if option != "combined":
         mm = margins(tables, option, {})
-        t = choose_margin(mm, target, conf)
-        return {"option": option, "margin": t, "in_sample": apply(mm, t, conf)}
+        t, own, fm = floored(choose_margin(mm, target, conf), {}, option, floor_tables, cfg)
+        out = {"option": option, "margin": t, "in_sample": apply(mm, t, conf)}
+        if floor_tables is not None:
+            out.update({"own_margin": own, "floor_margin": fm})
+        return out
     c1, c2 = cfg["cues"]
     stats = {c: F.norm_stats(np.concatenate([F.score_values(_as_fusion(x), c) for x in tables]), fcfg["normalisation"])
              for c in (c1, c2)}
@@ -156,14 +179,17 @@ def fit(tables: List[dict], option: str, cfg: dict, fcfg: dict) -> dict:
     for w in cfg["weight_grid"]:
         f = {"cues": [c1, c2], "stats": stats, "weight": w}
         mm = margins(tables, "combined", f)
-        t = choose_margin(mm, target, conf)
+        t, own, fm = floored(choose_margin(mm, target, conf), f, "combined", floor_tables, cfg)
         a = apply(mm, t, conf)
         key = (a["resolved"], -abs(w - cfg["weight_tie_break"]), -w)
         if best is None or key > best[0]:
-            best = (key, w, t, a)
-    _, w, t, a = best
-    return {"option": "combined", "weight": w, "margin": t, "in_sample": a, "cues": [c1, c2],
-            "stats": {c: _stats_json(s) for c, s in stats.items()}, "_stats": stats}
+            best = (key, w, t, a, own, fm)
+    _, w, t, a, own, fm = best
+    out = {"option": "combined", "weight": w, "margin": t, "in_sample": a, "cues": [c1, c2],
+           "stats": {c: _stats_json(s) for c, s in stats.items()}, "_stats": stats}
+    if floor_tables is not None:
+        out.update({"own_margin": own, "floor_margin": fm})
+    return out
 
 
 def _as_fusion(t: dict) -> dict:
@@ -176,17 +202,20 @@ def _stats_json(s):
     return {"method": s[0], "mean": s[1], "sd": s[2]} if s[0] == "zscore" else {"method": s[0], "n": len(s[1])}
 
 
-def held_out(tables: List[dict], option: str, cfg: dict, fcfg: dict) -> dict:
-    """Leave one clip out: fit on the others, apply to it; per clip and pooled."""
-    per, pooled_m, pooled_t = {}, [], []
+def held_out(tables: List[dict], option: str, cfg: dict, fcfg: dict, floor_tables: Optional[List[dict]] = None) -> dict:
+    """Leave one clip out: fit on the others (floored by the others' floor tables, if given), apply to it."""
+    per = {}
     tot = {"tests": 0, "resolved": 0, "wrong": 0}
     for i, t in enumerate(tables):
         others = [x for j, x in enumerate(tables) if j != i]
-        f = fit(others, option, cfg, fcfg)
+        fo = None if floor_tables is None else [x for j, x in enumerate(floor_tables) if j != i]
+        f = fit(others, option, cfg, fcfg, fo)
         fx = {"cues": f.get("cues"), "stats": f.get("_stats"), "weight": f.get("weight")}
         mm = margins([t], option, fx)
         a = apply(mm, f["margin"], cfg["confidence"])
         per[t["match"]] = {"fit_on": [x["match"] for x in others], "margin": f["margin"], "weight": f.get("weight"), **a}
+        if fo is not None:
+            per[t["match"]].update({"own_margin": f["own_margin"], "floor_margin": f["floor_margin"]})
         for k in tot:
             tot[k] += a[k]
     ub = upper_bound(tot["wrong"], tot["resolved"], cfg["confidence"]) if tot["resolved"] else None
@@ -206,11 +235,11 @@ def by_height(tables, option, f, cfg):
     return out
 
 
-def _options(tables: List[dict], cfg: dict, fcfg: dict) -> dict:
+def _options(tables: List[dict], cfg: dict, fcfg: dict, floor_tables: Optional[List[dict]] = None) -> dict:
     out = {}
     for option in (*cfg["cues"], "combined"):
-        final = fit(tables, option, cfg, fcfg)
-        out[option] = {"held_out": held_out(tables, option, cfg, fcfg),
+        final = fit(tables, option, cfg, fcfg, floor_tables)
+        out[option] = {"held_out": held_out(tables, option, cfg, fcfg, floor_tables),
                        "final": {k: v for k, v in final.items() if not k.startswith("_")},
                        "final_by_query_height": by_height(tables, option, final, cfg)}
     return out
@@ -227,11 +256,13 @@ def calibrate(tables_doc: dict, cfg: dict, fcfg: dict, max_iou: Optional[float] 
         if any(s is None for s in sub):
             out["clean"] = {"available": False, "reason": "tables lack max_overlap / any_occluded (need tables 1.1.0)"}
         else:
+            floor = cs.get("margin_floor", "none")
             out["clean"] = {"available": True, "max_iou": thr, "exclude_occluded": cs["exclude_occluded"],
+                            "margin_floor": floor,
                             "tests_per_clip": {t["match"]: {"all": int(len(t["rival"]["pair"])),
                                                             "clean": int(len(s["rival"]["pair"]))}
                                                for t, s in zip(tables, sub)},
-                            "options": _options(sub, cfg, fcfg)}
+                            "options": _options(sub, cfg, fcfg, tables if floor == "all_tests" else None)}
     return out
 
 

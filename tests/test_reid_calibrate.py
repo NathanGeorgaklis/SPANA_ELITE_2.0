@@ -129,6 +129,72 @@ class Clean(unittest.TestCase):
         self.assertEqual(res["options"]["spana"]["held_out"]["pooled"]["tests"], 3 * 600)   # all: unchanged
 
 
+class MarginFloor(unittest.TestCase):
+    """DECISIONS 2026-11-19: a clean fit never accepts a margin below the all-tests margin of the same fitting clips."""
+    def doc(self):
+        # the dirty (overlapped) tests carry confident errors, the clean ones none: without the floor the clean
+        # margin slides far below the all-tests margin
+        tabs = []
+        for i in range(4):
+            t = table(f"M{i}", i, n_rival=1500)
+            rng = np.random.default_rng(100 + i)
+            n = 1500
+            dirty = rng.random(n) < 0.6
+            m = rng.uniform(0.05, 1.0, n)                               # re-ID margins: all right ...
+            m[np.flatnonzero(dirty)[:6]] = -0.6                         # ... but 6 confident errors on dirty tests
+            t["rival"]["qa"]["spana"] = [float(0.5 + v / 2) for v in m]
+            t["rival"]["qb"]["spana"] = [float(0.5 - v / 2) for v in m]
+            t["rival"]["max_overlap"] = [0.5 if d else 0.0 for d in dirty]
+            t["rival"]["any_occluded"] = [False] * n
+            tabs.append(t)
+        return {"tables": tabs}
+
+    def cfg(self, floor):
+        c = copy.deepcopy(CFG)
+        c["clean_subset"]["margin_floor"] = floor
+        return c
+
+    def test_clean_margin_never_below_the_all_tests_margin(self):
+        res = C.calibrate(self.doc(), self.cfg("all_tests"), FCFG)
+        for option, r in res["clean"]["options"].items():
+            fin = r["final"]
+            if fin["own_margin"] is None or fin["floor_margin"] is None:
+                self.assertIsNone(fin["margin"], option)                  # fail closed
+            else:
+                self.assertEqual(fin["margin"], max(fin["own_margin"], fin["floor_margin"]), option)
+                self.assertGreaterEqual(fin["margin"], fin["floor_margin"], option)
+            for clip, h in r["held_out"]["per_clip"].items():
+                if h["margin"] is not None:
+                    self.assertGreaterEqual(h["margin"], h["floor_margin"], (option, clip))
+                    self.assertGreaterEqual(h["margin"], h["own_margin"], (option, clip))
+        # same-weight floor = the all-tests rule on the same clips: for re-ID alone it is the all-tests final margin
+        self.assertEqual(res["clean"]["options"]["spana"]["final"]["floor_margin"], res["options"]["spana"]["final"]["margin"])
+        # the floor is binding here: without it the clean margin is lower
+        off = C.calibrate(self.doc(), self.cfg("none"), FCFG)
+        self.assertLess(off["clean"]["options"]["spana"]["final"]["margin"], res["clean"]["options"]["spana"]["final"]["margin"])
+
+    def test_floor_only_raises(self):
+        self.assertEqual(C.floored(0.3, {}, "spana", None, CFG), (0.3, 0.3, None))
+        self.assertIsNone(C.floored(None, {}, "spana", [C.to_arrays(table("M0", 0))], CFG)[0])
+
+    def test_all_tests_results_unchanged(self):
+        """The all-tests calibration (on which v2 at 0.517 was adopted) does not depend on the floor setting."""
+        a = C.calibrate(self.doc(), self.cfg("all_tests"), FCFG)
+        b = C.calibrate(self.doc(), self.cfg("none"), FCFG)
+        dump = lambda x: json.dumps(x, default=str, sort_keys=True)      # noqa: E731
+        self.assertEqual(dump(a["options"]), dump(b["options"]))
+
+    def test_bad_floor_setting_is_refused(self):
+        import tempfile
+        import yaml
+        c = copy.deepcopy(CFG)
+        c["clean_subset"]["margin_floor"] = "lowest"
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as f:
+            yaml.safe_dump(c, f)
+        with self.assertRaises(SystemExit):
+            C.load_cfg(f.name)
+
+
 class EvalTableFields(unittest.TestCase):
     def test_fusion_table_records_cleanliness_of_all_three_crops(self):
         from tools.dev.appearance_cue_eval import fusion_table
