@@ -192,11 +192,11 @@ target:
   reentry_exit_edge: true
   reentry_exit_edge_max_frac: 0.05
   # Offer hold (Nathan's FRESH_08 review, player 10: a right offer vanished when its track was hidden for one frame;
-  # records/offer_hold_2026-11-19). Keep an offer through a brief hide of its track; 0 = drop at once. OFF: on DEV
-  # 0.2 / 0.5 / 1.0 s changed no offer verdict and no reviewer number, and showed 2-4 fewer right CANDIDATE frames
-  # (a held offer blocks a new search); player 10's offer survived the one-frame hide but its track was then split
-  # by the tracker (the fix belongs there: records/rival_eligible_2026-11-19).
-  offer_hold_s: 0.0
+  # records/offer_hold_2026-11-19). Keep an offer through a brief hide of its track; 0 = drop at once. First
+  # measured OFF (old tracks: no gain). On merged main's tracks (tracking.rival_eligible_only on) 0.2 s: right
+  # CANDIDATE frames 442 -> 450, wrong unchanged (1), same offers / verdicts / reviewer; player 10's offer now lasts
+  # frames 48-147. 0.5 / 1.0 s: 448 / 446 (a held offer blocks a new search). ON at 0.2 s.
+  offer_hold_s: 0.2
 
 reid:
   # Which observations are embedded into a track's first / last re-ID signature (spana.identity.reid).

@@ -162,8 +162,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
          after the player left the picture only tracks born at the side they left by are offered (17 / 17 DEV
          returns within 0.011 of it). Follower: mean 15 / 0 (was 15 / 1), set 0.65 18 / 0 (was 18 / 3), no right
          offer lost; reviewer 0.777 / 2 / 5.71 (no offers: 0.778 / 5.64). Lookalikes in the picture untouched.
-         Offer hold (`target.offer_hold_s`, `spana.target` 2.8.0, `records/offer_hold_2026-11-19`): built, OFF -
-         no DEV outcome changed; player 10's offer was lost to a tracker split, not to the brief hide.
+         Offer hold (`target.offer_hold_s`, `spana.target` 2.8.0, `records/offer_hold_2026-11-19`): ON at 0.2 s
+         after re-measuring on main's new tracks (right offer frames 442 -> 450, wrong unchanged; player 10's offer
+         now lasts 48-147). Merged main, DEV: re-ID offers 16 right / 0 wrong, unaided 0.536 / 1 wrong frame,
+         reviewer 0.783 / 2 / 5.50.
          Wait-for-evidence + withdraw built but off (withdrew right offers, reviewer 0.762). A
          re-entry OFFER costs the reviewer one action, like a tap: it eases the action but does not lower actions
          per minute; only re-ID that acts without the user (auto-link at a strict margin, or crossing resolution)

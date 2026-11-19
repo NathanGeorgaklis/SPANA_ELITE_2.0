@@ -48,3 +48,23 @@ box and then loses the target even though the player remained in frame". The fol
 2. **Player 10's loss is a tracking failure**, not a follower one: his track was split twice in 5 frames while he
    stayed in view. Fixed in the tracking layer (records/rival_eligible_2026-11-19).
 3. **Decision: offer_hold_s 0 (off).** Kept and tested for when tracking improves.
+
+## Addendum (same day): re-measured on merged main's tracks — ON at 0.2 s
+After the merge (main `8a63422`, `tracking.rival_eligible_only` on), Nathan's review videos were re-rendered. Player 10's
+offer still vanished at frame 94: the tracker now keeps T000029 on him, but the one-frame hide at 94 dropped the
+offer. That is exactly the case the hold was built for, and the OFF decision above was measured on the old, split
+tracks. Re-measured on main's re-tracked, re-embedded DEV clips (code `8a63422`, `run_mainhold.sh`):
+
+| offer_hold_s | re-ID offers r / w / u | CANDIDATE frames right / wrong / unverified | unaided | reviewer |
+|---|---|---|---|---|
+| 0 (main as merged) | 16 / 0 / 0 | 442 / 1 / 5 | 0.536 / 1 | 0.783 / 2 / 5.50 |
+| **0.2** | 16 / 0 / 0 | **450 / 1 / 6** | 0.536 / 1 | 0.783 / 2 / 5.50 |
+| 0.5 | 16 / 0 / 0 | 448 / 1 / 6 | 0.536 / 1 | 0.783 / 2 / 5.50 |
+| 1.0 | 16 / 0 / 0 | 446 / 1 / 6 | 0.536 / 1 | 0.783 / 2 / 5.50 |
+
+- Player 10 (0.5 s, the same at 0.2 s): CANDIDATE T000029 on frames 48–93, 95–102 and 104–147, held through the
+  one-frame hides at 94 and 103.
+- No verdict, offer, wrong frame or reviewer number changed.
+- **Decision: offer_hold_s 0.2 (ON).** Right offer frames +8, wrong unchanged. Longer holds are a little worse,
+  because a held offer blocks a new search.
+
