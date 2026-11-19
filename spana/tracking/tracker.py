@@ -592,7 +592,7 @@ class MultiPlayerTracker:
             in_gate = [i for i in all_d if gated[k, i]]
             if not in_gate:
                 continue
-            reason, sim, margin = None, None, None
+            reason, sim, margin, rivals = None, None, None, []
             unexplained = [i for i in in_gate if i not in matched_det]
             if any(matched_det.get(i) for i in in_gate):
                 reason = "CONTESTED_NEIGHBOUR"
@@ -624,6 +624,8 @@ class MultiPlayerTracker:
                      "margin": None if margin is None else round(margin, 4)}
             if reason:
                 entry["reason"] = reason
+                if reason == "RIVAL_TRACK":
+                    entry["rival_tracks"] = sorted(rivals)          # diagnostic: who the rival was
             else:
                 accepted[k] = unexplained[0]
             out.decisions.append(entry)
