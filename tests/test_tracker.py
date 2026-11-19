@@ -218,6 +218,19 @@ class LostTrackSafety(unittest.TestCase):
         refused = [d for ft in res.frames for d in ft.decisions if d["kind"] == "recovery_refused"]
         self.assertTrue(refused)
 
+    def test_rival_track_refusal_names_the_rival(self):
+        # A and B (same kit) both vanish; one box comes back between them: each recovery is refused RIVAL_TRACK and
+        # the log names the other track (diagnostic field, records/rival_track_log_2026-11-19).
+        a = Player("A", (800, 500), (0, 0), appearance=kit(2), visible=lambda t: t < 1.0 or t >= 1.1)
+        b = Player("B", (800 + 0.2 * H, 500), (0, 0), appearance=kit(2), visible=lambda t: t < 1.0)
+        res = run([a, b], fps=30, duration_s=1.5)
+        assert_safe(self, res)
+        rival = [d for ft in res.frames for d in ft.decisions
+                 if d["kind"] == "recovery_refused" and d.get("reason") == "RIVAL_TRACK"]
+        self.assertTrue(rival)
+        for d in rival:
+            self.assertTrue(d["rival_tracks"] and d["track_id"] not in d["rival_tracks"])
+
     def test_appearance_mismatch_vetoes_short_gap(self):
         b = Player("B", (800, 500), (0, 0), appearance=kit(0), visible=lambda t: t < 1.0)
         a = Player("A", (800 + 0.2 * H, 500), (0, 0), appearance=kit(3), visible=lambda t: t >= 1.07)

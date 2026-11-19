@@ -19,12 +19,12 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.10.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.11.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
 #   2.8.0: + reid.set_* (crop sets), target.reentry_signature / reentry_wait_samples / reentry_withdraw;
-#   2.9.0: + target.reentry_exit_edge / reentry_exit_edge_max_frac; 2.10.0: + target.offer_hold_s
+#   2.9.0: + target.reentry_exit_edge / reentry_exit_edge_max_frac; 2.10.0: + target.offer_hold_s; 2.11.0: + tracking.rival_eligible_only
 
 
 class ConfigError(ValueError):
@@ -145,6 +145,8 @@ class TrackingConfig:
     extent_max_ratio: float        # ... detection / predicted height within [1/r, r] (wider than max_height_ratio)
     low_score_recovery: bool       # S4: a confirmed track unobserved <= rematch_max_s may recover on a low-score
                                    #   detection overlapping its prediction by >= low_score_min_iou
+    rival_eligible_only: bool      # S3c / S4: only a track that could take a detection on this frame (observed on the
+                                   #   previous frame, or still recoverable) counts as another claimant / RIVAL_TRACK
 
     def validate(self) -> None:
         for n in ("low_score_min_iou", "iou_weight", "contest_margin", "duplicate_iou", "duplicate_ioa",

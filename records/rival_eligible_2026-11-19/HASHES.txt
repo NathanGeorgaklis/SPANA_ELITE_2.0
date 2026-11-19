@@ -1,0 +1,21 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/. Log + audit: code 33584c5 / b126cbf (code25/, code26/);
+# rule: code 21885f4 (code27/); follower re-scored with code 3502196 (code21/, fixed offer verdict, main's follower).
+# Detections: ~/SPANA_ELITE_2.0/runs/person_view_compare/F0x_local.det.json (records/bytetrack_compare_2026-11-18).
+96523a304464e8ebe09b82a422b2dfbde105cefb3a75e5da4f263df14ef37596  run_rival.sh
+77d0bc923795c76b927a1511af150dd4e2b8ad418245953deefe3620cc32a258  run_rivelig.sh
+480fbc84cfa9830e7ade9acab9a0169b67641eadb52b5eda1149a0e56d28f72d  probes/probe_extent99.py
+128b22984d26e377214f64904b48664060525d61ffb165cea058158ed5e3ad73  out/rival_audit.json
+85fd6af0657653809762dde4dbcbaf30450d10482f2ee698add89e95b761883a  out/F02_re_on.trk.json
+c066251850bd9a5f8d16e5d789ce038a709d077744e3360cb29d56f5ed0ca4a9  out/F05_re_on.trk.json
+73344b7de0f9e8ad51e8165249e6534d48cc9412e8eb57517cdeaf36a1375381  out/F07_re_on.trk.json
+958c4735ffbf2d05b082b8648e4a2e34bf89e44a92c0505f4fa8060ca762e624  out/F08_re_on.trk.json
+9969cf130bc4703592e20af2ed624b8277cccf4e1dba4f512840cbf95c598fc2  out/F02_re_on.bench.json (= off)
+420c06eada3550a2c657a1043e70589f52641fe392a5efa07cdbdd62dbe9f534  out/F05_re_on.bench.json (= off)
+9c262440233d6972a69b1dc23e2c84190decd57ef3ca8b027108e9d657641a1e  out/F07_re_on.bench.json
+88ff3369a177f7a9425d58ff0c0c2eca690d46298d0f92727673f804749c8858  out/F08_re_on.bench.json
+832773334cd8ac919ba263dd8e6d37a495f47908de4ed9688bac8623342b5f44  out/F07_re_off.bench.json
+2b40c4905fc366baebf08525748e9c6313060892780a1dc2a864e1084e0950ec  out/F08_re_off.bench.json
+09cc798a0583eab2a1e9d0fa65523596fb85b4f639ee3579d8aecd7b0704bf95  out/target_vfx_re_off_default.json
+5ea3cfad969e10b4b7074f9c4d960d2f2f82c5bc6b6b26f5429c0103d1e1b49a  out/target_vfx_re_off_reviewer.json
+aff304b9abaa89e624a46a5a56f065062d204ed86ec24c0f860135cc85d774fd  out/target_vfx_re_on_default.json
+4ccc17a13a47251e8359b52562487ad6440e5c33f1232d0b3231a6f13e6dd49b  out/target_vfx_re_on_reviewer.json
