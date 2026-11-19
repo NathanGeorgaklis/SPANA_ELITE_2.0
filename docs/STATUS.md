@@ -153,6 +153,9 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
          identity/reid-signatures-v2, not on main): quality-weighted crop sets (`spana.track_embeddings` 1.1.0)
          matched best-pair (`target.reentry_signature: set`, floor 0.65): offers 18 right / 0 wrong / 3 undecided
          vs 15 / 0 / 1, reviewer unchanged 0.777 / 2 / 5.71; offline +5 right, +1 wrong at the chosen floor.
+         CORRECTED after Nathan's video review: "undecided" offers were judged only where our player is labelled;
+         by who the offered track is, main is 15 right / 1 wrong and set 0.65 is 18 right / 3 wrong (all wrong
+         offers made while our player was off screen). Not for main as is.
          Wait-for-evidence + withdraw built but off (withdrew right offers, reviewer 0.762). A
          re-entry OFFER costs the reviewer one action, like a tap: it eases the action but does not lower actions
          per minute; only re-ID that acts without the user (auto-link at a strict margin, or crossing resolution)

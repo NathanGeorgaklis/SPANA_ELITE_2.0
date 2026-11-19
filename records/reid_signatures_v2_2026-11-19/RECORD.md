@@ -73,6 +73,26 @@ Set 0.65 vs mean 0.75, offer by offer:
 - Lost right offers (2): FRESH_02 player 4 (set 0.62 < 0.65; mean 0.79) and FRESH_08 player 14 (set 0.83 passes the
   floor; lost to the two-way / ranking check). Player 14 is one of the FRESH_08 review videos Nathan is watching.
 
+## Correction after Nathan watched the FRESH_08 review videos (same day)
+Nathan: player 4's "is this them?" box was the wrong player. The scorer called that offer "undecided" because it
+judges an offer only on frames where OUR player is labelled, and player 4 was out of the picture. Checked by who the
+offered track is (first labelled frame with a clear NESTED_V2 attribution of the offered track):
+
+| config | offers right / wrong / undecided (as reported) | corrected right / wrong |
+|---|---|---|
+| mean 0.75 (main) | 15 / 0 / 1 | **15 / 1** (FRESH_08 player 4 offered player 19) |
+| set 0.65 (branch default) | 18 / 0 / 3 | **18 / 3** (+ FRESH_05 player 2 offered player 11, FRESH_07 player 11 offered player 5) |
+| set 0.60 | 20 / 0 / 4 | **21 / 3** (FRESH_07 player 17's undecided offer was right) |
+
+So option 2 at 0.65 is +3 right and **+2 wrong** in the follower, not "0 wrong". Every wrong offer was made while our
+player was out of the picture, to a different player who was in view. Finding 3 and 5 below are superseded; the
+earlier records' "undecided" offers need the same re-check (scorer fix pending).
+
+Nathan's other notes: player 10 - the tracker split the player three times while he stayed in frame (T000012 ->
+T000029 at frame 45 -> T000054 ~99 -> T000055 ~107); the right offer of T000029 was dropped at frame 94 when T000029
+was occluded for one frame, and T000055 scored 0.71 < 0.75 so nothing more was offered. Players 12 and 14: offers
+right. Player 19: lost only after the ball went out of play.
+
 ## Findings
 1. **Crop sets give evidence to more tracks**: 84 vs 79 usable re-entries, true track has evidence 78 vs 67. Rank-1
    right 81 % vs 78 %.
