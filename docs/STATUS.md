@@ -149,6 +149,9 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      `records/reid_retrain_m001_m003_2026-11-19`): DEV rival 0.933 (v2 0.921); TAR @ 0.5 % FAR hard 0.226 (v2 0.133);
      colour + re-ID 0.263. Margin calibration fails held out (1 wrong in 718, bound 0.66 %; no margin found with
      FRESH_07 held out), so the tracker keeps v2 (margin 0.517, off). v3 is a candidate.
+     Why (`records/reid_v3_wrong_answers_2026-11-19`): every confident wrong answer is a crop of the wrong person
+     (occluded reference / occluded or overlapped query). The tracker uses clean crops only, so the calibration
+     counts errors it cannot make. Proposed: recalibrate v2 and v3 on clean-crop rival tests.
 4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
    ByteTrack shows how much continuity is possible on the same detections (F07 11 / F08 22 fragments) and what it
    costs without flags (silent swaps): measure ByteTrack-style continuity inside our tracker, keeping the flags
