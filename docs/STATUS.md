@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reentry-position-score, on main b6a6b7f).
-- Full suite: `python -m pytest tests -q` → 475 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
+As of 2026-11-19 (branch identity/reid-signatures-v2, on main 5c7dac5).
+- Full suite: `python -m pytest tests -q` → 488 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
   training tests skip).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -149,7 +149,11 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
          Position is now a SCORE (`target.reentry_position_weight` 0.5; `records/reentry_position_score_2026-11-18`,
          `spana.target` 2.5.0 with a reentry_log): offline rank-1 wrong 17 -> 13 (6 short-gap fixes, 2 new), offer
          rule right 33 -> 36 / wrong 2; in the follower neutral (offers 15 / 0 / 1 vs 16 / 0 / 1). Pan / long
-         returns untouched by design. Option 2 (better signatures) queued. A
+         returns untouched by design. Option 2 (better signatures, `records/reid_signatures_v2_2026-11-19`, branch
+         identity/reid-signatures-v2, not on main): quality-weighted crop sets (`spana.track_embeddings` 1.1.0)
+         matched best-pair (`target.reentry_signature: set`, floor 0.65): offers 18 right / 0 wrong / 3 undecided
+         vs 15 / 0 / 1, reviewer unchanged 0.777 / 2 / 5.71; offline +5 right, +1 wrong at the chosen floor.
+         Wait-for-evidence + withdraw built but off (withdrew right offers, reviewer 0.762). A
          re-entry OFFER costs the reviewer one action, like a tap: it eases the action but does not lower actions
          per minute; only re-ID that acts without the user (auto-link at a strict margin, or crossing resolution)
          would, and both touch the 2026-11-16 rule that relinks need the user. Nathan to choose;
