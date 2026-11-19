@@ -55,8 +55,8 @@ class Stale(unittest.TestCase):
             assert_safe(self, res)
         self.assertEqual(recoveries(runs[0]), recoveries(runs[1]))                # identical with the flag
 
-    def test_off_by_default_is_the_behaviour_before(self):
-        self.assertFalse(cfg().tracking.rival_eligible_only)
+    def test_on_by_default(self):
+        self.assertTrue(cfg().tracking.rival_eligible_only)       # met the agreed tracking bar on DEV
 
 
 if __name__ == "__main__":

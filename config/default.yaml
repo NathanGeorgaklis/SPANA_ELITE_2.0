@@ -102,8 +102,9 @@ tracking:
   # exclusivity check and S4's RIVAL_TRACK refusal, a track that can no longer take any detection (not observed on
   # the previous frame and past its recovery window: "not_eligible") is not counted as another claimant. On DEV
   # such a stale track (the player's own old track, lost 1.8 s earlier) blocked an extent link and a recovery and
-  # split one player three times.
-  rival_eligible_only: false
+  # split one player three times. ON: DEV fragments 110 -> 105, ID switches 112 -> 107, the same 7 transfers (all
+  # flagged, none on a newly linked track), 0 silent, 0 wrong recoveries; reviewer 0.778 / 2 / 5.64 -> 0.783 / 2 / 5.50.
+  rival_eligible_only: true
 
 appearance:
   enabled: true

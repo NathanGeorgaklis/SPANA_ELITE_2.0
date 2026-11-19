@@ -57,7 +57,7 @@ Per frame:
           gap^2 body heights of the constant-velocity prediction (OCCLUDED tracks keep their velocity). A gap
           longer than rematch_max_s (occlusion only) additionally REQUIRES appearance that matches the track and
           beats every other track by min_margin, so same-looking players are never recovered on a guess.
-       Claimants (tracking.rival_eligible_only, off by default): S3c's "no other track gates or extent-fits the
+       Claimants (tracking.rival_eligible_only, on by default since 2026-11-19): S3c's "no other track gates or extent-fits the
           detection" and S4's "no other unmatched track's gate" then count only tracks that could take a detection on
           this frame (observed on the previous frame, or still recoverable); a stale track past its recovery window
           no longer blocks (records/rival_eligible_2026-11-19).
