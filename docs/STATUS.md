@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-18 (branch tracking/reid-resolve-v1, on identity/reid-calibration-dev d2e9ba2; main f86a47e).
-- Full suite: `python -m pytest tests -q` → 415 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+As of 2026-11-19 (branch identity/reid-clean-calibration, on tracking/reid-resolve-v1 f11ae8d; main bdb33b9).
+- Full suite: `python -m pytest tests -q` → 419 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -147,6 +147,11 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      `records/reid_resolve_dev_2026-11-18`): DEV tracks identical on/off, 2 episodes cleared by re-ID (both right),
      follower +17 correct frames, 0 wrong. Limited by clean crops: 99 / 1,299 uncertain frames. Next: calibrate re-ID
      on partly overlapped crops.
+       - Clean-crop calibration (`records/reid_clean_calibration_dev_2026-11-19`, tools 8a66eed): on the 1,417 clean
+     DEV rival tests neither v2 nor v3 answers wrong above margin 0.22 (v3 at 0.476: 613 resolved, 0 wrong), but
+     the held-out rule fails for both (its fitted margins slide to 0.11-0.22). Tracker unchanged (v2, 0.517, off);
+     Nathan to choose: v3 at 0.476 / change the held-out rule / more DEV labels. Overlapped crops are where
+     re-ID's confident errors come from (`records/reid_v3_wrong_answers_2026-11-19`): not used.
      (b) tracker: keep tracks alive across pans, fewer LOST_EXPIRED in crowds. The exit hold was tried
          (`records/exit_hold_2026-11-18`): no net gain without a stronger appearance signal; off by default.
    - Re-measure track life and actions per minute on the same window after each.
