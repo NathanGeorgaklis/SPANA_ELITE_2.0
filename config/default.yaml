@@ -146,7 +146,7 @@ target:
   # 16, wrong 1, undecided 2; reviewer correct 0.776 vs 0.778 without offers. Fitted on DEV, small sample.
   reentry_offer: true
   reentry_max_gap_s: 10.0
-  reentry_min_similarity: 0.75
+  reentry_min_similarity: 0.65     # set scale (option 2, records/reid_signatures_v2_2026-11-19); 0.75 on the mean scale
   reentry_min_margin: 0.0       # with reentry_mutual, the two-way best match replaces the margin
   # Safety rules for the offer (records/reentry_position_mutual_2026-11-18): position = the candidate must be
   # reachable from the lost player's last position carried through the camera motion, within tracking.gate_base_h +
@@ -172,8 +172,10 @@ target:
   # Option 2, better signatures (records/reid_signatures_v2_2026-11-19): "set" matches each crop to its best partner
   # across the two crop sets (quality weighted) instead of one averaged signature per end; wait_samples > 0 judges
   # a candidate only from its crops seen so far and only once it has that many; withdraw drops an offer the evidence
-  # so far no longer supports. mean / 0 / false = the behaviour before option 2.
-  reentry_signature: mean
+  # so far no longer supports. mean / 0 / false = the behaviour before option 2 (then reentry_min_similarity 0.75).
+  # DEV: set at 0.65 = 18 right / 0 wrong offers (mean at 0.75: 15 / 0), reviewer unchanged; wait + withdraw
+  # withdrew right offers and cost reviewer correct time (0.777 -> 0.762), so both stay off.
+  reentry_signature: set
   reentry_wait_samples: 0
   reentry_withdraw: false
 
