@@ -93,6 +93,10 @@ def load_clip(spec, cfg):
             break
         if i in want:
             want.discard(i)
+            ids = sorted(gt.players[i])
+            ov = iou_matrix(np.array([gt.players[i][g] for g in ids], float), np.array([gt.players[i][g] for g in ids], float))
+            np.fill_diagonal(ov, 0.0)
+            max_iou = {g: float(ov[k].max()) if len(ids) > 1 else 0.0 for k, g in enumerate(ids)}
             for g, b in gt.players[i].items():
                 x1, y1, x2, y2 = (int(round(v)) for v in b)
                 c = img[max(0, y1):y2, max(0, x1):x2]
@@ -100,6 +104,7 @@ def load_clip(spec, cfg):
                     continue
                 crops.append({"clip": fz["clip"]["name"], "frame": i, "t": i / fps, "player": g, "box": list(b),
                               "h": b[3] - b[1], "occluded": g in gt.occluded.get(i, set()), "img": c,
+                              "max_iou": max_iou[g],                  # largest IoU with any other labelled player
                               "hist": torso_descriptor(img, b, cfg.appearance), "number": read_number(img, b)})
         i += 1
     contact = set()
@@ -169,6 +174,12 @@ def fusion_table(name, crops, cues, sim_fn, same, diff_all, same_hard, diff_hard
     t["rival"]["pair"] = ["|".join(sorted((str(p), str(q)))) for _, _, _, (p, q) in triplets]
     t["rival"]["height"] = [float(crops[q]["h"]) for q, _, _, _ in triplets]          # query crop height (px)
     t["rival"]["gap_s"] = [float(crops[q]["t"] - crops[a]["t"]) for q, a, _, _ in triplets]
+    # tables 1.1.0: the cleanliness of all three crops of a test (query, reference of A, reference of B), so that a
+    # calibration can keep only tests whose crops the tracker itself would use (tools/dev/reid_calibrate.py)
+    t["rival"]["any_occluded"] = [bool(crops[q]["occluded"] or crops[a]["occluded"] or crops[b]["occluded"])
+                                  for q, a, b, _ in triplets]
+    t["rival"]["max_overlap"] = [max(crops[q]["max_iou"], crops[a]["max_iou"], crops[b]["max_iou"])
+                                 for q, a, b, _ in triplets]
     return t
 
 
@@ -302,7 +313,7 @@ def main(out_json, model_dir, *specs):
             if isinstance(x, (np.bool_, bool)):
                 return bool(x)
             return x
-        Path(dump_path).write_text(json.dumps({"schema": "spana.cue_tables", "schema_version": "1.0.0", "cues": cues,
+        Path(dump_path).write_text(json.dumps({"schema": "spana.cue_tables", "schema_version": "1.1.0", "cues": cues,
                                                "model_dir": str(model_dir), "tables": plain(tables)}))
     if fusion_cfg:
         from tools.dev.cue_fusion import load_fusion_config, report as fusion_report

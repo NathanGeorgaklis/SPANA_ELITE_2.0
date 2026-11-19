@@ -14,6 +14,10 @@ Options: colour alone, re-ID alone, combined (per-cue z-normalisation with stati
 colour weight from the grid giving the most resolutions on the calibration clips).
 Honesty check: leave one clip out - statistics, weight and m fitted on the other clips, applied to the held-out
 clip; held-out results pooled. Final values: fitted on all clips (proposal for the integration step).
+Clean subset (config clean_subset, tables 1.1.0): the same calibration on the rival tests whose three crops are all
+clean - not labelled occluded, no other labelled player overlapping above appearance.clean_max_iou of the tracker's
+config - i.e. the only crops the tracker uses as re-ID evidence. Reported under "clean"; tables without the
+cleanliness fields give clean = unavailable (never all tests).
 """
 from __future__ import annotations
 
@@ -48,7 +52,33 @@ def to_arrays(table: dict) -> dict:
     r = table["rival"]
     t["rival"] = {"qa": {c: arr(v) for c, v in r["qa"].items()}, "qb": {c: arr(v) for c, v in r["qb"].items()},
                   "height": arr(r.get("height", [])), "pair": r.get("pair", [])}
+    if "max_overlap" in r and "any_occluded" in r:                          # tables 1.1.0
+        t["rival"]["max_overlap"] = arr(r["max_overlap"])
+        t["rival"]["any_occluded"] = np.array(r["any_occluded"], bool)
     return t
+
+
+def clean_max_iou(cfg: dict) -> float:
+    """The tracker's clean-crop threshold, read from the config the clean subset names (never a literal here)."""
+    src = yaml.safe_load(Path(cfg["clean_subset"]["max_iou_from"]).read_text())
+    return float(src["appearance"]["clean_max_iou"])
+
+
+def clean_subset(table: dict, max_iou: float, exclude_occluded: bool) -> Optional[dict]:
+    """The table with only its clean rival tests (verification pairs unchanged: they only feed the normalisation).
+    None if the table has no cleanliness fields (fail closed: never treat unknown as clean)."""
+    r = table["rival"]
+    if "max_overlap" not in r:
+        return None
+    keep = np.asarray(r["max_overlap"] <= max_iou)
+    if exclude_occluded:
+        keep &= ~r["any_occluded"]
+    idx = np.flatnonzero(keep)
+    sub = {"qa": {c: v[idx] for c, v in r["qa"].items()}, "qb": {c: v[idx] for c, v in r["qb"].items()},
+           "height": r["height"][idx] if len(r["height"]) else r["height"],
+           "pair": [r["pair"][i] for i in idx] if r["pair"] else [],
+           "max_overlap": r["max_overlap"][idx], "any_occluded": r["any_occluded"][idx]}
+    return {**table, "rival": sub}
 
 
 def margins(tables: List[dict], option: str, fit: dict) -> np.ndarray:
@@ -176,15 +206,32 @@ def by_height(tables, option, f, cfg):
     return out
 
 
-def calibrate(tables_doc: dict, cfg: dict, fcfg: dict) -> dict:
-    tables = [to_arrays(t) for t in tables_doc["tables"]]
-    out = {"target_false_rate": cfg["target_false_rate"], "confidence": cfg["confidence"], "options": {}}
+def _options(tables: List[dict], cfg: dict, fcfg: dict) -> dict:
+    out = {}
     for option in (*cfg["cues"], "combined"):
         final = fit(tables, option, cfg, fcfg)
-        res = {"held_out": held_out(tables, option, cfg, fcfg),
-               "final": {k: v for k, v in final.items() if not k.startswith("_")},
-               "final_by_query_height": by_height(tables, option, final, cfg)}
-        out["options"][option] = res
+        out[option] = {"held_out": held_out(tables, option, cfg, fcfg),
+                       "final": {k: v for k, v in final.items() if not k.startswith("_")},
+                       "final_by_query_height": by_height(tables, option, final, cfg)}
+    return out
+
+
+def calibrate(tables_doc: dict, cfg: dict, fcfg: dict, max_iou: Optional[float] = None) -> dict:
+    tables = [to_arrays(t) for t in tables_doc["tables"]]
+    out = {"target_false_rate": cfg["target_false_rate"], "confidence": cfg["confidence"],
+           "options": _options(tables, cfg, fcfg)}
+    cs = cfg.get("clean_subset")
+    if cs:
+        thr = clean_max_iou(cfg) if max_iou is None else max_iou
+        sub = [clean_subset(t, thr, cs["exclude_occluded"]) for t in tables]
+        if any(s is None for s in sub):
+            out["clean"] = {"available": False, "reason": "tables lack max_overlap / any_occluded (need tables 1.1.0)"}
+        else:
+            out["clean"] = {"available": True, "max_iou": thr, "exclude_occluded": cs["exclude_occluded"],
+                            "tests_per_clip": {t["match"]: {"all": int(len(t["rival"]["pair"])),
+                                                            "clean": int(len(s["rival"]["pair"]))}
+                                               for t, s in zip(tables, sub)},
+                            "options": _options(sub, cfg, fcfg)}
     return out
 
 
@@ -204,9 +251,12 @@ def main(argv=None) -> int:
                      "config_sha256": hashlib.sha256(Path(a.config).read_bytes()).hexdigest(),
                      "fusion_config_sha256": hashlib.sha256(Path(a.fusion_config).read_bytes()).hexdigest()}
     Path(a.out).write_text(json.dumps(res, indent=1, default=str))
-    for o, r in res["options"].items():
-        print(json.dumps({"option": o, "held_out_pooled": r["held_out"]["pooled"],
-                          "final": {k: v for k, v in r["final"].items() if k != "stats"}}, default=str))
+    for subset, opts in (("all", res["options"]), ("clean", res.get("clean", {}).get("options", {}))):
+        for o, r in opts.items():
+            print(json.dumps({"subset": subset, "option": o, "held_out_pooled": r["held_out"]["pooled"],
+                              "final": {k: v for k, v in r["final"].items() if k != "stats"}}, default=str))
+    if "clean" in res and not res["clean"]["available"]:
+        print(json.dumps({"subset": "clean", **res["clean"]}))
     return 0
 
 

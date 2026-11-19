@@ -90,5 +90,60 @@ class Fit(unittest.TestCase):
             self.assertAlmostEqual(pooled["upper_bound"], upper_bound(pooled["wrong"], pooled["resolved"], 0.95))
 
 
+class Clean(unittest.TestCase):
+    """Clean subset: only tests whose 3 crops are clean (tracker's rule), fail closed without the fields."""
+    def with_clean(self, t, seed):
+        rng = np.random.default_rng(seed)
+        n = len(t["rival"]["pair"])
+        t["rival"]["max_overlap"] = [float(v) for v in rng.choice([0.0, 0.02, 0.3, 0.7], n)]
+        t["rival"]["any_occluded"] = [bool(v) for v in rng.random(n) < 0.2]
+        return t
+
+    def test_subset_keeps_only_clean_tests(self):
+        t = C.to_arrays(self.with_clean(table("M0", 0, n_rival=200), 1))
+        s = C.clean_subset(t, 0.05, True)
+        r = t["rival"]
+        want = np.flatnonzero((r["max_overlap"] <= 0.05) & ~r["any_occluded"])
+        self.assertEqual(len(s["rival"]["pair"]), len(want))
+        self.assertTrue(np.array_equal(s["rival"]["qa"]["spana"], r["qa"]["spana"][want]))
+        self.assertTrue((s["rival"]["max_overlap"] <= 0.05).all() and not s["rival"]["any_occluded"].any())
+        s2 = C.clean_subset(t, 0.05, False)                                # occluded allowed: more tests
+        self.assertGreater(len(s2["rival"]["pair"]), len(want))
+
+    def test_without_fields_clean_is_unavailable_not_all(self):
+        self.assertIsNone(C.clean_subset(C.to_arrays(table("M0", 0, n_rival=50)), 0.05, True))
+        doc = {"tables": [table(f"M{i}", i, n_rival=300) for i in range(3)]}
+        res = C.calibrate(doc, CFG, FCFG)
+        self.assertFalse(res["clean"]["available"])
+
+    def test_threshold_comes_from_the_tracker_config(self):
+        import yaml
+        want = yaml.safe_load(open(CFG["clean_subset"]["max_iou_from"]))["appearance"]["clean_max_iou"]
+        self.assertEqual(C.clean_max_iou(CFG), want)
+        doc = {"tables": [self.with_clean(table(f"M{i}", i, n_rival=600), 10 + i) for i in range(3)]}
+        res = C.calibrate(doc, CFG, FCFG)
+        self.assertTrue(res["clean"]["available"])
+        self.assertEqual(res["clean"]["max_iou"], want)
+        n_clean = sum(v["clean"] for v in res["clean"]["tests_per_clip"].values())
+        self.assertEqual(res["clean"]["options"]["spana"]["held_out"]["pooled"]["tests"], n_clean)
+        self.assertEqual(res["options"]["spana"]["held_out"]["pooled"]["tests"], 3 * 600)   # all: unchanged
+
+
+class EvalTableFields(unittest.TestCase):
+    def test_fusion_table_records_cleanliness_of_all_three_crops(self):
+        from tools.dev.appearance_cue_eval import fusion_table
+        crops = [{"player": "1", "t": 0.0, "h": 100.0, "occluded": False, "max_iou": 0.0},
+                 {"player": "2", "t": 0.0, "h": 100.0, "occluded": True, "max_iou": 0.4},
+                 {"player": "1", "t": 2.0, "h": 100.0, "occluded": False, "max_iou": 0.01},
+                 {"player": "2", "t": 2.0, "h": 100.0, "occluded": False, "max_iou": 0.0}]
+        tri = [(2, 0, 1, ("1", "2")), (3, 1, 0, ("1", "2"))]
+        t = fusion_table("X", crops, ["hist"], lambda c, a, b: 0.5, [], [], [], [], tri)
+        self.assertEqual(t["rival"]["any_occluded"], [True, True])
+        self.assertEqual(t["rival"]["max_overlap"], [0.4, 0.4])
+        tri = [(2, 0, 3, ("1", "2"))]
+        t = fusion_table("X", crops, ["hist"], lambda c, a, b: 0.5, [], [], [], [], tri)
+        self.assertEqual((t["rival"]["any_occluded"], t["rival"]["max_overlap"]), ([False], [0.01]))
+
+
 if __name__ == "__main__":
     unittest.main()
