@@ -191,7 +191,7 @@ def _reentry_offer(cur: str, last_obs: int, n: int, ctx, sig: Dict[str, dict], d
     from .reid import reentry_choice
     frames = ctx.frames
     ch = reentry_choice(cur, last_obs, n, ctx, sig, cfg.target, cfg.tracking,
-                        allowed=lambda c: c not in done and _usable(live.get(c)))
+                        allowed=lambda c: c not in done and _usable(live.get(c)), causal=True)
     if not ch["offer"]:
         return None, ch
     best = ch["track"]
@@ -398,6 +398,19 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                     relinks.append(pending)
             if reid_pending and not _usable(live.get(pending["to_track"])):
                 drop("CANDIDATE_NOT_USABLE")
+            elif reid_pending and tc.reentry_withdraw and pending["proposed_frame"] < f:
+                # option 2: re-run the rule on the evidence so far (the offered track allowed again); an offer it no
+                # longer makes for that track is withdrawn, and the search below may offer another track
+                from .reid import reentry_choice
+                b = pending["to_track"]
+                again = reentry_choice(cur, last_obs, n, rctx, sig, tc, cfg.tracking,
+                                       allowed=lambda c: (c == b or c not in reid_done) and _usable(live.get(c)),
+                                       causal=True)
+                if not (again["offer"] and again["track"] == b):
+                    reentry_log.append(_log_row(f, cur, again))
+                    log_key = (cur, last_obs, again["offer"], again["reason"], again["track"])
+                    drop("WITHDRAWN")
+                    search_done = True
             if pending is None and sig and (search_done or fr["t"] - t0 > tc.relink_max_gap_s + _EPS):
                 if rctx is None:
                     from .reid import ReentryContext
@@ -464,7 +477,7 @@ def review_list(gaps: Sequence[dict], cfg: SpanaConfig) -> List[dict]:
 
 def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Sequence[str] = (),
                     actions: Iterable[dict] = (), embeddings: Optional[dict] = None) -> dict:
-    """Validated spana.target 2.5.0 document for one selection (and the user's actions) on one validated
+    """Validated spana.target 2.6.0 document for one selection (and the user's actions) on one validated
     spana.tracks document (and, for re-entry offers, its validated spana.track_embeddings document)."""
     actions = [dict(a) for a in actions]
     frames, info = follow(tracks_doc, sel, cfg, actions, embeddings)
@@ -487,7 +500,10 @@ def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Se
                           "reentry_min_similarity": cfg.target.reentry_min_similarity,
                           "reentry_min_margin": cfg.target.reentry_min_margin,
                           "reentry_mutual": cfg.target.reentry_mutual,
-                          "reentry_position_weight": cfg.target.reentry_position_weight},
+                          "reentry_position_weight": cfg.target.reentry_position_weight,
+                          "reentry_signature": cfg.target.reentry_signature,
+                          "reentry_wait_samples": cfg.target.reentry_wait_samples,
+                          "reentry_withdraw": cfg.target.reentry_withdraw},
         "track_ends": info["track_ends"], "relinks": info["relinks"], "frames": frames,
         "gaps": gaps_of(frames, info["relinks"]), "reentry_log": info["reentry_log"],
     }

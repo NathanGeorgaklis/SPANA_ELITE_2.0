@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.7.0"
+schema_version: "2.8.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -169,6 +169,13 @@ target:
   reentry_position_time_scale_s: 1.0
   reentry_position_max_gap_s: 3.0
   reentry_position_max_pan_frac: 0.25
+  # Option 2, better signatures (records/reid_signatures_v2_2026-11-19): "set" matches each crop to its best partner
+  # across the two crop sets (quality weighted) instead of one averaged signature per end; wait_samples > 0 judges
+  # a candidate only from its crops seen so far and only once it has that many; withdraw drops an offer the evidence
+  # so far no longer supports. mean / 0 / false = the behaviour before option 2.
+  reentry_signature: mean
+  reentry_wait_samples: 0
+  reentry_withdraw: false
 
 reid:
   # Which observations are embedded into a track's first / last re-ID signature (spana.identity.reid).
@@ -176,6 +183,13 @@ reid:
   sample_min_gap_s: 0.20
   min_crop_height_px: 40     # = the training crops' minimum height (config/reid_train.yaml crops.min_height_px)
   clean_max_iou: 0.05        # = appearance.clean_max_iou: a crop that mixes players is not evidence
+  # Crop sets (spana.track_embeddings 1.1.0), looser, each crop with a quality weight in (0, 1]:
+  # quality = min(1, height / min_crop_height_px) * (1 if overlap <= clean_max_iou else falling linearly to 0.1 at
+  # set_max_iou). Priors, not fitted.
+  set_samples: 10
+  set_min_gap_s: 0.20
+  set_min_height_px: 24
+  set_max_iou: 0.30
 
 output:
   box_decimals: 1

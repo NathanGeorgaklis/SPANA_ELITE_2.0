@@ -28,6 +28,11 @@ Change log:
   2.2.0 target: + target_config.tap_vouches_doubt; TARGET may carry reason USER_VOUCHED: on an ACTIVE, confirmed
         track uncertain only by an appearance doubt (tracks 2.2.0 identity_doubt, no rivals), tapped by the user
         (selection or re-selection) earlier in the same uncertainty episode. 2.1.0 documents keep their meaning.
+  2.6.0 target: better re-ID signatures (option 2). + target_config reentry_signature ("mean" | "set") /
+        reentry_wait_samples / reentry_withdraw. With "set", a reid offer's similarity is the quality-weighted
+        best-pair similarity of the crop sets (spana.track_embeddings 1.1.0), the candidate's crops limited to frames
+        <= proposed_frame when reentry_wait_samples > 0; an offer may be DROPPED with reason WITHDRAWN.
+        2.5.0 documents keep their meaning.
   2.5.0 target: re-entry offers ranked by appearance + position. + top-level reentry_log (the re-entry rule's
         decisions, logged when they change during a loss: offer / abstention reason, appearance, position, combined
         scores, margin, every candidate); + target_config reentry_mutual / reentry_position_weight; reid evidence
@@ -60,7 +65,7 @@ from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityS
 DETECTIONS_SCHEMA = ("spana.detections", "1.4.0")   # 1.4.0: class_names (class_id indexes it)
 TRACKS_SCHEMA = ("spana.tracks", "2.2.0")   # 2.1.0 documents still validate (validate_tracks)
 TRACKS_ACCEPTED = ("2.1.0", "2.2.0")
-TARGET_SCHEMA = ("spana.target", "2.5.0")   # 1.0.0 / 2.0.0 / 2.1.0 / 2.2.0 / 2.3.0 / 2.4.0 still validate
+TARGET_SCHEMA = ("spana.target", "2.6.0")   # 1.0.0 / 2.0.0 / 2.1.0 / 2.2.0 / 2.3.0 / 2.4.0 / 2.5.0 still validate
 
 
 class ArtifactError(ValueError):
@@ -365,7 +370,7 @@ def validate_target(doc: Any, tracks: Optional[dict] = None, embeddings: Optiona
     version = doc.get("schema_version")
     if version == "1.0.0":
         return _validate_target_v1(doc, tracks)
-    if version in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0"):
+    if version in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0"):
         return _validate_target_v2(doc, tracks, version, embeddings)
     raise ArtifactError(f"unsupported spana.target version {version!r}")
 
@@ -488,9 +493,10 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
                         embeddings: Optional[dict] = None) -> None:
     """2.0.0 / 2.1.0 / 2.2.0. Structure, then (with the source tracks) every answer and every relink against the
     tracks."""
-    v21 = version in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")
-    v22, v23 = version in ("2.2.0", "2.3.0", "2.4.0", "2.5.0"), version in ("2.3.0", "2.4.0", "2.5.0")
-    v24, v25 = version in ("2.4.0", "2.5.0"), version == "2.5.0"
+    v21 = version in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")
+    v22, v23 = version in ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0"), version in ("2.3.0", "2.4.0", "2.5.0", "2.6.0")
+    v24, v25 = version in ("2.4.0", "2.5.0", "2.6.0"), version in ("2.5.0", "2.6.0")
+    v26 = version == "2.6.0"
     _header(doc, ("spana.target", version),
             ("schema", "schema_version", "provenance", "video", "tracks_sha256", "selection",
              "user_actions" if v21 else "confirmations", "target_config", "track_ends", "relinks", "frames")
@@ -507,8 +513,16 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
     _keys(tc, ("resume_after_uncertain", "relink_max_gap_s", "relink_auto_confirm")
           + (("tap_vouches_doubt",) if v22 else ()) + (("resume_after_doubt_resolved",) if v23 else ())
           + (("reentry_offer", "reentry_max_gap_s", "reentry_min_similarity", "reentry_min_margin") if v24 else ())
-          + (("reentry_mutual", "reentry_position_weight") if v25 else ()),
+          + (("reentry_mutual", "reentry_position_weight") if v25 else ())
+          + (("reentry_signature", "reentry_wait_samples", "reentry_withdraw") if v26 else ()),
           "target_config")
+    if v26 and not (tc["reentry_signature"] in ("mean", "set") and isinstance(tc["reentry_wait_samples"], int) and
+                    not isinstance(tc["reentry_wait_samples"], bool) and tc["reentry_wait_samples"] >= 0 and
+                    isinstance(tc["reentry_withdraw"], bool)):
+        raise ArtifactError("bad target_config signature keys")
+    if not v26 and any(r.get("dropped_reason") == "WITHDRAWN" for r in doc.get("relinks", [])
+                       if isinstance(r, dict)):
+        raise ArtifactError("WITHDRAWN offers need spana.target 2.6.0")
     if v24 and not (isinstance(tc["reentry_offer"], bool) and _num(tc["reentry_max_gap_s"]) and
                     _num(tc["reentry_min_similarity"]) and _num(tc["reentry_min_margin"])):
         raise ArtifactError("bad target_config re-entry keys")
@@ -699,7 +713,7 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
         if rivals:
             raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: not the only candidate ({rivals})")
     if embeddings is not None and v24:
-        _check_reid_offers(doc, rels, embeddings, v25)
+        _check_reid_offers(doc, rels, embeddings, v25, tc if v26 else None)
     taps = sorted([(sel["frame"], sel["track_id"])] + [(g, tid) for tid, fs in reselected.items() for g in fs])
     for k, (tf, fr) in enumerate(zip(src, frames)):
         if fr["reason"] == TargetReason.USER_VOUCHED.value:
@@ -735,7 +749,8 @@ def _cos(a, b) -> Optional[float]:
     return sum(x * y for x, y in zip(a, b)) / max(na * nb, 1e-12)
 
 
-def _check_reid_offers(doc: dict, rels: List[dict], emb: dict, v25: bool = False) -> None:
+def _check_reid_offers(doc: dict, rels: List[dict], emb: dict, v25: bool = False, tc26: Optional[dict] = None
+                       ) -> None:
     """Every re-ID offer's appearance similarity (lost track's last vs offered track's first signature); for 2.4.0
     also the appearance runner-up (2.5.0 ranks by appearance + position, checked for consistency in the structure)."""
     if sha256_doc(emb) != doc["embeddings_sha256"]:
@@ -747,8 +762,22 @@ def _check_reid_offers(doc: dict, rels: List[dict], emb: dict, v25: bool = False
         if _relink_kind(r) != "reid":
             continue
         ev = r["evidence"]
-        last = sig.get(r["from_track"], {}).get("last")
-        sims = {c: _cos(last, sig.get(c, {}).get("first")) for c in ev["candidates"]}
+        if tc26 is not None and tc26["reentry_signature"] == "set":
+            if emb["schema_version"] == "1.0.0":
+                raise ArtifactError("set signatures need spana.track_embeddings 1.1.0")
+            from .identity.reid import set_similarity           # lazy: reid imports this module
+            a = sig.get(r["from_track"], {}).get("last_crops") or []
+            sims = {}
+            for c in ev["candidates"]:
+                b = sig.get(c, {}).get("first_crops") or []
+                if tc26["reentry_wait_samples"] > 0:
+                    b = [x for x in b if x["frame"] <= r["proposed_frame"]]
+                    if len(b) < tc26["reentry_wait_samples"]:
+                        b = []
+                sims[c] = set_similarity(a, b)
+        else:
+            last = sig.get(r["from_track"], {}).get("last")
+            sims = {c: _cos(last, sig.get(c, {}).get("first")) for c in ev["candidates"]}
         best = sims.get(r["to_track"])
         if v25:
             if best is None or abs(best - ev["similarity"]) > 1e-4:
@@ -821,22 +850,40 @@ def _frame_order(fr: Dict[str, Any], prev: int) -> int:
     return fr["frame"]
 
 
-EMBEDDINGS_SCHEMA = ("spana.track_embeddings", "1.0.0")
+EMBEDDINGS_SCHEMA = ("spana.track_embeddings", "1.1.0")
+EMBEDDINGS_VERSIONS = ("1.0.0", "1.1.0")
 
 
 def validate_track_embeddings(doc: Any, tracks: Optional[dict] = None) -> None:
     """spana.track_embeddings 1.0.0 (spana.identity.reid): per track a `first` / `last` re-ID signature (unit vector
-    of the model's dimension, or null when the track had no clean crop) and the frames embedded. With the source
-    tracks: same tracks hash, and every embedded frame is a confirmed, CERTAIN observation of that track."""
-    _header(doc, EMBEDDINGS_SCHEMA, ("schema", "schema_version", "provenance", "video", "tracks_sha256", "model",
-                                     "reid_config", "tracks"))
+    of the model's dimension, or null when the track had no clean crop) and the frames embedded. 1.1.0 adds per end
+    `first_crops` / `last_crops`: the crop set [{frame, quality in (0, 1], emb}], frames strictly increasing. With
+    the source tracks: same tracks hash, and every embedded frame is a confirmed, CERTAIN observation of that track."""
+    _keys(doc, ("schema", "schema_version", "provenance", "video", "tracks_sha256", "model", "reid_config", "tracks"),
+          "document")
+    if doc["schema"] != EMBEDDINGS_SCHEMA[0] or doc["schema_version"] not in EMBEDDINGS_VERSIONS:
+        raise ArtifactError(f"schema {doc['schema']}/{doc['schema_version']} is not a known track_embeddings version")
+    v11 = doc["schema_version"] == "1.1.0"
     _keys(doc["model"], ("name", "version", "sha256", "embedding_dim"), "model")
     dim = doc["model"]["embedding_dim"]
     if not (isinstance(dim, int) and dim > 0) or not isinstance(doc["tracks"], dict):
         raise ArtifactError("bad embeddings model / tracks")
     for tid, row in doc["tracks"].items():
-        _keys(row, ("first", "last", "first_frames", "last_frames"), f"embeddings {tid}")
+        _keys(row, ("first", "last", "first_frames", "last_frames") +
+              (("first_crops", "last_crops") if v11 else ()), f"embeddings {tid}")
         for end in ("first", "last"):
+            if v11:
+                cs = row[f"{end}_crops"]
+                if not isinstance(cs, list):
+                    raise ArtifactError(f"embeddings {tid}: bad {end}_crops")
+                prev = -1
+                for c in cs:
+                    _keys(c, ("frame", "quality", "emb"), f"embeddings {tid} {end}_crops")
+                    if not (isinstance(c["frame"], int) and c["frame"] > prev and _num(c["quality"]) and
+                            0.0 < c["quality"] <= 1.0 and isinstance(c["emb"], list) and len(c["emb"]) == dim and
+                            all(_num(x) for x in c["emb"])):
+                        raise ArtifactError(f"embeddings {tid}: bad crop in {end}_crops")
+                    prev = c["frame"]
             v, fs = row[end], row[f"{end}_frames"]
             if not (isinstance(fs, list) and all(isinstance(f, int) for f in fs) and fs == sorted(fs)):
                 raise ArtifactError(f"embeddings {tid}: bad {end}_frames")
@@ -857,5 +904,6 @@ def validate_track_embeddings(doc: Any, tracks: Optional[dict] = None) -> None:
                     t["identity"] == IdentityState.CERTAIN.value:
                 obs.setdefault(t["track_id"], set()).add(fr["frame"])
     for tid, row in doc["tracks"].items():
-        if not set(row["first_frames"] + row["last_frames"]) <= obs.get(tid, set()):
+        crop_frames = [c["frame"] for e in ("first_crops", "last_crops") for c in row.get(e, [])]
+        if not set(row["first_frames"] + row["last_frames"] + crop_frames) <= obs.get(tid, set()):
             raise ArtifactError(f"embeddings {tid}: a sample is not a confirmed, CERTAIN observation of the track")

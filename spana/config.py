@@ -19,10 +19,11 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.7.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.8.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
-#   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score
+#   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
+#   2.8.0: + reid.set_* (crop sets), target.reentry_signature / reentry_wait_samples / reentry_withdraw
 
 
 class ConfigError(ValueError):
@@ -222,6 +223,12 @@ class TargetConfig:
     reentry_position_time_scale_s: float  # ... times exp(-gap / time_scale_s)
     reentry_position_max_gap_s: float     # position carries no information beyond this gap
     reentry_position_max_pan_frac: float  # ... nor when the camera moved the scene more than this share of the width
+    reentry_signature: str         # "mean": one averaged signature per track end; "set": quality-weighted best-pair
+                                   #   matching of the crop sets (spana.track_embeddings 1.1.0)
+    reentry_wait_samples: int      # set only: a candidate is judged once it has this many crops up to the current
+                                   #   frame, from those crops only (0 = all its crops, also later ones)
+    reentry_withdraw: bool         # withdraw a re-ID offer when the rule, re-run on the evidence so far, no longer
+                                   #   offers that track
 
     def validate(self) -> None:
         _pos("target.relink_max_gap_s", self.relink_max_gap_s)
@@ -238,6 +245,9 @@ class TargetConfig:
                   "reentry_position_max_gap_s"):
             _pos(f"target.{n}", getattr(self, n))
         _unit("target.reentry_position_max_pan_frac", self.reentry_position_max_pan_frac)
+        if self.reentry_signature not in ("mean", "set"):
+            raise ConfigError("target.reentry_signature must be mean or set")
+        _pos_int("target.reentry_wait_samples", self.reentry_wait_samples, allow_zero=True)
 
 
 @dataclass(frozen=True)
@@ -248,9 +258,19 @@ class ReidConfig:
     sample_min_gap_s: float        # ... at least this far apart in time
     min_crop_height_px: int        # absolute floor: smaller boxes carry too few pixels (training crops >= 40 px)
     clean_max_iou: float           # ... and overlap no other observed box by more than this
+    set_samples: int               # crop sets (1.1.0): crops kept at each end of a track ...
+    set_min_gap_s: float           # ... at least this far apart
+    set_min_height_px: int         # ... at least this tall (looser than min_crop_height_px; quality weighted)
+    set_max_iou: float             # ... overlapping other observed boxes by at most this (looser than clean_max_iou)
 
     def validate(self) -> None:
         _pos_int("reid.samples", self.samples)
+        _pos_int("reid.set_samples", self.set_samples)
+        _pos("reid.set_min_gap_s", self.set_min_gap_s)
+        _pos_int("reid.set_min_height_px", self.set_min_height_px)
+        _unit("reid.set_max_iou", self.set_max_iou)
+        if self.set_min_height_px > self.min_crop_height_px or self.set_max_iou < self.clean_max_iou:
+            raise ConfigError("reid.set_* must be at least as loose as min_crop_height_px / clean_max_iou")
         _pos("reid.sample_min_gap_s", self.sample_min_gap_s)
         _pos_int("reid.min_crop_height_px", self.min_crop_height_px)
         _unit("reid.clean_max_iou", self.clean_max_iou)
