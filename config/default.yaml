@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.8.0"
+schema_version: "2.9.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -178,6 +178,12 @@ target:
   reentry_signature: set
   reentry_wait_samples: 0
   reentry_withdraw: false
+  # Exit side (Nathan's FRESH_08 review: an offer of another player while ours was off screen;
+  # records/reentry_exit_side_2026-11-19). When the followed player left the picture, only tracks born within
+  # reentry_exit_edge_max_frac of the side they left by are candidates. DEV: all 17 labelled off-screen returns were
+  # born <= 0.011 from that side; the 3 wrong offers 0.62-0.98. 0.05 = margin over 0.011, not fitted further.
+  reentry_exit_edge: true
+  reentry_exit_edge_max_frac: 0.05
 
 reid:
   # Which observations are embedded into a track's first / last re-ID signature (spana.identity.reid).

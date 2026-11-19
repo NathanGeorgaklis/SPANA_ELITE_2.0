@@ -134,7 +134,7 @@ class RelinkArtifactTest(unittest.TestCase):
 
     def test_valid(self):
         validate_target(self.doc, self.tracks)
-        self.assertEqual(self.doc["schema_version"], "2.6.0")
+        self.assertEqual(self.doc["schema_version"], "2.7.0")
 
     def test_validator_refuses_inconsistent_documents(self):
         def broken(edit):

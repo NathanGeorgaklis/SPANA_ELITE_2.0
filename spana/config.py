@@ -19,11 +19,12 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.8.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.9.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
-#   2.8.0: + reid.set_* (crop sets), target.reentry_signature / reentry_wait_samples / reentry_withdraw
+#   2.8.0: + reid.set_* (crop sets), target.reentry_signature / reentry_wait_samples / reentry_withdraw;
+#   2.9.0: + target.reentry_exit_edge / reentry_exit_edge_max_frac
 
 
 class ConfigError(ValueError):
@@ -229,6 +230,8 @@ class TargetConfig:
                                    #   frame, from those crops only (0 = all its crops, also later ones)
     reentry_withdraw: bool         # withdraw a re-ID offer when the rule, re-run on the evidence so far, no longer
                                    #   offers that track
+    reentry_exit_edge: bool        # a player who left the picture is only offered tracks born at the side they left by
+    reentry_exit_edge_max_frac: float  # ... within this share of the frame width / height of that side
 
     def validate(self) -> None:
         _pos("target.relink_max_gap_s", self.relink_max_gap_s)
@@ -248,6 +251,7 @@ class TargetConfig:
         if self.reentry_signature not in ("mean", "set"):
             raise ConfigError("target.reentry_signature must be mean or set")
         _pos_int("target.reentry_wait_samples", self.reentry_wait_samples, allow_zero=True)
+        _unit("target.reentry_exit_edge_max_frac", self.reentry_exit_edge_max_frac)
 
 
 @dataclass(frozen=True)

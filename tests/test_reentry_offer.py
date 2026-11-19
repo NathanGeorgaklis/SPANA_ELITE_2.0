@@ -22,7 +22,7 @@ T = CFG.target
 
 def cfg(**target):
     base = dict(reentry_offer=True, reentry_max_gap_s=10.0, reentry_min_similarity=0.6, reentry_min_margin=0.1,
-                reentry_signature="mean")         # these tests use averaged 1.0.0 signatures
+                reentry_signature="mean", reentry_exit_edge=False)   # averaged 1.0.0 signatures; exit side tested apart
     return dataclasses.replace(CFG, target=dataclasses.replace(T, **{**base, **target}))
 
 
@@ -260,7 +260,8 @@ def tc(**kw):
     base = dict(reentry_offer=True, reentry_max_gap_s=10.0, reentry_min_similarity=0.6, reentry_min_margin=0.0,
                 reentry_mutual=False, reentry_position_gate=False, reentry_position_weight=0.3,
                 reentry_position_base_h=0.35, reentry_position_speed_h_per_s=2.0, reentry_position_time_scale_s=1.0,
-                reentry_position_max_gap_s=3.0, reentry_position_max_pan_frac=0.25, reentry_signature="mean")
+                reentry_position_max_gap_s=3.0, reentry_position_max_pan_frac=0.25, reentry_signature="mean",
+                reentry_exit_edge=False)   # these tests isolate the position score; exit side: test_reentry_exit_side
     return dataclasses.replace(T, **{**base, **kw})
 
 

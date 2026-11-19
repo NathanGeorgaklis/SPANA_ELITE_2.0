@@ -101,7 +101,7 @@ class WaitAndWithdraw(unittest.TestCase):
         self.assertIn("BELOW_MIN_SIMILARITY", [x["reason"] for x in info["reentry_log"]])
         doc = target_document(self.tr, SEL, scfg(), ["test"], (), emb)
         validate_target(doc, self.tr, emb)
-        self.assertEqual(doc["schema_version"], "2.6.0")
+        self.assertEqual(doc["schema_version"], "2.7.0")
         _, info2, _ = self.offers(sets, reentry_withdraw=False)   # policy off: the offer stays
         self.assertEqual(info2["relinks"][0]["outcome"], "PENDING")
 

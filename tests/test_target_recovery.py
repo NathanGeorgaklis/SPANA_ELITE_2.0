@@ -101,7 +101,7 @@ class GapsAndValidatorTest(unittest.TestCase):
         tracks = dropped_offer()
         r = follow(tracks, SEL, CFG)[1]["relinks"][0]
         doc = target_document(tracks, SEL, CFG, ["test"], [confirm_relink(r, 5)])
-        self.assertEqual(doc["schema_version"], "2.6.0")
+        self.assertEqual(doc["schema_version"], "2.7.0")
         validate_target(doc, tracks)
 
         def broken(edit):

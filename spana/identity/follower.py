@@ -210,7 +210,8 @@ def _log_row(frame: int, cur: str, ch: dict) -> dict:
             "position_informative": ch["position_informative"], "position_reason": ch["position_reason"],
             "combined": ch["combined"], "second_combined": ch["second_combined"], "margin": ch["margin"],
             "reverse_second_combined": ch["reverse_second_combined"],
-            "candidates": [{"track": c, **v} for c, v in sorted(ch["candidates"].items())]}
+            "candidates": [{"track": c, **v} for c, v in sorted(ch["candidates"].items())],
+            "exit_excluded": list(ch["exit_excluded"])}
 
 
 def _usable(tr: Optional[dict]) -> bool:
@@ -477,7 +478,7 @@ def review_list(gaps: Sequence[dict], cfg: SpanaConfig) -> List[dict]:
 
 def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Sequence[str] = (),
                     actions: Iterable[dict] = (), embeddings: Optional[dict] = None) -> dict:
-    """Validated spana.target 2.6.0 document for one selection (and the user's actions) on one validated
+    """Validated spana.target 2.7.0 document for one selection (and the user's actions) on one validated
     spana.tracks document (and, for re-entry offers, its validated spana.track_embeddings document)."""
     actions = [dict(a) for a in actions]
     frames, info = follow(tracks_doc, sel, cfg, actions, embeddings)
@@ -503,7 +504,9 @@ def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Se
                           "reentry_position_weight": cfg.target.reentry_position_weight,
                           "reentry_signature": cfg.target.reentry_signature,
                           "reentry_wait_samples": cfg.target.reentry_wait_samples,
-                          "reentry_withdraw": cfg.target.reentry_withdraw},
+                          "reentry_withdraw": cfg.target.reentry_withdraw,
+                          "reentry_exit_edge": cfg.target.reentry_exit_edge,
+                          "reentry_exit_edge_max_frac": cfg.target.reentry_exit_edge_max_frac},
         "track_ends": info["track_ends"], "relinks": info["relinks"], "frames": frames,
         "gaps": gaps_of(frames, info["relinks"]), "reentry_log": info["reentry_log"],
     }
