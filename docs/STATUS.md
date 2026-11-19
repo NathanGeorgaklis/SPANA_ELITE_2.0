@@ -1,8 +1,8 @@
 # STATUS
 
-As of 2026-11-19 (branch identity/reentry-exit-side = identity/reid-signatures-v2 + evaluation/offer-verdict-offered-track,
-on main 5c7dac5).
-- Full suite: `python -m pytest tests -q` → 489 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
+As of 2026-11-19 (branch identity/reentry-exit-side = identity/reid-signatures-v2 + evaluation/offer-verdict-offered-track
++ exit-side rule, on main 5c7dac5).
+- Full suite: `python -m pytest tests -q` → 500 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
   training tests skip).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -157,6 +157,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
          identity/reid-signatures-v2, not on main): quality-weighted crop sets (`spana.track_embeddings` 1.1.0)
          matched best-pair (`target.reentry_signature: set`, floor 0.65): by who the offered box is, 18 right /
          3 wrong (all wrong offers made while our player was off screen). Not for main as is.
+         Exit side (`target.reentry_exit_edge` 0.05, `records/reentry_exit_side_2026-11-19`, `spana.target` 2.7.0):
+         after the player left the picture only tracks born at the side they left by are offered (17 / 17 DEV
+         returns within 0.011 of it). Follower: mean 15 / 0 (was 15 / 1), set 0.65 18 / 0 (was 18 / 3), no right
+         offer lost; reviewer 0.777 / 2 / 5.71 (no offers: 0.778 / 5.64). Lookalikes in the picture untouched.
          Wait-for-evidence + withdraw built but off (withdrew right offers, reviewer 0.762). A
          re-entry OFFER costs the reviewer one action, like a tap: it eases the action but does not lower actions
          per minute; only re-ID that acts without the user (auto-link at a strict margin, or crossing resolution)

@@ -80,8 +80,11 @@ Follow the user's chosen player through a clip, and say so when unsure.
   - `track_at_frame` 1.0.0 = a tap on a box the app showed: the track must be live and ACTIVE (observed) on that
     frame. Otherwise `SelectionError` (refused, never guessed).
   - Tap is the chosen way to pick (decision 2026-11-16). Shirt number / photo may come later as hints.
-- Out: **`spana.target` 2.6.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
-  2.5.0, 2.4.0, 2.3.0, 2.2.0, 2.1.0, 2.0.0 and 1.0.0 documents still validate with their own meaning.
+- Out: **`spana.target` 2.7.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
+  2.6.0, 2.5.0, 2.4.0, 2.3.0, 2.2.0, 2.1.0, 2.0.0 and 1.0.0 documents still validate with their own meaning.
+  - 2.7.0: + target_config `reentry_exit_edge`, `reentry_exit_edge_max_frac`; + `reentry_log[].exit_excluded`
+    (candidates ruled out because the player left the picture by another side). With the tracks the validator
+    re-checks every re-ID offer with `spana.identity.reid.exit_side`.
   - 2.6.0: + target_config `reentry_signature` ("mean" | "set"), `reentry_wait_samples`, `reentry_withdraw`; with
     "set" a re-ID offer's similarity is the crop-set similarity (candidate crops <= proposed_frame when waiting);
     relink `dropped_reason` may be WITHDRAWN.
