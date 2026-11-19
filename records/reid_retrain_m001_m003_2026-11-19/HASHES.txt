@@ -1,0 +1,21 @@
+# sha256 of files on Nathan's Mac (not in git unless noted)
+f2c3218  git: data/reid/TRAIN/TRAIN_M003_SYDNEY_OLYMPIC/v1 (frozen labels, branch data/reid-train-m003-v1)
+6cc55f1c68f306e0ab9b4653af2ba8f3ef970daae8312f27e3bc4c2a9af8939d  data/reid/TRAIN/TRAIN_M003_SYDNEY_OLYMPIC/v1/FROZEN.json
+af2528162d19b7c2980477cbd69a4bb61b81a707e74ee88ab22f83f73fe78272  Downloads/TRAIN_M003_SYDNEY_OLYMPIC_reid_v1.json (Nathan's export = v1/export.json)
+e33a8e5d3669475f25125ac2e1e6a4e663053abac20f9217124c69577d030fb0  Downloads/SPANA_reid/TRAIN_M003/..._cluster_review_v2/review.json (built with re-ID v2)
+3db10eb14e87a206f3968cb9530a86ae621d394bb97ba80ee95a530862a5da50  TRAIN_M003 H.264 video (work/..._w3000-3600_h264.mp4)
+2a3ffb7f82c178c2387cc27e73ea6a37bb6568259699536688fe6f89fafaa35c  spana-retrain-v3/crops_M003/crops.json
+cc7215e6779f7517ad864f40859060fdb1a2481b76d7f8e44fabe5d5f5711a67  spana-confirmed-labels/crops_M002/crops.json (unchanged from v2)
+a6bd99b6ebbae1586b4b739fb5ff55f14d8c6a4b112d2bb0bf2d0019d9c14dc0  spana-reid-run/crops_M001/crops.json (unchanged from v1)
+d1f495546d595404948d5806d976b2e57841d88a501ef58020b23046a3e9964a  config/reid_train.yaml (unchanged)
+4f7b53f5e16cc1ef087d747a413004dcc0c2aab7e752f97ec77943a0181542df  spana-retrain-v3/run_p3/run.json
+f0257a2166cae2bbc75144737992fd1672bafe93c88cd5770368fad280de3eb4  spana-retrain-v3/run_p3/log.jsonl
+56a1b4c8e24aeb449c963974a75c90e9cf2dfa8b1a49c1517fe825f10d07e8f6  spana-reid-eval/models_p3/spana_reid.onnx (re-ID v3)
+549d2319db1de270e264b464f4198b726ca71fd4c03296d5d09da12ad8ad91e5  spana-reid-eval/models_p3/spana_reid.onnx.json
+43fe135362987eaa25f569fe5a10bcf3cf576d0f49402046441c816dd5ef3b03  spana-calibration/out_p3/cue_eval_p3.json
+2a8a7db6dd36eaf9ff9b5abd5d8ca018ab4bbfebcd41ec53aac10c1619f407fb  spana-calibration/out_p3/cue_eval_p3.json.fusion.json
+e6e241c4847b5138795355ecff8d841d1d30c8520851505201e6ac24df26536b  spana-calibration/out_p3/tables_p3.json
+4cc86b2ee617410bb53e268ca88bbbd57d67118f4c8fb024d2789f928b72ec6b  spana-calibration/out_p3/calibration_p3.json
+141f55258b6f19014f390c1fc4ff0dc5597b751f8340207419fa68e15e6a4c9e  spana-calibration/out/calibration_p2.json (v2, for comparison)
+185048c55a39803b3213a49d6bc4567e7f082004bd665d7d8391c98a9bee29a5  config/reid_calibration.yaml (as in reid_calibration_dev_2026-11-18)
+d0226d5d24fbc178af431eeda853f8f76a7dee9739ff39d0c457884c853f3188  config/reid_fusion.yaml

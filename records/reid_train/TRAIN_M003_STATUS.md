@@ -40,3 +40,9 @@ Nothing has been trained. DEV and EVAL are not involved.
   - H.264 transcode (also equal to the manifest's `video_sha256`);
   - det.json and trk.json;
   - pack `tracklets.json`.
+
+## Labels v1 and re-ID v3 (2026-11-19)
+- 8 s pack cluster review rebuilt with re-ID v2 (`Downloads/SPANA_reid/TRAIN_M003/TRAIN_M003_SYDNEY_OLYMPIC_cluster_review_v2/`,
+  59 clusters; the earlier pilot-model review is kept unchanged). Nathan labelled it with the direct flow.
+- Frozen: `data/reid/TRAIN/TRAIN_M003_SYDNEY_OLYMPIC/v1` (81 player tracklets, 19 players, 15,396 boxes).
+- Trained into re-ID v3: `records/reid_retrain_m001_m003_2026-11-19`.

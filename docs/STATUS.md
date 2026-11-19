@@ -1,6 +1,6 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reid-direct-label-v1, on identity/reid-retrain-v2 8d62866; main 11b5a80).
+As of 2026-11-19 (branch identity/reid-retrain-v3, on data/reid-train-m003-v1 f2c3218 / identity/reid-direct-label-v1 41fbb75; main bdb33b9).
 - Full suite: `python -m pytest tests -q` → 385 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Re-ID labelling tests (`tests/test_reid_cluster.py`): 20 passed on Nathan's Mac, incl. both review-page tests (Playwright on system Chrome).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
@@ -144,6 +144,11 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      partial export allowed (unanswered = unsure, `unanswered_direct`), CONFLICT blocks. Export / freeze
      `labelling_flow: direct` (`tools/reid_cluster.py` `check_cluster_export`). Audit answers carry over as direct
      answers; `reid_cluster upgrade --review DIR` refreshes the page of an existing review folder.
+   - TRAIN_M003 labels v1 frozen by the direct flow (review rebuilt with re-ID v2): 81 player tracklets, 19 players,
+     15,396 boxes (`data/reid/TRAIN/TRAIN_M003_SYDNEY_OLYMPIC/v1`). Re-ID v3 (M001 + M002 + M003,
+     `records/reid_retrain_m001_m003_2026-11-19`): DEV rival 0.933 (v2 0.921); TAR @ 0.5 % FAR hard 0.226 (v2 0.133);
+     colour + re-ID 0.263. Margin calibration fails held out (1 wrong in 718, bound 0.66 %; no margin found with
+     FRESH_07 held out), so the tracker keeps v2 (margin 0.517, off). v3 is a candidate.
 4. Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
    ByteTrack shows how much continuity is possible on the same detections (F07 11 / F08 22 fragments) and what it
    costs without flags (silent swaps): measure ByteTrack-style continuity inside our tracker, keeping the flags
