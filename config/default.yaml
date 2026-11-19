@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.7.0"
+schema_version: "2.11.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -98,6 +98,12 @@ tracking:
   # Low-score short-gap recovery in S4: a confirmed track unobserved <= rematch_max_s may recover on a low-score
   # detection with IoU >= low_score_min_iou with its prediction (all other S4 rules apply). Unconfirmed tracks never.
   low_score_recovery: false
+  # Claimants must be eligible (Nathan's FRESH_08 review, player 10; records/rival_eligible_2026-11-19): in S3c's
+  # exclusivity check and S4's RIVAL_TRACK refusal, a track that can no longer take any detection (not observed on
+  # the previous frame and past its recovery window: "not_eligible") is not counted as another claimant. On DEV
+  # such a stale track (the player's own old track, lost 1.8 s earlier) blocked an extent link and a recovery and
+  # split one player three times.
+  rival_eligible_only: false
 
 appearance:
   enabled: true

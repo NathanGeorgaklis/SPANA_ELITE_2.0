@@ -57,6 +57,10 @@ Per frame:
           gap^2 body heights of the constant-velocity prediction (OCCLUDED tracks keep their velocity). A gap
           longer than rematch_max_s (occlusion only) additionally REQUIRES appearance that matches the track and
           beats every other track by min_margin, so same-looking players are never recovered on a guess.
+       Claimants (tracking.rival_eligible_only, off by default): S3c's "no other track gates or extent-fits the
+          detection" and S4's "no other unmatched track's gate" then count only tracks that could take a detection on
+          this frame (observed on the previous frame, or still recoverable); a stale track past its recovery window
+          no longer blocks (records/rival_eligible_2026-11-19).
      Refused recovery is safe: the old track stays unobserved and expires; a new track is spawned and lists
      the unobserved tracks whose gate it lies in as `possible_predecessors` (evidence, not a merge).
      Known limit: a never-tracked player who looks the same and appears exactly on a hidden player's predicted
@@ -366,7 +370,7 @@ class MultiPlayerTracker:
             i = mine[0]
             if any(gated[k, j] for j in all_d if j != i):
                 continue                      # the track's own gate holds another detection
-            if any(gated[j, i] or fit[(j, i)] for j in all_t if j != k):
+            if any((gated[j, i] or fit[(j, i)]) and self._may_claim(self._tracks[j], time_s) for j in all_t if j != k):
                 continue                      # another track could take this box
             sim = similarity(desc[i], t.appearance)
             if sim is not None and sim < self.ac.min_similarity:
@@ -517,6 +521,11 @@ class MultiPlayerTracker:
                 t.doubt_appearance = None
                 self._pending_doubt.pop(t.track_id, None)   # this frame's doubt link is what just resolved
 
+    def _may_claim(self, t: _Track, time_s: float) -> bool:
+        """Could t take a detection on this frame (S3c / S4 claimant)? With tracking.rival_eligible_only, only a track
+        observed on the previous frame or still recoverable; otherwise any track (the behaviour before)."""
+        return not self.tc.rival_eligible_only or t.observed_last_frame or self._recoverable(t, time_s)
+
     def _recoverable(self, t: _Track, time_s: float) -> bool:
         """An unobserved track that a detection may still be re-associated to on this frame."""
         if t.observed_last_frame:
@@ -602,7 +611,8 @@ class MultiPlayerTracker:
                 reason = "LOW_SCORE"
             else:
                 i = unexplained[0]
-                rivals = [self._tracks[j].track_id for j in unmatched_tracks if j != k and gated[j, i]]
+                rivals = [self._tracks[j].track_id for j in unmatched_tracks if j != k and gated[j, i]
+                          and self._may_claim(self._tracks[j], time_s)]
                 sim = similarity(desc[i], t.appearance)
                 if rivals:
                     reason = "RIVAL_TRACK"
