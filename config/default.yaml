@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.9.0"
+schema_version: "2.10.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -184,6 +184,9 @@ target:
   # born <= 0.011 from that side; the 3 wrong offers 0.62-0.98. 0.05 = margin over 0.011, not fitted further.
   reentry_exit_edge: true
   reentry_exit_edge_max_frac: 0.05
+  # Offer hold (Nathan's FRESH_08 review, player 10: a right offer vanished when its track was hidden for one frame;
+  # records/offer_hold_2026-11-19). Keep an offer through a brief hide of its track; 0 = drop at once.
+  offer_hold_s: 0.5
 
 reid:
   # Which observations are embedded into a track's first / last re-ID signature (spana.identity.reid).

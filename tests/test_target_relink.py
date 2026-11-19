@@ -18,6 +18,7 @@ from tests.test_target_follow import CFG, ROOT, A, AU, L, N, tracks_doc
 W = {"t1": N, "t2": N}
 SEL = Selection.track_at_frame("t1", 1)
 AUTO = dataclasses.replace(CFG, target=dataclasses.replace(CFG.target, relink_auto_confirm=True))
+NO_HOLD = dataclasses.replace(CFG, target=dataclasses.replace(CFG.target, offer_hold_s=0.0))   # drop at once
 
 
 def lost_then_new(extra_new=None, gap_frames=1, more=2):
@@ -82,7 +83,7 @@ class RelinkTest(unittest.TestCase):
     def test_candidate_dropped_when_it_becomes_unusable(self):
         doc = tracks_doc([W, {"t1": A, "t2": A}, {"t1": L, "t2": A, "t3": N}, {"t1": L, "t2": A, "t3": A},
                           {"t1": L, "t2": A, "t3": L}, {"t1": L, "t2": A, "t3": A}], preds={"t3": ["t1"]})
-        frames, info = follow(doc, SEL, CFG)
+        frames, info = follow(doc, SEL, NO_HOLD)          # with the default offer hold: tests/test_offer_hold.py
         self.assertEqual([s for s, _ in states(frames)], ["TARGET", "LOST", "CANDIDATE", "LOST", "LOST"])
         self.assertEqual(info["relinks"][0]["dropped_reason"], "CANDIDATE_NOT_USABLE")
 
@@ -134,7 +135,7 @@ class RelinkArtifactTest(unittest.TestCase):
 
     def test_valid(self):
         validate_target(self.doc, self.tracks)
-        self.assertEqual(self.doc["schema_version"], "2.7.0")
+        self.assertEqual(self.doc["schema_version"], "2.8.0")
 
     def test_validator_refuses_inconsistent_documents(self):
         def broken(edit):

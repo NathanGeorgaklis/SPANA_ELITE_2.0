@@ -28,6 +28,8 @@ Change log:
   2.2.0 target: + target_config.tap_vouches_doubt; TARGET may carry reason USER_VOUCHED: on an ACTIVE, confirmed
         track uncertain only by an appearance doubt (tracks 2.2.0 identity_doubt, no rivals), tapped by the user
         (selection or re-selection) earlier in the same uncertainty episode. 2.1.0 documents keep their meaning.
+  2.8.0 target: + target_config.offer_hold_s (an offer is kept while its track is briefly hidden; CANDIDATE is still
+        shown only on frames where the track is ACTIVE, confirmed and CERTAIN). 2.7.0 documents keep their meaning.
   2.7.0 target: exit side. + target_config reentry_exit_edge / reentry_exit_edge_max_frac; + reentry_log
         `exit_excluded` (candidates ruled out because the player left the picture by another side). With the tracks,
         every re-ID offer is re-checked against the exit side (spana.identity.reid.exit_side). 2.6.0 documents keep
@@ -69,7 +71,7 @@ from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityS
 DETECTIONS_SCHEMA = ("spana.detections", "1.4.0")   # 1.4.0: class_names (class_id indexes it)
 TRACKS_SCHEMA = ("spana.tracks", "2.2.0")   # 2.1.0 documents still validate (validate_tracks)
 TRACKS_ACCEPTED = ("2.1.0", "2.2.0")
-TARGET_SCHEMA = ("spana.target", "2.7.0")   # 1.0.0 / 2.0.0 / 2.1.0 / 2.2.0 / 2.3.0 / 2.4.0 / 2.5.0 / 2.6.0 validate
+TARGET_SCHEMA = ("spana.target", "2.8.0")   # 1.0.0 and 2.0.0 - 2.7.0 still validate
 
 
 class ArtifactError(ValueError):
@@ -374,7 +376,7 @@ def validate_target(doc: Any, tracks: Optional[dict] = None, embeddings: Optiona
     version = doc.get("schema_version")
     if version == "1.0.0":
         return _validate_target_v1(doc, tracks)
-    if version in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"):
+    if version in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"):
         return _validate_target_v2(doc, tracks, version, embeddings)
     raise ArtifactError(f"unsupported spana.target version {version!r}")
 
@@ -497,11 +499,10 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
                         embeddings: Optional[dict] = None) -> None:
     """2.0.0 / 2.1.0 / 2.2.0. Structure, then (with the source tracks) every answer and every relink against the
     tracks."""
-    v21 = version in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0")
-    v22 = version in ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0")
-    v23 = version in ("2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0")
-    v24, v25 = version in ("2.4.0", "2.5.0", "2.6.0", "2.7.0"), version in ("2.5.0", "2.6.0", "2.7.0")
-    v26, v27 = version in ("2.6.0", "2.7.0"), version == "2.7.0"
+    order = ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0")
+    since = lambda v: order.index(version) >= order.index(v)      # noqa: E731
+    v21, v22, v23, v24, v25 = since("2.1.0"), since("2.2.0"), since("2.3.0"), since("2.4.0"), since("2.5.0")
+    v26, v27, v28 = since("2.6.0"), since("2.7.0"), since("2.8.0")
     _header(doc, ("spana.target", version),
             ("schema", "schema_version", "provenance", "video", "tracks_sha256", "selection",
              "user_actions" if v21 else "confirmations", "target_config", "track_ends", "relinks", "frames")
@@ -520,8 +521,11 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
           + (("reentry_offer", "reentry_max_gap_s", "reentry_min_similarity", "reentry_min_margin") if v24 else ())
           + (("reentry_mutual", "reentry_position_weight") if v25 else ())
           + (("reentry_signature", "reentry_wait_samples", "reentry_withdraw") if v26 else ())
-          + (("reentry_exit_edge", "reentry_exit_edge_max_frac") if v27 else ()),
+          + (("reentry_exit_edge", "reentry_exit_edge_max_frac") if v27 else ())
+          + (("offer_hold_s",) if v28 else ()),
           "target_config")
+    if v28 and not (_num(tc["offer_hold_s"]) and tc["offer_hold_s"] >= 0):
+        raise ArtifactError("bad target_config offer_hold_s")
     if v27 and not (isinstance(tc["reentry_exit_edge"], bool) and _num(tc["reentry_exit_edge_max_frac"]) and
                     0.0 <= tc["reentry_exit_edge_max_frac"] <= 1.0):
         raise ArtifactError("bad target_config exit-side keys")

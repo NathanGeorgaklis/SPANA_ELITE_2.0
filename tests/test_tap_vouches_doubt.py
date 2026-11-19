@@ -90,7 +90,7 @@ class Artifact(unittest.TestCase):
 
     def test_valid(self):
         validate_target(self.doc, self.tracks)
-        self.assertEqual(self.doc["schema_version"], "2.7.0")
+        self.assertEqual(self.doc["schema_version"], "2.8.0")
         self.assertTrue(self.doc["target_config"]["tap_vouches_doubt"])
         self.assertIn("USER_VOUCHED", [f["reason"] for f in self.doc["frames"]])
 

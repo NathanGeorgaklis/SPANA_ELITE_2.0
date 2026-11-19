@@ -15,7 +15,7 @@ from spana.artifacts import ArtifactError, gaps_of, validate_target, write_json_
 from spana.identity.follower import (Selection, UserActionError, confirm_candidate, confirm_relink, follow,
                                      reject_candidate, reselect, target_document)
 from tests.test_target_follow import CFG, A, L, N, tracks_doc
-from tests.test_target_relink import SEL, W, lost_then_new
+from tests.test_target_relink import NO_HOLD, SEL, W, lost_then_new
 
 
 def states(frames):
@@ -32,11 +32,11 @@ def dropped_offer():
 class RecoveryActionTest(unittest.TestCase):
     def test_confirm_an_offer_after_it_was_dropped(self):
         doc = dropped_offer()
-        frames, info = follow(doc, SEL, CFG)
+        frames, info = follow(doc, SEL, NO_HOLD)          # drop at once (the hold: tests/test_offer_hold.py)
         self.assertEqual([s for s, _ in states(frames)], ["TARGET", "LOST", "CANDIDATE", "LOST", "LOST", "LOST"])
         (r,) = info["relinks"]
         self.assertEqual(r["outcome"], "DROPPED")
-        later, info2 = follow(doc, SEL, CFG, [confirm_relink(r, 5)])          # reviewer confirms it at frame 5
+        later, info2 = follow(doc, SEL, NO_HOLD, [confirm_relink(r, 5)])          # reviewer confirms it at frame 5
         self.assertEqual(states(later)[4:], [("TARGET", "t3"), ("TARGET", "t3")])
         r2 = info2["relinks"][0]
         self.assertEqual((r2["outcome"], r2["dropped_reason"]), ("CONFIRMED", "CANDIDATE_NOT_USABLE"))
@@ -101,7 +101,7 @@ class GapsAndValidatorTest(unittest.TestCase):
         tracks = dropped_offer()
         r = follow(tracks, SEL, CFG)[1]["relinks"][0]
         doc = target_document(tracks, SEL, CFG, ["test"], [confirm_relink(r, 5)])
-        self.assertEqual(doc["schema_version"], "2.7.0")
+        self.assertEqual(doc["schema_version"], "2.8.0")
         validate_target(doc, tracks)
 
         def broken(edit):
@@ -161,7 +161,8 @@ class SimulatedReviewerTest(unittest.TestCase):
             (d / "labels_frozen.json").write_text(json.dumps({"frames_labelled": [1, 2, 4, 5]}))
             trk = Path(tmp) / "trk.json"
             write_json_atomic(trk, tracks)
-            every_gap = dataclasses.replace(CFG, target=dataclasses.replace(CFG.target, review_min_gap_s=0.0))
+            every_gap = dataclasses.replace(CFG, target=dataclasses.replace(CFG.target, review_min_gap_s=0.0,
+                                                                            offer_hold_s=0.0))   # drop at once
             base = score_clip(d, trk, every_gap, None)
             rev = score_clip(d, trk, every_gap, None, simulate_reviewer=True)   # synthetic gaps are < 1 s
         p0, p1 = base["per_player"][0], rev["per_player"][0]
