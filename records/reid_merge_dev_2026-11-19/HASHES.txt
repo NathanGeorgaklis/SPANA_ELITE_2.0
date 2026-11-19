@@ -1,0 +1,29 @@
+# sha256, files on Nathan's Mac under spana-reid-merge/. Code: main 5c7dac5 (code_main/), merge 5890b14 (code_merge/),
+# re-ID v2 ONNX c269450e871cb28b4020b715618edc9dcda328faf951503a9e09f8e7a3032f84 in both. Inputs: SPANA_ELITE_2.0/runs/
+# person_view_compare/F0x_local.det.json, data/labels/FRESH_0x/v1 (DEV). EVAL not used.
+f88975e2a292789df4debf5c6cb6dd0e291ba383c0529cfa61d49a93be3b966c  run_variant.sh
+496b7b14071e2c00bee81863f11b15c274f9cf594f716a9bb80b93b4f472ae24  summary.jq
+f273a4ad53d67d89486344f834ebec88a3bef79b7cc1dfd44e61eaa62fcc29f0  cfg_main.yaml (= main config/default.yaml)
+fc21f6b8c5dad27095f370c03156b39fae7f7bb1e065df93091628653181ca04  cfg_off.yaml (= merge config/default.yaml)
+3b0d7001a8252dad3cdcf3ec0b776b2137e032fc53c8ae7b58e238248ce8c47e  cfg_on.yaml (+ reid_resolve.enabled, target.resume_after_reid)
+b16816515f04ff8657edf005cda5fbd180ae71b46f2ecf909c46960b964d0d12  out/F02_main.trk.json
+cc4631e68eaa2550c3c464328ab4335bc121a28063330609b259ae97f9bc9532  out/F05_main.trk.json
+36fdc7e13ac3b5a0a5a27eccd1bb6f5411cdee5562e93be9f137e5379a19eee3  out/F07_main.trk.json
+ce1d2012f09c7a0218bd264e4d54aed44965068d9ca84ddd989c4210cd0181f7  out/F08_main.trk.json
+ab3b02f83f66c57acf09335169d5f90998dc099d8e3317ce771f9b7dfdc7e4cf  out/F02_off.trk.json
+44df9b2258b0fd126ee43c75bfb6c9a2328a89ae4d9d40359c7f94d9509ec63f  out/F05_off.trk.json
+791f36bc0ce4d0e88f0a2bff8bb9faba51ab964f892f7b243eacfc9e3c590558  out/F07_off.trk.json
+2234fec81b8c8305776c89d2ec701779dae37fe42b4d4a013b38241defd21288  out/F08_off.trk.json
+37361e85bce9a7f463e24de7ae0c1e931b8e3bce54c236c5b7eb14c718678069  out/F02_on.trk.json
+d8b0179ba620524ad4e89f589ae0231183683ec98ae00963830549eb8b3bcc95  out/F05_on.trk.json
+8dc2ee57eb20e8c3c960d28f09b78316f6598d6f520d86d76529d9e157cf31e3  out/F07_on.trk.json
+3177d953e44597f35dcbb7cba1cc461e2d029a61156ae952446abea79683a021  out/F08_on.trk.json
+6b039564f600f28e6a65191e6a2f3ca3b9de86ef9a8cea596be303bbdb5d24aa  out/target_main_default.json
+bf97ae73766310402c5bdfa3c02825f1a1affe676e87ce176fe4eb3c0f919438  out/target_main_reviewer.json
+d9aa015d31803650bec620b8246900b9768ef2c911b2d208279654a692a2da18  out/target_off_default.json
+b1719c6614297a222ae6542f9305ecb044e8ba51bd5c275a9aeb181637b2d574  out/target_off_reviewer.json
+b1878b5a88ed20c1af2772d48a25357f6332877dfb0ced9e95153930d26cf5a8  out/target_on_default.json
+6577caee9ecdc770f790ac4a7b9cc12a74546e375eefc8adf45206dd833835c7  out/target_on_reviewer.json
+# Track frames + tracklets with resolved_by removed (jq '[.frames[] | del(.tracks[].resolved_by)], .tracklets'),
+# sha256 prefix, identical for main / off / on: F02 a922c94c52765bea, F05 192f80e4626850f1, F07 8cbe81127237e0f7,
+# F08 6de851750308f0d2.

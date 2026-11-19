@@ -164,7 +164,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
            0.517 chosen. v3 fails the floored clean check (286 / 0, bound 1.04 %; `records/reid_margin_floor_dev_2026-11-19`);
            its confident errors are crops of the wrong person (`records/reid_v3_wrong_answers_2026-11-19`). About 3
            more labelled DEV clips would let clean tests prove 0.5 %.
-         - DEV_MERGE_RESULT
+         - Merge DEV check (`records/reid_merge_dev_2026-11-19`): with `reid_resolve` off, tracks / follower / reviewer
+           equal main exactly; on (+ `resume_after_reid`): tracks identical, 2 FRESH_02 episodes cleared by re-ID,
+           unaided 0.532 -> 0.537, reviewer 0.777 -> 0.782, wrong frames 1 / 2 (same players), silent swaps 0,
+           flagged transfers 7, actions 5.71 / min unchanged. Still off by default (Nathan's decision).
 2. Relink v1 accepted as built (Nathan, 2026-11-16). Watch confirmed tracks that named several predecessors.
 3. Tracking-error history on the 4 DEV clips (for reference):
    Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
