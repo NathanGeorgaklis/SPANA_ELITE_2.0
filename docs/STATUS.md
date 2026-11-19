@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-19 (branch identity/reid-clean-calibration, on tracking/reid-resolve-v1 f11ae8d; main bdb33b9).
-- Full suite: `python -m pytest tests -q` → 419 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+As of 2026-11-19 (branch tracking/margin-floor-guard, on identity/reid-clean-calibration 0c402c1; main bdb33b9).
+- Full suite: `python -m pytest tests -q` → 423 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -152,6 +152,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
      the held-out rule fails for both (its fitted margins slide to 0.11-0.22). Tracker unchanged (v2, 0.517, off);
      Nathan to choose: v3 at 0.476 / change the held-out rule / more DEV labels. Overlapped crops are where
      re-ID's confident errors come from (`records/reid_v3_wrong_answers_2026-11-19`): not used.
+       - Margin floor (Nathan, option b; DECISIONS 2026-11-19; `records/reid_margin_floor_dev_2026-11-19`): clean
+     margin = max(clean, all-tests). v3: final 0.476, held out 286 resolved / 0 wrong, bound 1.04 % -> fails; v2
+     stays (0.517, off). Option (c): about 3 more labelled DEV clips (about 130 held-out resolutions each) would let
+     clean tests prove 0.5 %.
      (b) tracker: keep tracks alive across pans, fewer LOST_EXPIRED in crowds. The exit hold was tried
          (`records/exit_hold_2026-11-18`): no net gain without a stronger appearance signal; off by default.
    - Re-measure track life and actions per minute on the same window after each.
