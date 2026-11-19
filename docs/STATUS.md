@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reentry-position-score, on main b6a6b7f).
-- Full suite: `python -m pytest tests -q` → 475 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
+As of 2026-11-19 (branch evaluation/offer-verdict-offered-track, on main 5c7dac5).
+- Full suite: `python -m pytest tests -q` → 476 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
   training tests skip).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -148,7 +148,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
          16 / 1 / 2), offline 33 / 2 (was 28 / 3); the camera-carried position bound changed nothing (off).
          Position is now a SCORE (`target.reentry_position_weight` 0.5; `records/reentry_position_score_2026-11-18`,
          `spana.target` 2.5.0 with a reentry_log): offline rank-1 wrong 17 -> 13 (6 short-gap fixes, 2 new), offer
-         rule right 33 -> 36 / wrong 2; in the follower neutral (offers 15 / 0 / 1 vs 16 / 0 / 1). Pan / long
+         rule right 33 -> 36 / wrong 2; in the follower neutral (offers 15 / 0 / 1 vs 16 / 0 / 1; RE-SCORED
+         2026-11-19 by who the offered box is, `records/offer_verdict_2026-11-19`: 15 right / 1 wrong, reviewer
+         0.777 / 2 / 5.78 vs 0.778 / 2 / 5.64 without offers; the wrong one was made while the player was off
+         screen, found by Nathan in the FRESH_08 review videos). Pan / long
          returns untouched by design. Option 2 (better signatures) queued. A
          re-entry OFFER costs the reviewer one action, like a tap: it eases the action but does not lower actions
          per minute; only re-ID that acts without the user (auto-link at a strict margin, or crossing resolution)
