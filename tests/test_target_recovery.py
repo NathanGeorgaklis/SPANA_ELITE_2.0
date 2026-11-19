@@ -97,12 +97,18 @@ class GapsAndValidatorTest(unittest.TestCase):
         frames2, info2 = follow(doc, SEL, CFG, [confirm_relink(info["relinks"][0], 5)])
         self.assertEqual([(x["start_frame"], x["end_frame"]) for x in gaps_of(frames2, info2["relinks"])], [(2, 4)])
 
-    def test_document_2_1_0(self):
+    def test_document_2_6_0_and_2_5_0(self):
         tracks = dropped_offer()
         r = follow(tracks, SEL, CFG)[1]["relinks"][0]
         doc = target_document(tracks, SEL, CFG, ["test"], [confirm_relink(r, 5)])
-        self.assertEqual(doc["schema_version"], "2.5.0")
+        self.assertEqual(doc["schema_version"], "2.6.0")
         validate_target(doc, tracks)
+        from tests.target_versions import older
+        v25 = older(doc, "2.5.0")                                          # 2.5.0 = without resume_after_reid
+        self.assertNotIn("resume_after_reid", v25["target_config"])
+        validate_target(v25, tracks)
+        with self.assertRaises(ArtifactError):
+            validate_target(dict(v25, target_config=doc["target_config"]), tracks)
 
         def broken(edit):
             d = copy.deepcopy(doc)

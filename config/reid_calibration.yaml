@@ -1,0 +1,16 @@
+# DEV calibration of the identity-resolution margin (tools/dev/reid_calibrate.py). Not read by the product; the
+# calibrated values are proposed in the record and adopted only in a later, flagged integration step.
+schema: spana.reid_calibration_config
+schema_version: 1.2.0
+cues: [hist, spana]            # colour, re-ID; the combined option uses config/reid_fusion.yaml normalisation
+target_false_rate: 0.005       # wrong resolutions / resolutions (design: <= 0.5 %)
+confidence: 0.95               # exact one-sided (Clopper-Pearson) upper bound must be <= target_false_rate
+weight_grid: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]   # colour weight; fitted for most resolutions
+weight_tie_break: 0.5          # among equal fits, the weight nearest this
+height_bins_px: [0, 90, 130, 10000]   # reporting only
+clean_subset:                  # 1.1.0: also calibrate on the rival tests the tracker could face (reported as "clean")
+  max_iou_from: config/default.yaml   # appearance.clean_max_iou there: the tracker's own clean-crop rule
+  exclude_occluded: true       # a test is clean only if none of its 3 crops (query, both references) is labelled occluded
+  margin_floor: all_tests      # 1.2.0 (Nathan, DECISIONS 2026-11-19): a clean fit never goes below the all-tests margin
+                               # of the same fitting clips: margin = max(clean, all-tests); either None -> None
+                               # (none | all_tests; "none" = the 1.1.0 behaviour)

@@ -186,6 +186,7 @@ class Artifact(unittest.TestCase):
         for fr in doc["frames"]:
             for t in fr["tracks"]:
                 doubt = t.pop("identity_doubt")
+                t.pop("resolved_by")                                    # tracks 2.3.0 field
                 if doubt:
                     t["identity"], t["uncertain_episodes"] = IdentityState.CERTAIN.value, t["uncertain_episodes"]
         doc["schema_version"] = "2.1.0"

@@ -17,8 +17,11 @@ Change log:
   2.2.0 tracks: + per-track identity_doubt (bool). IDENTITY_UNCERTAIN may now have no rivals: the track continued
         through an appearance disagreement on an exclusive motion link (tracking.appearance_doubt_link).
         CERTAIN <=> no rivals and no doubt. 2.1.0 documents still validate (validate_tracks) with their meaning.
+  2.3.0 tracks: + per-track resolved_by (APPEARANCE / REID / null): how the latest uncertainty episode was cleared
+        (config reid_resolve). 2.1.0 / 2.2.0 documents still validate with their meaning.
   1.0.0 target: selection (track_at_frame 1.0.0), target_config, track_end, frames {frame, t, state, reason,
         track_id, box}. CANDIDATE reserved (refused in 1.0.0).
+  2.2.0 target: + target_config.resume_after_reid (answer again after an episode cleared by re-ID).
   2.0.0 target: relinks. CANDIDATE (RELINK_PREDECESSOR) allowed; TARGET may be on a confirmed relinked track;
         every frame names the track it refers to; + confirmations, relinks log, track_ends (replaces track_end),
         target_config + relink_max_gap_s / relink_auto_confirm. 1.0.0 documents keep their 1.0.0 meaning.
@@ -58,9 +61,9 @@ from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityS
                       TargetState, TrackletSummary, TrackState)
 
 DETECTIONS_SCHEMA = ("spana.detections", "1.4.0")   # 1.4.0: class_names (class_id indexes it)
-TRACKS_SCHEMA = ("spana.tracks", "2.2.0")   # 2.1.0 documents still validate (validate_tracks)
-TRACKS_ACCEPTED = ("2.1.0", "2.2.0")
-TARGET_SCHEMA = ("spana.target", "2.5.0")   # 1.0.0 / 2.0.0 / 2.1.0 / 2.2.0 / 2.3.0 / 2.4.0 still validate
+TRACKS_SCHEMA = ("spana.tracks", "2.3.0")   # 2.1.0 / 2.2.0 documents still validate (validate_tracks)
+TRACKS_ACCEPTED = ("2.1.0", "2.2.0", "2.3.0")
+TARGET_SCHEMA = ("spana.target", "2.6.0")   # 1.0.0 / 2.0.0 / 2.1.0 / 2.2.0 / 2.3.0 / 2.4.0 / 2.5.0 still validate
 
 
 class ArtifactError(ValueError):
@@ -173,6 +176,7 @@ def tracks_frame(ft: FrameTracks, oc: OutputConfig) -> dict:
             "possible_predecessors": list(o.possible_predecessors),
             "identity": o.identity.value, "identity_rivals": list(o.identity_rivals),
             "uncertain_episodes": o.uncertain_episodes, "identity_doubt": o.identity_doubt,
+            "resolved_by": o.resolved_by,
         } for o in ft.tracks],
         "ended": [[tid, r.value] for tid, r in ft.ended],
     }
@@ -188,6 +192,7 @@ _TRACK_KEYS = ("track_id", "state", "confirmed", "source", "box", "detection_ind
                "observed_frames", "epoch", "occluder", "max_overlap_iou", "overlap_with", "recoveries",
                "last_gap_s", "possible_predecessors", "identity", "identity_rivals",
                "uncertain_episodes")
+_RESOLVED_BY = (None, "APPEARANCE", "REID")
 _TRACKLET_KEYS = ("track_id", "epoch", "first_frame", "last_frame", "last_observed_frame", "observed_frames",
                   "confirmed", "end_reason", "recoveries", "possible_predecessors")
 _CAMERA_KEYS = ("status", "affine", "inliers", "hist_distance")
@@ -202,7 +207,8 @@ def validate_tracks(doc: Any, detections: Optional[dict] = None) -> None:
     version = doc.get("schema_version") if isinstance(doc, dict) else None
     _header(doc, (TRACKS_SCHEMA[0], version if version in TRACKS_ACCEPTED else TRACKS_SCHEMA[1]),
             ("schema", "schema_version", "provenance", "video", "detections_sha256", "frames", "tracklets"))
-    track_keys = _TRACK_KEYS + (("identity_doubt",) if version != "2.1.0" else ())
+    track_keys = _TRACK_KEYS + (("identity_doubt",) if version != "2.1.0" else ()) + \
+        (("resolved_by",) if version not in ("2.1.0", "2.2.0") else ())
     det_rows = None
     if detections is not None:
         if sha256_doc(detections) != doc["detections_sha256"]:
@@ -305,6 +311,9 @@ def validate_tracks(doc: Any, detections: Optional[dict] = None) -> None:
                     not (isinstance(tr["uncertain_episodes"], int) and tr["uncertain_episodes"] >= 0) or \
                     (tr["identity"] != IdentityState.CERTAIN.value and tr["uncertain_episodes"] < 1):
                 raise ArtifactError(f"{where}: {tid} bad identity fields")
+            if "resolved_by" in tr and (tr["resolved_by"] not in _RESOLVED_BY or (tr["resolved_by"] is not None and (
+                    tr["identity"] != IdentityState.CERTAIN.value or tr["uncertain_episodes"] < 1))):
+                raise ArtifactError(f"{where}: {tid} bad resolved_by")
             if any(p not in seen for p in tr["possible_predecessors"]):
                 raise ArtifactError(f"{where}: {tid} names an unknown predecessor")
             if not isinstance(tr["observed_frames"], int) or tr["observed_frames"] < 1:
@@ -365,7 +374,7 @@ def validate_target(doc: Any, tracks: Optional[dict] = None, embeddings: Optiona
     version = doc.get("schema_version")
     if version == "1.0.0":
         return _validate_target_v1(doc, tracks)
-    if version in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0"):
+    if version in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0"):
         return _validate_target_v2(doc, tracks, version, embeddings)
     raise ArtifactError(f"unsupported spana.target version {version!r}")
 
@@ -486,11 +495,11 @@ def gaps_of(frames: Sequence[dict], relinks: Sequence[dict]) -> List[dict]:
 
 def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = "2.2.0",
                         embeddings: Optional[dict] = None) -> None:
-    """2.0.0 / 2.1.0 / 2.2.0. Structure, then (with the source tracks) every answer and every relink against the
-    tracks."""
-    v21 = version in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")
-    v22, v23 = version in ("2.2.0", "2.3.0", "2.4.0", "2.5.0"), version in ("2.3.0", "2.4.0", "2.5.0")
-    v24, v25 = version in ("2.4.0", "2.5.0"), version == "2.5.0"
+    """2.0.0 - 2.6.0. Structure, then (with the source tracks) every answer and every relink against the
+    tracks. 2.6.0 = 2.5.0 + target_config.resume_after_reid."""
+    v21 = version in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")
+    v22, v23 = version in ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0"), version in ("2.3.0", "2.4.0", "2.5.0", "2.6.0")
+    v24, v25, v26 = version in ("2.4.0", "2.5.0", "2.6.0"), version in ("2.5.0", "2.6.0"), version == "2.6.0"
     _header(doc, ("spana.target", version),
             ("schema", "schema_version", "provenance", "video", "tracks_sha256", "selection",
              "user_actions" if v21 else "confirmations", "target_config", "track_ends", "relinks", "frames")
@@ -507,11 +516,14 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
     _keys(tc, ("resume_after_uncertain", "relink_max_gap_s", "relink_auto_confirm")
           + (("tap_vouches_doubt",) if v22 else ()) + (("resume_after_doubt_resolved",) if v23 else ())
           + (("reentry_offer", "reentry_max_gap_s", "reentry_min_similarity", "reentry_min_margin") if v24 else ())
-          + (("reentry_mutual", "reentry_position_weight") if v25 else ()),
+          + (("reentry_mutual", "reentry_position_weight") if v25 else ())
+          + (("resume_after_reid",) if v26 else ()),
           "target_config")
     if v24 and not (isinstance(tc["reentry_offer"], bool) and _num(tc["reentry_max_gap_s"]) and
                     _num(tc["reentry_min_similarity"]) and _num(tc["reentry_min_margin"])):
         raise ArtifactError("bad target_config re-entry keys")
+    if v26 and not isinstance(tc["resume_after_reid"], bool):
+        raise ArtifactError("bad target_config")
     if not (isinstance(tc["resume_after_uncertain"], bool) and isinstance(tc["relink_auto_confirm"], bool)
             and isinstance(tc.get("tap_vouches_doubt", False), bool)
             and isinstance(tc.get("resume_after_doubt_resolved", False), bool)

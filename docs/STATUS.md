@@ -1,8 +1,8 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reentry-position-score, on main b6a6b7f).
-- Full suite: `python -m pytest tests -q` → 475 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
-  training tests skip).
+As of 2026-11-19 (branch identity/reid-merge-v1 = main 5c7dac5 + tracking/margin-floor-guard 68bf1a9).
+- Full suite: `python -m pytest tests -q` → 503 passed, 5 skipped (container, Python 3.13, with torch + transformers for
+  the re-ID tests).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -155,6 +155,16 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
          would, and both touch the 2026-11-16 rule that relinks need the user. Nathan to choose;
      (b) tracker: keep tracks alive across pans, fewer LOST_EXPIRED in crowds. The exit hold was tried
          (`records/exit_hold_2026-11-18`): no net gain without a stronger appearance signal; off by default.
+     (c) re-ID evidence at crossings (IDENTITY_UNCERTAIN), merged onto main in `identity/reid-merge-v1`
+         (config 2.8.0 `reid_resolve`, tracks 2.3.0 `resolved_by`, target 2.6.0 `resume_after_reid`; all OFF):
+         - TRAIN labels: M002 v1 (107 player tracklets, 21 players; group-then-confirm, `confirmed_only`) and M003 v1
+           (81 player tracklets, 19 players; direct flow). Re-ID v2 (M001 + M002) DEV rival 0.921 vs colour 0.902;
+           v3 (+ M003) 0.933 (`records/reid_retrain_m001_m002_2026-11-18`, `records/reid_retrain_m001_m003_2026-11-19`).
+         - Margin (`records/reid_calibration_dev_2026-11-18`): v2 alone passes held out (1 / 1,036, bound 0.46 %);
+           0.517 chosen. v3 fails the floored clean check (286 / 0, bound 1.04 %; `records/reid_margin_floor_dev_2026-11-19`);
+           its confident errors are crops of the wrong person (`records/reid_v3_wrong_answers_2026-11-19`). About 3
+           more labelled DEV clips would let clean tests prove 0.5 %.
+         - DEV_MERGE_RESULT
 2. Relink v1 accepted as built (Nathan, 2026-11-16). Watch confirmed tracks that named several predecessors.
 3. Tracking-error history on the 4 DEV clips (for reference):
    Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.

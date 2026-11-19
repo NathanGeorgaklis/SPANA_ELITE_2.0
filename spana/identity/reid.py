@@ -7,6 +7,9 @@ tall, at least `reid.sample_min_gap_s` apart, and overlap no other observed box 
 of those embeddings. A track without such a crop has no signature (`null`): it is never offered, never guessed.
 
 The signatures are evidence for an OFFER only. Similarity never makes an answer by itself.
+
+Also (config reid_resolve, off by default): per-box embeddings (embed_boxes) as evidence for clearing
+IDENTITY_UNCERTAIN in the tracker, from a record pinned by config sha256 (load_pinned); never to force an association.
 """
 from __future__ import annotations
 
@@ -70,6 +73,20 @@ class ReidModelRecord:
         return rec
 
 
+REPO = Path(__file__).resolve().parents[2]
+
+
+def load_pinned(record_path: str | Path, expected_sha256: str, root: Path = REPO) -> ReidModelRecord:
+    """The model record named by config, refused unless it pins exactly expected_sha256 (the model a margin was
+    calibrated for) and its ONNX file has that hash (ReidModelRecord.load)."""
+    p = Path(record_path)
+    p = p if p.is_absolute() else root / p
+    rec = ReidModelRecord.load(p)
+    if rec.onnx_sha256 != expected_sha256:
+        raise ReidModelError(f"re-ID model record {p} pins {rec.onnx_sha256}, config expects {expected_sha256}")
+    return rec
+
+
 def cut_crop(img: np.ndarray, box: Sequence[float], pad: float, size_hw: Tuple[int, int]) -> np.ndarray:
     """Padded box, clipped to the image, resized to size_hw (BGR in, BGR out); the training crop convention."""
     x1, y1, x2, y2 = box
@@ -106,6 +123,24 @@ class ReidEmbedder:
         if y.shape[1] != self.rec.embedding_dim:
             raise ReidModelError(f"model output dim {y.shape[1]} != record {self.rec.embedding_dim}")
         return y / np.maximum(np.linalg.norm(y, axis=1, keepdims=True), 1e-12)
+
+
+def embed_boxes(embedder: "ReidEmbedder", img_bgr: np.ndarray,
+                boxes: Sequence[Sequence[float]]) -> List[Optional[np.ndarray]]:
+    """One L2-normalised embedding per box (None for a box with an empty crop); IDENTITY_UNCERTAIN evidence
+    (spana.tracking.tracker, config reid_resolve). Same crop convention as the signatures and the training crops."""
+    crops: List[Optional[np.ndarray]] = []
+    for b in boxes:
+        try:
+            crops.append(cut_crop(img_bgr, b, embedder.rec.crop_pad, embedder.rec.input_size_hw))
+        except ValueError:
+            crops.append(None)
+    ok = [k for k, c in enumerate(crops) if c is not None]
+    out: List[Optional[np.ndarray]] = [None] * len(boxes)
+    if ok:
+        for k, v in zip(ok, embedder([crops[k] for k in ok])):
+            out[k] = v
+    return out
 
 
 def select_samples(tracks_doc: dict, cfg: SpanaConfig) -> Dict[str, Dict[str, List[Tuple[int, List[float]]]]]:

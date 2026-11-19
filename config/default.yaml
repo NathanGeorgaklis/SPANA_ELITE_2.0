@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.7.0"
+schema_version: "2.8.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -169,6 +169,9 @@ target:
   reentry_position_time_scale_s: 1.0
   reentry_position_max_gap_s: 3.0
   reentry_position_max_pan_frac: 0.25
+  # After an IDENTITY_UNCERTAIN episode cleared by the calibrated re-ID margin for every rival (reid_resolve
+  # section), answer again. Episodes cleared by colour keep resume_after_uncertain. Off by default (with reid_resolve).
+  resume_after_reid: false
 
 reid:
   # Which observations are embedded into a track's first / last re-ID signature (spana.identity.reid).
@@ -176,6 +179,20 @@ reid:
   sample_min_gap_s: 0.20
   min_crop_height_px: 40     # = the training crops' minimum height (config/reid_train.yaml crops.min_height_px)
   clean_max_iou: 0.05        # = appearance.clean_max_iou: a crop that mixes players is not evidence
+
+reid_resolve:
+  # Re-ID evidence for clearing IDENTITY_UNCERTAIN (spana.tracking.tracker; records/reid_calibration_dev_2026-11-18,
+  # records/reid_margin_floor_dev_2026-11-19). Off by default.
+  enabled: false
+  # Hashed model registry: the record (models/<name>.json) names the ONNX file and its sha256; the pipeline refuses a
+  # record or an ONNX file whose sha256 is not model_sha256 (spana.identity.reid.load_pinned).
+  model_record: models/spana_reid_v2.json
+  model_sha256: c269450e871cb28b4020b715618edc9dcda328faf951503a9e09f8e7a3032f84
+  # Calibrated on DEV for <= 0.5 % wrong resolutions (exact one-sided 95 % bound, leave-one-clip-out): 0.481 all
+  # clips, 0.517 the most conservative held-out value (chosen, fail closed; Nathan 2026-11-18). Only valid for
+  # model_sha256 above. Re-ID v3 (models/spana_reid_v3.json) failed the floored held-out check: not used.
+  margin: 0.517
+  ref_update_s: 0.5            # reference refresh on clean, uncontested, CERTAIN observations
 
 output:
   box_decimals: 1
