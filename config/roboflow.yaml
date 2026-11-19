@@ -3,7 +3,7 @@
 # derived on DEV data only (never EVAL) and recorded with evidence.
 # Secrets: the API key is NEVER in this file. It is read from the environment variable named in roboflow.api_key_env
 # (or the gitignored .env; template .env.example).
-schema_version: "1.7.0"
+schema_version: "1.8.0"
 
 roboflow:
   workspace: nathans-workspace-9brdc
@@ -226,6 +226,9 @@ detector:
   # detection.score_low (default.yaml), not `confidence` above, and duplicates across classes are merged with
   # detection.nms_iou: at 0.10, 155 cross-class pairs with IoU >= 0.6 in 48 of 66 DEV frames.
   person_classes: [player, goalkeeper, referee]
+  # Ball tracking input (spana/detection/ball_view.py, `spana.cli detect --view ball`): boxes of these classes are ball
+  # candidates, requested down to ball.score_min (default.yaml). Which candidate is the ball is the tracker's decision.
+  ball_classes: [ball]
 
 # Scoring the detector against the frozen labels of the valid split (tools/detector_eval.py). The valid split is a
 # held-out TRAIN match: it is not SPANA DEV and not EVAL. Nothing here is tuned.

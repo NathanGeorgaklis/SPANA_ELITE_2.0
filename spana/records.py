@@ -67,6 +67,32 @@ class TargetReason(str, Enum):
                                              #   and the user tapped it during that same doubt episode
 
 
+class BallState(str, Enum):
+    """Per-frame answer of the ball layer (spana.ball 1.0.0)."""
+    OBSERVED = "OBSERVED"    # one confirmed ball hypothesis is observed on this frame
+    PREDICTED = "PREDICTED"  # the selected ball is unobserved for <= ball.predict_max_s: extrapolated position
+    LOST = "LOST"            # no ball answer: none seen, gap too long, or camera continuity broken
+    AMBIGUOUS = "AMBIGUOUS"  # more than one confirmed hypothesis could be the ball: no answer rather than a guess
+
+
+class BallReason(str, Enum):
+    SINGLE_CONFIRMED = "SINGLE_CONFIRMED"        # OBSERVED: the only confirmed hypothesis observed
+    CONTINUING = "CONTINUING"                    # OBSERVED: the selected ball, observed again (rivals -> contested)
+    SHORT_GAP = "SHORT_GAP"                      # PREDICTED: selected ball unobserved <= predict_max_s
+    NO_CONFIRMED_BALL = "NO_CONFIRMED_BALL"      # LOST: no confirmed hypothesis observed, nothing to extrapolate
+    GAP_TOO_LONG = "GAP_TOO_LONG"                # LOST: selected ball unobserved > predict_max_s
+    PREDICTED_OUTSIDE = "PREDICTED_OUTSIDE"      # LOST: the extrapolated position left the picture
+    CAMERA_DISCONTINUITY = "CAMERA_DISCONTINUITY"  # LOST: CUT / UNKNOWN camera: every hypothesis was dropped
+    RIVAL_CANDIDATES = "RIVAL_CANDIDATES"        # AMBIGUOUS: >= 2 confirmed observed, none the selected ball
+    SELECTED_HIDDEN_RIVAL = "SELECTED_HIDDEN_RIVAL"  # AMBIGUOUS: selected ball briefly hidden, another one observed
+
+
+class BallEndReason(str, Enum):
+    UNCONFIRMED_EXPIRED = "UNCONFIRMED_EXPIRED"  # unconfirmed and unobserved for confirm_window_s
+    LOST_EXPIRED = "LOST_EXPIRED"                # confirmed and unobserved for lost_max_s
+    CAMERA_DISCONTINUITY = "CAMERA_DISCONTINUITY"
+
+
 @dataclass(frozen=True)
 class Detection:
     box: Tuple[float, float, float, float]  # x1, y1, x2, y2, source pixels
@@ -162,3 +188,32 @@ class FrameTracks:
     tracks: List[TrackObservation] = field(default_factory=list)
     ended: List[Tuple[str, EndReason]] = field(default_factory=list)
     decisions: List[dict] = field(default_factory=list)   # association evidence, for the decision log
+
+
+@dataclass(frozen=True)
+class BallFrame:
+    """The ball layer's answer on one frame (spana.ball 1.0.0)."""
+    frame_index: int
+    time_s: float
+    camera_status: CameraStatus
+    state: BallState
+    reason: BallReason
+    hypothesis: Optional[str]                    # selected hypothesis id (OBSERVED / PREDICTED), else None
+    center: Optional[Tuple[float, float]]        # source px (OBSERVED / PREDICTED), else None
+    diameter: Optional[float]                    # source px (OBSERVED / PREDICTED), else None
+    confidence: Optional[float]                  # uncalibrated: detection score, decayed while PREDICTED
+    contested: bool                              # OBSERVED while another confirmed hypothesis was also observed
+    candidates: int                              # ball candidates the view gave on this frame
+    confirmed_live: int                          # confirmed hypotheses alive after this frame
+    decisions: List[dict] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class BallHypothesisSummary:
+    hypothesis: str
+    first_frame: int
+    last_observed_frame: int
+    observed_frames: int
+    confirmed_frame: Optional[int]               # None = never confirmed
+    end_frame: Optional[int]                     # None = alive at the end of the run
+    end_reason: Optional[str]

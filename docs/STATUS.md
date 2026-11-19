@@ -1,6 +1,6 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reentry-position-score, on main b6a6b7f).
+As of 2026-11-19 (branch ball/ball-track-v1, on main 5c7dac5).
 - Full suite: `python -m pytest tests -q` → 475 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
   training tests skip).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
@@ -11,7 +11,7 @@ DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 | player detection | PARTIAL | `spana/detection/` (`onnx_backend.py`, `postprocess.py`, `tiling.py`, `roboflow_backend.py`, `base.py`) | `tests/test_detection_camera.py`, `tests/test_merge_detections.py`, `tests/test_multi_body.py`, `tests/test_roboflow_dataset.py`, `tests/test_detector_eval.py`, `tests/test_detection_interface.py`, `tests/test_dev_bench.py` | Football detector v1 trained (`nathans-workspace-9brdc/spana-elite-2-rfdetr-medium-t1`, RF-DETR medium, dataset version 2), adapter `RoboflowDetector.from_detector_config` (config `detector`, confidence / iou 0.50 untuned). Scored only on the M001 valid split (table below), which shares a broadcaster with training: generalisation unknown. DEV benchmark uploaded and pre-labelled (76 frames, 2 DEV matches), waiting for Nathan's label review; not scored. Pipeline CLI still uses pinned COCO YOLOX-s, person only (`models/yolox_s.json`); FRESH_02 recall 0.971 (NESTED_V1). YOLOX inference test skipped without weights. |
 | player tracking | PARTIAL | `spana/tracking/` (`tracker.py`, `kalman.py`, `camera.py`), `spana/appearance.py` | `tests/test_tracker.py`, `tests/test_camera_uncertainty.py`, `tests/test_identity_uncertain.py`, `tests/test_unconfirmed_low_score.py`, `tests/test_cli_e2e.py`, `tests/test_foundation.py` | Generic multi-player tracker with camera compensation and per-track IDENTITY_UNCERTAIN (`spana.tracks` 2.2.0: + `identity_doubt`). DEV 4 clips (local detector): 120 fragments, 121 ID switches, 6 transfers, 0 silent (NESTED_V2). Fragmentation remains the largest error. Where ByteTrack kept one track (76 of 120 fragments) ours broke mostly at the identity gate (44; 25 of them the torso-colour veto on the track's own next box), then low-score (7), LOST timeout (4), M2 nested (4), other (17) (`records/continuity_attribution_2026-11-18`). Appearance doubt link (`tracking.appearance_doubt_link`, S3b): continues such tracks flagged IDENTITY_UNCERTAIN: fragments 120 → 108, silent transfers 0, but reviewer correct-time 0.778 → 0.698 because doubts rarely resolve and the follower abstains on them. Self-consistent doubt resolution (`tracking.doubt_resolve_self_consistent`, option (a)): 5 more doubts cleared, fragments 106. With the follower's tap vouch (b): 0.783 correct, 2 wrong, but actions 6.27 / min = today, so the pass bar (fewer actions) is not met; **all off by default** (`records/doubt_resolution_2026-11-18`). Nested-box fix (M2) deferred pending Nathan's approval. Tests also `tests/test_appearance_doubt_link.py`. |
 | target identity | PARTIAL | `spana/identity/follower.py` | `tests/test_target_follow.py`, `tests/test_target_relink.py` | Follows one tapped track (selection `track_at_frame` 1.0.0) into `spana.target` 2.0.0 (TARGET / CANDIDATE / ABSTAIN / LOST). Fails closed (v1 rules). Relink v1: after a loss, proposes CANDIDATE on the tracker's unique predecessor link (gap ≤ `target.relink_max_gap_s` 0.5); TARGET only after the user confirms (`confirm_candidate` 1.0.0) or with `relink_auto_confirm` (off). DEV, 4 clips (`records/target_relink_v1_2026-11-16`): correct-time 0.509 without confirmation (= v1, wrong 1 frame) → **0.597 with a simulated user (wrong 2 frames: +1 from a tracker identity change after a correct confirmation)**; auto-confirm 0.597, wrong 3. Ceiling 0.853. Recovery inputs (`spana.target` 2.1.0): confirm / reject offers, tap to re-select, gap list. **Simulated after-match reviewer: correct-time 0.779, wrong 2 frames (the two known ones), but about 6.3 user actions per followed player-minute** (`records/target_recovery_v1_2026-11-17`). Long re-entries unsolved. Re-ID model: pilot trained on TRAIN_M001 only (`tools/reid_crops.py`, `tools/reid_train.py`, `config/reid_train.yaml`); DEV rival test 0.888 vs shirt colour 0.902, but 2–4× colour's true accepts at 1 % false accepts on hard pairs; not used by the product (`records/reid_pilot_v1_2026-11-18`). Colour + re-ID combined (DEV eval only, `tools/dev/cue_fusion.py`): pooled TAR @ 0.5 % FAR on hard pairs 0.172 vs re-ID 0.146 / colour 0.061, but below colour on FRESH_05 (0.717 vs 1.000) → not promising under the decision rule (`records/reid_fusion_dev_2026-11-18`). |
-| ball tracking | NOT BUILT | none | none | Only dataset tooling handles the ball class (ball tiling / size filter in `spana/dataset/prefilter.py`, `tools/roboflow_ball_sheet.py`). |
+| ball tracking | PARTIAL (v1 built, UNMEASURED) | `spana/ball/tracker.py`, `spana/detection/ball_view.py` | `tests/test_ball_tracker.py` | v1 2026-11-19: ball view of the football detector from the same detector pass (`detect --ball-out`, `detector.ball_classes`), ball tracker over several hypotheses with camera compensation, speed-bound gate, confirmation (3 obs / 0.30 s), fail-closed answer OBSERVED / PREDICTED / LOST / AMBIGUOUS (`spana.ball` 1.0.0, `spana.cli ball`, decision log). All `ball` config values are priors: **no DEV ball-track labels exist, so nothing is measured**. Synthetic tests only (pan, cut, kick, hidden ball, static false positive, two balls). |
 | team classification | NOT BUILT | none | none | Torso colour histogram (`spana/appearance.py`) is used for track association only. Side labels (A/B/GK/REF) exist in re-ID labels only. |
 | pitch context | NOT BUILT | none | none | Grass mask in `spana/dataset/prefilter.py` filters pre-labels only; no pitch model / homography. |
 | possession/touches | NOT BUILT | none | none | |
@@ -62,6 +62,12 @@ team in G2; goalkeepers boxed as referee in G1). Players are found but given the
 are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
 
 ## Open failures
+- Ball, DEV: not run on footage yet. Needs (1) a `detect --backend local --ball-out` + `ball` run on the 4 DEV clips
+  on Nathan's Mac, (2) per-frame ball-centre labels on 1-2 DEV clips to score it (the 66 bench frames are too sparse
+  for tracking). Camera motion is re-estimated in the ball pass (masking only ball boxes), not shared with tracking.
+- Repo: `tracking/reid-resolve-v1` (+ `identity/reid-calibration-dev`) does not merge into main cleanly: main and the
+  branch each added `spana/identity/reid.py` and `models/spana_reid_v2.json` (different manifest keys), plus
+  conflicts in tracker / follower / config / artifacts. Needs its own reconciliation task; nothing merged.
 - No failing tests. Skipped: YOLOX inference (weights not fetched), two Playwright labeller UI tests (no browser).
 - Detection -> tracking: wired and run 2026-11-16 (`PersonView`, `detect --backend roboflow`, detections 1.4.0).
   On FRESH_02 / FRESH_05 the football detector's person view beats YOLOX on every tracking metric (NESTED_V2):
@@ -129,6 +135,9 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
+0. Ball v1 on DEV (2026-11-19): run it on the DEV clips, label ball centres on 1-2 DEV clips, then score and fit the
+   `ball` priors on DEV only. Then team classification v1 (kit grouping per match from track history: A / B / GK /
+   REF), which also gives re-ID a cue and works around the detector's kit-colour role confusion.
 1. Long-play capability (`records/window_f05_2026-11-18`, 10-minute DEV window of match G2; re-measured with the
    extent link in `records/extent_link_window_2026-11-18`).
    - Following one player unattended lasts one track; tracks end mostly at camera pans (LEFT_FRAME) and in crowds
