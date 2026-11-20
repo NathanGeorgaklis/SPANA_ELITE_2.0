@@ -3,6 +3,7 @@
 As of 2026-11-20 (branch identity/reid-merge-v1 = main 74eb1a0 + the re-ID resolution work; PR #13; main also has
 the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh08_followup_2026-11-20).
 - Full suite: `python -m pytest tests -q` → 539 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+- Full suite on Nathan's Mac, branch tracking/tracker-bench-v1-botsort (2026-11-20): 546 passed, 6 skipped; the BoT-SORT bench tests run end to end only with `trackers` on PYTHONPATH (8 passed).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -116,6 +117,14 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   follower on it shows the wrong player 6.3 % of the time (8.1 % with the after-match reviewer) vs ours 0.03 % /
   0.06 %. Not adopted; its continuity (low-score second association, motion-only lost pool) is worth porting with
   our uncertainty flags.
+- Tracker bench v1, DEV (`records/tracker_bench_v1_2026-11-20`): Roboflow `trackers` 2.7.0 BoT-SORT (published
+  defaults, camera motion compensation on, bench-only install) on the same detections as ours / ByteTrack. Best
+  continuity (fragments ours 105 / ByteTrack 49 / BoT-SORT 42; reviewer actions 5.50 / 2.23 / 1.81 per min) but
+  20 identity transfers, all silent (ByteTrack 14 silent, ours 7 all flagged). Wrong-player time unaided 0.03 % /
+  6.3 % / 7.9 %, with the reviewer 0.06 % / 8.2 % / 9.2 %. Not adopted; the adoption task was dropped (Nathan) and an
+  uncertainty layer on BoT-SORT is not triggered, since BoT-SORT widens the silent-transfer gap.
+  The broader A-D harness on `tracking/tracker-bench-v1` (another session, not run on DEV) is separate; its BoT-SORT
+  candidate uses the same defaults and can cross-check these numbers.
 - Tracking continuity, DEV (`records/continuity_attribution_2026-11-18`): of the 76 fragments ByteTrack bridged, 44
   are identity-gate refusals; 25 of those are the colour veto on a continuing track's own next box (IoU 0.46–0.99,
   similarity 0.36–0.70). The doubt link removes 12 fragments with 0 silent transfers, but only 3 of 24 doubts
