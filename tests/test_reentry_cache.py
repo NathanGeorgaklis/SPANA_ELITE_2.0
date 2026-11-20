@@ -26,6 +26,23 @@ class Memo(unittest.TestCase):
                     self.assertEqual(a, b)
             self.assertTrue(shared.memo)                          # the shared context did memoise
 
+    def test_a_changed_threshold_misses_the_memo(self):
+        """Every config value the memoised calculations read is in their key: changing one on the same context
+        recomputes (equals a fresh context), it never serves the old value."""
+        doc = scene({"t2": (5, 102.0), "t3": (6, 300.0)})
+        sig = {k: {"first": v, "last": v} for k, v in {"t1": ME, "t2": unit(0.8, 0.6, 0), "t3": ME_AGAIN}.items()}
+        shared = ReentryContext.of(doc)
+        for kw in ({}, {"reentry_position_base_h": 2.0}, {"reentry_position_speed_h_per_s": 0.5},
+                   {"reentry_position_time_scale_s": 5.0}, {"reentry_position_max_gap_s": 0.05},
+                   {"reentry_position_max_pan_frac": 0.0}, {"reentry_position_weight": 2.0},
+                   {"reentry_signature": "mean"}):
+            a = reentry_choice("t1", 3, 10, shared, sig, tc(**kw), CFG.tracking)
+            b = reentry_choice("t1", 3, 10, ReentryContext.of(doc), sig, tc(**kw), CFG.tracking)
+            self.assertEqual(a, b, kw)
+        base = reentry_choice("t1", 3, 10, shared, sig, tc(), CFG.tracking)["candidates"]["t2"]["position"]
+        wider = reentry_choice("t1", 3, 10, shared, sig, tc(reentry_position_base_h=2.0), CFG.tracking)
+        self.assertNotEqual(base, wider["candidates"]["t2"]["position"])          # a real miss, not a no-op
+
     def test_memo_does_not_change_context_equality(self):
         doc = scene({"t2": (5, 102.0)})
         a, b = ReentryContext.of(doc), ReentryContext.of(doc)
