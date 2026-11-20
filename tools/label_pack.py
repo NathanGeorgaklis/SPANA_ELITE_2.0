@@ -1,6 +1,13 @@
 """Make an offline labelling pack for ONE DEV clip: sampled raw frames + manifest + the labelling page.
 
     python -m tools.label_pack --video CLIP.mp4 --split DEV --step-s 0.2 --out PACK_DIR
+    python -m tools.label_pack --video MATCH.mp4 --split DEV --name NAME --start-frame A --end-frame B \
+        (--step-s S | --step-frames N) --out PACK_DIR
+
+The second form (pack 1.1.0) labels a named frame range [A, B) of a source video: frame indices stay those of the
+source video and clip.sha256 is the source video's hash, so the frozen labels line up with tracks of that video;
+`source` records the video name and range; the labels freeze under data/labels/NAME/. Without --name / range the pack
+is the 1.0.0 whole-clip pack, unchanged.
 
 The pack holds raw frames only (never model output: truth comes before inference). It refuses any split other than
 DEV, refuses to overwrite, and records the clip's sha256 so the frozen labels can be tied to the exact video.
@@ -10,48 +17,70 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
+from typing import Optional
 
 import cv2
 
 from spana.video import VideoSource
 
 PACK_SCHEMA = ("spana.label_pack", "1.0.0")
+RANGE_PACK_SCHEMA = ("spana.label_pack", "1.1.0")        # + source {video, start_frame, end_frame}; clip.name = NAME
 PAGE = Path(__file__).resolve().parent / "labeller.html"
 JPEG_QUALITY = 92
 
 
-def make_pack(video: str, split: str, step_s: float, out: str) -> dict:
+def make_pack(video: str, split: str, step_s: Optional[float], out: str, name: Optional[str] = None,
+              start_frame: Optional[int] = None, end_frame: Optional[int] = None,
+              step_frames: Optional[int] = None) -> dict:
     if split != "DEV":
         raise SystemExit(f"refusing split {split!r}: only DEV clips may be labelled now")
-    if not step_s > 0:
+    if (step_s is None) == (step_frames is None):
+        raise SystemExit("give exactly one of --step-s / --step-frames")
+    if step_s is not None and not step_s > 0:
         raise SystemExit("--step-s must be > 0")
+    if step_frames is not None and not (isinstance(step_frames, int) and step_frames >= 1):
+        raise SystemExit("--step-frames must be an integer >= 1")
+    ranged = name is not None or start_frame is not None or end_frame is not None
+    if ranged and (name is None or start_frame is None or end_frame is None):
+        raise SystemExit("a range pack needs --name, --start-frame and --end-frame")
+    if ranged and not (0 <= start_frame < end_frame):
+        raise SystemExit("need 0 <= --start-frame < --end-frame")
+    if ranged and not re.fullmatch(r"[A-Za-z0-9_\-]+", name):
+        raise SystemExit("--name: letters, digits, _ and - only (it becomes a folder name)")
     dest = Path(out)
     if dest.exists():
         raise SystemExit(f"refusing to overwrite {dest}")
     src = VideoSource(video)
-    step = max(1, int(round(step_s * src.meta.fps)))
+    step = step_frames if step_frames is not None else max(1, int(round(step_s * src.meta.fps)))
+    first = start_frame if ranged else 0
     tmp = dest.with_name(dest.name + ".partial")
     if tmp.exists():
         shutil.rmtree(tmp)
     (tmp / "frames").mkdir(parents=True)
     frames = []
-    for idx, t, img in src.frames():
-        if idx % step:
+    for idx, t, img in src.frames(first, end_frame if ranged else None):
+        if (idx - first) % step:
             continue
-        name = f"frames/{idx:06d}.jpg"
-        cv2.imwrite(str(tmp / name), img, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
-        frames.append({"index": idx, "time_s": round(t, 6), "file": name})
+        fname = f"frames/{idx:06d}.jpg"
+        cv2.imwrite(str(tmp / fname), img, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
+        frames.append({"index": idx, "time_s": round(t, 6), "file": fname})
     if not frames:
         raise SystemExit("no frames decoded")
+    if ranged and frames[-1]["index"] + step < end_frame:
+        raise SystemExit(f"video ended at frame {frames[-1]['index']} before --end-frame {end_frame}")
+    schema = RANGE_PACK_SCHEMA if ranged else PACK_SCHEMA
     manifest = {
-        "schema": PACK_SCHEMA[0], "schema_version": PACK_SCHEMA[1], "split": split,
-        "clip": {"name": Path(video).stem, "sha256": src.meta.sha256, "fps": src.meta.fps,
+        "schema": schema[0], "schema_version": schema[1], "split": split,
+        "clip": {"name": name if ranged else Path(video).stem, "sha256": src.meta.sha256, "fps": src.meta.fps,
                  "width": src.meta.width, "height": src.meta.height},
         "frame_step": step, "frames": frames,
     }
+    if ranged:
+        manifest["source"] = {"video": Path(video).name, "start_frame": start_frame, "end_frame": end_frame}
     (tmp / "manifest.js").write_text("window.SPANA_PACK = " + json.dumps(manifest, indent=1) + ";\n")
     (tmp / "manifest.json").write_text(json.dumps(manifest, indent=1))
     shutil.copy(PAGE, tmp / "index.html")
@@ -63,10 +92,15 @@ def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--video", required=True)
     p.add_argument("--split", required=True)
-    p.add_argument("--step-s", type=float, default=0.2, help="seconds between labelled frames")
+    p.add_argument("--step-s", type=float, default=None, help="seconds between labelled frames (default 0.2)")
+    p.add_argument("--step-frames", type=int, default=None, help="video frames between labelled frames (1 = every)")
+    p.add_argument("--name", default=None, help="range pack: label-set name (the frozen labels' folder)")
+    p.add_argument("--start-frame", type=int, default=None, help="range pack: first video frame (inclusive)")
+    p.add_argument("--end-frame", type=int, default=None, help="range pack: end video frame (exclusive)")
     p.add_argument("--out", required=True)
     a = p.parse_args()
-    m = make_pack(a.video, a.split, a.step_s, a.out)
+    step_s = 0.2 if a.step_s is None and a.step_frames is None else a.step_s
+    m = make_pack(a.video, a.split, step_s, a.out, a.name, a.start_frame, a.end_frame, a.step_frames)
     print(f"pack {a.out}: {len(m['frames'])} frames every {m['frame_step']} video frames ({m['clip']['name']})")
     return 0
 

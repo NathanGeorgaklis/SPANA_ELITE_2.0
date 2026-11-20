@@ -100,13 +100,16 @@ function status(msg, kind) { const s = $("status"); s.textContent = msg; s.class
 if (!PACK || !PACK.frames || !PACK.frames.length) { status("manifest.js missing: open index.html from inside a label pack folder.", "bad"); throw new Error("no pack"); }
 if (PACK.split !== "DEV") { status("This pack is not DEV. Labelling refused.", "bad"); throw new Error("not DEV"); }
 
-const KEY = "spana_labels_" + PACK.clip.sha256;
+// A 1.1.0 pack is a named frame range of a source video; several may share one video, so its progress is kept under
+// its own name as well. 1.0.0 packs keep the original key, so work saved for them is found as before.
+const KEY = "spana_labels_" + PACK.clip.sha256 + (PACK.source ? ":" + PACK.clip.name : "");
+const samePack = (s) => !!(s && s.clip && s.clip.sha256 === PACK.clip.sha256 && (!PACK.source || s.clip.name === PACK.clip.name));
 let S = load() || fresh();
 function fresh() {
   return { schema: PROGRESS_SCHEMA, schema_version: PROGRESS_VERSION, clip: PACK.clip, frame_step: PACK.frame_step,
            label_version: 1, version_notes: [], frozen: false, annotator: "", next_id: 1, ids: [], boxes: {}, done: {} };
 }
-function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); return s && s.clip && s.clip.sha256 === PACK.clip.sha256 ? s : null; } catch (e) { return null; } }
+function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); return samePack(s) ? s : null; } catch (e) { return null; } }
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { status("Browser storage unavailable: use Save progress often.", "warn"); } }
 
 let k = 0, sel = null, armed = null, imgs = {}, view = { s: 1, ox: 0, oy: 0 }, fitted = false;
@@ -284,7 +287,7 @@ $("load").onclick = () => $("loadfile").click();
 $("loadfile").addEventListener("change", async () => {
   const f = $("loadfile").files[0]; if (!f) return;
   try { const s = JSON.parse(await f.text());
-    if (s.schema !== PROGRESS_SCHEMA || !s.clip || s.clip.sha256 !== PACK.clip.sha256) throw new Error("this progress file belongs to a different clip");
+    if (s.schema !== PROGRESS_SCHEMA || !samePack(s)) throw new Error("this progress file belongs to a different clip or pack");
     S = s; persist(); go(0); status("Progress loaded.", "ok");
   } catch (err) { status("Load failed: " + err.message, "bad"); }
   $("loadfile").value = "";

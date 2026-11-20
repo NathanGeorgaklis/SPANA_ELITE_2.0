@@ -1,0 +1,27 @@
+# DEV labelling windows chosen from track logs (tools/dev/label_windows.py). DEV only; the product never reads this.
+# Event types are read from a tracks document + its decision log, for confirmed tracks only:
+#   occlusion     a track becomes OCCLUDED (behind another observed player)
+#   exit          a track ends LEFT_FRAME (the player left the picture)
+#   entry         a track is born with its first observed box within edge_frac of an image border (came into picture)
+#   flagged       the tracker flags IDENTITY_UNCERTAIN (identity_uncertain decision: two tracks fit the same player)
+#   similar_rival ... and the rival's stored appearance matched the crop (rival_similarity >= appearance.min_similarity
+#                 of the tracker config: a same-looking player right there)
+schema: spana.label_windows_config
+schema_version: 1.0.0
+window_s: 13.0                 # generic window length (the existing DEV clips are about 13 s)
+step_s: 0.2                    # seconds between labelled frames in a generic window (as the existing DEV clips)
+stride_s: 1.0                  # candidate windows start every this many seconds
+count: 3                       # generic windows to choose
+max_per_source: 1              # at most this many windows from one source (spreads the windows over footage)
+min_event_types: 2             # a window needs events of at least this many different types
+weights:                       # score = sum over types of weight * min(count in window, cap)
+  occlusion: 1.0
+  exit: 1.0
+  entry: 1.0
+  flagged: 1.0
+  similar_rival: 1.0
+cap: 3                         # per type: more events of one type add nothing (favours windows with every kind)
+edge_frac: 0.02                # entry: first box within this share of the frame width / height of a border
+dense:                         # windows around every WRONG answer in target_score reports (where the system failed)
+  half_s: 1.0                  # label from this long before to this long after the wrong frame
+  step_frames: 1               # every frame
