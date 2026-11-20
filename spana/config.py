@@ -19,14 +19,14 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.12.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.13.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
 #   2.8.0: + reid.set_* (crop sets), target.reentry_signature / reentry_wait_samples / reentry_withdraw;
 #   2.9.0: + target.reentry_exit_edge / reentry_exit_edge_max_frac; 2.10.0: + target.offer_hold_s;
 #   2.11.0: + tracking.rival_eligible_only; 2.12.0: + reid_resolve section (re-ID evidence for IDENTITY_UNCERTAIN),
-#   target.resume_after_reid
+#   target.resume_after_reid; 2.13.0: + appearance.pan_aware / pan_blur_px / weak_min_similarity
 
 
 class ConfigError(ValueError):
@@ -190,9 +190,19 @@ class AppearanceConfig:
     clean_max_iou: float           # appearance is updated only when the box overlaps no other track above this
     min_similarity: float          # recovery after occlusion needs at least this similarity to the track
     min_margin: float              # ... and must beat every other track's similarity by this margin
+    pan_aware: bool                # a crop taken while the camera moves > pan_blur_px per frame is motion-blurred:
+                                   #   it does not overwrite a mostly-sharp stored appearance; while the crop or the
+                                   #   stored appearance is blurred, the colour veto applies only below
+                                   #   weak_min_similarity
+    pan_blur_px: float             # camera translation per frame (source px) above which a crop counts as blurred
+    weak_min_similarity: float     # veto bar for a mostly pan-blurred stored appearance (<= min_similarity)
 
     def validate(self) -> None:
         _pos_int("appearance.min_crop_height_px", self.min_crop_height_px)
+        _pos("appearance.pan_blur_px", self.pan_blur_px)
+        _unit("appearance.weak_min_similarity", self.weak_min_similarity)
+        if self.weak_min_similarity > self.min_similarity:
+            raise ConfigError("appearance.weak_min_similarity must be <= appearance.min_similarity")
         for n in ("torso_top_frac", "torso_bottom_frac", "torso_width_frac", "clean_max_iou", "min_similarity",
                   "min_margin"):
             _unit(f"appearance.{n}", getattr(self, n))

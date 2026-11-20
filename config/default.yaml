@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.12.0"
+schema_version: "2.13.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -118,6 +118,16 @@ appearance:
   clean_max_iou: 0.05
   min_similarity: 0.70
   min_margin: 0.10
+  # Pan-aware appearance (records/pan_aware_appearance_2026-11-20; root cause records/veto_root_cause_2026-11-20:
+  # 9 of 22 wrong own-box vetoes on DEV had a stored appearance learned from motion-blurred crops during fast pans).
+  # A crop taken while the camera moves > pan_blur_px per frame does not overwrite a mostly-sharp stored appearance;
+  # while the crop or the stored appearance is blurred, the colour veto applies only below weak_min_similarity
+  # (blur alone can explain a difference above it). Positive appearance evidence
+  # (identity resolution, long-gap recovery) is unchanged. Priors from that DEV analysis (wrong vetoes' models learned
+  # at >= 9 px / frame, right vetoes' at <= 2.4 except one at similarity 0.07), not fitted.
+  pan_aware: false
+  pan_blur_px: 5.0
+  weak_min_similarity: 0.50
 
 target:
   # Policy, not a calibrated value. An IDENTITY_UNCERTAIN episode means a rival fitted the same evidence; the

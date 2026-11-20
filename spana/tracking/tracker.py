@@ -136,6 +136,7 @@ class _Track:
     exited_t: Optional[float] = None       # time the prediction left the picture (held, see exit_hold_s)
     appearance: Optional[np.ndarray] = None
     appearance_t: Optional[float] = None
+    appearance_blur: float = 0.0        # share of the stored appearance learned from pan-blurred crops (same averaging)
     recoveries: int = 0
     last_gap_s: float = 0.0
     predecessors: Tuple[str, ...] = ()
@@ -170,6 +171,7 @@ class MultiPlayerTracker:
         self._summaries: Dict[str, TrackletSummary] = {}
         self._pending_doubt: Dict[str, int] = {}   # S3b links of this frame: track id -> detection index
         self._pending_extent: Dict[str, int] = {}  # S3c links of this frame: track id -> detection index
+        self._pan_px = 0.0                          # camera translation this frame (source px; 0 unless status OK)
 
     # ------------------------------------------------------------------ public
     def update(self, frame_index: int, time_s: float, detections: Sequence[Detection], camera: CameraObservation,
@@ -186,6 +188,8 @@ class MultiPlayerTracker:
         if len(desc) != len(dets):
             raise ValueError("appearance descriptors must align with detections")
         self._last_frame = frame_index
+        A = camera.matrix()
+        self._pan_px = float(np.hypot(A[0, 2], A[1, 2])) if camera.status == CameraStatus.OK else 0.0
         out = FrameTracks(frame_index, time_s, camera)
         out.decisions.append({"kind": "camera", "status": camera.status.value, "inliers": camera.inliers,
                               "hist_distance": camera.hist_distance, "motion_std_px": round(camera.motion_std_px, 3)})
@@ -267,7 +271,7 @@ class MultiPlayerTracker:
                 d = dets[i]
                 if desc is not None:
                     sim = similarity(desc[i], t.appearance)
-                    if sim is not None and sim < self.ac.min_similarity:
+                    if sim is not None and sim < self._veto_floor(t):
                         continue
                 if iou_only:
                     if ious[a, b] >= self.tc.low_score_min_iou:
@@ -333,7 +337,7 @@ class MultiPlayerTracker:
                 continue
             i = in_gate[0]
             sim = similarity(desc[i], t.appearance)
-            if sim is None or sim >= self.ac.min_similarity:
+            if sim is None or sim >= self._veto_floor(t):
                 continue                      # not an appearance veto: the ordinary stages decided
             if any(gated[j, i] for j in all_t if j != k) or ious[k, i] < self.tc.appearance_doubt_min_iou:
                 continue                      # not exclusive, or too loose to call the same body
@@ -384,7 +388,7 @@ class MultiPlayerTracker:
             if any((gated[j, i] or fit[(j, i)]) and self._may_claim(self._tracks[j], time_s) for j in all_t if j != k):
                 continue                      # another track could take this box
             sim = similarity(desc[i], t.appearance)
-            if sim is not None and sim < self.ac.min_similarity:
+            if sim is not None and sim < self._veto_floor(t):
                 continue
             gap = time_s - t.last_observed_t
             bridged = not t.observed_last_frame
@@ -682,7 +686,7 @@ class MultiPlayerTracker:
                 sim = similarity(desc[i], t.appearance)
                 if rivals:
                     reason = "RIVAL_TRACK"
-                elif sim is not None and sim < self.ac.min_similarity:
+                elif sim is not None and sim < self._veto_floor(t):
                     reason = "APPEARANCE_MISMATCH"
                 elif not self._motion_consistent(t, dets[i], gap):
                     reason = "INCONSISTENT_WITH_MOTION"
@@ -746,7 +750,7 @@ class MultiPlayerTracker:
              "iou": round(iou, 4), "low_score": not high,
              "low_score_iou_ok": (not high) and iou >= self.tc.low_score_min_iou,
              "appearance_similarity": None if sim is None else round(sim, 4),
-             "appearance_veto": sim is not None and sim < self.ac.min_similarity,
+             "appearance_veto": sim is not None and sim < self._veto_floor(t),
              "motion_consistent": self._motion_consistent(t, d, time_s - t.last_observed_t)}
         failed = [k for k in ("centre_ok", "mahalanobis_ok", "height_ok") if high and not r[k]]
         if not high and not r["low_score_iou_ok"]:
@@ -804,15 +808,28 @@ class MultiPlayerTracker:
         others = np.array([dets[j].as_array() for j, _ in matched.values() if j != i]).reshape(-1, 4)
         return not len(others) or float(iou_matrix(dets[i].as_array()[None], others).max()) <= self.ac.clean_max_iou
 
+    def _veto_floor(self, t: _Track) -> float:
+        """Similarity below which the stored appearance vetoes a pair: appearance.min_similarity, or, with
+        appearance.pan_aware, weak_min_similarity when blur may explain the difference - the stored appearance was
+        learned mostly from pan-blurred crops, or this frame's crop is pan-blurred."""
+        if self.ac.pan_aware and (t.appearance_blur > 0.5 or self._pan_px > self.ac.pan_blur_px):
+            return self.ac.weak_min_similarity
+        return self.ac.min_similarity
+
     def _update_appearance(self, t: _Track, d: Optional[np.ndarray], time_s: float) -> None:
         if d is None:
             return
+        blurred = self.ac.pan_aware and self._pan_px > self.ac.pan_blur_px
+        if blurred and t.appearance is not None and t.appearance_blur <= 0.5:
+            return                            # a blurred crop never overwrites a mostly-sharp appearance
         if t.appearance is None or t.appearance_t is None:
             t.appearance = d.copy()
+            t.appearance_blur = 1.0 if blurred else 0.0
         else:
             a = 1.0 - float(np.exp(-(time_s - t.appearance_t) / self.ac.tau_s))
             t.appearance = (1.0 - a) * t.appearance + a * d
             t.appearance /= t.appearance.sum()
+            t.appearance_blur = (1.0 - a) * t.appearance_blur + a * (1.0 if blurred else 0.0)
         t.appearance_t = time_s
 
     def _apply_matches(self, matched: Dict[int, Tuple[int, bool]], dets: Sequence[Detection],
