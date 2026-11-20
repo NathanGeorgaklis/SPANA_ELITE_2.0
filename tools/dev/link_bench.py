@@ -1,13 +1,9 @@
-"""DEV bench for offline tracklet linking (not product code): which identity transfers did the links cause?
+"""DEV bench for offline tracklet linking (not product code): thin wrapper over tools/benchmark.py.
 
-    python -m tools.dev.link_bench transfers --out OUT.json \
-        --clip NAME BASE.bench.json LINKED.bench.json LINKED.links.jsonl [--clip ...]
+    python -m tools.dev.link_bench summary --out OUT.json --clip NAME LINKED.bench.json LINKED.links.jsonl [--clip ...]
 
-tools/benchmark.py counts a transfer as flagged when its track has `recoveries > 0`, and every linked track has one,
-so a wrong link would never show there as silent. Here a transfer is LINK-CAUSED when it appears in the linked run's
-benchmark events but not in the baseline's (same frame, from-player, to-player). A link-caused transfer counts as
-SILENT unless the track was IDENTITY_UNCERTAIN (now or since its previous attribution): that is how the follower
-sees it. Also: every transfer (any cause, any frame) on a track that received a link (2026-11-18 linked-track rule). Link log: links and abstentions by reason.
+Transfer counting lives in spana.evaluation (tools/benchmark.py, 2026-11-20 rule): this only pools the benchmark's
+link / recovery columns per clip and adds the link log's link / abstention counts by reason.
 """
 from __future__ import annotations
 
@@ -16,53 +12,41 @@ import json
 import sys
 from collections import Counter
 from pathlib import Path
-from typing import List
+
+BENCH_KEYS = ("identity_transfers", "unflagged_transfers", "link_caused_transfers", "link_caused_silent",
+              "recovery_caused_transfers", "recovery_caused_silent", "transfers_on_linked_tracks")
 
 
-def _key(e: dict) -> tuple:
-    return e["frame"], e["from"], e["to"]
-
-
-def clip_transfers(base: dict, linked: dict, links: List[dict]) -> dict:
-    b = Counter(_key(e) for e in base["events"]["transfers"])
-    new, gone = [], Counter(b)
-    for e in linked["events"]["transfers"]:
-        k = _key(e)
-        if gone[k] > 0:
-            gone[k] -= 1
-        else:
-            new.append(e)
+def clip_summary(bench: dict, links: list) -> dict:
+    s = bench["summary"]
+    if s.get("link_caused_transfers") is None:
+        raise SystemExit("bench report predates the 2026-11-20 transfer rule: re-score it with tools/benchmark.py")
     rows = [r for r in links if r.get("kind") in ("link", "abstain")]
-    heads = {r["head"] for r in rows if r["kind"] == "link"}
-    on_linked = [e for e in linked["events"]["transfers"] if e["track_id"] in heads]
-    reasons = Counter(x for r in rows if r["kind"] == "abstain" for x in r["reasons"])
-    return {"links": sum(r["kind"] == "link" for r in rows), "abstentions": sum(r["kind"] == "abstain" for r in rows),
+    return {**{k: s[k] for k in BENCH_KEYS},
+            "links": sum(r["kind"] == "link" for r in rows), "abstentions": sum(r["kind"] == "abstain" for r in rows),
             "links_cleared_by_appearance": sum(r["kind"] == "link" and r["cleared_by_appearance"] for r in rows),
-            "abstention_reasons": dict(sorted(reasons.items())),
-            "link_caused_transfers": len(new),
-            "link_caused_silent": sum(not e["identity_uncertain"] for e in new),
-            "link_caused_events": new,
-            "baseline_transfers_removed": sum(gone.values()),
-            "transfers_on_linked_tracks": len(on_linked), "transfers_on_linked_tracks_events": on_linked}
+            "abstention_reasons": dict(sorted(Counter(x for r in rows if r["kind"] == "abstain"
+                                                      for x in r["reasons"]).items()))}
 
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser()
     sub = p.add_subparsers(dest="cmd", required=True)
-    s = sub.add_parser("transfers")
-    s.add_argument("--clip", nargs=4, action="append", required=True, metavar=("NAME", "BASE", "LINKED", "LINKS"))
+    s = sub.add_parser("summary")
+    s.add_argument("--clip", nargs=3, action="append", required=True, metavar=("NAME", "LINKED_BENCH", "LINKS"))
     s.add_argument("--out", required=True)
     a = p.parse_args(argv)
     clips, pooled = {}, Counter()
-    for name, base, linked, links in a.clip:
+    for name, bench, links in a.clip:
         rows = [json.loads(l) for l in Path(links).read_text().splitlines() if l.strip()]
-        c = clip_transfers(json.loads(Path(base).read_text()), json.loads(Path(linked).read_text()), rows)
+        c = clip_summary(json.loads(Path(bench).read_text()), rows)
         clips[name] = c
-        for k in ("links", "abstentions", "links_cleared_by_appearance", "link_caused_transfers",
-                  "link_caused_silent", "baseline_transfers_removed", "transfers_on_linked_tracks"):
-            pooled[k] += c[k]
-        for k, v in c["abstention_reasons"].items():
-            pooled["reason:" + k] += v
+        for k, v in c.items():
+            if k == "abstention_reasons":
+                for r, n in v.items():
+                    pooled["reason:" + r] += n
+            else:
+                pooled[k] += v
     doc = {"clips": clips, "pooled": dict(sorted(pooled.items()))}
     Path(a.out).write_text(json.dumps(doc, indent=1, sort_keys=True))
     print(json.dumps(doc["pooled"], indent=1))

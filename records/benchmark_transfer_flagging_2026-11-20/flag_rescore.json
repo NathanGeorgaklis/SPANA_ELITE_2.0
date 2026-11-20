@@ -1,0 +1,186 @@
+{
+ "botsort": {
+  "flips": [],
+  "link_caused": 0,
+  "link_caused_silent": 0,
+  "new_silent": 20,
+  "old_silent": 20,
+  "on_linked_tracks": 0,
+  "recovery_caused": 0,
+  "recovery_caused_silent": 0,
+  "transfers": 20
+ },
+ "bytetrack": {
+  "flips": [],
+  "link_caused": 0,
+  "link_caused_silent": 0,
+  "new_silent": 14,
+  "old_silent": 14,
+  "on_linked_tracks": 0,
+  "recovery_caused": 0,
+  "recovery_caused_silent": 0,
+  "transfers": 14
+ },
+ "linked_off": {
+  "flips": [
+   {
+    "clip": "F02",
+    "flagged": false,
+    "frame": 276,
+    "from": "9",
+    "identity_uncertain": false,
+    "link_caused": false,
+    "old_flagged": true,
+    "on_linked_track": false,
+    "previous_frame": 270,
+    "recovery_caused": false,
+    "to": "10",
+    "track_id": "T000045"
+   },
+   {
+    "clip": "F07",
+    "flagged": false,
+    "frame": 66,
+    "from": "14",
+    "identity_uncertain": false,
+    "link_caused": false,
+    "old_flagged": true,
+    "on_linked_track": false,
+    "previous_frame": 60,
+    "recovery_caused": false,
+    "to": "15",
+    "track_id": "T000018"
+   },
+   {
+    "clip": "F07",
+    "flagged": false,
+    "frame": 72,
+    "from": "15",
+    "identity_uncertain": false,
+    "link_caused": false,
+    "old_flagged": true,
+    "on_linked_track": false,
+    "previous_frame": 66,
+    "recovery_caused": false,
+    "to": "14",
+    "track_id": "T000018"
+   }
+  ],
+  "link_caused": 0,
+  "link_caused_silent": 0,
+  "new_silent": 3,
+  "old_silent": 0,
+  "on_linked_tracks": 0,
+  "recovery_caused": 0,
+  "recovery_caused_silent": 0,
+  "transfers": 7
+ },
+ "linked_on": {
+  "flips": [
+   {
+    "clip": "F02",
+    "flagged": false,
+    "frame": 276,
+    "from": "9",
+    "identity_uncertain": false,
+    "link_caused": false,
+    "old_flagged": true,
+    "on_linked_track": false,
+    "previous_frame": 270,
+    "recovery_caused": false,
+    "to": "10",
+    "track_id": "T000045"
+   },
+   {
+    "clip": "F07",
+    "flagged": false,
+    "frame": 66,
+    "from": "14",
+    "identity_uncertain": false,
+    "link_caused": false,
+    "old_flagged": true,
+    "on_linked_track": true,
+    "previous_frame": 60,
+    "recovery_caused": false,
+    "to": "15",
+    "track_id": "T000018"
+   },
+   {
+    "clip": "F07",
+    "flagged": false,
+    "frame": 72,
+    "from": "15",
+    "identity_uncertain": false,
+    "link_caused": false,
+    "old_flagged": true,
+    "on_linked_track": true,
+    "previous_frame": 66,
+    "recovery_caused": false,
+    "to": "14",
+    "track_id": "T000018"
+   }
+  ],
+  "link_caused": 1,
+  "link_caused_silent": 0,
+  "new_silent": 3,
+  "old_silent": 0,
+  "on_linked_tracks": 4,
+  "recovery_caused": 0,
+  "recovery_caused_silent": 0,
+  "transfers": 8
+ },
+ "ours": {
+  "flips": [
+   {
+    "clip": "F02",
+    "flagged": false,
+    "frame": 276,
+    "from": "9",
+    "identity_uncertain": false,
+    "link_caused": false,
+    "old_flagged": true,
+    "on_linked_track": false,
+    "previous_frame": 270,
+    "recovery_caused": false,
+    "to": "10",
+    "track_id": "T000045"
+   },
+   {
+    "clip": "F07",
+    "flagged": false,
+    "frame": 66,
+    "from": "14",
+    "identity_uncertain": false,
+    "link_caused": false,
+    "old_flagged": true,
+    "on_linked_track": false,
+    "previous_frame": 60,
+    "recovery_caused": false,
+    "to": "15",
+    "track_id": "T000018"
+   },
+   {
+    "clip": "F07",
+    "flagged": false,
+    "frame": 72,
+    "from": "15",
+    "identity_uncertain": false,
+    "link_caused": false,
+    "old_flagged": true,
+    "on_linked_track": false,
+    "previous_frame": 66,
+    "recovery_caused": false,
+    "to": "14",
+    "track_id": "T000018"
+   }
+  ],
+  "link_caused": 0,
+  "link_caused_silent": 0,
+  "new_silent": 3,
+  "old_silent": 0,
+  "on_linked_tracks": 0,
+  "recovery_caused": 0,
+  "recovery_caused_silent": 0,
+  "transfers": 7
+ }
+}

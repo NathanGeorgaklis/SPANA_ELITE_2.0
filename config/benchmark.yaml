@@ -1,0 +1,7 @@
+# Scoring conventions of tools/benchmark.py (QA tooling; not a tracker setting). Set 2026-11-20 BEFORE re-scoring.
+schema_version: "1.0.0"
+# A transfer counts as flagged (not silent) only if its track was IDENTITY_UNCERTAIN on some processed frame within
+# this many seconds of the transfer frame (either side). = tracking.identity_resolve_s: an episode the tracker
+# cleared up to that long before the labelled frame where the transfer shows still counts. Recoveries and links
+# never flag a transfer by themselves.
+transfer_flag_tolerance_s: 0.5

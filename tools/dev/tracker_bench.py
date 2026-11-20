@@ -18,6 +18,8 @@ from pathlib import Path
 from typing import Dict, List
 
 TRACK_KEYS = ("fragments_total", "id_switches", "identity_transfers", "unflagged_transfers", "track_coverage")
+CAUSE_KEYS = ("recovery_caused_transfers", "recovery_caused_silent", "link_caused_transfers", "link_caused_silent",
+              "transfers_on_linked_tracks")      # 2026-11-20 transfer rule; absent (None) in older reports
 COUNT_KEYS = ("correct", "wrong", "unverified", "abstain", "lost", "candidate_correct", "candidate_wrong",
               "candidate_unverified")
 
@@ -28,10 +30,14 @@ def tracking(benches: List[dict]) -> dict:
         s = b["summary"]
         name = Path(b["labels"]["dir"]).parent.name.split("_G")[0]
         row = {k: s[k] for k in TRACK_KEYS}
+        row.update({k: s.get(k) for k in CAUSE_KEYS})
         row["flagged_transfers"] = s["identity_transfers"] - s["unflagged_transfers"]
         clips[name] = row
-        for k in pooled:
-            pooled[k] += s[k]
+        for k in TRACK_KEYS:
+            if k != "track_coverage":
+                pooled[k] += s[k]
+        for k in CAUSE_KEYS:
+            pooled[k] = None if s.get(k) is None or pooled.get(k, 0) is None else pooled.get(k, 0) + s[k]
     pooled["flagged_transfers"] = pooled["identity_transfers"] - pooled["unflagged_transfers"]
     return {"clips": clips, "pooled": pooled}
 
