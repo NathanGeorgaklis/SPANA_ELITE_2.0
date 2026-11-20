@@ -52,7 +52,7 @@ reason). The test now pins it (1 at 60 fps, 0 at 10 / 25) instead of asserting 0
   adopted" stands. Wrong-player time, the gating metric there, is unchanged (it never used the flag).
 - Linking v1 clearance-off: 0 transfers on linked tracks and 0 link-caused still hold; "0 silent" holds only for
   transfers the linker caused.
-- Not merged: reported for Nathan first, as the task asks.
+- Reported to Nathan first, as the task asked; approved and merged to main the same day.
 
 ## Files
 `flag_rescore.json` (per set, every flipped event), `link_summary_on.json` / `link_summary_off.json`
