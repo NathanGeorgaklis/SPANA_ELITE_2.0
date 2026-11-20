@@ -39,12 +39,13 @@ class Events(unittest.TestCase):
                {"frame": 3, "kind": "end", "track_id": "A", "reason": "LOST_EXPIRED"},
                {"frame": 2, "kind": "identity_uncertain", "track_id": "A", "rival": "B", "rival_similarity": 0.9},
                {"frame": 2, "kind": "identity_uncertain", "track_id": "B", "rival": "A", "rival_similarity": 0.2},
-               {"frame": 2, "kind": "identity_uncertain", "track_id": "U", "rival": "A", "rival_similarity": 0.9}]
+               {"frame": 2, "kind": "identity_uncertain", "track_id": "U", "rival": "A", "rival_similarity": 0.9},
+               {"frame": 3, "kind": "identity_uncertain", "track_id": "A", "rival": "B", "rival_similarity": 0.9}]
         ev = LW.events(doc(frames), dec, CFG, min_similarity=0.7)
         self.assertEqual(ev["occlusion"], [1])
         self.assertEqual(ev["entry"], [0])               # B born at the left border; U unconfirmed: ignored
         self.assertEqual(ev["exit"], [3])                # LOST_EXPIRED is not leaving the picture
-        self.assertEqual(ev["flagged"], [2, 2])
+        self.assertEqual(ev["flagged"], [2, 2])          # A-B on frames 2 and 3 is one episode
         self.assertEqual(ev["similar_rival"], [2])       # only the rival that looked alike
 
 

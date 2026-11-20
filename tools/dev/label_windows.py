@@ -53,7 +53,8 @@ def load_cfg(path) -> dict:
 
 
 def events(tracks: dict, decisions: Sequence[dict], cfg: dict, min_similarity: float) -> Dict[str, List[int]]:
-    """Frames of each event type in one tracks document (sorted, one entry per event)."""
+    """Frames of each event type in one tracks document (sorted, one entry per episode: the tracker logs a flag on
+    every contested frame, so a flag counts only when that (track, rival) pair was not flagged on the frame before)."""
     confirmed = {r["track_id"] for r in tracks["tracklets"] if r["confirmed"]}
     w, h = tracks["video"]["width"], tracks["video"]["height"]
     ex, ey = cfg["edge_frac"] * w, cfg["edge_frac"] * h
@@ -72,16 +73,22 @@ def events(tracks: dict, decisions: Sequence[dict], cfg: dict, min_similarity: f
                     if x1 <= ex or y1 <= ey or x2 >= w - ex or y2 >= h - ey:
                         out["entry"].append(fr["frame"])
             prev_state[tid] = t["state"]
-    for d in decisions:
+    last_flag: Dict[Tuple[str, str, bool], int] = {}
+    for d in sorted(decisions, key=lambda d: d["frame"]):
         if d.get("track_id") not in confirmed:
             continue
         if d["kind"] == "end" and d.get("reason") == "LEFT_FRAME":
             out["exit"].append(d["frame"])
         elif d["kind"] == "identity_uncertain":
-            out["flagged"].append(d["frame"])
+            f = d["frame"]
             rs = d.get("rival_similarity")
-            if rs is not None and rs >= min_similarity:
-                out["similar_rival"].append(d["frame"])
+            similar = rs is not None and rs >= min_similarity
+            for kind, on in (("flagged", True), ("similar_rival", similar)):
+                key = (d["track_id"], str(d.get("rival")), kind == "similar_rival")
+                if on:
+                    if last_flag.get(key) not in (f, f - 1):
+                        out[kind].append(f)
+                    last_flag[key] = f
     return {k: sorted(v) for k, v in out.items()}
 
 
@@ -100,14 +107,16 @@ def candidates(name: str, ev: Dict[str, List[int]], first: int, last: int, fps: 
             if types >= cfg["min_event_types"]:
                 score = sum(cfg["weights"][t] * min(counts[t], cfg["cap"]) for t in TYPES)
                 out.append({"source": name, "start_frame": start, "end_frame": end, "score": round(score, 6),
-                            "event_types": types, "events": counts})
+                            "event_types": types, "episodes": sum(counts.values()), "events": counts})
         start += stride
     return out
 
 
 def choose(cands: List[dict], source_order: Sequence[str], cfg: dict) -> List[dict]:
     rank = {s: k for k, s in enumerate(source_order)}
-    pool = sorted(cands, key=lambda c: (-c["score"], -c["event_types"], rank[c["source"]], c["start_frame"]))
+    # best score; then more event types; then more episodes in all (busier); then source order / earliest frame
+    pool = sorted(cands, key=lambda c: (-c["score"], -c["event_types"], -c["episodes"], rank[c["source"]],
+                                        c["start_frame"]))
     chosen: List[dict] = []
     for c in pool:
         if len(chosen) == cfg["count"]:
@@ -191,9 +200,13 @@ def select(a) -> int:
         c.update({"video": s["video"], "video_sha256": s["video_sha256"],
                   "step_frames": max(1, int(round(cfg["step_s"] * s["fps"]))),
                   "name": f"{c['source']}_f{c['start_frame']}_{c['end_frame']}"})
-    dense = []
+    dense, seen = [], set()
     for rpath, cdir in a.wrong_from or []:
-        dense += dense_windows(read_json(rpath), Path(cdir), cfg)
+        for w in dense_windows(read_json(rpath), Path(cdir), cfg):
+            k = (w["clip"], w["start_frame"], w["end_frame"])      # the same wrong answer in several reports: once
+            if k not in seen:
+                seen.add(k)
+                dense.append(w)
     raw = Path(a.config).read_bytes()
     doc = {"schema": SCHEMA[0], "schema_version": SCHEMA[1], "config": cfg,
            "config_sha256": hashlib.sha256(raw).hexdigest(), "appearance_min_similarity": min_sim,

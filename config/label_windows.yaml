@@ -1,9 +1,11 @@
 # DEV labelling windows chosen from track logs (tools/dev/label_windows.py). DEV only; the product never reads this.
-# Event types are read from a tracks document + its decision log, for confirmed tracks only:
+# Event types are read from a tracks document + its decision log, for confirmed tracks only (ties in score go to the
+# window with more event types, then more episodes in all):
 #   occlusion     a track becomes OCCLUDED (behind another observed player)
 #   exit          a track ends LEFT_FRAME (the player left the picture)
 #   entry         a track is born with its first observed box within edge_frac of an image border (came into picture)
-#   flagged       the tracker flags IDENTITY_UNCERTAIN (identity_uncertain decision: two tracks fit the same player)
+#   flagged       the tracker flags IDENTITY_UNCERTAIN (identity_uncertain decision: two tracks fit the same player);
+#                 counted per episode (a (track, rival) pair flagged again on the next frame is the same episode)
 #   similar_rival ... and the rival's stored appearance matched the crop (rival_similarity >= appearance.min_similarity
 #                 of the tracker config: a same-looking player right there)
 schema: spana.label_windows_config
