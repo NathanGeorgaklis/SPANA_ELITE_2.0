@@ -9,12 +9,15 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
   565 passed, 6 skipped.
 - Transfer flag rule merged to main (2026-11-20, Nathan's Mac; full suite 572 passed, 6 skipped). Silent-transfer counts
   below that predate it use the OLD rule; under the merged rule our tracker has 3 silent of 7 (see Next task 0).
+- Silent-transfer fix on branch `tracking/silent-transfer-fix` (2026-11-20, not merged; config 2.13.0): DEV silent
+  3 -> 0, wrong frames 1 / 2 -> 0 / 0, but reviewer correct 0.783 -> 0.680 (`records/silent_transfer_fix_2026-11-20`).
+  Full suite 583 passed, 6 skipped.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
 |---|---|---|---|---|
 | player detection | PARTIAL | `spana/detection/` (`onnx_backend.py`, `postprocess.py`, `tiling.py`, `roboflow_backend.py`, `base.py`) | `tests/test_detection_camera.py`, `tests/test_merge_detections.py`, `tests/test_multi_body.py`, `tests/test_roboflow_dataset.py`, `tests/test_detector_eval.py`, `tests/test_detection_interface.py`, `tests/test_dev_bench.py` | Football detector v1 trained (`nathans-workspace-9brdc/spana-elite-2-rfdetr-medium-t1`, RF-DETR medium, dataset version 2), adapter `RoboflowDetector.from_detector_config` (config `detector`, confidence / iou 0.50 untuned). Scored only on the M001 valid split (table below), which shares a broadcaster with training: generalisation unknown. DEV benchmark uploaded and pre-labelled (76 frames, 2 DEV matches), waiting for Nathan's label review; not scored. Pipeline CLI still uses pinned COCO YOLOX-s, person only (`models/yolox_s.json`); FRESH_02 recall 0.971 (NESTED_V1). YOLOX inference test skipped without weights. |
-| player tracking | PARTIAL | `spana/tracking/` (`tracker.py`, `kalman.py`, `camera.py`), `spana/appearance.py` | `tests/test_tracker.py`, `tests/test_camera_uncertainty.py`, `tests/test_identity_uncertain.py`, `tests/test_unconfirmed_low_score.py`, `tests/test_cli_e2e.py`, `tests/test_foundation.py` | Generic multi-player tracker with camera compensation and per-track IDENTITY_UNCERTAIN (`spana.tracks` 2.2.0: + `identity_doubt`). DEV 4 clips (local detector): 120 fragments, 121 ID switches, 6 transfers, 0 silent (NESTED_V2). Fragmentation remains the largest error. Stale tracks past their recovery window no longer block S3c / S4
+| player tracking | PARTIAL | `spana/tracking/` (`tracker.py`, `kalman.py`, `camera.py`), `spana/appearance.py` | `tests/test_tracker.py`, `tests/test_camera_uncertainty.py`, `tests/test_identity_uncertain.py`, `tests/test_unconfirmed_low_score.py`, `tests/test_cli_e2e.py`, `tests/test_foundation.py`, `tests/test_silent_transfer_fix.py` | Generic multi-player tracker with camera compensation and per-track IDENTITY_UNCERTAIN (`spana.tracks` 2.2.0: + `identity_doubt`). Branch `tracking/silent-transfer-fix` (not merged): ambiguous spawns start uncertain and nested crossings of similar-looking tracks mark both uncertain; DEV silent 3 -> 0, wrong 0 / 0, reviewer correct 0.783 -> 0.680 (`records/silent_transfer_fix_2026-11-20`). DEV 4 clips (local detector): 120 fragments, 121 ID switches, 6 transfers, 0 silent (NESTED_V2). Fragmentation remains the largest error. Stale tracks past their recovery window no longer block S3c / S4
 (`tracking.rival_eligible_only` ON, `records/rival_eligible_2026-11-19`): fragments 110 -> 105, ID switches 112 -> 107,
 same 7 flagged transfers, 0 silent, reviewer 0.778 / 2 / 5.64 -> 0.783 / 2 / 5.50 (FRESH_08 player 10 no longer split at 99 / 104; still split at 148 by the colour veto: doubt link re-measured, still fails
 the bar; 10-minute window check passed, `records/fresh08_followup_2026-11-20`).
@@ -156,6 +159,17 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
    BoT-SORT unchanged (rejection stands). Earlier "0 silent" claims superseded (DECISIONS 2026-11-20). Next: a
    tracking task for the 3 silent transfers (ambiguous spawn with no uncertain state; FRESH_07 T000018
    swap-and-return).
+   DONE on branch `tracking/silent-transfer-fix` (`records/silent_transfer_fix_2026-11-20`, not merged). Two root
+   causes:
+   - Ambiguous spawns started CERTAIN. Now `tracking.ambiguous_spawn_uncertain`: they start IDENTITY_UNCERTAIN.
+   - FRESH_07 was a crossing without a contest, not an assignment swap (margin 0.37). Each track gated only its own
+     box, and one took a merged box holding the other's body. Now `tracking.crossing_uncertain`, containment
+     >= 0.60 of an observed, similar-looking track.
+   DEV: silent 3 -> 0, wrong frames 1 / 2 -> 0 / 0, h1 0 silent at 10 / 25 / 60 fps, linked 0 transfers on linked
+   tracks.
+   Cost: reviewer correct 0.783 -> 0.680, unaided 0.535 -> 0.508, actions 5.50 -> 4.11 / min (reviewer ABSTAIN
+   frames 435 -> 735), links 21 -> 10. Next: Nathan decides on the merge given that cost. The lever for winning the
+   time back is resolving same-look episodes (re-ID resolution, item 1 (c)).
 1. Long-play capability (`records/window_f05_2026-11-18`, 10-minute DEV window of match G2; re-measured with the
    extent link in `records/extent_link_window_2026-11-18`).
    - Following one player unattended lasts one track; tracks end mostly at camera pans (LEFT_FRAME) and in crowds

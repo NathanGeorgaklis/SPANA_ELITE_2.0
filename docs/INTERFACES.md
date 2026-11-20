@@ -62,7 +62,13 @@ What the tracking layer receives from any detector, the football detector includ
     (`tracking.appearance_doubt_link`, decision `doubt_link`). `identity` is CERTAIN only with no
     `identity_rivals` and no `identity_doubt`, so IDENTITY_UNCERTAIN may have no rivals. 2.1.0 documents still
     validate with their 2.1.0 meaning (no `identity_doubt` key, uncertain <=> rivals).
-- Side output: decision log `*.decisions.jsonl` (every association, refusal, spawn, end).
+  - Config 2.13.0 (2026-11-20, `records/silent_transfer_fix_2026-11-20`), same contract and version, no key added:
+    `identity_rivals` may also name the `possible_predecessors` of an ambiguous spawn (`tracking.ambiguous_spawn_uncertain`:
+    a track born naming >= 2 predecessors starts IDENTITY_UNCERTAIN, `uncertain_episodes` 1). A crossing without a
+    contest (`tracking.crossing_uncertain`, `crossing_min_ioa`, `crossing_hidden_rivals`) also marks both tracks.
+- Side output: decision log `*.decisions.jsonl` (every association, refusal, spawn, end). `identity_uncertain` rows
+  carry `rule`: CONTESTED_MATCH, CROSSING (+ `rival_inside, rival_observed, look_similarity`) or AMBIGUOUS_SPAWN
+  (+ `rivals`); `identity_resolved` rivals may include `(predecessors)`: PREDECESSOR.
 - CLI: `python -m spana.cli track --video --config --detections --out`.
 
 - Offline tracklet linking (`spana/tracking/linking.py`, on main 2026-11-20): in a

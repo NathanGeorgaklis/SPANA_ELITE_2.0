@@ -19,14 +19,14 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.12.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.13.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
 #   2.8.0: + reid.set_* (crop sets), target.reentry_signature / reentry_wait_samples / reentry_withdraw;
 #   2.9.0: + target.reentry_exit_edge / reentry_exit_edge_max_frac; 2.10.0: + target.offer_hold_s;
 #   2.11.0: + tracking.rival_eligible_only; 2.12.0: + reid_resolve section (re-ID evidence for IDENTITY_UNCERTAIN),
-#   target.resume_after_reid
+#   target.resume_after_reid; 2.13.0: + tracking.ambiguous_spawn_uncertain, crossing_uncertain, crossing_min_ioa
 
 
 class ConfigError(ValueError):
@@ -149,10 +149,17 @@ class TrackingConfig:
                                    #   detection overlapping its prediction by >= low_score_min_iou
     rival_eligible_only: bool      # S3c / S4: only a track that could take a detection on this frame (observed on the
                                    #   previous frame, or still recoverable) counts as another claimant / RIVAL_TRACK
+    ambiguous_spawn_uncertain: bool  # a track spawned naming >= 2 possible predecessors starts IDENTITY_UNCERTAIN
+                                   #   (its predecessors are its rivals) instead of CERTAIN
+    crossing_uncertain: bool       # a confirmed track whose box holds a similar-looking confirmed track's body
+                                   #   (crossing_min_ioa) marks both IDENTITY_UNCERTAIN, contested or not
+    crossing_min_ioa: float        # ... share of the other track's box (matched detection, else prediction) inside it
+    crossing_hidden_rivals: bool   # ... the other track may also be unobserved (its prediction; live or recoverable),
+                                   #   not only observed on its own detection on this frame
 
     def validate(self) -> None:
         for n in ("low_score_min_iou", "iou_weight", "contest_margin", "duplicate_iou", "duplicate_ioa",
-                  "occlusion_min_ioa", "confirm_nested_ioa", "appearance_doubt_min_iou"):
+                  "occlusion_min_ioa", "confirm_nested_ioa", "appearance_doubt_min_iou", "crossing_min_ioa"):
             _unit(f"tracking.{n}", getattr(self, n))
         for n in ("gate_base_h", "max_speed_h_per_s", "gate_max_h", "gate_chi2", "confirm_s", "unconfirmed_max_s", "rematch_max_s",
                   "occlusion_max_s", "max_accel_h_per_s2", "predict_max_s", "lost_max_s", "confidence_window_s", "history_s",
