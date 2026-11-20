@@ -4,7 +4,7 @@
 # F0x_ours.trk.json, main d6511e2; spana/, config/default.yaml and the scorers are unchanged since), made from the
 # cached local-detector detections runs/person_view_compare/F0x_local.det.json. Production tracker not re-run.
 set -euo pipefail
-R=~/SPANA_ELITE_2.0; B=~/spana-botsort-run/out; O=~/spana-linking-run/out; P=$R/.venv/bin/python
+R=~/SPANA_ELITE_2.0; B=~/spana-botsort-run/out; O=${OUT:-$HOME/spana-linking-run/out}; P=$R/.venv/bin/python
 typeset -A CLIP=(F02 FRESH_02_G1_3000_midfield_buildup_passing F05 FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper
                  F07 FRESH_07_G3_1205_midfield_passing_switch F08 FRESH_08_G3_2103_attack_into_box_clearance)
 mkdir -p $O; cd $R

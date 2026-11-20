@@ -25,7 +25,8 @@ logged with its reasons:
   * both tracklets confirmed; appearance known and >= min_similarity; no team conflict;
   * not across an uncertain episode (A not IDENTITY_UNCERTAIN from its last observation on, B not uncertain on its
     first row) and the two never named each other in `identity_rivals` (also anywhere along a chain), unless the
-    appearance similarity reaches strict_min_similarity;
+    appearance similarity reaches strict_min_similarity AND allow_uncertain_clearance is on (OFF since 2026-11-20:
+    torso colour let a same-kit teammate through on DEV, records/tracklet_linking_v1_2026-11-20);
   * the merged rows can still be written truthfully (an uncertain row whose only rivals are its own chain cannot).
 Confidence is never raised by a link: B's rows carry the chain's `uncertain_episodes` (so a follower selected
 before the link stays tainted after an earlier episode), B's own identity state, and a `confidence` that is the
@@ -50,7 +51,7 @@ import yaml
 from ..appearance import describe, similarity as hist_similarity
 from ..config import AppearanceConfig, ConfigError, typed_from_dict
 
-LINKING_CONFIG_VERSION = "1.0.0"
+LINKING_CONFIG_VERSION = "1.1.0"   # 1.1.0: + allow_uncertain_clearance
 LINK_LOG_SCHEMA = ("spana.links", "1.0.0")
 _EPS = 1e-9
 
@@ -81,6 +82,7 @@ class LinkingConfig:
     signature_samples: int
     min_similarity: float
     strict_min_similarity: float
+    allow_uncertain_clearance: bool   # strict_min_similarity may clear an uncertain episode / rival (else never)
     weight_gap: float
     weight_motion: float
     weight_appearance: float
@@ -344,7 +346,8 @@ def _pair_reasons(p: _Pair, tls: Dict[str, _Tracklet], cfg: LinkingConfig) -> Tu
         reasons.append(APPEARANCE_BELOW_MIN)
     if p.terms["team"] == 1.0:
         reasons.append(TEAM_CONFLICT)
-    strict = p.similarity is not None and p.similarity >= cfg.strict_min_similarity
+    strict = cfg.allow_uncertain_clearance and p.similarity is not None and \
+        p.similarity >= cfg.strict_min_similarity
     if _uncertain_across(a, b):
         if strict:
             cleared = True
@@ -433,7 +436,8 @@ def _chain_conflict(links: List[_Pair], tls: Dict[str, _Tracklet], cfg: LinkingC
                 y = chain[j]
                 if y in tls[x].rivals() or x in tls[y].rivals():
                     weak = [by_a[chain[k]] for k in range(i, j)
-                            if by_a[chain[k]].similarity is None or by_a[chain[k]].similarity < cfg.strict_min_similarity]
+                            if not cfg.allow_uncertain_clearance or by_a[chain[k]].similarity is None
+                            or by_a[chain[k]].similarity < cfg.strict_min_similarity]
                     if weak:
                         return weak[0], IDENTITY_RIVAL_IN_CHAIN
         for i, x in enumerate(chain):

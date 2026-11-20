@@ -2,7 +2,7 @@
 # per clip. Values are taken from the tracker's own config (config/default.yaml) where a counterpart exists; the
 # rest are policy, set BEFORE the DEV bench was run (records/tracklet_linking_v1_2026-11-20). Units: seconds and
 # body heights (box height of the player), as in config/default.yaml.
-schema_version: "1.0.0"
+schema_version: "1.1.0"   # 1.1.0: + allow_uncertain_clearance
 
 # --- candidates: B starts after A's last observation, same epoch (no cut / unknown camera in between)
 max_gap_s: 2.0                 # = tracking.lost_max_s: the longest gap the tracker itself keeps a track for
@@ -15,7 +15,10 @@ extrapolate_max_s: 0.5         # = tracking.predict_max_s: constant-velocity pre
 # --- appearance (Embedder: torso colour histogram, spana/appearance.py, for now)
 signature_samples: 5           # clean observed crops averaged at each end of a tracklet (tail of A, head of B)
 min_similarity: 0.70           # = appearance.min_similarity: below this B is not A's continuation
-strict_min_similarity: 0.85    # policy: needed to link across an uncertain episode or to an identity rival
+strict_min_similarity: 0.85    # policy: needed to link across an uncertain episode or to an identity rival ...
+# ... and only when this is on. OFF (Nathan, 2026-11-20): on DEV the clearance linked FRESH_02 player 8 to player 10
+# (torso colour 0.896, same-kit teammates). Off until an embedder can separate same-kit teammates.
+allow_uncertain_clearance: false
 
 # --- cost: weighted sum of terms in [0, 1]; lower is better
 weight_gap: 1.0                # gap_s / max_gap_s

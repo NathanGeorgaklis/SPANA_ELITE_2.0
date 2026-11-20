@@ -83,3 +83,31 @@ is what the follower acts on.
 ## Files
 `compare_summary.json` (all four trackers, per clip and pooled), `link_transfers.json`, `F0x_linked.trk.links.jsonl`
 (full link logs), `linking.config_snapshot.yaml`, `run_bench.sh`, `HASHES.txt`.
+
+## Addendum: clearance off (Nathan, option 2, same day)
+Decision: no link across an uncertain episode or to an identity rival at any similarity. Done by config
+(`allow_uncertain_clearance: false`, linking config 1.1.0); the code path and its tests are kept and a test checks
+that the flag blocks it. Acceptance, stricter than the task's (2026-11-18 linked-track rule): zero transfers on any
+linked track, silent transfers 0, wrong-player time not worse. `link_bench.py` now also counts every transfer on a
+track that received a link. Same bench, same inputs (`run_bench.sh` with `OUT=~/spana-linking-run/out_noclear`),
+outputs in `clearance_off/`.
+
+| | ours | ByteTrack | BoT-SORT | linking, clearance on | **linking, clearance off** |
+|---|---|---|---|---|---|
+| fragments | 105 | 49 | 42 | 72 | **85** |
+| ID switches | 107 | 52 | 45 | 76 | **88** |
+| transfers flagged / silent | 7 / 0 | 0 / 14 | 0 / 20 | 8 / 0 | **7 / 0** |
+| link-caused transfers (silent) | — | — | — | 1 (0) | **0 (0)** |
+| transfers on linked tracks | — | — | — | 1 | **0** |
+| correct time, no help | 0.535 | 0.665 | 0.696 | 0.625 | **0.606** |
+| wrong-player time, no help | 1 frame | 217 | 272 | 1 frame | **1 frame** |
+| correct time, reviewer | 0.783 | 0.823 | 0.825 | 0.791 | **0.785** |
+| wrong-player time, reviewer | 2 frames | 282 | 316 | 2 frames | **2 frames** |
+| review actions per followed min | 5.50 | 2.23 | 1.81 | 4.04 | **4.18** |
+
+- Links 21 (F02 2, F05 0, F07 8, F08 11), abstentions 142; UNCERTAIN_EPISODE 25 -> 44, IDENTITY_RIVAL 7 -> 13.
+- Per clip, fragments: F02 23 -> 21, F05 7 -> 7, F07 28 -> 21, F08 47 -> 36. Correct time without help: F02 0.518,
+  F05 0.716, F07 0.726, F08 0.470. Reviewer actions F02 16, F05 7, F07 14, F08 23 (was 18 / 7 / 20 / 34).
+- The wrong-player frames are the same frames as the baseline (FRESH_07 player 14; FRESH_02 player 9 with the
+  reviewer). The FRESH_02 player 8 -> 10 link is no longer made.
+- **Acceptance met:** 0 transfers on linked tracks, 0 silent, wrong-player time unchanged. Merged to main.

@@ -7,7 +7,7 @@ tools/benchmark.py counts a transfer as flagged when its track has `recoveries >
 so a wrong link would never show there as silent. Here a transfer is LINK-CAUSED when it appears in the linked run's
 benchmark events but not in the baseline's (same frame, from-player, to-player). A link-caused transfer counts as
 SILENT unless the track was IDENTITY_UNCERTAIN (now or since its previous attribution): that is how the follower
-sees it. Link log: links and abstentions by reason.
+sees it. Also: every transfer (any cause, any frame) on a track that received a link (2026-11-18 linked-track rule). Link log: links and abstentions by reason.
 """
 from __future__ import annotations
 
@@ -33,6 +33,8 @@ def clip_transfers(base: dict, linked: dict, links: List[dict]) -> dict:
         else:
             new.append(e)
     rows = [r for r in links if r.get("kind") in ("link", "abstain")]
+    heads = {r["head"] for r in rows if r["kind"] == "link"}
+    on_linked = [e for e in linked["events"]["transfers"] if e["track_id"] in heads]
     reasons = Counter(x for r in rows if r["kind"] == "abstain" for x in r["reasons"])
     return {"links": sum(r["kind"] == "link" for r in rows), "abstentions": sum(r["kind"] == "abstain" for r in rows),
             "links_cleared_by_appearance": sum(r["kind"] == "link" and r["cleared_by_appearance"] for r in rows),
@@ -40,7 +42,8 @@ def clip_transfers(base: dict, linked: dict, links: List[dict]) -> dict:
             "link_caused_transfers": len(new),
             "link_caused_silent": sum(not e["identity_uncertain"] for e in new),
             "link_caused_events": new,
-            "baseline_transfers_removed": sum(gone.values())}
+            "baseline_transfers_removed": sum(gone.values()),
+            "transfers_on_linked_tracks": len(on_linked), "transfers_on_linked_tracks_events": on_linked}
 
 
 def main(argv=None) -> int:
@@ -56,7 +59,7 @@ def main(argv=None) -> int:
         c = clip_transfers(json.loads(Path(base).read_text()), json.loads(Path(linked).read_text()), rows)
         clips[name] = c
         for k in ("links", "abstentions", "links_cleared_by_appearance", "link_caused_transfers",
-                  "link_caused_silent", "baseline_transfers_removed"):
+                  "link_caused_silent", "baseline_transfers_removed", "transfers_on_linked_tracks"):
             pooled[k] += c[k]
         for k, v in c["abstention_reasons"].items():
             pooled["reason:" + k] += v

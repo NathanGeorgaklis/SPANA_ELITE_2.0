@@ -32,6 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CFG = load_config(ROOT / "config" / "default.yaml")
 LCFG_PATH = ROOT / "config" / "tracking" / "linking.yaml"
 LCFG = load_linking_config(LCFG_PATH)
+LCFG_CLEAR = dataclasses.replace(LCFG, allow_uncertain_clearance=True)   # the clearance path (off in config)
 FPS = 10.0
 H = 100.0                      # body height in px of every synthetic player
 
@@ -120,7 +121,7 @@ def sigs(**ends: Tuple[Optional[np.ndarray], Optional[np.ndarray]]) -> dict:
     return {tid: {"head": h, "tail": t} for tid, (h, t) in ends.items()}
 
 
-def link(doc: dict, sig: dict, cfg=LCFG):
+def link(doc: dict, sig: dict, cfg=LCFG_CLEAR):
     out, log, head_of = link_document(doc, sig, "test", hist_similarity, cfg,
                                       confidence_window_s=CFG.tracking.confidence_window_s,
                                       score_decimals=CFG.output.score_decimals, box_decimals=CFG.output.box_decimals,
@@ -326,6 +327,24 @@ class FailClosedIdentityTest(unittest.TestCase):
         self.assertEqual(entry(log, "A")["reasons"], [UNREPRESENTABLE_RIVALRY])
 
 
+    def test_config_flag_off_blocks_the_strict_clearance(self):
+        self.assertFalse(LCFG.allow_uncertain_clearance)              # shipped setting
+        strong = vec(0, mix=1 - ((1 + LCFG.strict_min_similarity) / 2) ** 2)
+        doc = tracks_doc(self._uncertain_end(), 20)
+        _, log, head_of = link(doc, sigs(A=(SAME, SAME), X=(vec(5), vec(5)), B=(strong, strong)), cfg=LCFG)
+        self.assertEqual(head_of, {})
+        self.assertIn(UNCERTAIN_EPISODE, entry(log, "A")["reasons"])
+        self.assertFalse(entry(log, "A")["cleared_by_appearance"])
+        doc = self._rival_doc(["A", "X"])
+        _, log, head_of = link(doc, sigs(A=(SAME, SAME), X=(vec(5), vec(5)), B=(strong, strong)), cfg=LCFG)
+        self.assertEqual(head_of, {})
+        self.assertIn(IDENTITY_RIVAL, entry(log, "A")["reasons"])
+        # a clean link is unaffected by the flag
+        doc = tracks_doc({"A": run({}, 0, 10, 100.0, 0.0), "B": run({}, 12, 20, 100.0, 0.0)}, 20)
+        _, _, head_of = link(doc, sigs(A=(SAME, SAME), B=(SAME, SAME)), cfg=LCFG)
+        self.assertEqual(head_of, {"B": "A"})
+
+
 class ConfidenceInheritanceTest(unittest.TestCase):
     def _doc(self):
         a = run({}, 0, 10, 100.0, 0.0)
@@ -371,7 +390,9 @@ class ConfigTest(unittest.TestCase):
         with self.assertRaises(ConfigError):
             linking_config_from_dict({**raw, "strict_min_similarity": raw["min_similarity"] - 0.1})
         with self.assertRaises(ConfigError):
-            linking_config_from_dict({**raw, "schema_version": "0.0.1"})
+            linking_config_from_dict({**raw, "schema_version": "1.0.0"})      # 1.0.0 lacks the flag
+        with self.assertRaises(ConfigError):
+            linking_config_from_dict({**raw, "allow_uncertain_clearance": "no"})
 
 
 class CliTest(unittest.TestCase):
