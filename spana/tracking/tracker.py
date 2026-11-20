@@ -158,7 +158,9 @@ class _Track:
     resolve_since_t: Optional[float] = None    # start of the current run of clean evidence favouring this track
     appearance_doubt_since: Optional[float] = None   # latest S3b doubt link (None = no appearance doubt)
     doubt_appearance: Optional[np.ndarray] = None    # self-consistent resolution: appearance seen during the doubt
-    resolve_run_reid: bool = False             # every frame of that run cleared every rival by the re-ID margin
+    reid_run_since_t: Optional[float] = None   # start of the current re-ID run (config reid_resolve)
+    reid_run_frames: int = 0                   # clean frames in that run on which re-ID cleared every rival
+    reid_run_pred: Optional[str] = None        # ambiguous spawn: the predecessor re-ID picked in that run
     resolved_by: Optional[str] = None          # rule that cleared the latest episode (APPEARANCE / REID)
     reid_ref: Optional[np.ndarray] = None      # re-ID reference (clean, uncontested, CERTAIN observation)
     reid_ref_t: Optional[float] = None
@@ -504,6 +506,7 @@ class MultiPlayerTracker:
             rsnap = prev.reid if prev is not None else (None if b.reid_ref is None else b.reid_ref.copy())
             a.identity_rivals[b.track_id] = _Rival(snap, time_s, rsnap)
             a.resolve_since_t, a.resolved_by = None, None
+            self._reset_reid_run(a)
 
     def _recoverable_or_live(self, t: _Track, time_s: float) -> bool:
         return t.observed_last_frame or time_s - t.last_observed_t <= self.tc.occlusion_max_s + _EPS
@@ -560,21 +563,28 @@ class MultiPlayerTracker:
         this frame (its motion gate holds only this detection, no other track gates it) and the crop matches the
         appearance seen since the doubt began (the first such crop only starts that reference); a non-exclusive
         frame or a disagreeing crop is evidence against. On resolution the track adopts that appearance.
-        With reid_resolve on, each rival pair also gets a REID verdict from the re-ID embedding of the clean crop:
-        cleared if sim(own reference) - sim(rival reference at the contest) >= reid_resolve.margin, against if
-        <= -margin, else no evidence. A pair is against if either cue is against, cleared if either clears it. An
-        appearance doubt has no rival reference: only appearance clears it. The track is resolved_by REID only if
-        re-ID cleared every rival on every frame of the run and there was no appearance doubt, else APPEARANCE.
-        Any pair with clean evidence against it resets the run; frames without evidence for a pair hold it."""
+        Any pair with clean evidence against it resets the run; frames without evidence for a pair hold it; the
+        episode is then resolved_by APPEARANCE.
+        With reid_resolve on (config 2.14.0) re-ID has its own run (_reid_evidence, _advance_reid_run): it resolves
+        the episode (resolved_by REID) when re-ID cleared every rival, predecessors included, on
+        reid_resolve.min_evidence_frames clean frames spanning identity_resolve_s, with no evidence against in
+        between. Colour cannot clear for re-ID and its "cannot tell" does not stop a re-ID run (same-look rivals);
+        colour that clearly favours the rival does. Re-ID evidence against a rival also resets the colour run."""
         clear_max = self.ac.min_similarity - self.ac.min_margin
         gated: Optional[np.ndarray] = None
         emb = emb or {}
         for k, (i, contested) in matched.items():
             t = self._tracks[k]
-            if not self._uncertain(t) or contested or not self._clean(i, dets, matched):
+            if not self._uncertain(t):
+                continue
+            if contested or not self._clean(i, dets, matched):
+                if self.rc.enabled:           # refused: re-ID uses clean, uncontested crops only
+                    out.decisions.append({"kind": "reid_evidence", "track_id": t.track_id, "detection": i,
+                                          "status": "CONTESTED" if contested else "NOT_CLEAN", "rivals": {},
+                                          "cleared": False, "run_frames": t.reid_run_frames})
                 continue
             e = emb.get(i)
-            if desc[i] is None and e is None:
+            if desc[i] is None and e is None and not self.rc.enabled:
                 continue
             s_own = similarity(desc[i], t.appearance) if desc[i] is not None else None
             verdicts: Dict[str, Tuple[str, Optional[bool]]] = {}
@@ -609,11 +619,9 @@ class MultiPlayerTracker:
                             if rv.appearance is not None and similarity(desc[i], rv.appearance) > clear_max]
                     v = True if len(near) + len(unknown) <= 1 else (False if len(near) >= 2 else None)
                     verdicts["(predecessors)"] = ("PREDECESSOR", v)
-            reid_v: Dict[str, Optional[bool]] = {}
             for rid, rv in t.identity_rivals.items():
                 if rv.predecessor:
                     continue                  # judged jointly above
-                reid_v[rid] = self.reid_verdict(e, t.reid_ref, rv.reid)
                 if desc[i] is None:
                     verdicts[rid] = ("NO_CROP", None)
                 elif t.appearance is not None and rv.appearance is not None:
@@ -631,14 +639,13 @@ class MultiPlayerTracker:
                                          similarity(crop[1], t.appearance) <= clear_max)
                 else:
                     verdicts[rid] = ("NONE_STORED", None)
-            for rid, (rule, v) in list(verdicts.items()):           # combine with the re-ID verdict per pair
-                r = reid_v.get(rid)               # None for the appearance doubt (no rival reference)
-                if v is False or r is False:
-                    verdicts[rid] = (rule + ("+REID_AGAINST" if r is False else ""), False)
-                elif v or r:
-                    verdicts[rid] = ("REID" if not v else (rule + "+REID" if r else rule), True)
-            all_reid = bool(reid_v) and all(reid_v.values()) and "(appearance_doubt)" not in verdicts and \
-                "(predecessors)" not in verdicts
+            reid = self._reid_evidence(t, i, e, desc[i], time_s, out) if self.rc.enabled else None
+            if reid is not None and reid["against"]:
+                for rid in reid["against"]:   # re-ID evidence of a swap also stops a colour run (fail closed)
+                    rule, _ = verdicts.get(rid, ("REID", None))
+                    verdicts[rid] = (rule + "+REID_AGAINST", False)
+            if reid is not None and self._advance_reid_run(t, i, reid, s_own, time_s, out):
+                continue                      # resolved by re-ID on this frame
             if any(v is False for _, v in verdicts.values()):
                 if t.resolve_since_t is not None:
                     out.decisions.append({"kind": "identity_resolution_reset", "track_id": t.track_id,
@@ -649,18 +656,126 @@ class MultiPlayerTracker:
             if not all(v for _, v in verdicts.values()):
                 continue                      # some pair has no evidence on this frame: hold, do not advance
             if t.resolve_since_t is None:
-                t.resolve_since_t, t.resolve_run_reid = time_s, True
-            t.resolve_run_reid = t.resolve_run_reid and all_reid
+                t.resolve_since_t = time_s
             if time_s - t.resolve_since_t >= self.tc.identity_resolve_s - _EPS:
-                by = "REID" if t.resolve_run_reid else "APPEARANCE"
                 out.decisions.append({"kind": "identity_resolved", "track_id": t.track_id, "detection": i,
                                       "rivals": {r: rule for r, (rule, _) in sorted(verdicts.items())},
-                                      "own_similarity": s_own, "resolved_by": by})
+                                      "own_similarity": s_own, "resolved_by": "APPEARANCE"})
                 if verdicts.get("(appearance_doubt)", ("",))[0] == "SELF_CONSISTENT":
                     t.appearance, t.appearance_t = t.doubt_appearance.copy(), time_s   # the look seen since
-                t.identity_rivals, t.resolve_since_t, t.appearance_doubt_since = {}, None, None
-                t.doubt_appearance, t.resolved_by = None, by
-                self._pending_doubt.pop(t.track_id, None)   # this frame's doubt link is what just resolved
+                self._clear_episode(t, "APPEARANCE")
+
+    def _clear_episode(self, t: _Track, by: str) -> None:
+        t.identity_rivals, t.resolve_since_t, t.appearance_doubt_since = {}, None, None
+        t.doubt_appearance, t.resolved_by = None, by
+        self._reset_reid_run(t)
+        self._pending_doubt.pop(t.track_id, None)   # this frame's doubt link is what just resolved
+
+    @staticmethod
+    def _reset_reid_run(t: _Track) -> None:
+        t.reid_run_since_t, t.reid_run_frames, t.reid_run_pred = None, 0, None
+
+    def _reid_evidence(self, t: _Track, i: int, e: Optional[np.ndarray], d: Optional[np.ndarray], time_s: float,
+                       out: FrameTracks) -> dict:
+        """Re-ID verdict for every rival of an uncertain track on a clean, uncontested crop (config reid_resolve).
+        Per rival pair: margin = sim(crop, own reference) - sim(crop, rival reference at the contest); cleared at
+        >= reid_resolve.margin, against at <= -margin, else no evidence. Predecessors of an ambiguous spawn are
+        judged together (the track may BE one of them): cleared when one predecessor beats every other by the
+        margin; the picked predecessor is returned so a run can require the same pick on every frame. A missing
+        embedding or reference, a rival not yet re-observed after its contest, or an appearance doubt (no rival
+        reference) is no evidence. Colour can only veto (clearly favouring the rival / clearly unlike the pick),
+        never clear. Logged as `reid_evidence` with the scores, margins and the reason for every refusal."""
+        clear_max = self.ac.min_similarity - self.ac.min_margin
+        rivals: Dict[str, dict] = {}
+        against: List[str] = []
+        pick: Optional[str] = None
+        status = "EVALUATED"
+        if t.appearance_doubt_since is not None:
+            status = "APPEARANCE_DOUBT"
+        elif e is None:
+            status = "NO_EMBEDDING"
+        elif t.reid_ref is None and any(not rv.predecessor for rv in t.identity_rivals.values()):
+            status = "NO_OWN_REFERENCE"
+        if status == "EVALUATED":
+            for rid, rv in sorted(t.identity_rivals.items()):
+                if rv.predecessor:
+                    continue
+                row: dict = {"rule": "PAIR"}
+                if rv.reid is None:
+                    row["refused"] = "NO_RIVAL_REFERENCE"
+                elif time_s <= rv.since_t + _EPS:
+                    row["refused"] = "AT_CONTEST"
+                else:
+                    so, sr = float(e @ t.reid_ref), float(e @ rv.reid)
+                    m = so - sr
+                    row.update(own=round(so, 4), rival=round(sr, 4), margin=round(m, 4))
+                    if m <= -self.rc.margin:
+                        row["verdict"] = "AGAINST"
+                        against.append(rid)
+                    elif m < self.rc.margin:
+                        row["refused"] = "BELOW_MARGIN"
+                    elif d is not None and t.appearance is not None and rv.appearance is not None and \
+                            similarity(d, rv.appearance) - similarity(d, t.appearance) >= self.ac.min_margin:
+                        row["verdict"] = "COLOUR_CONTRARY"      # the cues disagree: fail closed
+                        against.append(rid)
+                    else:
+                        row["verdict"] = "CLEARED"
+                rivals[rid] = row
+            preds = {rid: rv for rid, rv in t.identity_rivals.items() if rv.predecessor}
+            if preds:
+                row = {"rule": "PREDECESSOR"}
+                if any(rv.reid is None for rv in preds.values()):
+                    row["refused"] = "NO_PREDECESSOR_REFERENCE"
+                    row["missing"] = sorted(r for r, rv in preds.items() if rv.reid is None)
+                else:
+                    sims = sorted(((float(e @ rv.reid), r) for r, rv in preds.items()), reverse=True)
+                    gap = sims[0][0] - sims[1][0]
+                    row.update(sims={r: round(v, 4) for v, r in sims}, best=sims[0][1], margin=round(gap, 4))
+                    best = preds[sims[0][1]]
+                    if gap < self.rc.margin:
+                        row["refused"] = "BELOW_MARGIN"
+                    elif t.reid_run_pred is not None and sims[0][1] != t.reid_run_pred:
+                        row["verdict"] = "PICK_CHANGED"         # a different predecessor than earlier in the run
+                        against.append("(predecessors)")
+                    elif d is not None and best.appearance is not None and similarity(d, best.appearance) <= clear_max:
+                        row["verdict"] = "COLOUR_CONTRARY"
+                        against.append("(predecessors)")
+                    else:
+                        row["verdict"] = "CLEARED"
+                        pick = sims[0][1]
+                rivals["(predecessors)"] = row
+        cleared = status == "EVALUATED" and bool(rivals) and all(r.get("verdict") == "CLEARED" for r in rivals.values())
+        out.decisions.append({"kind": "reid_evidence", "track_id": t.track_id, "detection": i, "status": status,
+                              "rivals": rivals, "cleared": cleared, "run_frames": t.reid_run_frames,
+                              "run_s": None if t.reid_run_since_t is None else round(time_s - t.reid_run_since_t, 4)})
+        return {"cleared": cleared, "against": against, "pick": pick, "rivals": rivals, "status": status}
+
+    def _advance_reid_run(self, t: _Track, i: int, reid: dict, s_own: Optional[float], time_s: float,
+                          out: FrameTracks) -> bool:
+        """The re-ID run of an uncertain track: any evidence against resets it, a frame where re-ID cleared every
+        rival advances it, any other frame holds it. It resolves the episode (resolved_by REID) only when it spans
+        tracking.identity_resolve_s AND holds reid_resolve.min_evidence_frames clearing frames: never one frame."""
+        if reid["against"]:
+            if t.reid_run_since_t is not None:
+                out.decisions.append({"kind": "reid_run_reset", "track_id": t.track_id, "detection": i,
+                                      "against": sorted(reid["against"]), "run_frames": t.reid_run_frames})
+            self._reset_reid_run(t)
+            return False
+        if not reid["cleared"]:
+            return False
+        if t.reid_run_since_t is None:
+            t.reid_run_since_t, t.reid_run_frames, t.reid_run_pred = time_s, 0, reid["pick"]
+        t.reid_run_frames += 1
+        run_s = time_s - t.reid_run_since_t
+        if run_s < self.tc.identity_resolve_s - _EPS or t.reid_run_frames < self.rc.min_evidence_frames:
+            return False
+        out.decisions.append({"kind": "identity_resolved", "track_id": t.track_id, "detection": i,
+                              "rivals": {r: row.get("rule") for r, row in sorted(reid["rivals"].items())},
+                              "own_similarity": s_own, "resolved_by": "REID", "reid": reid["rivals"],
+                              "reid_margin": self.rc.margin, "run_frames": t.reid_run_frames,
+                              "run_s": round(run_s, 4), "predecessor": t.reid_run_pred})
+        self._clear_episode(t, "REID")
+        return True
 
     def _may_claim(self, t: _Track, time_s: float) -> bool:
         """Could t take a detection on this frame (S3c / S4 claimant)? With tracking.rival_eligible_only, only a track
@@ -914,6 +1029,7 @@ class MultiPlayerTracker:
                         t.doubt_appearance = None
                     if starting or not self.tc.doubt_resolve_self_consistent:
                         t.resolve_since_t = None        # a continuing doubt keeps a self-consistent run going
+                    self._reset_reid_run(t)             # a doubt has no rival reference: re-ID cannot clear it
                 if not contested and self._clean(i, dets, matched) and desc[i] is not None:
                     self._clean_crops[t.track_id] = (time_s, desc[i])   # evidence only, never the model
                     if not self._uncertain(t):

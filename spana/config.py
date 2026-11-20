@@ -19,14 +19,15 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.13.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.14.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
 #   2.8.0: + reid.set_* (crop sets), target.reentry_signature / reentry_wait_samples / reentry_withdraw;
 #   2.9.0: + target.reentry_exit_edge / reentry_exit_edge_max_frac; 2.10.0: + target.offer_hold_s;
 #   2.11.0: + tracking.rival_eligible_only; 2.12.0: + reid_resolve section (re-ID evidence for IDENTITY_UNCERTAIN),
-#   target.resume_after_reid; 2.13.0: + tracking.ambiguous_spawn_uncertain, crossing_uncertain, crossing_min_ioa
+#   target.resume_after_reid; 2.13.0: + tracking.ambiguous_spawn_uncertain, crossing_uncertain, crossing_min_ioa;
+#   2.14.0: + reid_resolve.min_evidence_frames (re-ID clears an episode on its own run, never on one frame)
 
 
 class ConfigError(ValueError):
@@ -307,10 +308,14 @@ class ReidResolveConfig:
     margin: float                  # sim(query, own reference) - sim(query, rival reference) needed to clear a rival;
                                    #   the opposite margin is evidence against
     ref_update_s: float            # a CERTAIN track's reference embedding is refreshed at most this often
+    min_evidence_frames: int       # clean frames on which re-ID cleared every rival, within a run of at least
+                                   #   tracking.identity_resolve_s, before re-ID alone resolves an episode (>= 2)
 
     def validate(self) -> None:
         _pos("reid_resolve.margin", self.margin)
         _pos("reid_resolve.ref_update_s", self.ref_update_s)
+        if self.min_evidence_frames < 2:
+            raise ConfigError("reid_resolve.min_evidence_frames must be >= 2: never resolve on a single frame")
         if not (len(self.model_sha256) == 64 and all(c in "0123456789abcdef" for c in self.model_sha256)):
             raise ConfigError("reid_resolve.model_sha256 must be a sha256 hex digest (the calibrated model)")
 

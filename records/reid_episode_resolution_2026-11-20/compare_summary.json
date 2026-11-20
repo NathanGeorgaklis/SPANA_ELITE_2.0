@@ -1,0 +1,625 @@
+{
+ "main": {
+  "ours_tracking": {
+   "identity_transfers": 7,
+   "unflagged_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "fragments_total": 101,
+   "id_switches": 103,
+   "link_caused_transfers": 0
+  },
+  "ours_default": {
+   "correct": 0.508,
+   "wrong": 0,
+   "abstain": 513,
+   "lost": 1107,
+   "actions_per_min": 0.0,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.4774,
+    "FRESH_05": 0.7156,
+    "FRESH_07": 0.6282,
+    "FRESH_08": 0.2423
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 164,
+    "FRESH_05": 11,
+    "FRESH_07": 145,
+    "FRESH_08": 193
+   }
+  },
+  "ours_reviewer": {
+   "correct": 0.68,
+   "wrong": 0,
+   "abstain": 735,
+   "lost": 338,
+   "actions_per_min": 4.11,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.6955,
+    "FRESH_05": 0.9644,
+    "FRESH_07": 0.6855,
+    "FRESH_08": 0.4871
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 213,
+    "FRESH_05": 14,
+    "FRESH_07": 244,
+    "FRESH_08": 264
+   }
+  },
+  "ours_resolutions": {
+   "APPEARANCE": {
+    "unknown": 10,
+    "right": 4
+   }
+  },
+  "linked_tracking": {
+   "identity_transfers": 7,
+   "unflagged_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "fragments_total": 92,
+   "id_switches": 94,
+   "link_caused_transfers": 0
+  },
+  "linked_default": {
+   "correct": 0.543,
+   "wrong": 0,
+   "abstain": 525,
+   "lost": 991,
+   "actions_per_min": 0.0,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.5049,
+    "FRESH_05": 0.7156,
+    "FRESH_07": 0.6564,
+    "FRESH_08": 0.3183
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 159,
+    "FRESH_05": 11,
+    "FRESH_07": 145,
+    "FRESH_08": 210
+   }
+  },
+  "linked_reviewer": {
+   "correct": 0.681,
+   "wrong": 0,
+   "abstain": 733,
+   "lost": 338,
+   "actions_per_min": 3.62,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.6955,
+    "FRESH_05": 0.9644,
+    "FRESH_07": 0.6855,
+    "FRESH_08": 0.4897
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 213,
+    "FRESH_05": 14,
+    "FRESH_07": 244,
+    "FRESH_08": 262
+   }
+  },
+  "linked_resolutions": {
+   "APPEARANCE": {
+    "unknown": 10,
+    "right": 4
+   }
+  },
+  "uncertain_share": {
+   "F02": 0.217,
+   "F05": 0.0,
+   "F07": 0.155,
+   "F08": 0.386
+  },
+  "decision_counts": {
+   "identity_resolution_reset:None": 2,
+   "identity_resolved:APPEARANCE": 14
+  }
+ },
+ "existing_on": {
+  "ours_tracking": {
+   "identity_transfers": 7,
+   "unflagged_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "fragments_total": 101,
+   "id_switches": 103,
+   "link_caused_transfers": 0
+  },
+  "ours_default": {
+   "correct": 0.513,
+   "wrong": 0,
+   "abstain": 496,
+   "lost": 1107,
+   "actions_per_min": 0.0,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.4941,
+    "FRESH_05": 0.7156,
+    "FRESH_07": 0.6282,
+    "FRESH_08": 0.2423
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 147,
+    "FRESH_05": 11,
+    "FRESH_07": 145,
+    "FRESH_08": 193
+   }
+  },
+  "ours_reviewer": {
+   "correct": 0.685,
+   "wrong": 0,
+   "abstain": 718,
+   "lost": 338,
+   "actions_per_min": 4.11,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.7122,
+    "FRESH_05": 0.9644,
+    "FRESH_07": 0.6855,
+    "FRESH_08": 0.4871
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 196,
+    "FRESH_05": 14,
+    "FRESH_07": 244,
+    "FRESH_08": 264
+   }
+  },
+  "ours_resolutions": {
+   "APPEARANCE": {
+    "unknown": 10,
+    "right": 2
+   },
+   "REID": {
+    "right": 2
+   }
+  },
+  "linked_tracking": {
+   "identity_transfers": 7,
+   "unflagged_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "fragments_total": 92,
+   "id_switches": 94,
+   "link_caused_transfers": 0
+  },
+  "linked_default": {
+   "correct": 0.548,
+   "wrong": 0,
+   "abstain": 508,
+   "lost": 991,
+   "actions_per_min": 0.0,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.5216,
+    "FRESH_05": 0.7156,
+    "FRESH_07": 0.6564,
+    "FRESH_08": 0.3183
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 142,
+    "FRESH_05": 11,
+    "FRESH_07": 145,
+    "FRESH_08": 210
+   }
+  },
+  "linked_reviewer": {
+   "correct": 0.686,
+   "wrong": 0,
+   "abstain": 716,
+   "lost": 338,
+   "actions_per_min": 3.62,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.7122,
+    "FRESH_05": 0.9644,
+    "FRESH_07": 0.6855,
+    "FRESH_08": 0.4897
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 196,
+    "FRESH_05": 14,
+    "FRESH_07": 244,
+    "FRESH_08": 262
+   }
+  },
+  "linked_resolutions": {
+   "APPEARANCE": {
+    "unknown": 10,
+    "right": 2
+   },
+   "REID": {
+    "right": 2
+   }
+  },
+  "uncertain_share": {
+   "F02": 0.217,
+   "F05": 0.0,
+   "F07": 0.155,
+   "F08": 0.386
+  },
+  "decision_counts": {
+   "identity_resolution_reset:None": 2,
+   "identity_resolved:APPEARANCE": 12,
+   "identity_resolved:REID": 2
+  }
+ },
+ "new_off": {
+  "ours_tracking": {
+   "identity_transfers": 7,
+   "unflagged_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "fragments_total": 101,
+   "id_switches": 103,
+   "link_caused_transfers": 0
+  },
+  "ours_default": {
+   "correct": 0.508,
+   "wrong": 0,
+   "abstain": 513,
+   "lost": 1107,
+   "actions_per_min": 0.0,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.4774,
+    "FRESH_05": 0.7156,
+    "FRESH_07": 0.6282,
+    "FRESH_08": 0.2423
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 164,
+    "FRESH_05": 11,
+    "FRESH_07": 145,
+    "FRESH_08": 193
+   }
+  },
+  "ours_reviewer": {
+   "correct": 0.68,
+   "wrong": 0,
+   "abstain": 735,
+   "lost": 338,
+   "actions_per_min": 4.11,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.6955,
+    "FRESH_05": 0.9644,
+    "FRESH_07": 0.6855,
+    "FRESH_08": 0.4871
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 213,
+    "FRESH_05": 14,
+    "FRESH_07": 244,
+    "FRESH_08": 264
+   }
+  },
+  "ours_resolutions": {
+   "APPEARANCE": {
+    "unknown": 10,
+    "right": 4
+   }
+  },
+  "linked_tracking": {
+   "identity_transfers": 7,
+   "unflagged_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "fragments_total": 92,
+   "id_switches": 94,
+   "link_caused_transfers": 0
+  },
+  "linked_default": {
+   "correct": 0.543,
+   "wrong": 0,
+   "abstain": 525,
+   "lost": 991,
+   "actions_per_min": 0.0,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.5049,
+    "FRESH_05": 0.7156,
+    "FRESH_07": 0.6564,
+    "FRESH_08": 0.3183
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 159,
+    "FRESH_05": 11,
+    "FRESH_07": 145,
+    "FRESH_08": 210
+   }
+  },
+  "linked_reviewer": {
+   "correct": 0.681,
+   "wrong": 0,
+   "abstain": 733,
+   "lost": 338,
+   "actions_per_min": 3.62,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.6955,
+    "FRESH_05": 0.9644,
+    "FRESH_07": 0.6855,
+    "FRESH_08": 0.4897
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 213,
+    "FRESH_05": 14,
+    "FRESH_07": 244,
+    "FRESH_08": 262
+   }
+  },
+  "linked_resolutions": {
+   "APPEARANCE": {
+    "unknown": 10,
+    "right": 4
+   }
+  },
+  "uncertain_share": {
+   "F02": 0.217,
+   "F05": 0.0,
+   "F07": 0.155,
+   "F08": 0.386
+  },
+  "decision_counts": {
+   "identity_resolution_reset:None": 2,
+   "identity_resolved:APPEARANCE": 14
+  }
+ },
+ "new_on": {
+  "ours_tracking": {
+   "identity_transfers": 7,
+   "unflagged_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "fragments_total": 101,
+   "id_switches": 103,
+   "link_caused_transfers": 0
+  },
+  "ours_default": {
+   "correct": 0.513,
+   "wrong": 0,
+   "abstain": 496,
+   "lost": 1107,
+   "actions_per_min": 0.0,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.4941,
+    "FRESH_05": 0.7156,
+    "FRESH_07": 0.6282,
+    "FRESH_08": 0.2423
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 147,
+    "FRESH_05": 11,
+    "FRESH_07": 145,
+    "FRESH_08": 193
+   }
+  },
+  "ours_reviewer": {
+   "correct": 0.685,
+   "wrong": 0,
+   "abstain": 718,
+   "lost": 338,
+   "actions_per_min": 4.11,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.7122,
+    "FRESH_05": 0.9644,
+    "FRESH_07": 0.6855,
+    "FRESH_08": 0.4871
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 196,
+    "FRESH_05": 14,
+    "FRESH_07": 244,
+    "FRESH_08": 264
+   }
+  },
+  "ours_resolutions": {
+   "APPEARANCE": {
+    "unknown": 10,
+    "right": 2
+   },
+   "REID": {
+    "right": 2
+   }
+  },
+  "linked_tracking": {
+   "identity_transfers": 7,
+   "unflagged_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "fragments_total": 92,
+   "id_switches": 94,
+   "link_caused_transfers": 0
+  },
+  "linked_default": {
+   "correct": 0.548,
+   "wrong": 0,
+   "abstain": 508,
+   "lost": 991,
+   "actions_per_min": 0.0,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.5216,
+    "FRESH_05": 0.7156,
+    "FRESH_07": 0.6564,
+    "FRESH_08": 0.3183
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 142,
+    "FRESH_05": 11,
+    "FRESH_07": 145,
+    "FRESH_08": 210
+   }
+  },
+  "linked_reviewer": {
+   "correct": 0.686,
+   "wrong": 0,
+   "abstain": 716,
+   "lost": 338,
+   "actions_per_min": 3.62,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.7122,
+    "FRESH_05": 0.9644,
+    "FRESH_07": 0.6855,
+    "FRESH_08": 0.4897
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 196,
+    "FRESH_05": 14,
+    "FRESH_07": 244,
+    "FRESH_08": 262
+   }
+  },
+  "linked_resolutions": {
+   "APPEARANCE": {
+    "unknown": 10,
+    "right": 2
+   },
+   "REID": {
+    "right": 2
+   }
+  },
+  "uncertain_share": {
+   "F02": 0.217,
+   "F05": 0.0,
+   "F07": 0.155,
+   "F08": 0.386
+  },
+  "decision_counts": {
+   "identity_resolution_reset:None": 3,
+   "identity_resolved:APPEARANCE": 12,
+   "identity_resolved:REID": 2,
+   "reid_evidence:None": 4178
+  }
+ },
+ "new_on_guard": {
+  "ours_tracking": {
+   "identity_transfers": 7,
+   "unflagged_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "fragments_total": 101,
+   "id_switches": 103,
+   "link_caused_transfers": 0
+  },
+  "ours_default": {
+   "correct": 0.513,
+   "wrong": 0,
+   "abstain": 496,
+   "lost": 1107,
+   "actions_per_min": 0.0,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.4941,
+    "FRESH_05": 0.7156,
+    "FRESH_07": 0.6282,
+    "FRESH_08": 0.2423
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 147,
+    "FRESH_05": 11,
+    "FRESH_07": 145,
+    "FRESH_08": 193
+   }
+  },
+  "ours_reviewer": {
+   "correct": 0.68,
+   "wrong": 0,
+   "abstain": 735,
+   "lost": 338,
+   "actions_per_min": 4.11,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.6955,
+    "FRESH_05": 0.9644,
+    "FRESH_07": 0.6855,
+    "FRESH_08": 0.4871
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 213,
+    "FRESH_05": 14,
+    "FRESH_07": 244,
+    "FRESH_08": 264
+   }
+  },
+  "ours_resolutions": {
+   "APPEARANCE": {
+    "unknown": 10,
+    "right": 2
+   },
+   "REID": {
+    "right": 2
+   }
+  },
+  "linked_tracking": {
+   "identity_transfers": 7,
+   "unflagged_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "fragments_total": 92,
+   "id_switches": 94,
+   "link_caused_transfers": 0
+  },
+  "linked_default": {
+   "correct": 0.548,
+   "wrong": 0,
+   "abstain": 508,
+   "lost": 991,
+   "actions_per_min": 0.0,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.5216,
+    "FRESH_05": 0.7156,
+    "FRESH_07": 0.6564,
+    "FRESH_08": 0.3183
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 142,
+    "FRESH_05": 11,
+    "FRESH_07": 145,
+    "FRESH_08": 210
+   }
+  },
+  "linked_reviewer": {
+   "correct": 0.681,
+   "wrong": 0,
+   "abstain": 733,
+   "lost": 338,
+   "actions_per_min": 3.62,
+   "scored": 3449,
+   "per_clip_correct": {
+    "FRESH_02": 0.6955,
+    "FRESH_05": 0.9644,
+    "FRESH_07": 0.6855,
+    "FRESH_08": 0.4897
+   },
+   "per_clip_abstain": {
+    "FRESH_02": 213,
+    "FRESH_05": 14,
+    "FRESH_07": 244,
+    "FRESH_08": 262
+   }
+  },
+  "linked_resolutions": {
+   "APPEARANCE": {
+    "unknown": 10,
+    "right": 2
+   },
+   "REID": {
+    "right": 2
+   }
+  },
+  "uncertain_share": {
+   "F02": 0.217,
+   "F05": 0.0,
+   "F07": 0.155,
+   "F08": 0.386
+  },
+  "decision_counts": {
+   "identity_resolution_reset:None": 3,
+   "identity_resolved:APPEARANCE": 12,
+   "identity_resolved:REID": 2,
+   "reid_evidence:None": 4178
+  }
+ }
+}

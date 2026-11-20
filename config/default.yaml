@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.13.0"
+schema_version: "2.14.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -250,6 +250,12 @@ reid_resolve:
   # model_sha256 above. Re-ID v3 (models/spana_reid_v3.json) failed the floored held-out check: not used.
   margin: 0.517
   ref_update_s: 0.5            # reference refresh on clean, uncontested, CERTAIN observations
+  # Re-ID resolves an episode on its own run (records/reid_episode_resolution_2026-11-20): on every evidence frame
+  # (clean, uncontested crop) re-ID must clear every rival by `margin` (an ambiguous spawn: the same predecessor
+  # beats every other predecessor by `margin`); frames where it does not are held, any re-ID or clear colour
+  # evidence against resets. The run must span tracking.identity_resolve_s AND hold this many clearing frames.
+  # A prior (never resolve on a single frame), not fitted.
+  min_evidence_frames: 3
 
 output:
   box_decimals: 1
