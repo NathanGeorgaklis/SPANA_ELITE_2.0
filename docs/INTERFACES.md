@@ -63,6 +63,12 @@ What the tracking layer receives from any detector, the football detector includ
     `identity_rivals` and no `identity_doubt`, so IDENTITY_UNCERTAIN may have no rivals. 2.1.0 documents still
     validate with their 2.1.0 meaning (no `identity_doubt` key, uncertain <=> rivals).
 - Side output: decision log `*.decisions.jsonl` (every association, refusal, spawn, end).
+- Tracker protocol (`spana/tracking/protocol.py`, 2026-11-20, used by the tracker bench only; `spana.cli track`
+  still drives `MultiPlayerTracker` directly): `Tracker.update(detections, FrameInput) -> List[TrackOutput]`.
+  `FrameInput{index, t, image (BGR or None), embeddings (N x D per detection or None)}`; `TrackOutput{track_id,
+  detection_index, box, identity_certain}` = a confirmed track observed on exactly one of the frame's detections.
+  `check_outputs` enforces unique ids / detections and the detection's box. Candidates: `bench/adapters/`
+  (`bench/README.md`); nothing under `spana/` imports `bench`.
 - CLI: `python -m spana.cli track --video --config --detections --out`.
 
 ### State enums (`spana/records.py`)

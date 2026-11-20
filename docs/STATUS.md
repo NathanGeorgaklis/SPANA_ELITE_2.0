@@ -1,8 +1,9 @@
 # STATUS
 
-As of 2026-11-20 (branch identity/reid-merge-v1 = main 74eb1a0 + the re-ID resolution work; PR #13; main also has
+As of 2026-11-20 (branch tracking/tracker-bench-v1 = main 1a161ca + tracker bench v1; main also has
 the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh08_followup_2026-11-20).
-- Full suite: `python -m pytest tests -q` → 539 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+- Full suite: `python -m pytest tests -q` → 554 passed, 4 skipped (container, Python 3.13, with torch + the bench
+  requirements installed; Deep-EIoU / GTA-Link checkouts fetched).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -63,6 +64,17 @@ matches), tagged `match:<id>`, `split:dev`, `bench:v1`, `prelabel:detector-v1`; 
 Main DEV failure: class confusion from kit colour (91 of 708 players boxed as referee, 85 of them the yellow-kit
 team in G2; goalkeepers boxed as referee in G1). Players are found but given the wrong class. Off-pitch false positives
 are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
+
+## Tracker bench v1 (2026-11-20, `bench/`, `config/tracking/`; built, NOT YET RUN on DEV)
+- Candidates on the same frozen DEV detections: REF (ours), A ByteTrack and B BoT-SORT + CMC (Roboflow `trackers`
+  2.7.0, Apache-2.0), C Deep-EIoU (no licence: EVAL-ONLY, benchmark use only), D GTA-Link offline linking on B and on
+  C (MIT code). C / D use SPANA re-ID v2 embeddings. Licences in DECISIONS 2026-11-20.
+- Metrics: TrackEval HOTA / IDF1 / IDSW; target player ID switches, fragments, coverage, longest segment, wrong-player
+  frames (silent and flagged); fps. Tests: `tests/test_tracker_bench.py` (14, synthetic clip).
+- **Recommended tracker: none yet.** The run needs the DEV clips, the local-detector detections and the re-ID v2
+  weights, which are only on Nathan's Mac (`bench/README.md`). `bench/results/tracker_bench_v1.csv` is written by
+  `python -m bench.run score`; the recommendation follows the pre-registered rule in `config/tracking/bench_v1.yaml`
+  and goes into DECISIONS with its own follow-up task. The production tracker is unchanged.
 
 ## Open failures
 - No failing tests. Skipped: YOLOX inference (weights not fetched), two Playwright labeller UI tests (no browser).

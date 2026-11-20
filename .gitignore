@@ -16,3 +16,6 @@ runs/
 .env.*
 !.env.example
 .venv-py39/
+
+# tracker bench: pinned third-party checkouts (bench/external.py), never committed
+bench/external/
