@@ -251,7 +251,14 @@ def wilson(k: int, n: int, level: float):
 
 
 def binom_cdf(k: int, n: int, p: float) -> float:
-    return sum(math.comb(n, i) * p ** i * (1 - p) ** (n - i) for i in range(k + 1))
+    """P(X <= k), X ~ Binomial(n, p), in log space (exact terms overflow a float for n in the thousands)."""
+    if p <= 0:
+        return 1.0
+    if p >= 1:
+        return 1.0 if k >= n else 0.0
+    lp, lq = math.log(p), math.log1p(-p)
+    return sum(math.exp(math.lgamma(n + 1) - math.lgamma(i + 1) - math.lgamma(n - i + 1) + i * lp + (n - i) * lq)
+               for i in range(k + 1))
 
 
 def upper_bound(k: int, n: int, confidence: float) -> Optional[float]:

@@ -1,0 +1,14 @@
+# sha256, files on Nathan's Mac under spana-reid-resolve/ (code 568d743); inputs runs/person_view_compare/F0x_local.det.json
+c269450e871cb28b4020b715618edc9dcda328faf951503a9e09f8e7a3032f84  models/spana_reid_v2/spana_reid.onnx (re-ID v2, = models/spana_reid_v2.json)
+8d05dd8602e526459703e09468d191568c3714002cafd189717fa2dbd1050172  config/default.yaml (re-ID off)
+ad931ebadf68609da910edaead8f73a65af80626d3f851cacf3cef9b7f1cee19  out/reid_on.yaml (= default.yaml with reid.enabled true, target.resume_after_reid true)
+5b1b867dda1a5d1a45305f7f317bec849dd704b9ae74101310e980d5e7aeb3f9  out/F02_on.trk.json
+ae67ce81eef4158f0780f799ff08aa330e48ff931cc44c65ddf9a03b5da4c6f2  out/F05_on.trk.json
+f77dd8af9e7ba02a05672f3723b2f3d63b60cc060c3ce1ad8e23768bb8035dbb  out/F07_on.trk.json
+fa79cdfa59407e2231d0daad59ee2d0849981f22c4a83cbd8c6ac135983a7e0c  out/F08_on.trk.json
+c291c13b366f961674be3b83d645bfc8a346d600ea185d0747ffe6c182f244ac  out/resolutions_on.json
+daafb453a7f7e8cc63df83bece50cce989d1b964ba90d2f2666d82376dfaf4e8  out/resolutions_off.json
+89d093db9fb5812969a0c6a7498f9d062de1bdab6882e83eb9a945a684769034  out/target_off_default.json
+47be4831a1ad09562f29e689fb8ffdfdd86d95614ec9490cfad704842de1904e  out/target_on_default.json
+fe9101d5240a8a3473ece7346d722aa3199ead16c417d40917226347fc7ed224  out/target_off_reviewer.json
+9c36f40c34a565aac8a7e8205dc365b537fdb098ecb2820e72504d5453d6d436  out/target_on_reviewer.json

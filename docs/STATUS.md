@@ -1,9 +1,8 @@
 # STATUS
 
-As of 2026-11-20 (main: + re-entry rule memoised, DEV scoring 11-12 s with identical results,
-records/reentry_cache_2026-11-20; + records/fresh08_followup_2026-11-20).
-- Full suite: `python -m pytest tests -q` → 511 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
-  training tests skip).
+As of 2026-11-20 (branch identity/reid-merge-v1 = main 74eb1a0 + the re-ID resolution work; PR #13; main also has
+the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh08_followup_2026-11-20).
+- Full suite: `python -m pytest tests -q` → 539 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -174,6 +173,21 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
          would, and both touch the 2026-11-16 rule that relinks need the user. Nathan to choose;
      (b) tracker: keep tracks alive across pans, fewer LOST_EXPIRED in crowds. The exit hold was tried
          (`records/exit_hold_2026-11-18`): no net gain without a stronger appearance signal; off by default.
+     (c) re-ID evidence at crossings (IDENTITY_UNCERTAIN), merged onto main in `identity/reid-merge-v1`
+         (config 2.12.0 `reid_resolve`, tracks 2.3.0 `resolved_by`, target 2.9.0 `resume_after_reid`; all OFF):
+         - TRAIN labels: M002 v1 (107 player tracklets, 21 players; group-then-confirm, `confirmed_only`) and M003 v1
+           (81 player tracklets, 19 players; direct flow). Re-ID v2 (M001 + M002) DEV rival 0.921 vs colour 0.902;
+           v3 (+ M003) 0.933 (`records/reid_retrain_m001_m002_2026-11-18`, `records/reid_retrain_m001_m003_2026-11-19`).
+         - Margin (`records/reid_calibration_dev_2026-11-18`): v2 alone passes held out (1 / 1,036, bound 0.46 %);
+           0.517 chosen. v3 fails the floored clean check (286 / 0, bound 1.04 %; `records/reid_margin_floor_dev_2026-11-19`);
+           its confident errors are crops of the wrong person (`records/reid_v3_wrong_answers_2026-11-19`). About 3
+           more labelled DEV clips would let clean tests prove 0.5 %.
+         - Merge DEV check (`records/reid_merge_dev_2026-11-19`): with `reid_resolve` off, tracks / follower / reviewer
+           equal main exactly; on (+ `resume_after_reid`): tracks identical, 2 FRESH_02 episodes cleared by re-ID,
+           unaided 0.532 -> 0.537, reviewer 0.777 -> 0.782, wrong frames 1 / 2 (same players), silent swaps 0,
+           flagged transfers 7, actions 5.71 / min unchanged. Re-checked on main 24ccd58 (target 2.9.0, config 2.12.0):
+           off = main; on: unaided 0.536 -> 0.540, reviewer 0.783 -> 0.787, wrong 1 / 2 (same players), silent 0,
+           transfers 7, actions 5.50 unchanged. Still off by default (Nathan's decision).
 2. Relink v1 accepted as built (Nathan, 2026-11-16). Watch confirmed tracks that named several predecessors.
 3. Tracking-error history on the 4 DEV clips (for reference):
    Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.

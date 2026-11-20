@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import copy
 
-ADDED = {"2.8.0": ("offer_hold_s",),
+ADDED = {"2.9.0": ("resume_after_reid",),
+         "2.8.0": ("offer_hold_s",),
          "2.7.0": ("reentry_exit_edge", "reentry_exit_edge_max_frac"),
          "2.6.0": ("reentry_signature", "reentry_wait_samples", "reentry_withdraw"),
          "2.5.0": ("reentry_mutual", "reentry_position_weight"),
@@ -14,7 +15,7 @@ ADDED = {"2.8.0": ("offer_hold_s",),
 def older(doc: dict, version: str) -> dict:
     """Drop the target_config keys, embeddings_sha256 and relink evidence kinds added after `version`."""
     d = copy.deepcopy(doc)
-    order = ["2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"]
+    order = ["2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"]
     for v in order:
         if v > version:
             for k in ADDED[v]:

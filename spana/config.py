@@ -19,12 +19,14 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.11.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.12.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
 #   2.8.0: + reid.set_* (crop sets), target.reentry_signature / reentry_wait_samples / reentry_withdraw;
-#   2.9.0: + target.reentry_exit_edge / reentry_exit_edge_max_frac; 2.10.0: + target.offer_hold_s; 2.11.0: + tracking.rival_eligible_only
+#   2.9.0: + target.reentry_exit_edge / reentry_exit_edge_max_frac; 2.10.0: + target.offer_hold_s;
+#   2.11.0: + tracking.rival_eligible_only; 2.12.0: + reid_resolve section (re-ID evidence for IDENTITY_UNCERTAIN),
+#   target.resume_after_reid
 
 
 class ConfigError(ValueError):
@@ -236,6 +238,8 @@ class TargetConfig:
     reentry_exit_edge_max_frac: float  # ... within this share of the frame width / height of that side
     offer_hold_s: float            # keep an offer whose track is briefly hidden (OCCLUDED / LOST, still CERTAIN) this
                                    #   long after its last usable frame (0 = drop at once, the behaviour before)
+    resume_after_reid: bool        # answer again after an IDENTITY_UNCERTAIN episode that the calibrated re-ID margin
+                                   #   cleared for every rival (track resolved_by == REID); others stay as above
 
     def validate(self) -> None:
         _pos("target.relink_max_gap_s", self.relink_max_gap_s)
@@ -287,6 +291,24 @@ class ReidConfig:
 
 
 @dataclass(frozen=True)
+class ReidResolveConfig:
+    """Re-ID evidence for clearing IDENTITY_UNCERTAIN (spana.tracking.tracker; calibration records/reid_calibration_dev_*,
+    records/reid_margin_floor_dev_2026-11-19). The model comes from a pinned model record (spana.identity.reid)."""
+    enabled: bool                  # off by default: the tracker then behaves exactly as without this section
+    model_record: str              # models/<name>.json (ONNX path + sha256 + preprocessing), relative to the repo
+    model_sha256: str              # the margin below was calibrated for exactly this ONNX file
+    margin: float                  # sim(query, own reference) - sim(query, rival reference) needed to clear a rival;
+                                   #   the opposite margin is evidence against
+    ref_update_s: float            # a CERTAIN track's reference embedding is refreshed at most this often
+
+    def validate(self) -> None:
+        _pos("reid_resolve.margin", self.margin)
+        _pos("reid_resolve.ref_update_s", self.ref_update_s)
+        if not (len(self.model_sha256) == 64 and all(c in "0123456789abcdef" for c in self.model_sha256)):
+            raise ConfigError("reid_resolve.model_sha256 must be a sha256 hex digest (the calibrated model)")
+
+
+@dataclass(frozen=True)
 class OutputConfig:
     box_decimals: int
     score_decimals: int
@@ -306,6 +328,7 @@ class SpanaConfig:
     appearance: AppearanceConfig
     target: TargetConfig
     reid: ReidConfig
+    reid_resolve: ReidResolveConfig
     output: OutputConfig
 
     def validate(self) -> None:

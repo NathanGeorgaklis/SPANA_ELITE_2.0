@@ -1,0 +1,170 @@
+{
+ "note": "DEV identity-resolution margin calibration, re-ID model v2 (onnx sha256 c269450e871cb28b4020b715618edc9dcda328faf951503a9e09f8e7a3032f84). Full output calibration_p2.json on Nathan's Mac (HASHES.txt).",
+ "target_false_rate": 0.005,
+ "confidence": 0.95,
+ "held_out_pooled": {
+  "colour": {
+   "tests": 4488,
+   "resolved": 1983,
+   "wrong": 20,
+   "coverage": 0.4418,
+   "wrong_rate": 0.01009,
+   "upper_bound": 0.01462
+  },
+  "reid": {
+   "tests": 4488,
+   "resolved": 1036,
+   "wrong": 1,
+   "coverage": 0.2308,
+   "wrong_rate": 0.00097,
+   "upper_bound": 0.00457
+  },
+  "colour_plus_reid": {
+   "tests": 4488,
+   "resolved": 1979,
+   "wrong": 7,
+   "coverage": 0.441,
+   "wrong_rate": 0.00354,
+   "upper_bound": 0.00663
+  }
+ },
+ "held_out_per_clip": {
+  "colour": {
+   "FRESH_05": [
+    0.5179,
+    34,
+    0,
+    53
+   ],
+   "FRESH_07": [
+    0.6355,
+    815,
+    0,
+    1496
+   ],
+   "FRESH_02": [
+    0.5179,
+    158,
+    0,
+    1329
+   ],
+   "FRESH_08": [
+    0.3245,
+    976,
+    20,
+    1610
+   ]
+  },
+  "reid": {
+   "FRESH_05": [
+    0.5169,
+    39,
+    0,
+    53
+   ],
+   "FRESH_07": [
+    0.4814,
+    456,
+    1,
+    1496
+   ],
+   "FRESH_02": [
+    0.5169,
+    296,
+    0,
+    1329
+   ],
+   "FRESH_08": [
+    0.5171,
+    245,
+    0,
+    1610
+   ]
+  },
+  "colour_plus_reid": {
+   "FRESH_05": [
+    1.4172,
+    47,
+    0,
+    53,
+    0.7
+   ],
+   "FRESH_07": [
+    1.7042,
+    723,
+    0,
+    1496,
+    0.3
+   ],
+   "FRESH_02": [
+    1.338,
+    317,
+    1,
+    1329,
+    0.7
+   ],
+   "FRESH_08": [
+    1.1063,
+    892,
+    6,
+    1610,
+    0.5
+   ]
+  },
+  "columns": [
+   "margin fitted on the other clips",
+   "resolved",
+   "wrong",
+   "tests",
+   "colour weight (combined only)"
+  ]
+ },
+ "final_all_clips": {
+  "colour": {
+   "margin": 0.5178710942911813,
+   "resolved": 1806,
+   "wrong": 3,
+   "upper_bound": 0.00429
+  },
+  "reid": {
+   "margin": 0.48136566546190984,
+   "resolved": 1154,
+   "wrong": 1,
+   "upper_bound": 0.0041,
+   "by_query_height_px": {
+    "0-90": [
+     162,
+     0,
+     436
+    ],
+    "90-130": [
+     643,
+     1,
+     3193
+    ],
+    "130+": [
+     349,
+     0,
+     859
+    ]
+   }
+  },
+  "colour_plus_reid": {
+   "weight_colour": 0.6,
+   "margin": 1.3493087914093485,
+   "stats": {
+    "hist": {
+     "mean": 0.6225848503212762,
+     "sd": 0.30105211042948105
+    },
+    "spana": {
+     "mean": 0.4192526072240296,
+     "sd": 0.2553701643334757
+    }
+   },
+   "resolved": 2191,
+   "wrong": 5,
+   "upper_bound": 0.00479
+  }
+ }
+}

@@ -47,12 +47,15 @@ What the tracking layer receives from any detector, the football detector includ
 
 ## Player tracking — `spana/tracking/`
 - In: `spana.detections` (must match video sha256 and current `detection_config`) + video frames.
-- Artifact out: **`spana.tracks` 2.2.0** — top level `schema, schema_version, provenance, video,
+- Artifact out: **`spana.tracks` 2.3.0** (2.2.0 and 2.1.0 still validate with their own meaning) — top level `schema, schema_version, provenance, video,
   detections_sha256, frames, tracklets`; frame `{frame, t, camera{status, affine, inliers, hist_distance},
   tracks[], ended[[track_id, EndReason]]}`; track keys: `track_id, state, confirmed, source, box,
   detection_index, detection_score, confidence, contested, age_frames, missed_frames, time_since_observed_s,
   observed_frames, epoch, occluder, max_overlap_iou, overlap_with, recoveries, last_gap_s,
-  possible_predecessors, identity, identity_rivals, uncertain_episodes, identity_doubt`; tracklet keys: `track_id, epoch,
+  possible_predecessors, identity, identity_rivals, uncertain_episodes, identity_doubt, resolved_by`
+  (2.2.0: + `identity_doubt`. 2.3.0: + `resolved_by` = `REID` / `APPEARANCE` / null — the cue that cleared the
+  latest IDENTITY_UNCERTAIN episode; null while uncertain or before any episode; REID only if re-ID cleared every
+  rival on every frame of the run and there was no appearance doubt; config `reid_resolve`); tracklet keys: `track_id, epoch,
   first_frame, last_frame, last_observed_frame, observed_frames, confirmed, end_reason, recoveries,
   possible_predecessors`.
   - 2.2.0: `identity_doubt` (bool) = the track continued through an appearance veto on an exclusive motion link
@@ -80,8 +83,10 @@ Follow the user's chosen player through a clip, and say so when unsure.
   - `track_at_frame` 1.0.0 = a tap on a box the app showed: the track must be live and ACTIVE (observed) on that
     frame. Otherwise `SelectionError` (refused, never guessed).
   - Tap is the chosen way to pick (decision 2026-11-16). Shirt number / photo may come later as hints.
-- Out: **`spana.target` 2.8.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
-  2.7.0, 2.6.0, 2.5.0, 2.4.0, 2.3.0, 2.2.0, 2.1.0, 2.0.0 and 1.0.0 documents still validate with their own meaning.
+- Out: **`spana.target` 2.9.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
+  2.8.0, 2.7.0, 2.6.0, 2.5.0, 2.4.0, 2.3.0, 2.2.0, 2.1.0, 2.0.0 and 1.0.0 documents still validate with their own meaning.
+  - 2.9.0: + target_config `resume_after_reid` (answer again after an episode the tracker cleared by re-ID,
+    `resolved_by` REID; off by default). Needs tracks 2.3.0 for a REID resolution to exist.
   - 2.8.0: + target_config `offer_hold_s` (an offer kept while its track is briefly hidden; CANDIDATE still only
     on frames where the track is ACTIVE, confirmed, CERTAIN).
   - 2.7.0: + target_config `reentry_exit_edge`, `reentry_exit_edge_max_frac`; + `reentry_log[].exit_excluded`
@@ -106,7 +111,7 @@ Follow the user's chosen player through a clip, and say so when unsure.
   - Top level: `schema, schema_version, provenance, video, tracks_sha256, selection, user_actions, target_config,
     track_ends, relinks, frames, gaps`.
   - `target_config`: `{resume_after_uncertain, relink_max_gap_s, relink_auto_confirm, tap_vouches_doubt,
-    resume_after_doubt_resolved}` from default.yaml `target`.
+    resume_after_doubt_resolved, reentry_*, resume_after_reid}` from default.yaml `target` (by version, above).
   - `user_actions` (2.1.0; decisions 2026-11-16: non-blocking offer, tap to re-select, after-match review).
     Versioned records, each applied on its own frame and refused (`UserActionError`) if it does not apply. At most
     one track-changing action (`confirm_relink` / `track_at_frame`) per frame.
@@ -178,6 +183,11 @@ Follow the user's chosen player through a clip, and say so when unsure.
   track's start / end) or null. Validated by `validate_track_embeddings(doc, tracks)`. Model pinned by
   `models/spana_reid_v2.json` (ONNX sha256; weights not in git). CLI: `python -m spana.cli embed --video --tracks
   --config --model-record --out`.
+- Re-ID evidence in the tracker (config 2.12.0 `reid_resolve`, off by default): `spana.cli track` loads the model
+  record named by `reid_resolve.model_record` and refuses it unless the record pins exactly
+  `reid_resolve.model_sha256` and the ONNX file has that hash (`spana.identity.reid.load_pinned`). Model registry:
+  `models/spana_reid_v2.json` (`c269450e…`, the calibrated one), `models/spana_reid_v3.json` (`56a1b4c8…`, candidate,
+  not referenced by config); weights are not in git (`*.onnx` ignored). The tracks provenance records `reid_model`.
   (`--confirm` kept as an alias).
 - DEV scorer: `tools/target_score.py`. Per labelled player: selected on the first labelled frame with an
   unambiguous NESTED_V2 track match.

@@ -99,7 +99,7 @@ class Follower(unittest.TestCase):
         self.assertFalse(on["relinks"])
         self.assertEqual(on["reentry_log"][0]["exit_excluded"], ["t3"])
         doc = target_document(self.tr, SEL, cfg(**ON), ["test"], (), self.emb)
-        self.assertEqual(doc["schema_version"], "2.8.0")
+        self.assertEqual(doc["schema_version"], "2.9.0")
         validate_target(doc, self.tr, self.emb)
 
     def test_validator_refuses_an_offer_that_breaks_the_exit_side(self):
