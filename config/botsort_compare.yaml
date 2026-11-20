@@ -1,0 +1,20 @@
+# DEV comparison only (tools/dev/botsort_compare.py, tracker bench v1): Roboflow `trackers` BoT-SORT run on our own
+# detections. Values = the published BoTSORTTracker.__init__ defaults of trackers 2.7.0 (Apache-2.0), nothing tuned;
+# frame_rate is taken from the video, not from here. Camera motion compensation is on: each decoded frame is passed
+# to update(). No re-ID model (the published default is geometry only). The product never reads this file.
+schema: spana.botsort_compare_config
+schema_version: 1.0.0
+trackers_version: 2.7.0
+botsort:
+  lost_track_buffer: 30                       # frames at 30 fps; BoT-SORT scales it by frame_rate / 30
+  track_activation_threshold: 0.7
+  minimum_consecutive_frames: 2
+  minimum_iou_threshold_first_assoc: 0.2
+  minimum_iou_threshold_second_assoc: 0.5
+  minimum_iou_threshold_unconfirmed_assoc: 0.3
+  high_conf_det_threshold: 0.6
+  enable_cmc: true
+  cmc_method: sparseOptFlow
+  cmc_downscale: 2
+  instant_first_frame_activation: true
+class_agnostic: true                          # every person-view detection as one class, as our tracker uses them

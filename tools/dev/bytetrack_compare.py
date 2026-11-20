@@ -25,7 +25,7 @@ import json
 import statistics
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import yaml
@@ -71,7 +71,10 @@ def run_bytetrack(dets_doc: dict, cfg: dict) -> Dict[int, List[Tuple[int, int]]]
 
 
 def to_tracks(dets_doc: dict, ref: dict, assoc: Dict[int, List[Tuple[int, int]]], max_lost: int,
-              provenance: dict) -> dict:
+              provenance: dict, removed_at: Optional[Dict[int, int]] = None) -> dict:
+    """removed_at (optional, used by tools/dev/botsort_compare.py): {external id: frame on which the external tracker
+    no longer holds the track}, observed from the tracker itself; ids missing from it are still held at the clip end.
+    Without it, removal follows ByteTrack's fixed max_lost after the last output."""
     fps = float(dets_doc["video"]["fps"])
     frames = [fr["frame"] for fr in dets_doc["frames"]]
     rows_of = {fr["frame"]: fr["detections"] for fr in dets_doc["frames"]}
@@ -87,10 +90,18 @@ def to_tracks(dets_doc: dict, ref: dict, assoc: Dict[int, List[Tuple[int, int]]]
         for ext, di in sorted(assoc.get(f, []), key=lambda x: x[1]):
             tid = name.setdefault(ext, f"T{len(name) + 1:06d}")
             seen.setdefault(tid, {})[f] = di
+    ext_of = {tid: ext for ext, tid in name.items()}
     span = {}
     for tid, s in seen.items():
         first, last = min(s, key=pos.get), max(s, key=pos.get)
-        end_pos = pos[last] + max_lost + 1                         # removed from ByteTrack's lost pool here
+        if removed_at is None:
+            end_pos = pos[last] + max_lost + 1                     # removed from ByteTrack's lost pool here
+        elif ext_of[tid] in removed_at:
+            end_pos = pos[removed_at[ext_of[tid]]]
+            if end_pos <= pos[last]:
+                raise SystemExit(f"track {ext_of[tid]} removed on frame {removed_at[ext_of[tid]]} before its last output")
+        else:
+            end_pos = len(frames)                                  # still held at the clip end
         span[tid] = (pos[first], pos[last], end_pos)
     out_frames, state = [], {}
     for k, f in enumerate(frames):
