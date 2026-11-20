@@ -1,7 +1,8 @@
 # STATUS
 
-As of 2026-11-19 (main: option 2 crop sets + fixed offer verdict + exit-side rule + offer hold (off) + rival_eligible_only).
-- Full suite: `python -m pytest tests -q` → 508 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
+As of 2026-11-20 (branch identity/reentry-cache on main 24ccd58: re-entry rule memoised, DEV scoring 11-12 s,
+results identical; records/reentry_cache_2026-11-20).
+- Full suite: `python -m pytest tests -q` → 510 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
   training tests skip).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
