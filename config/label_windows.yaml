@@ -27,3 +27,6 @@ edge_frac: 0.02                # entry: first box within this share of the frame
 dense:                         # windows around every WRONG answer in target_score reports (where the system failed)
   half_s: 1.0                  # label from this long before to this long after the wrong frame
   step_frames: 1               # every frame
+suggestions:                   # detector-assisted packs (Nathan 2026-11-20; `build --detections`): shown, never labels
+  min_score_from: detection.score_high   # of the tracker config: the detections that may start a track
+  cover_iou: 0.5               # a suggestion is hidden once a label box overlaps it by this IoU

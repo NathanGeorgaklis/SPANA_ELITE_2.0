@@ -154,6 +154,82 @@ class RangePack(unittest.TestCase):
             freeze(str(pack), str(g), str(r), None, root=self.td / "repo2")
 
 
+def detections_doc(video: Path, frames, boxes):
+    """A valid spana.detections document of `video` with the same boxes (box, score) on each listed frame."""
+    from spana.artifacts import DETECTIONS_SCHEMA, detection_frame
+    from spana.config import load_config
+    from spana.records import Detection
+    cfg = load_config("config/default.yaml")
+    return {"schema": DETECTIONS_SCHEMA[0], "schema_version": DETECTIONS_SCHEMA[1], "provenance": {},
+            "video": {"sha256": hashlib.sha256(video.read_bytes()).hexdigest()}, "model": {"name": "test-detector"},
+            "class_names": ["person"], "detection_config": {}, "frame_stride": 1,
+            "frames": [detection_frame(f, f / 25.0, [Detection(b, sc, 0) for b, sc in boxes], cfg.output)
+                       for f in frames]}
+
+
+class AssistedPack(unittest.TestCase):
+    """Detector-assisted packs (1.2.0): suggestions per frame above the threshold, refused when the detections are
+    of another video or do not cover the pack; the frozen labels carry `assisted` and must agree with the pack."""
+    def setUp(self):
+        self.td = Path(tempfile.mkdtemp())
+        self.video = self.td / "MATCH.avi"
+        write_video(self.video, 40, 25.0)
+        self.dets = self.td / "MATCH.det.json"
+        self.dets.write_text(json.dumps(detections_doc(self.video, range(0, 40),
+                                                       [((10.0, 10.0, 30.0, 60.0), 0.9), ((50.0, 10.0, 70.0, 60.0), 0.3)])))
+
+    def tearDown(self):
+        shutil.rmtree(self.td, ignore_errors=True)
+
+    def pack(self, out, dets=None, **kw):
+        args = dict(name="MATCH_f10_20", start_frame=10, end_frame=20, step_frames=5,
+                    suggestions=str(dets or self.dets), suggest_min_score=0.5, cover_iou=0.5)
+        args.update(kw)
+        return make_pack(str(self.video), "DEV", None, str(self.td / out), **args)
+
+    def test_suggestions_above_the_threshold_and_the_assisted_note(self):
+        m = self.pack("a")
+        self.assertEqual(m["schema_version"], "1.2.0")
+        self.assertEqual([f["suggestions"] for f in m["frames"]], [[[10.0, 10.0, 30.0, 60.0, 0.9]]] * 2)
+        self.assertEqual(m["assisted"]["detections_sha256"], hashlib.sha256(self.dets.read_bytes()).hexdigest())
+        self.assertEqual((m["assisted"]["min_score"], m["assisted"]["cover_iou"]), (0.5, 0.5))
+        plain = make_pack(str(self.video), "DEV", None, str(self.td / "p"), name="X", start_frame=10, end_frame=20,
+                          step_frames=5)
+        self.assertNotIn("assisted", plain)
+        self.assertNotIn("suggestions", plain["frames"][0])
+
+    def test_refusals(self):
+        other = self.td / "OTHER.avi"
+        write_video(other, 40, 25.0, seed=3)
+        od = self.td / "other.det.json"
+        od.write_text(json.dumps(detections_doc(other, range(40), [((1.0, 1.0, 9.0, 9.0), 0.9)])))
+        short = self.td / "short.det.json"
+        short.write_text(json.dumps(detections_doc(self.video, range(0, 12), [((1.0, 1.0, 9.0, 9.0), 0.9)])))
+        for n, kw in enumerate([dict(dets=od), dict(dets=short), dict(suggest_min_score=None), dict(cover_iou=0.0)]):
+            with self.subTest(n=n), self.assertRaises(SystemExit):
+                self.pack(f"r{n}", **kw)
+        with self.assertRaises(SystemExit):                                            # whole-clip packs: never
+            make_pack(str(self.video), "DEV", 0.2, str(self.td / "w"), suggestions=str(self.dets),
+                      suggest_min_score=0.5, cover_iou=0.5)
+
+    def test_freeze_carries_assistance_and_refuses_a_mismatch(self):
+        pack = self.td / "a"
+        m = self.pack("a")
+        gt = "11,1,10,10,20,50,1,1,1\n"
+        g, r = self.td / "gt.txt", self.td / "rec.json"
+        g.write_text(gt)
+        rec = {"schema": "spana.labels_frozen", "split": "DEV", "clip": m["clip"], "frame_step": 5, "label_version": 1,
+               "annotator": "QA", "frozen_utc": "2026-11-20T00:00:00Z", "frames_labelled": [10],
+               "gt_sha256": hashlib.sha256(gt.encode()).hexdigest(), "assisted": m["assisted"]}
+        r.write_text(json.dumps(rec))
+        dest = freeze(str(pack), str(g), str(r), str(self.video), root=self.td / "repo")
+        self.assertEqual(json.loads((dest / "FROZEN.json").read_text())["assisted"], m["assisted"])
+        rec.pop("assisted")                                                            # export lost the note
+        r.write_text(json.dumps(rec))
+        with self.assertRaises(LabelError):
+            freeze(str(pack), str(g), str(r), None, root=self.td / "repo2")
+
+
 class Page(unittest.TestCase):
     def test_range_packs_keep_their_own_saved_work(self):
         html = Path("tools/labeller.html").read_text()

@@ -4,7 +4,8 @@
         [--tracker-config config/default.yaml] \
         --source NAME VIDEO TRACKS.json DECISIONS.jsonl [--source ...] \
         [--exclude NAME START END ...] [--wrong-from REPORT.json CLIPS_DIR ...]
-    python -m tools.dev.label_windows build --windows WINDOWS.json --out-dir PACKS_DIR
+    python -m tools.dev.label_windows build --windows WINDOWS.json --out-dir PACKS_DIR \
+        [--detections NAME DETECTIONS.json ...] [--tracker-config config/default.yaml]
 
 select:
   Events per source (confirmed tracks only; config/label_windows.yaml says what each type is): occlusion, exit,
@@ -16,7 +17,9 @@ select:
   from half_s before to half_s after it, every frame, on that clip (CLIPS_DIR/<clip>.mp4).
   Nothing is chosen by hand: the only inputs are track logs, scorer reports and config.
 build:
-  One label pack per window (tools/label_pack.py range pack, DEV only, never overwrites).
+  One label pack per window (tools/label_pack.py range pack, DEV only, never overwrites). With --detections NAME
+  (a source name, or a clip name for dense windows) the pack is detector-assisted (pack 1.2.0): its frames carry those
+  detections scoring >= the tracker config's detection.score_high as suggestions (config suggestions.*).
 DEV only: sources must be DEV footage; the scorer reports are DEV by construction (tools/target_score.py).
 """
 from __future__ import annotations
@@ -49,6 +52,9 @@ def load_cfg(path) -> dict:
         raise SystemExit(f"{path}: count / max_per_source / cap / min_event_types out of range")
     if not (c["dense"]["half_s"] > 0 and c["dense"]["step_frames"] >= 1):
         raise SystemExit(f"{path}: dense.half_s > 0 and dense.step_frames >= 1 needed")
+    sg = c.get("suggestions")
+    if sg is not None and not (sg.get("min_score_from") == "detection.score_high" and 0 < sg.get("cover_iou", 0) <= 1):
+        raise SystemExit(f"{path}: suggestions.min_score_from must be detection.score_high, cover_iou in (0, 1]")
     return c
 
 
@@ -224,14 +230,29 @@ def build(a) -> int:
     doc = read_json(a.windows)
     if (doc.get("schema"), doc.get("schema_version")) != SCHEMA:
         raise SystemExit("not a spana.label_windows document")
+    dets = {n: p for n, p in (a.detections or [])}
+    sugg = {}
+    if dets:
+        cfg = load_cfg(a.config)
+        if cfg.get("suggestions") is None:
+            raise SystemExit("--detections needs a suggestions section in the label windows config")
+        tcfg = yaml.safe_load(Path(a.tracker_config).read_text())
+        sugg = {"suggest_min_score": float(tcfg["detection"]["score_high"]),
+                "cover_iou": float(cfg["suggestions"]["cover_iou"])}
+    known = {w.get("source") or w["clip"] for w in doc["windows"] + doc["dense"]}
+    if set(dets) - known:
+        raise SystemExit(f"--detections names unknown windows' sources: {sorted(set(dets) - known)}")
     out = Path(a.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     for w in doc["windows"] + doc["dense"]:
+        key = w.get("source") or w["clip"]
+        extra = {"suggestions": dets[key], **sugg} if key in dets else {}
         m = make_pack(w["video"], "DEV", None, str(out / w["name"]), name=w["name"], start_frame=w["start_frame"],
-                      end_frame=w["end_frame"], step_frames=w["step_frames"])
+                      end_frame=w["end_frame"], step_frames=w["step_frames"], **extra)
         if m["clip"]["sha256"] != w["video_sha256"]:
             raise SystemExit(f"{w['name']}: video sha256 differs from the tracks / labels it was chosen on")
-        print(f"pack {w['name']}: {len(m['frames'])} frames")
+        n_sug = sum(len(f.get("suggestions", [])) for f in m["frames"])
+        print(f"pack {w['name']}: {len(m['frames'])} frames" + (f", {n_sug} suggestions" if "assisted" in m else ""))
     return 0
 
 
@@ -249,6 +270,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     b = sub.add_parser("build")
     b.add_argument("--windows", required=True)
     b.add_argument("--out-dir", required=True)
+    b.add_argument("--detections", nargs=2, action="append", metavar=("NAME", "DETECTIONS"))
+    b.add_argument("--config", default="config/label_windows.yaml")
+    b.add_argument("--tracker-config", default="config/default.yaml")
     a = p.parse_args(argv)
     return select(a) if a.cmd == "select" else build(a)
 

@@ -81,8 +81,11 @@
       <div><b>Same player = same ID</b> on every frame. Not visible on a frame → no box.</div>
       <div><b>Occluded</b>: partly hidden but you can still draw where they are.</div>
       <div><b>Ignore region</b>: crowds or bench areas that should not be scored.</div>
+      <div id="sughelp" style="display:none"><b>Suggestions</b> (dashed cyan, from the detector): <b>click one</b> to accept it as a box
+        (it takes the armed ID, else a new ID), then fix it. Suggestions are never labels by themselves; check every one.
+        <kbd>H</kbd> hides / shows them.</div>
       <div><b>Zoom</b>: mouse wheel. <b>Pan</b>: right-drag or Space+drag.</div>
-      <div><kbd>A</kbd>/<kbd>D</kbd> frames · <kbd>C</kbd> copy previous · <kbd>↵</kbd> done · <kbd>N</kbd> new ID · <kbd>O</kbd> occluded · <kbd>I</kbd> ignore · <kbd>Del</kbd> delete · <kbd>Esc</kbd> deselect · <kbd>F</kbd> fit</div>
+      <div><kbd>A</kbd>/<kbd>D</kbd> frames · <kbd>C</kbd> copy previous · <kbd>↵</kbd> done · <kbd>N</kbd> new ID · <kbd>O</kbd> occluded · <kbd>I</kbd> ignore · <kbd>Del</kbd> delete · <kbd>Esc</kbd> deselect · <kbd>F</kbd> fit · <kbd>H</kbd> suggestions</div>
       <div>Progress auto-saves in this browser; <b>Save progress</b> also downloads a backup file.</div>
     </section>
   </aside>
@@ -113,6 +116,26 @@ function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); return 
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { status("Browser storage unavailable: use Save progress often.", "warn"); } }
 
 let k = 0, sel = null, armed = null, imgs = {}, view = { s: 1, ox: 0, oy: 0 }, fitted = false;
+// Detector-assisted packs (1.2.0): suggestions are shown, never labels until the annotator clicks one.
+const ASSISTED = PACK.assisted || null;
+let showSug = !!ASSISTED;
+function iou(a, b) {
+  const w = Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1), h = Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1);
+  if (w <= 0 || h <= 0) return 0;
+  const i = w * h; return i / ((a.x2 - a.x1) * (a.y2 - a.y1) + (b.x2 - b.x1) * (b.y2 - b.y1) - i);
+}
+function openSuggestions() {            // this frame's suggestions not yet covered by a label box
+  if (!ASSISTED || !showSug) return [];
+  const bs = boxesOf(fidx());
+  return (PACK.frames[k].suggestions || []).map(([x1, y1, x2, y2, sc]) => ({ x1, y1, x2, y2, sc }))
+    .filter((g) => !bs.some((b) => iou(b, g) >= ASSISTED.cover_iou));
+}
+function suggestionAt(x, y) {
+  let best = null;
+  for (const g of openSuggestions()) if (x >= g.x1 && x <= g.x2 && y >= g.y1 && y <= g.y2) {
+    const a = (g.x2 - g.x1) * (g.y2 - g.y1); if (!best || a < best.a) best = { g, a }; }
+  return best ? best.g : null;
+}
 const cv = $("cv"), ctx = cv.getContext("2d");
 const fidx = () => PACK.frames[k].index;
 const boxesOf = (f) => (S.boxes[f] = S.boxes[f] || []);
@@ -135,6 +158,11 @@ function draw() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, r.width, r.height);
   const im = image(k);
   if (im.complete && im.naturalWidth) ctx.drawImage(im, view.ox, view.oy, PACK.clip.width * view.s, PACK.clip.height * view.s);
+  for (const g of openSuggestions()) {
+    const [x1, y1] = toScr(g.x1, g.y1), [x2, y2] = toScr(g.x2, g.y2);
+    ctx.lineWidth = 1.2; ctx.strokeStyle = "#5fe0ff"; ctx.setLineDash([3, 3]); ctx.strokeRect(x1, y1, x2 - x1, y2 - y1); ctx.setLineDash([]);
+    ctx.font = "10px sans-serif"; ctx.fillStyle = "#5fe0ff"; ctx.fillText("?" + g.sc.toFixed(2), x1 + 2, y2 - 3);
+  }
   for (const b of boxesOf(fidx())) {
     const [x1, y1] = toScr(b.x1, b.y1), [x2, y2] = toScr(b.x2, b.y2), c = b.ignore ? "#9aa4b2" : colour(b.id);
     ctx.lineWidth = b === sel ? 2.5 : 1.5; ctx.strokeStyle = c; ctx.setLineDash(b.occluded || b.ignore ? [5, 4] : []);
@@ -151,7 +179,7 @@ function draw() {
 
 function ui() {
   const f = PACK.frames[k];
-  $("clipname").textContent = PACK.clip.name + "  ·  v" + S.label_version;
+  $("clipname").textContent = PACK.clip.name + "  ·  v" + S.label_version + (ASSISTED ? "  ·  assisted" : "");
   $("frameinfo").textContent = `frame ${k + 1}/${PACK.frames.length}  (video #${f.index}, ${f.time_s.toFixed(2)} s)`;
   const done = !!S.done[f.index], pill = $("donepill");
   pill.textContent = S.frozen ? "FROZEN" : done ? "DONE" : "TO DO"; pill.className = "pill " + (S.frozen ? "frozen" : done ? "done" : "todo");
@@ -227,7 +255,7 @@ cv.addEventListener("mousedown", (e) => {
   if (h && h.corner && !S.frozen) { drag = { mode: "resize", box: h.box, corner: h.corner }; return; }
   if (h) { sel = h.box; drag = S.frozen ? null : { mode: "move", box: h.box, x, y, b0: Object.assign({}, h.box) }; draw(); return; }
   if (!editable()) return;
-  sel = null; drag = { mode: "draw", x0: x, y0: y, x1: x, y1: y };
+  sel = null; drag = { mode: "draw", x0: x, y0: y, x1: x, y1: y, sug: suggestionAt(x, y) };
 });
 window.addEventListener("mousemove", (e) => {
   if (!drag) return; const r = cv.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top; const [x, y] = toImg(sx, sy);
@@ -239,7 +267,11 @@ window.addEventListener("mousemove", (e) => {
 });
 window.addEventListener("mouseup", () => {
   if (!drag) return; const d = drag; drag = null;
-  if (d.mode === "draw") { if (Math.abs(d.x1 - d.x0) * view.s >= MIN_BOX_PX && Math.abs(d.y1 - d.y0) * view.s >= MIN_BOX_PX) addBox(d.x0, d.y0, d.x1, d.y1); else draw(); }
+  if (d.mode === "draw") {
+    if (Math.abs(d.x1 - d.x0) * view.s >= MIN_BOX_PX && Math.abs(d.y1 - d.y0) * view.s >= MIN_BOX_PX) addBox(d.x0, d.y0, d.x1, d.y1);
+    else if (d.sug) { addBox(d.sug.x1, d.sug.y1, d.sug.x2, d.sug.y2); status("Suggestion accepted: check the box and its ID.", "ok"); }
+    else draw();
+  }
   else if (d.mode === "move" || d.mode === "resize") { clampBox(d.box); changed(); }
 });
 cv.addEventListener("wheel", (e) => {
@@ -277,6 +309,7 @@ window.addEventListener("keydown", (e) => {
   else if (key === "delete" || key === "backspace") { e.preventDefault(); del(); }
   else if (key === "escape") { sel = null; armed = null; draw(); }
   else if (key === "f") { fit(); draw(); }
+  else if (key === "h" && ASSISTED) { showSug = !showSug; status(showSug ? "Suggestions shown." : "Suggestions hidden.", "ok"); draw(); }
 });
 window.addEventListener("keyup", (e) => { if (e.key === " ") space = false; });
 
@@ -327,12 +360,14 @@ $("export").onclick = async () => {
   const record = { schema: "spana.labels_frozen", schema_version: "1.0.0", split: PACK.split, clip: PACK.clip,
                    frame_step: PACK.frame_step, label_version: S.label_version, annotator: S.annotator, frozen_utc: S.frozen_utc,
                    frames_labelled: frames, gt_file: name + "_gt.txt", gt_sha256: gtSha, mot_columns: "frame,id,x,y,w,h,not_ignored,class,visibility",
-                   visibility_codes: { "1": "fully visible", "0.5": "occluded (partly hidden)" }, version_notes: S.version_notes, progress: S };
+                   visibility_codes: { "1": "fully visible", "0.5": "occluded (partly hidden)" }, version_notes: S.version_notes, progress: S,
+                   ...(ASSISTED ? { assisted: ASSISTED } : {}) };
   download(name + "_gt.txt", gt, "text/plain"); download(name + "_labels_frozen.json", JSON.stringify(record, null, 1), "application/json");
   changed(); status(`Frozen v${S.label_version}: ${frames.length} frames exported. gt sha256 ${gtSha.slice(0, 12)}…  Keep both downloaded files.`, "ok");
 };
 
-window.SPANA_LABELLER = { get state() { return S; }, validate, motText, go, addBox, copyPrevious, toggleDone };
+if (ASSISTED) { $("sughelp").style.display = ""; $("clipname").title = "detector-assisted pack: " + ASSISTED.rule; }
+window.SPANA_LABELLER = { get state() { return S; }, validate, motText, go, addBox, copyPrevious, toggleDone, openSuggestions };
 go(0); status(S.ids.length ? "Progress restored from this browser." : "Ready. Drag on the image to draw the first player's box.", "ok");
 </script>
 </body>

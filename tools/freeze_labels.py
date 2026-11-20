@@ -32,6 +32,8 @@ def freeze(pack: str, gt_path: str, record_path: str, video: str | None, root: P
     sha = manifest["clip"]["sha256"]
     if record["clip"]["sha256"] != sha or record["clip"]["name"] != manifest["clip"]["name"]:
         raise LabelError("labels record and pack are for different clips (or packs of one video)")
+    if record.get("assisted") != manifest.get("assisted"):
+        raise LabelError("labels record and pack disagree on detector assistance (assisted)")
     if video is not None and sha256_file(video) != sha:
         raise LabelError("video does not match the pack's sha256")
     gt_sha = hashlib.sha256(gt_bytes).hexdigest()
@@ -61,6 +63,7 @@ def freeze(pack: str, gt_path: str, record_path: str, video: str | None, root: P
         "ignore_regions": sum(len(v) for v in gt.ignore.values()),
         "rule": "Frozen before inference is scored. Never edit; a correction is a new version with a reason.",
         **({"source": manifest["source"]} if "source" in manifest else {}),
+        **({"assisted": manifest["assisted"]} if "assisted" in manifest else {}),
     })
     return dest
 
