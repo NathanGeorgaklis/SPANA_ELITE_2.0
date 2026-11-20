@@ -1,0 +1,5 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/. Code 16df6d8 (code30/); reference: main 24ccd58 (code29/),
+# out/target_final_* and ~/spana-test-out/F08_final/ (records/offer_hold_2026-11-19 addendum).
+3546bbaf532e1d17a25069fdcf34f5838a72dbbcf75d1fa88fc6252433a43b51  run_cache_check.sh
+fd4c5d17e28d1b10195c1d6a14664464ed4061b1df39a8ff1eb6672bc0625d1c  out/target_cache_default.json
+901d0673745d8760a6038cd0b01b1ec34d847cb5d7003ec2c031af757da0156b  out/target_cache_reviewer.json
