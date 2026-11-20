@@ -12,6 +12,12 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
 - Silent-transfer fix merged to main (2026-11-20, Nathan approved; config 2.13.0, both rules on): DEV silent
   3 -> 0, wrong frames 1 / 2 -> 0 / 0, but reviewer correct 0.783 -> 0.680 (`records/silent_transfer_fix_2026-11-20`).
   Full suite 583 passed, 6 skipped.
+- Re-ID episode resolution (branch identity/reid-episode-resolution, NOT merged; config 2.14.0, `reid_resolve` still
+  OFF): STOP condition met. Re-ID v2 separates no same-look pair on FRESH_07 / 08 at the calibrated margin (0 of 66 clean
+  rival tests; FRESH_02 50 / 129, 0 wrong); margin not lowered. On: 2 / 2 resolutions right, 0 silent, 0 / 0 wrong,
+  0 transfers on linked tracks, unaided 0.508 -> 0.513, reviewer 0.680 -> 0.680 (follower guard). 112 of 126 episodes
+  refused: NO_REFERENCE 49 (39 ambiguous spawns whose predecessors were never CERTAIN), NO_CLEAN_CROP 29, NOT_OBSERVED
+  24, BELOW_MARGIN 7 (`records/reid_episode_resolution_2026-11-20`). Full suite 596 passed, 6 skipped.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
@@ -226,6 +232,18 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
            flagged transfers 7, actions 5.71 / min unchanged. Re-checked on main 24ccd58 (target 2.9.0, config 2.12.0):
            off = main; on: unaided 0.536 -> 0.540, reviewer 0.783 -> 0.787, wrong 1 / 2 (same players), silent 0,
            transfers 7, actions 5.50 unchanged. Still off by default (Nathan's decision).
+         - Episode resolution (2026-11-20, branch identity/reid-episode-resolution, not merged,
+           `records/reid_episode_resolution_2026-11-20`):
+           - Built: a separate re-ID run (config 2.14.0, `reid_resolve.min_evidence_frames` 3). Colour that cannot tell
+             same-look rivals apart no longer vetoes; ambiguous spawns are cleared by one predecessor beating the
+             others by the margin. Every evidence frame / refusal is logged (`reid_evidence`). The follower resumes
+             after REID only on a track attached while CERTAIN.
+           - DEV on, against main 67df7ce: 0 silent, 0 / 0 wrong, 0 linked transfers; 2 REID resolutions, both right;
+             unaided 0.508 -> 0.513, reviewer 0.680 -> 0.680, ABSTAIN 735 -> 735, uncertain 22 / 16 / 39 % unchanged.
+           - STOP: re-ID v2 cannot separate same-kit teammates on G3 (same-player median 0.595 vs teammate proxy
+             0.407; clean same-look rival tests at 0.517: F07 0 / 52, F08 0 / 14). Next: re-ID on more
+             permissioned TRAIN footage; and references for spawned tracks (39 spawn episodes are blocked by
+             predecessors with no trustworthy reference, which re-ID quality alone will not fix).
 2. Relink v1 accepted as built (Nathan, 2026-11-16). Watch confirmed tracks that named several predecessors.
 3. Tracking-error history on the 4 DEV clips (for reference):
    Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.

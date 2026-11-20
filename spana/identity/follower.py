@@ -10,7 +10,10 @@ The ANSWERED track starts as the selected one. Per frame, from the selection fra
   ABSTAIN   IDENTITY_UNCERTAIN  ... IDENTITY_UNCERTAIN now
   ABSTAIN   AFTER_UNCERTAIN     ... was uncertain since it became the answered track and
                                 target.resume_after_uncertain is false (unless the latest episode was cleared
-                                by the calibrated re-ID margin, resolved_by REID, and target.resume_after_reid)
+                                by the calibrated re-ID margin, resolved_by REID, and target.resume_after_reid,
+                                and the track was CERTAIN when it became the answered track: re-ID re-confirms the
+                                identity the track had before its episode, which is the user's only if the track
+                                was attached while CERTAIN; config 2.14.0)
   ABSTAIN   TRACK_OCCLUDED      ... OCCLUDED
   LOST      TRACK_LOST          ... LOST
   LOST      TRACK_ENDED         ... ended (any EndReason)
@@ -262,6 +265,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
     log_key = None
     cur, cur_ended = sel.track_id, False
     tainted, episodes0 = False, None
+    anchored: Optional[bool] = None        # cur was CERTAIN when it became the answered track (re-ID resume needs it)
     vouch: Optional[Tuple[str, int]] = None   # (track, uncertainty episode) the user tapped during a doubt
     last_obs: Optional[int] = None         # index of cur's last observation
     relinkable = False                     # cur was confirmed, CERTAIN and untainted at its last observation
@@ -304,10 +308,10 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
 
     def answer_on(tid: str, why: str, tapped: Optional[dict] = None) -> None:
         """Make tid the answered track from this frame on (a confirmed relink or a re-selection)."""
-        nonlocal cur, cur_ended, tainted, episodes0, last_obs, relinkable, search_done, vouch
+        nonlocal cur, cur_ended, tainted, episodes0, last_obs, relinkable, search_done, vouch, anchored
         if pending is not None:
             drop(why)
-        cur, cur_ended, tainted, episodes0 = tid, False, False, None
+        cur, cur_ended, tainted, episodes0, anchored = tid, False, False, None, None
         last_obs, relinkable, search_done = None, False, False
         reid_done.clear()
         vouch = None if tapped is None else vouch_for(tapped)
@@ -376,11 +380,13 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                 vouch = None                                   # a rival or a new episode: the tap no longer covers it
             if episodes0 is None:
                 episodes0 = tr["uncertain_episodes"] - int(uncertain)
+            if anchored is None:
+                anchored = tr["identity"] == IdentityState.CERTAIN.value
             if uncertain and tc.resume_after_doubt_resolved and _doubt_only(tr):
                 episodes0 = tr["uncertain_episodes"]           # a doubt with no rival: abstain now, no taint
             elif uncertain or tr["uncertain_episodes"] > episodes0:
                 tainted = not tc.resume_after_uncertain
-            if tainted and not uncertain and tc.resume_after_reid and tr.get("resolved_by") == "REID":
+            if tainted and not uncertain and tc.resume_after_reid and tr.get("resolved_by") == "REID" and anchored:
                 tainted, episodes0 = False, tr["uncertain_episodes"]   # cleared by the calibrated re-ID margin
             box = None
             if uncertain:
@@ -488,6 +494,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                                    outcome="CONFIRMED")
                     cur, cur_ended, pending, vouch = b, False, None, None
                     tainted, episodes0 = False, live[b]["uncertain_episodes"]
+                    anchored = live[b]["identity"] == IdentityState.CERTAIN.value
                     last_obs, relinkable, search_done = n, True, False
                     reid_done.clear()
                     answer.update(state=TargetState.TARGET.value, reason=TargetReason.TRACK_OBSERVED.value)
