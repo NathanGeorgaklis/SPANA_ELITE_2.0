@@ -82,6 +82,17 @@ Main DEV failure: class confusion from kit colour (91 of 708 players boxed as re
 team in G2; goalkeepers boxed as referee in G1). Players are found but given the wrong class. Off-pitch false positives
 are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
 
+## Tracker bench v1 (2026-11-20, `bench/`, `config/tracking/`; built, NOT YET RUN on DEV)
+- Candidates on the same frozen DEV detections: REF (ours), A ByteTrack and B BoT-SORT + CMC (Roboflow `trackers`
+  2.7.0, Apache-2.0), C Deep-EIoU (no licence: EVAL-ONLY, benchmark use only), D GTA-Link offline linking on B and on
+  C (MIT code). C / D use SPANA re-ID v2 embeddings. Licences in DECISIONS 2026-11-20.
+- Metrics: TrackEval HOTA / IDF1 / IDSW; target player ID switches, fragments, coverage, longest segment, wrong-player
+  frames (silent and flagged); fps. Tests: `tests/test_bench_harness.py` (14, synthetic clip).
+- **Recommended tracker: none yet.** The run needs the DEV clips, the local-detector detections and the re-ID v2
+  weights, which are only on Nathan's Mac (`bench/README.md`). `bench/results/tracker_bench_v1.csv` is written by
+  `python -m bench.run score`; the recommendation follows the pre-registered rule in `config/tracking/bench_v1.yaml`
+  and goes into DECISIONS with its own follow-up task. The production tracker is unchanged.
+
 ## Open failures
 - No failing tests. Skipped: YOLOX inference (weights not fetched), two Playwright labeller UI tests (no browser).
 - Detection -> tracking: wired and run 2026-11-16 (`PersonView`, `detect --backend roboflow`, detections 1.4.0).

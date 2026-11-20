@@ -1,0 +1,26 @@
+# Tracker bench v1, candidate C (bench/ only; EVAL-ONLY = benchmark use only, never imported from spana/).
+# Deep-EIoU, official code at a pinned commit, fetched outside Git by bench/external.py. The repository has NO licence
+# (all rights reserved): not commercial-compatible, never vendored (DECISIONS 2026-11-20).
+# Params = tools/sport_track.py published defaults (not tuned). Their aspect-ratio filter is disabled in that script
+# (vertical = False), so it is not applied. Appearance: per-detection SPANA re-ID v2 embeddings from the frozen cache
+# instead of their OSNet sports weights (Google Drive download, trained on non-commercial data, no licence).
+schema: spana.tracker_candidate
+schema_version: 1.0.0
+candidate: C
+name: deep_eiou
+kind: online
+implementation: {repo: "https://github.com/hsiangwei0903/Deep-EIoU", commit: 2fc7d270eec8290fda075b976b5e06683c788e1e,
+                 subdir: Deep-EIoU, module: tracker.Deep_EIoU, class: Deep_EIoU}
+licence: {spdx: NONE, commercial_ok: false, source: "no LICENSE file in the repository at the pinned commit (only reid/ = torchreid, MIT)"}
+needs_image: false
+needs_embeddings: true
+params:
+  track_high_thresh: 0.6
+  track_low_thresh: 0.1
+  new_track_thresh: 0.7
+  track_buffer: 60
+  match_thresh: 0.8
+  proximity_thresh: 0.5
+  appearance_thresh: 0.25
+  with_reid: true
+  min_box_area: 10

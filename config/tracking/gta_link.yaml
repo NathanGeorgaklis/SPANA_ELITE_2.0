@@ -1,0 +1,25 @@
+# Tracker bench v1, candidate D (bench/ only): offline global tracklet linking (GTA-Link) applied to the output of an
+# online candidate. Official code at a pinned commit, fetched outside Git by bench/external.py. Code MIT; its bundled
+# OSNet weights (SportsMOT / Market-1501) are NOT used: features = SPANA re-ID v2 embeddings from the frozen cache.
+# Params = the README's published command (split + connect), not tuned. Run on both B and C; "D" in the report is
+# the one built on the better of B / C.
+schema: spana.tracker_candidate
+schema_version: 1.0.0
+candidate: D
+name: gta_link
+kind: offline
+implementation: {repo: "https://github.com/sjc042/gta-link", commit: e4d5cc4065ceb1ec3fa9dc7478455f13a8d7f9ca,
+                 module: refine_tracklets}
+licence: {spdx: MIT, commercial_ok: true, source: "LICENSE at the pinned commit (code only; bundled re-ID weights are not MIT-cleared and are not used)"}
+needs_image: false
+needs_embeddings: true
+applies_to: [botsort_cmc, deep_eiou]
+params:
+  use_split: true
+  min_len: 100
+  eps: 0.6
+  min_samples: 10
+  max_k: 3
+  use_connect: true
+  spatial_factor: 1.0
+  merge_dist_thres: 0.4

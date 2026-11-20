@@ -1,0 +1,21 @@
+# Tracker bench v1 (bench/run.py). DEV only: every label dir must be a frozen DEV label set (tools/benchmark.py
+# load_frozen refuses anything else). Short DEV clips only; no EVAL, no full matches.
+schema: spana.tracker_bench
+schema_version: 1.0.0
+clips:
+  - {name: FRESH_02, labels: data/labels/FRESH_02_G1_3000_midfield_buildup_passing/v1}
+  - {name: FRESH_05, labels: data/labels/FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper/v1}
+  - {name: FRESH_07, labels: data/labels/FRESH_07_G3_1205_midfield_passing_switch/v1}
+  - {name: FRESH_08, labels: data/labels/FRESH_08_G3_2103_attack_into_box_clearance/v1}
+candidates: [spana.yaml, bytetrack.yaml, botsort.yaml, deep_eiou.yaml, gta_link.yaml]
+embedder: {model_record: models/spana_reid_v2.json,
+           model_sha256: c269450e871cb28b4020b715618edc9dcda328faf951503a9e09f8e7a3032f84}
+scoring:
+  target_match_rule: NESTED_V2      # repo convention for who a box is (records/MATCHING_RULE_NESTED_V2.md)
+  trackeval_iou: 0.5                # TrackEval's own similarity (IoU); HOTA integrates over its alpha range
+external_dir: bench/external        # pinned third-party checkouts, never committed
+output_csv: bench/results/tracker_bench_v1.csv
+# Recommendation rule, fixed before any result is seen (pooled over the clips, commercial-compatible candidates
+# only): fewest silent wrong-player frames on the tapped track first (hard rule: no identity switch without a flag),
+# then highest target coverage, then highest IDF1. Ties go to the simpler online tracker.
+ranking: [target_wrong_frames_unflagged asc, target_coverage desc, idf1 desc]

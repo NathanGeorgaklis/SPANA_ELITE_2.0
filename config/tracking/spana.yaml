@@ -1,0 +1,12 @@
+# Tracker bench v1, reference row (not a candidate): the current production tracker, driven exactly as
+# `spana.cli track` drives it, with config/default.yaml.
+schema: spana.tracker_candidate
+schema_version: 1.0.0
+candidate: REF
+name: spana
+kind: online
+implementation: {module: spana.tracking.tracker, class: MultiPlayerTracker, config: config/default.yaml}
+licence: {spdx: PROPRIETARY, commercial_ok: true, source: "SPANA-owned"}
+needs_image: true
+needs_embeddings: false
+params: {}

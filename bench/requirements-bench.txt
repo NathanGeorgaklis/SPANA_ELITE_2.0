@@ -1,0 +1,14 @@
+# Tracker bench v1 only (bench/). Install into a separate venv: `trackers` needs opencv-python, which conflicts with
+# the product's opencv-python-headless pin. Third-party tracker code (Deep-EIoU, GTA-Link) is fetched by
+# `python -m bench.external fetch` at pinned commits, never committed.
+-r ../requirements.txt
+trackers==2.7.0          # Apache-2.0 (Roboflow): candidates A, B
+trackeval==1.3.0         # MIT: packaged TrackEval (J. Luiten) with numpy-2 fixes; HOTA / IDF1 / IDSW
+lap==0.5.14              # Deep-EIoU matching (BSD-2)
+cython_bbox==0.1.5       # Deep-EIoU IoU (MIT)
+scikit-learn>=1.5        # GTA-Link DBSCAN
+torch>=2.3               # GTA-Link distances (imported at module level)
+seaborn>=0.13            # GTA-Link imports it at module level
+matplotlib>=3.8
+tqdm>=4.66
+loguru>=0.7
