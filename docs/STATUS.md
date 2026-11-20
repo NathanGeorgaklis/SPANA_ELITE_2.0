@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-20 (branch performance/identity-tracking-speed, on identity/reid-direct-label-v1 41fbb75; main 11b5a80).
-- Full suite: `python -m pytest tests -q` → 395 passed, 7 skipped (Nathan's Mac, Python 3.13, torch 2.15 on MPS).
+As of 2026-11-20 (branch performance/detect-preprocess-overlap, on performance/identity-tracking-speed edc53c2; main 11b5a80).
+- Full suite: `python -m pytest tests -q` → 398 passed, 7 skipped (Nathan's Mac, Python 3.13, torch 2.15 on MPS).
 - Re-ID labelling tests (`tests/test_reid_cluster.py`): 20 passed on Nathan's Mac, incl. both review-page tests (Playwright on system Chrome).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -102,9 +102,11 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   our uncertainty flags.
 - Speed, DEV (`records/identity_speed_2026-11-18`):
   - Measured on the M3 MacBook Air, local detector on MPS.
-  - Pipeline: 419.7 → 361.9 ms/frame, i.e. 12.6x → 10.9x real time, 18.9 h → 16.3 h per 90 min match.
-  - What changed: fp32 + torch.compile, now the default. Identity is unchanged on 218 probes and on 4 labelled clips.
-  - The target is 1x real time (`performance.realtime_factor_target`), a 33 ms/frame budget. It is out of reach while the RF-DETR medium network at 1280 takes 324 ms/frame (90 % of the time).
+  - Pipeline: 419.7 → 361.9 → 347.1 ms/frame, i.e. 12.6x → 10.4x real time, 18.9 h → 15.6 h per 90 min match.
+  - What changed:
+    - fp32 + torch.compile, now the default. Identity is unchanged on 218 probes and on 4 labelled clips.
+    - Bit-identical per-plane preprocessing, 26.9 → 5.7 ms (`records/identity_speed_2026-11-20`).
+  - The target is 1x real time (`performance.realtime_factor_target`), a 33 ms/frame budget. It is out of reach while the RF-DETR medium network at 1280 takes ~325 ms/frame (95 % of the time).
   - A decision on resolution, model size, cadence or hardware is open for Nathan.
   - Per-stage profiling: `profiling.enabled` (off by default).
 - README pipeline table is stale (artifact versions listed as 1.1.0 / 2.0.0; code is detections 1.3.0, tracks 2.1.0).
@@ -156,8 +158,8 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
    ByteTrack shows how much continuity is possible on the same detections (F07 11 / F08 22 fragments) and what it
    costs without flags (silent swaps): measure ByteTrack-style continuity inside our tracker, keeping the flags
    (`records/bytetrack_compare_2026-11-18`).
-5. Speed (`records/identity_speed_2026-11-18`). The next slowest stages after the network (324 ms/frame):
-   - detect.preprocess, 27 ms on CPU: it can overlap with the GPU in a thread, with exact outputs;
-   - camera_motion, 4.8 ms;
-   - tracking, 3.6 ms.
-   These are worth at most about 35 ms/frame together. 1x needs Nathan's decision on resolution, model, cadence or hardware first.
+5. Speed (`records/identity_speed_2026-11-18`, `records/identity_speed_2026-11-20`):
+   - Preprocessing is done.
+   - A thread overlap with the GPU does not work: the compiled graph needs the GIL for every kernel launch.
+   - What remains apart from the network is camera_motion (5.1 ms) and tracking (3.8 ms).
+   - 1x needs Nathan's decision on resolution, model, cadence or hardware.

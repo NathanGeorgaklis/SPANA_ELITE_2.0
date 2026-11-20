@@ -97,9 +97,20 @@ class LocalModelRecord:
 
 
 def preprocess(frame_bgr: np.ndarray, resolution: int) -> np.ndarray:
+    """(1, 3, R, R) float32 network input: RGB, resized, ((u8 / 255) - MEAN) / STD per channel.
+
+    The same float32 operations per element as the plain formula `((x / 255) - MEAN) / STD` on an HWC array,
+    done per channel plane in place: bit-identical output, without the length-3 broadcast inner loop and the
+    full-size temporaries (records/identity_speed_2026-11-20: 23 -> 4.5 ms per 1280 frame)."""
     rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-    x = cv2.resize(rgb, (resolution, resolution), interpolation=cv2.INTER_LINEAR).astype(np.float32) / 255.0
-    return np.ascontiguousarray(((x - MEAN) / STD).transpose(2, 0, 1)[None])
+    u = cv2.resize(rgb, (resolution, resolution), interpolation=cv2.INTER_LINEAR)
+    out = np.empty((1, 3, resolution, resolution), np.float32)
+    for c in range(3):
+        p = out[0, c]
+        np.divide(u[:, :, c], np.float32(255.0), out=p, dtype=np.float32)
+        np.subtract(p, MEAN[c], out=p)
+        np.divide(p, STD[c], out=p)
+    return out
 
 
 def decode(boxes: np.ndarray, logits: np.ndarray, width: int, height: int, floor: float,

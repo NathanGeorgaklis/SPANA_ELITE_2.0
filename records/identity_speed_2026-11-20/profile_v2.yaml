@@ -1,0 +1,118 @@
+# SPANA default configuration.
+# CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
+# Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
+schema_version: "2.3.0"
+
+detection:
+  score_low: 0.10          # keep weak boxes for stage-2 association only
+  score_high: 0.50         # may start a track / match in stage 1
+  nms_iou: 0.60
+  min_box_height_frac: 0.015   # ~16 px at 1080p; smaller boxes carry no usable evidence
+  tiling_enabled: true
+  tile_size_frac: 0.60         # 648 px tiles at 1080p -> distant players seen at ~1x instead of ~0.33x
+  tile_overlap_frac: 0.25      # bodies up to ~0.15 frame heights are fully inside some tile
+  tile_edge_margin_frac: 0.05   # detectors place truncated edges a few px inside the cut; 0.05 x 648 = 32 px
+  union_member_ioa: 0.70       # DEV FRESH_01: two-player union boxes from the low-resolution pass (see records)
+  union_member_max_iou: 0.30
+  # Multi-body flag (calibrated on DEV FRESH_02 only): a box that encloses a confident detection and extends well
+  # beyond it may hold two people in contact. It is kept, but cannot start a track or update appearance.
+  multibody_member_ioa: 0.60
+  multibody_member_score: 0.50
+  multibody_min_extent: 1.20
+
+camera:
+  analysis_width_px: 480   # compute-only downscale; results are mapped back to source pixels
+  max_features: 600
+  feature_quality: 0.01
+  feature_min_distance_frac: 0.015   # ~7 px at 480 px analysis width
+  min_inliers: 25
+  ransac_reproj_frac: 0.006   # ~3.6 px on a 480x270 analysis frame
+  cut_hist_distance: 0.55
+  max_log_scale_rate_per_s: 1.0   # zoom faster than ~e (2.7x) per second is implausible -> UNKNOWN
+  scale_noise_log: 0.02           # estimate noise allowance per frame pair
+  # Camera-motion uncertainty: feature disagreement with the fitted transform is added to every track's predicted
+  # position variance, so a weakly supported estimate widens the motion gate and a strong one leaves it unchanged.
+  disagreement_noise_scale: 1.0
+
+kalman:
+  pos_std_h: 0.05
+  vel_std_h_per_s: 2.0
+  init_vel_std_h_per_s: 3.0
+
+tracking:
+  low_score_min_iou: 0.40
+  gate_base_h: 0.35
+  max_speed_h_per_s: 5.0       # ~9 m/s sprint for a 1.8 m player
+  gate_max_h: 2.0
+  gate_chi2: 9.21              # 99 % of a 2-dof chi-square: rejects centres the motion model cannot explain
+  max_height_ratio: 1.5
+  iou_weight: 0.5
+  contest_margin: 0.10
+  confirm_s: 0.10
+  confirm_nested_ioa: 0.60     # a box mostly inside another player's box is not confirmed (partial duplicate)
+  unconfirmed_max_s: 1.00
+  rematch_max_s: 0.20          # longest gap bridged by motion alone (exclusive pairs only)
+  occlusion_min_ioa: 0.30
+  occlusion_max_s: 1.00        # longest occlusion recovered, and only with distinct appearance
+  max_accel_h_per_s2: 2.0      # ~3.6 m/s^2 for a 1.8 m player: a hidden player keeps (roughly) his velocity
+  predict_max_s: 0.50
+  lost_max_s: 2.00
+  duplicate_iou: 0.70
+  duplicate_ioa: 0.85
+  confidence_window_s: 1.00
+  history_s: 5.00
+  # IDENTITY_UNCERTAIN: a contested match that a rival track also passes, with appearance unable to separate them,
+  # marks both tracks uncertain (appearance frozen). Cleared only after clean appearance evidence favours the track
+  # over every recorded rival by appearance.min_margin, continuously for this long.
+  identity_resolve_s: 0.50
+
+appearance:
+  enabled: true
+  min_crop_height_px: 24       # below this a torso band has too few pixels for a colour histogram
+  torso_top_frac: 0.15
+  torso_bottom_frac: 0.50
+  torso_width_frac: 0.60
+  hue_bins: 16
+  sat_bins: 8
+  tau_s: 1.0
+  clean_max_iou: 0.05
+  min_similarity: 0.70
+  min_margin: 0.10
+
+target:
+  # Policy, not a calibrated value. An IDENTITY_UNCERTAIN episode means a rival fitted the same evidence; the
+  # tracker's later resolution compares against the track's own appearance, which same-kit rivals can pass.
+  # false = fail closed: once the followed track has been uncertain, abstain for the rest of that track.
+  resume_after_uncertain: false
+  # Relink after the followed track is lost (CANDIDATE; TARGET only after the user confirms). Prior from DEV
+  # (records/reid_headroom_F07_F08_2026-11-16): the tracker's unique predecessor link was right 44 / 44 on 4 clips
+  # for gaps <= 0.5 s on a candidate that confirms; wrong picks started at 0.88 s.
+  relink_max_gap_s: 0.5
+  # Promote a CANDIDATE to TARGET without confirmation. Measurement only; off by default (Nathan, 2026-11-16).
+  relink_auto_confirm: false
+
+inference:
+  # Local detector network on the Apple GPU (detect --backend local --runtime torch --device mps). The CPU always
+  # runs fp32, eager. Chosen from the profile of 2026-11-18 (records/identity_speed_2026-11-18): the network is 90 %
+  # of the per-frame time; batching frames gains nothing on the GPU.
+  mps_precision: fp32
+  mps_compile: true
+
+profiling:
+  # Per-stage timing (spana/profiling.py): detect / track / target write <out>.profile.json. Measurement only.
+  enabled: true
+
+performance:
+  # Speed target (first milestone, 2026-11-18): a full match processed in no more than its own length on the Mac.
+  realtime_factor_target: 1.0
+  projection_footage_s: 5400       # 90 min, for the projected processing time of a match
+  # Identity tolerance for a speed change (tools/identity_speed.py), set before measuring. Speed never wins over
+  # identity: a change outside these limits is reverted or gated. Identity switches must not increase (always).
+  identity_agreement_min: 0.99     # share of frames with the same target answer (state, track, box)
+  identity_box_iou_min: 0.90       # same box = IoU at least this
+  lost_unknown_rate_max_increase: 0.01
+  identity_probe_every_s: 10.0
+
+output:
+  box_decimals: 1
+  score_decimals: 4
