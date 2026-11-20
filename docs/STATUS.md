@@ -1,8 +1,8 @@
 # STATUS
 
-As of 2026-11-20 (branch identity/reentry-cache on main 24ccd58: re-entry rule memoised, DEV scoring 11-12 s,
-results identical; records/reentry_cache_2026-11-20).
-- Full suite: `python -m pytest tests -q` → 510 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
+As of 2026-11-20 (main: + re-entry rule memoised, DEV scoring 11-12 s with identical results,
+records/reentry_cache_2026-11-20; + records/fresh08_followup_2026-11-20).
+- Full suite: `python -m pytest tests -q` → 511 passed, 6 skipped (container, Python 3.13, without torch: the re-ID
   training tests skip).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
