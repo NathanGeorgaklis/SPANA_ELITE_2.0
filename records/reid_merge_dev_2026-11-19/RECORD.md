@@ -69,3 +69,33 @@ Scope:
    - The gain is small: 99 / 1,299 uncertain frames have a clean crop (`records/reid_resolve_dev_2026-11-18`).
    - v3 has not passed the held-out check (`records/reid_margin_floor_dev_2026-11-19`).
    - Turning it on is Nathan's decision.
+
+## Addendum 2026-11-20: re-checked on the newer main (24ccd58)
+- **Why:** main moved after PR #13 opened.
+  - It took `spana.target` 2.6.0–2.8.0 (crop-set signatures, exit side, offer hold) and config 2.8.0–2.11.0.
+  - It turned on `tracking.rival_eligible_only` and `target.offer_hold_s` 0.2.
+- **Merge commit 80fc877:** the re-ID additions moved to the next free numbers.
+  - `spana.target` **2.9.0** = 2.8.0 + `resume_after_reid`.
+  - Config **2.12.0** = 2.11.0 + `reid_resolve` + `target.resume_after_reid`.
+  - `spana.tracks` stays **2.3.0** (main is still at 2.2.0).
+  - The tracker merged cleanly. Full suite: 536 passed, 5 skipped.
+- **Same DEV run**, against main 24ccd58:
+
+| | main 24ccd58 | merge, re-ID off | merge, re-ID on |
+|---|---|---|---|
+| tracks (frames + tracklets, without `resolved_by`) | — | identical to main | identical to main |
+| silent swaps / flagged transfers | 0 / 7 | 0 / 7 | 0 / 7 |
+| ID switches / fragments | 107 / 105 | 107 / 105 | 107 / 105 |
+| doubt episodes cleared (by re-ID) | 4 (0) | 4 (0) | 4 (**2**, FRESH_02) |
+| unaided: correct time / wrong frames | 0.536 / 1 | 0.536 / 1 | **0.540** / 1 |
+| unaided: abstain / LOST frames | 310 / 805 | 310 / 805 | 293 / 805 |
+| reviewer: correct time / wrong frames / actions per min | 0.783 / 2 / 5.50 | same | **0.787** / 2 / 5.50 |
+| offers right / wrong / undecided (unaided; reviewer) | 26 / 0 / 2; 34 / 2 / 3 | same | same |
+
+- **Wrong frames:** the same players in all variants (unaided FRESH_07 player 13; reviewer + FRESH_02 player 8).
+- **Wrong offers:** main's 2 wrong offers with the reviewer are main's own; re-ID resolution changes no offer.
+- **Conclusion unchanged:**
+  - Off = main exactly.
+  - On = 0 new wrong frames, 0 silent swaps, +17 correct frames.
+  - Actions unchanged.
+  - Stays off by default.

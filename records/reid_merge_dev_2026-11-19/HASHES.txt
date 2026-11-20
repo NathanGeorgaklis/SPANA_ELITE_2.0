@@ -27,3 +27,29 @@ b1878b5a88ed20c1af2772d48a25357f6332877dfb0ced9e95153930d26cf5a8  out/target_on_
 # Track frames + tracklets with resolved_by removed (jq '[.frames[] | del(.tracks[].resolved_by)], .tracklets'),
 # sha256 prefix, identical for main / off / on: F02 a922c94c52765bea, F05 192f80e4626850f1, F07 8cbe81127237e0f7,
 # F08 6de851750308f0d2.
+
+# Addendum 2026-11-20: re-run on main 24ccd58 (code_main2/) vs the updated merge 80fc877 (code_merge2/), same inputs.
+5965cc9c7a89dc1e195aaeb656809cf8a70b9ec777cf7b11f2f3cf85a5748ee8  run_variant2.sh (run_variant.sh with code_main2 / code_merge2)
+f1c139b43b5d033c318c43f31ba17a58e256364eb9e798e3e9766b1f382126d2  cfg_main2.yaml (= main 24ccd58 config/default.yaml)
+c4601ad4516f3e1c9339c2a9818bb18cefe8f5c6138e7f1c08ff855e86daf742  cfg_off2.yaml (= merge 80fc877 config/default.yaml)
+cffc1e353a7ace4c5e2f24bbabe5c3bf3233fda7e0d34c45c8f943c9381b9602  cfg_on2.yaml (+ reid_resolve.enabled, target.resume_after_reid)
+a41b0711e7952ec52b147069063141779534c48bc7e412ce93cb1fd512c32aee  out/F02_main2.trk.json
+65e313a67ae8c70312fcb8183df53bdfb239e8d8e92ab19dd6e8f2f026d9fc3b  out/F05_main2.trk.json
+903692c9038b7870d7e99e097426df6cf244c9217a631ceb031dd588f355271f  out/F07_main2.trk.json
+c909aea1b375fed095019860d0eb8516e230764792cd7f17e6dd2525c4e557b6  out/F08_main2.trk.json
+c8c0d1b9424d1443f9e0400f904281e51972ea8a9bbe08f7d9881f5d9fe49a15  out/F02_off2.trk.json
+cf666c6aa1cebadade0c3d2e7dfef8dddd7994beb9de533bdb32dc8a24f6d88e  out/F05_off2.trk.json
+a6a424f200efde217b77794011d5218995b1f434b305d17add6a8ec58fc40f9e  out/F07_off2.trk.json
+fd919792ef26aa69574b4a37f0754219490079f0519030619b2b700eeba451dd  out/F08_off2.trk.json
+3031b38b88f92e76f9ffeb072828b3be28cb1b1b21d00b61dec517ed816d8100  out/F02_on2.trk.json
+fce3f5941a0fa871f839259ab8dca315b7447cae8d47f8a1743523b6251482c1  out/F05_on2.trk.json
+e7b8f7f8b5d32b39b7e05b27714d5660c70322b134b56303842cb3d4a5abf85f  out/F07_on2.trk.json
+fb4d59d00c296aa1ad5a20fbba3afc4d04b3a20c040905b9ce2ce83b566ae374  out/F08_on2.trk.json
+894e576814822990038bc286c62fcf5fba9e77bd468cf2e49c05b9afcadfe741  out/target_main2_default.json
+ab09bc5160b9e22df472c0a81b7336a9d4142015468033c0e1dbab3b1e072e81  out/target_main2_reviewer.json
+2e42ab4a0b93f43789c86cf955d8f546e60442f3a8f2e6eae56fa03c48469db5  out/target_off2_default.json
+77d9f624c605777c3849ef958b5f400fd8ebea6f51da91d5f5a8bceb46813e62  out/target_off2_reviewer.json
+19eea6b8f834e3854a15f2722fb9cc50292b11c26845762694ce94c4d9040774  out/target_on2_default.json
+36d460262a015329fb2be9c5ed56711b9b59ca6abdadbb644c5d2e9a31516666  out/target_on2_reviewer.json
+# Track frames + tracklets without resolved_by, sha256 prefix, identical main2 / off2 / on2: F02 a922c94c52765bea,
+# F05 192f80e4626850f1, F07 585d445c4582cc7f, F08 1c9d92475cf403d5.
