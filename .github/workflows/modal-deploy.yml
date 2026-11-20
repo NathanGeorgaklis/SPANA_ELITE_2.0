@@ -1,0 +1,31 @@
+# Deploy the re-ID training app (tools/modal_reid.py) to Modal when it or its inputs change on main.
+# Needs repository secrets MODAL_TOKEN_ID and MODAL_TOKEN_SECRET. Deploying runs nothing; training starts only
+# when someone calls `modal run -m tools.modal_reid ...`.
+name: Modal deploy
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/modal_reid.py
+      - tools/modal_reid_plan.py
+      - tools/reid_train.py
+      - tools/reid_crops.py
+      - config/modal_reid.yaml
+      - config/reid_train.yaml
+      - models/dinov2_small.json
+      - .github/workflows/modal-deploy.yml
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install modal==1.6.4 PyYAML==6.0.3 pytest
+      - run: python -m pytest tests/test_modal_reid.py -q
+      - run: modal deploy -m tools.modal_reid
