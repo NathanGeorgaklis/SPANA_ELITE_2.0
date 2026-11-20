@@ -1,0 +1,93 @@
+{
+ "argv": [
+  "/Users/nathangeorgaklis/SPANA_ELITE_2.0/tools/detector_speed_probe.py",
+  "--video",
+  "/Users/nathangeorgaklis/Downloads/Sydney_United_APIA.mp4",
+  "--start",
+  "45000",
+  "--frames",
+  "120",
+  "--model-record",
+  "models/rfdetr_v1.json",
+  "--device",
+  "mps",
+  "--variant",
+  "fp32:1",
+  "--variant",
+  "fp32:2",
+  "--variant",
+  "fp32:4",
+  "--variant",
+  "fp16:1",
+  "--variant",
+  "fp16:4",
+  "--out",
+  "runs/identity_speed/probe_model.json"
+ ],
+ "device": "mps",
+ "frames": 120,
+ "resolution": 1280,
+ "start": 45000,
+ "torch": "2.15.0",
+ "variants": [
+  {
+   "model_ms_per_frame_mean": 389.97,
+   "model_ms_per_frame_median": 387.71,
+   "timed_batches": 118,
+   "variant": "fp32:1"
+  },
+  {
+   "agreement_vs_fp32:1": {
+    "max_abs_box_diff": 0.0,
+    "max_abs_logit_diff": 0.0,
+    "ref_boxes": 1847,
+    "ref_boxes_reproduced": 1847,
+    "reproduced_share": 1.0
+   },
+   "model_ms_per_frame_mean": 383.7,
+   "model_ms_per_frame_median": 389.43,
+   "timed_batches": 58,
+   "variant": "fp32:2"
+  },
+  {
+   "agreement_vs_fp32:1": {
+    "max_abs_box_diff": 0.0,
+    "max_abs_logit_diff": 0.0,
+    "ref_boxes": 1847,
+    "ref_boxes_reproduced": 1847,
+    "reproduced_share": 1.0
+   },
+   "model_ms_per_frame_mean": 445.48,
+   "model_ms_per_frame_median": 434.86,
+   "timed_batches": 28,
+   "variant": "fp32:4"
+  },
+  {
+   "agreement_vs_fp32:1": {
+    "max_abs_box_diff": 0.975886,
+    "max_abs_logit_diff": 11.649666,
+    "ref_boxes": 1847,
+    "ref_boxes_reproduced": 1841,
+    "reproduced_share": 0.996751
+   },
+   "model_ms_per_frame_mean": 317.01,
+   "model_ms_per_frame_median": 310.67,
+   "timed_batches": 118,
+   "variant": "fp16:1"
+  },
+  {
+   "agreement_vs_fp32:1": {
+    "max_abs_box_diff": 0.975886,
+    "max_abs_logit_diff": 11.649666,
+    "ref_boxes": 1847,
+    "ref_boxes_reproduced": 1841,
+    "reproduced_share": 0.996751
+   },
+   "model_ms_per_frame_mean": 305.63,
+   "model_ms_per_frame_median": 305.01,
+   "timed_batches": 28,
+   "variant": "fp16:4"
+  }
+ ],
+ "video_sha256": "c9f1dd9b3c252a5da4c0af533c586cfc3045e01db4eb7d0b1d7679a91d71f20b"
+}

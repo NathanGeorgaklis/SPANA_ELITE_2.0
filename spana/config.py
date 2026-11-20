@@ -19,7 +19,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.2.0"   # 2.1.0: + target section; 2.2.0: + target relink keys
+CONFIG_SCHEMA_VERSION = "2.3.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + inference, profiling, performance
 
 
 class ConfigError(ValueError):
@@ -188,6 +188,49 @@ class TargetConfig:
         _pos("target.relink_max_gap_s", self.relink_max_gap_s)
 
 
+GPU_PRECISIONS = ("fp32", "fp16")
+
+
+@dataclass(frozen=True)
+class InferenceConfig:
+    """How the local detector's network runs on the Apple GPU (spana.detection.rfdetr_local, runtime torch, device
+    mps). The CPU runs fp32, eager, whatever these say. Recorded in the detections artifact's `model`."""
+    mps_precision: str             # fp32 | fp16: float precision of weights and input on the GPU
+    mps_compile: bool              # torch.compile the network on the GPU
+
+    def validate(self) -> None:
+        if self.mps_precision not in GPU_PRECISIONS:
+            raise ConfigError(f"inference.mps_precision must be one of {GPU_PRECISIONS}")
+
+
+@dataclass(frozen=True)
+class ProfilingConfig:
+    """Per-stage timing (spana.profiling). Measurement only; off by default."""
+    enabled: bool                  # write <out>.profile.json next to each artifact
+
+    def validate(self) -> None:
+        pass
+
+
+@dataclass(frozen=True)
+class PerformanceConfig:
+    """Speed target and the identity tolerance a speed change must stay within (tools/identity_speed.py)."""
+    realtime_factor_target: float  # processing time / footage time the pipeline must stay under (1.0 = real time)
+    projection_footage_s: float    # footage length the per-frame cost is projected to (a full match)
+    identity_agreement_min: float  # share of frames whose target answer (state, track, box) must stay the same
+    identity_box_iou_min: float    # a TARGET / CANDIDATE box counts as the same answer at or above this IoU
+    lost_unknown_rate_max_increase: float  # allowed rise of the LOST + ABSTAIN share of frames (absolute)
+    identity_probe_every_s: float  # comparison probes: every track that can be tapped, at frames this far apart
+
+    def validate(self) -> None:
+        _pos("performance.realtime_factor_target", self.realtime_factor_target)
+        _pos("performance.projection_footage_s", self.projection_footage_s)
+        _unit("performance.identity_agreement_min", self.identity_agreement_min)
+        _unit("performance.identity_box_iou_min", self.identity_box_iou_min)
+        _unit("performance.lost_unknown_rate_max_increase", self.lost_unknown_rate_max_increase)
+        _pos("performance.identity_probe_every_s", self.identity_probe_every_s)
+
+
 @dataclass(frozen=True)
 class OutputConfig:
     box_decimals: int
@@ -207,6 +250,9 @@ class SpanaConfig:
     tracking: TrackingConfig
     appearance: AppearanceConfig
     target: TargetConfig
+    inference: InferenceConfig
+    profiling: ProfilingConfig
+    performance: PerformanceConfig
     output: OutputConfig
 
     def validate(self) -> None:

@@ -17,6 +17,7 @@ from typing import List, Sequence
 import numpy as np
 
 from ..config import DetectionConfig
+from ..profiling import StageTimer
 from ..records import Detection
 from .postprocess import flag_multi_body, nms
 
@@ -39,6 +40,12 @@ class PersonView:
         self._names = names
         self._person_ids = frozenset(names.index(c) for c in person_classes)
         self._person_classes = tuple(person_classes)
+        self.timer = StageTimer(False)   # spana.profiling; a no-op unless the caller sets an enabled timer
+
+    def set_timer(self, timer: StageTimer) -> None:
+        self.timer = timer
+        if hasattr(self._det, "timer"):
+            self._det.timer = timer
 
     @property
     def class_names(self) -> tuple:
@@ -50,9 +57,13 @@ class PersonView:
                 "person_view": {"person_classes": list(self._person_classes)}}
 
     def detect(self, frame_bgr: np.ndarray) -> List[Detection]:
-        h = frame_bgr.shape[0]
+        raw = self._det.detect(frame_bgr)
+        with self.timer.stage("detect.person_view"):
+            return self._persons(raw, frame_bgr.shape[0])
+
+    def _persons(self, raw: List[Detection], h: int) -> List[Detection]:
         c = self._cfg
-        dets = [d for d in self._det.detect(frame_bgr)
+        dets = [d for d in raw
                 if d.class_id in self._person_ids and d.score >= c.score_low
                 and d.box[3] - d.box[1] >= c.min_box_height_frac * h and d.box[2] > d.box[0]]
         if not dets:

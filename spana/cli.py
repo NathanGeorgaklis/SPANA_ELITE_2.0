@@ -26,6 +26,7 @@ from .artifacts import (DETECTIONS_SCHEMA, TRACKS_SCHEMA, ArtifactError, detecti
                         write_json_atomic, write_jsonl_atomic)
 from .appearance import describe
 from .config import load_config
+from .profiling import StageTimer
 from .provenance import build_provenance
 from .tracking.camera import CameraMotionEstimator
 from .tracking.tracker import MultiPlayerTracker
@@ -76,7 +77,8 @@ def _local_detector(a: argparse.Namespace, cfg):
         raise ArtifactError("--backend local needs --model-record, --dataset-config, --runtime and --device")
     dcfg = load_dataset_config(a.dataset_config)
     rec = LocalModelRecord.load(a.model_record)
-    raw = LocalRFDETRDetector(rec, make_runner(rec, a.runtime, a.device), dcfg.classes, cfg.detection.score_low)
+    runner = make_runner(rec, a.runtime, a.device, cfg.inference.mps_precision, cfg.inference.mps_compile)
+    raw = LocalRFDETRDetector(rec, runner, dcfg.classes, cfg.detection.score_low)
     det = PersonView(raw, dcfg.detector.person_classes, cfg.detection)
     return det, list(det.class_names), {"model_record": sha256_file(a.model_record),
                                         "weights": rec.weights_sha256 if a.runtime == "torch" else rec.onnx_sha256,
@@ -86,15 +88,52 @@ def _local_detector(a: argparse.Namespace, cfg):
 _BACKENDS = {"onnx": _onnx_detector, "roboflow": _roboflow_detector, "local": _local_detector}
 
 
+def _profile_path(out: str) -> Path:
+    return Path(out).with_suffix(".profile.json")
+
+
+def _timer(cfg, out: str) -> StageTimer:
+    """Stage timer of one pass (config `profiling`); refuses an existing profile file when enabled."""
+    if cfg.profiling.enabled:
+        refuse_existing(_profile_path(out))
+    return StageTimer(cfg.profiling.enabled)
+
+
+def _write_profile(timer: StageTimer, out: str, pass_name: str, fps: Optional[float]) -> None:
+    if timer.enabled:
+        print(write_json_atomic(_profile_path(out), timer.report(pass_name, realtime_fps=fps)))
+
+
+def _host_info() -> dict:
+    import platform
+    import cv2
+    return {"machine": platform.machine(), "platform": platform.platform(), "python": platform.python_version(),
+            "opencv": cv2.__version__, "opencv_threads": cv2.getNumThreads(),
+            "opencv_ocl": bool(cv2.ocl.useOpenCL())}
+
+
 def cmd_detect(a: argparse.Namespace) -> int:
     cfg = load_config(a.config)
     refuse_existing(a.out)
+    timer = _timer(cfg, a.out)
     if a.stride < 1:
         raise ArtifactError("--stride must be >= 1")
-    det, class_names, model_inputs = _BACKENDS[a.backend](a, cfg)
-    video = VideoSource(a.video, expected_sha256=a.video_sha256)
-    frames = [detection_frame(i, t, det.detect(img), cfg.output)
-              for i, t, img in video.frames(a.start, a.stop) if (i - a.start) % a.stride == 0]
+    with timer.stage("setup.model_load"):
+        det, class_names, model_inputs = _BACKENDS[a.backend](a, cfg)
+    if timer.enabled and hasattr(det, "set_timer"):
+        det.set_timer(timer)
+    with timer.stage("io.video_sha256"):
+        video = VideoSource(a.video, expected_sha256=a.video_sha256)
+    frames = []
+    for i, t, img in timer.timed_iter(video.frames(a.start, a.stop), "decode", "decode.seek_to_start"):
+        if (i - a.start) % a.stride:
+            continue
+        dets = det.detect(img)
+        with timer.stage("io.artifact_rows"):
+            frames.append(detection_frame(i, t, dets, cfg.output))
+        timer.frames += 1
+    timer.info.update(host=_host_info(), detector=det.model_id, detector_batch_frames=1,
+                      video={"width": video.meta.width, "height": video.meta.height, "fps": video.meta.fps})
     if not frames:
         raise ArtifactError(f"no frames read from {a.video} in [{a.start}, {a.stop})")
     doc = {
@@ -104,8 +143,10 @@ def cmd_detect(a: argparse.Namespace) -> int:
         "video": video.meta.to_dict(), "model": det.model_id, "class_names": class_names,
         "detection_config": dataclasses.asdict(cfg.detection), "frame_stride": a.stride, "frames": frames,
     }
-    validate_detections(doc)
-    print(write_json_atomic(a.out, doc))
+    with timer.stage("io.validate_write"):
+        validate_detections(doc)
+        print(write_json_atomic(a.out, doc))
+    _write_profile(timer, a.out, "detect", video.meta.fps / a.stride)
     return 0
 
 
@@ -113,9 +154,12 @@ def cmd_track(a: argparse.Namespace) -> int:
     cfg = load_config(a.config)
     decisions_path = Path(a.out).with_suffix(".decisions.jsonl")
     refuse_existing(a.out, decisions_path)
-    video = VideoSource(a.video, expected_sha256=a.video_sha256)
-    ddoc = read_json(a.detections)
-    validate_detections(ddoc)
+    timer = _timer(cfg, a.out)
+    with timer.stage("io.video_sha256"):
+        video = VideoSource(a.video, expected_sha256=a.video_sha256)
+    with timer.stage("io.read_detections"):
+        ddoc = read_json(a.detections)
+        validate_detections(ddoc)
     if ddoc["video"]["sha256"] != video.meta.sha256:
         raise ArtifactError("detections artifact was produced from a different video")
     if ddoc["detection_config"] != dataclasses.asdict(cfg.detection):
@@ -127,14 +171,25 @@ def cmd_track(a: argparse.Namespace) -> int:
     first, last, stride = min(det_frames), max(det_frames), ddoc["frame_stride"]
     if sorted(det_frames) != list(range(first, last + 1, stride)):
         raise ArtifactError("detections artifact frames are not a contiguous run at its frame_stride")
-    for i, t, img in video.frames(first, last + 1):
+    for i, t, img in timer.timed_iter(video.frames(first, last + 1), "decode", "decode.seek_to_start"):
         if (i - first) % stride:
             continue
         dets = detections_from_frame(det_frames[i])
         boxes = [d.box for d in dets]
-        ft = trk.update(i, t, dets, cam.observe(img, boxes), describe(img, boxes, cfg.appearance))
-        frames.append(tracks_frame(ft, cfg.output))
-        log.extend({"frame": i, **d} for d in ft.decisions)
+        with timer.stage("camera_motion"):
+            camo = cam.observe(img, boxes)
+        with timer.stage("appearance"):
+            desc = describe(img, boxes, cfg.appearance)
+        with timer.stage("tracking"):
+            ft = trk.update(i, t, dets, camo, desc)
+        with timer.stage("io.artifact_rows"):
+            frames.append(tracks_frame(ft, cfg.output))
+            log.extend({"frame": i, **d} for d in ft.decisions)
+        timer.frames += 1
+    timer.info.update(host=_host_info(), camera={"device": "cpu (OpenCV)", "batch": "1 frame"},
+                      appearance={"kind": "HSV torso histogram", "device": "cpu (OpenCV)",
+                                  "batch": "1 crop per call"},
+                      video={"width": video.meta.width, "height": video.meta.height, "fps": video.meta.fps})
     if not frames or frames[-1]["frame"] != last:
         raise ArtifactError("video ended before the last detection frame")
     doc = {
@@ -144,9 +199,11 @@ def cmd_track(a: argparse.Namespace) -> int:
         "video": video.meta.to_dict(), "detections_sha256": sha256_doc(ddoc), "frames": frames,
         "tracklets": tracklet_rows(trk.summaries()),
     }
-    validate_tracks(doc, ddoc)
-    print(write_jsonl_atomic(decisions_path, log))   # log first: a tracks file never exists without its log
-    print(write_json_atomic(a.out, doc))
+    with timer.stage("io.validate_write"):
+        validate_tracks(doc, ddoc)
+        print(write_jsonl_atomic(decisions_path, log))   # log first: a tracks file never exists without its log
+        print(write_json_atomic(a.out, doc))
+    _write_profile(timer, a.out, "track", video.meta.fps / stride)
     return 0
 
 
@@ -155,13 +212,19 @@ def cmd_target(a: argparse.Namespace) -> int:
     from .identity.follower import Selection, target_document
     cfg = load_config(a.config)
     refuse_existing(a.out)
-    tdoc = read_json(a.tracks)
-    validate_tracks(tdoc)
+    timer = _timer(cfg, a.out)
+    with timer.stage("io.read_tracks"):
+        tdoc = read_json(a.tracks)
+        validate_tracks(tdoc)
     confs = read_json(a.actions) if a.actions else []
     if not isinstance(confs, list):
         raise ArtifactError("--actions must name a JSON list of user action records")
-    doc = target_document(tdoc, Selection.track_at_frame(a.select_track, a.select_frame), cfg, sys.argv, confs)
-    print(write_json_atomic(a.out, doc))
+    with timer.stage("identity_scoring"):    # follower + target validation against the tracks
+        doc = target_document(tdoc, Selection.track_at_frame(a.select_track, a.select_frame), cfg, sys.argv, confs)
+    with timer.stage("io.write"):
+        print(write_json_atomic(a.out, doc))
+    timer.frames = len(doc["frames"])
+    _write_profile(timer, a.out, "target", None)
     return 0
 
 

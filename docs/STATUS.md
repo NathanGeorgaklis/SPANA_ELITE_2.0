@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-18 (branch identity/reid-direct-label-v1, on identity/reid-retrain-v2 8d62866; main 11b5a80).
-- Full suite: `python -m pytest tests -q` → 385 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+As of 2026-11-20 (branch performance/identity-tracking-speed, on identity/reid-direct-label-v1 41fbb75; main 11b5a80).
+- Full suite: `python -m pytest tests -q` → 395 passed, 7 skipped (Nathan's Mac, Python 3.13, torch 2.15 on MPS).
 - Re-ID labelling tests (`tests/test_reid_cluster.py`): 20 passed on Nathan's Mac, incl. both review-page tests (Playwright on system Chrome).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -100,6 +100,13 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   follower on it shows the wrong player 6.3 % of the time (8.1 % with the after-match reviewer) vs ours 0.03 % /
   0.06 %. Not adopted; its continuity (low-score second association, motion-only lost pool) is worth porting with
   our uncertainty flags.
+- Speed, DEV (`records/identity_speed_2026-11-18`):
+  - Measured on the M3 MacBook Air, local detector on MPS.
+  - Pipeline: 419.7 → 361.9 ms/frame, i.e. 12.6x → 10.9x real time, 18.9 h → 16.3 h per 90 min match.
+  - What changed: fp32 + torch.compile, now the default. Identity is unchanged on 218 probes and on 4 labelled clips.
+  - The target is 1x real time (`performance.realtime_factor_target`), a 33 ms/frame budget. It is out of reach while the RF-DETR medium network at 1280 takes 324 ms/frame (90 % of the time).
+  - A decision on resolution, model size, cadence or hardware is open for Nathan.
+  - Per-stage profiling: `profiling.enabled` (off by default).
 - README pipeline table is stale (artifact versions listed as 1.1.0 / 2.0.0; code is detections 1.3.0, tracks 2.1.0).
 
 ## Hardcoded values / magic numbers found
@@ -107,6 +114,7 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
 - `spana/tracking/tracker.py:626` confirmation needs `observed_frames >= 2` in addition to `tracking.confirm_s`.
 - `spana/evaluation.py:216` `dup_ioa=0.6` default; `spana/evaluation.py:41` `HEIGHT_BINS_PX` (reporting only).
 - `tools/benchmark.py:23` `IGNORE_IOA = 0.5` (scoring convention); `tools/roboflow_ball_sheet.py:22` `CROP_FRAC = 0.09`.
+- Profiling stage names (`"detect.model"`, `"camera_motion"`, ...) and `tools/identity_speed.py` `ONE_OFF` stage list: labels, not thresholds. The probe tool's `--score 0.5` / `--iou 0.9` and `identity_speed compare`'s conflict IoU 0.5 are DEV measurement conventions (tools only).
 - Numerical guards only (`_EPS = 1e-9`, `_INVALID = 1e6`): not thresholds.
 - No player/team/clip/frame-specific logic found in `spana/`. Match ids appear only in `config/roboflow.yaml`
   (licence allow-list) and DEV clip names only in config comments.
@@ -148,3 +156,8 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
    ByteTrack shows how much continuity is possible on the same detections (F07 11 / F08 22 fragments) and what it
    costs without flags (silent swaps): measure ByteTrack-style continuity inside our tracker, keeping the flags
    (`records/bytetrack_compare_2026-11-18`).
+5. Speed (`records/identity_speed_2026-11-18`). The next slowest stages after the network (324 ms/frame):
+   - detect.preprocess, 27 ms on CPU: it can overlap with the GPU in a thread, with exact outputs;
+   - camera_motion, 4.8 ms;
+   - tracking, 3.6 ms.
+   These are worth at most about 35 ms/frame together. 1x needs Nathan's decision on resolution, model, cadence or hardware first.

@@ -1,0 +1,48 @@
+{
+ "argv": [
+  "/Users/nathangeorgaklis/SPANA_ELITE_2.0/tools/detector_speed_probe.py",
+  "--video",
+  "/Users/nathangeorgaklis/Downloads/Sydney_United_APIA.mp4",
+  "--start",
+  "45000",
+  "--frames",
+  "120",
+  "--model-record",
+  "models/rfdetr_v1.json",
+  "--device",
+  "mps",
+  "--variant",
+  "fp32:1",
+  "--variant",
+  "fp32:1:compile",
+  "--out",
+  "runs/identity_speed/probe_model_compile_recheck.json"
+ ],
+ "device": "mps",
+ "frames": 120,
+ "resolution": 1280,
+ "start": 45000,
+ "torch": "2.15.0",
+ "variants": [
+  {
+   "model_ms_per_frame_mean": 376.07,
+   "model_ms_per_frame_median": 372.97,
+   "timed_batches": 118,
+   "variant": "fp32:1"
+  },
+  {
+   "agreement_vs_fp32:1": {
+    "max_abs_box_diff": 0.297526,
+    "max_abs_logit_diff": 1.530088,
+    "ref_boxes": 1847,
+    "ref_boxes_reproduced": 1847,
+    "reproduced_share": 1.0
+   },
+   "model_ms_per_frame_mean": 337.59,
+   "model_ms_per_frame_median": 336.98,
+   "timed_batches": 118,
+   "variant": "fp32:1:compile"
+  }
+ ],
+ "video_sha256": "c9f1dd9b3c252a5da4c0af533c586cfc3045e01db4eb7d0b1d7679a91d71f20b"
+}

@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.2.0"
+schema_version: "2.3.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -90,6 +90,29 @@ target:
   relink_max_gap_s: 0.5
   # Promote a CANDIDATE to TARGET without confirmation. Measurement only; off by default (Nathan, 2026-11-16).
   relink_auto_confirm: false
+
+inference:
+  # Local detector network on the Apple GPU (detect --backend local --runtime torch --device mps). The CPU always
+  # runs fp32, eager. From the profile of 2026-11-18 (records/identity_speed_2026-11-18): the network is 90 % of the
+  # per-frame time; batching frames gains nothing on the GPU. torch.compile at fp32: model 380 -> 324 ms/frame, same
+  # target identity on every probe and the same labelled DEV scores. fp16 is faster (260 ms) but fails the identity
+  # tolerance (probe agreement 0.959; extra identity transfers on a labelled clip), so it stays off.
+  mps_precision: fp32
+  mps_compile: true
+profiling:
+  # Per-stage timing (spana/profiling.py): detect / track / target write <out>.profile.json. Measurement only.
+  enabled: false
+
+performance:
+  # Speed target (first milestone, 2026-11-18): a full match processed in no more than its own length on the Mac.
+  realtime_factor_target: 1.0
+  projection_footage_s: 5400       # 90 min, for the projected processing time of a match
+  # Identity tolerance for a speed change (tools/identity_speed.py), set before measuring. Speed never wins over
+  # identity: a change outside these limits is reverted or gated. Identity switches must not increase (always).
+  identity_agreement_min: 0.99     # share of frames with the same target answer (state, track, box)
+  identity_box_iou_min: 0.90       # same box = IoU at least this
+  lost_unknown_rate_max_increase: 0.01
+  identity_probe_every_s: 10.0     # simulated taps: every confirmed, CERTAIN, observed track at frames 10 s apart
 
 output:
   box_decimals: 1

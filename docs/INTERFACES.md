@@ -179,6 +179,21 @@ Follow the user's chosen player through a clip, and say so when unsure.
   clip index, frame index, time, image sha256, blur, pHash, upload id, status, pre-label class counts, error.
   Benchmark frames live in `dev_bench.project` only and carry `match:<id>`, `split:dev`, `dev_bench.bench_tag`.
 
+## Profiling + performance (supporting, defined 2026-11-18) — `spana/profiling.py`, `tools/identity_speed.py`
+- Config (`config/default.yaml`, schema 2.3.0):
+  - `inference {mps_precision fp32|fp16, mps_compile}`: the local detector on `--device mps`. The CPU always runs fp32, eager. The detections' `model` block records `precision`, `compiled` and `batch_frames`.
+  - `profiling {enabled}`: off by default.
+  - `performance {realtime_factor_target, projection_footage_s, identity_agreement_min, identity_box_iou_min, lost_unknown_rate_max_increase, identity_probe_every_s}`: the speed target and the identity tolerances for speed changes.
+- Side output when `profiling.enabled`: `detect` / `track` / `target` write `<out>.profile.json`, **`spana.profile` 1.0.0**:
+  - `pass, frames, wall_s, timed_s, ms_per_frame, realtime_factor`;
+  - `stages[{stage, seconds, calls, ms_per_frame, share}]`;
+  - `info`: devices, batch sizes, host.
+  It is not a pipeline input and is never read back by the product.
+- `tools/identity_speed.py`:
+  - `profile`: summary, projection and target check;
+  - `baseline`: probe identity outputs;
+  - `compare`: `spana.identity_speed_compare` 1.0.0 with a pass / fail against `performance`.
+
 ## Not yet defined
 | layer | inputs / outputs | state enum |
 |---|---|---|

@@ -5,7 +5,8 @@ before loading; input resolution; `output_classes` maps each model output index 
 an output the model never uses). Two interchangeable runners give the same raw outputs (validated within 3e-4 logits,
 records/local_inference_2026-11-16/RECORD.md):
   * "torch": rfdetr + PyTorch on `device` ("mps" = Apple GPU, "cpu"); optional dependencies
-    (requirements-local-detector.txt), imported only when this runner is chosen;
+    (requirements-local-detector.txt), imported only when this runner is chosen. On the GPU, config `inference`
+    may run it in fp16 and / or torch.compile it (records/identity_speed_2026-11-18); the CPU stays fp32, eager;
   * "onnx": ONNX Runtime on CPU, using only the engine's pinned dependencies.
 Pre-processing: BGR -> RGB, plain resize to resolution x resolution (bilinear), / 255, ImageNet mean / std.
 Post-processing: sigmoid over (queries x outputs), the top `queries` scores, unused outputs dropped, boxes (normalised
@@ -22,6 +23,7 @@ from typing import List, Sequence, Tuple
 import cv2
 import numpy as np
 
+from ..profiling import StageTimer
 from ..records import Detection
 
 MEAN = np.array([0.485, 0.456, 0.406], np.float32)
@@ -137,7 +139,9 @@ class OnnxRunner:
 
 
 class TorchRunner:
-    def __init__(self, record: LocalModelRecord, device: str):
+    """precision / compile apply on the GPU (mps) only; on the CPU the network runs fp32, eager (unchanged)."""
+
+    def __init__(self, record: LocalModelRecord, device: str, precision: str = "fp32", compile: bool = False):
         try:
             import rfdetr
             import torch
@@ -148,14 +152,21 @@ class TorchRunner:
         cls = getattr(rfdetr, f"RFDETR{record.variant.capitalize()}")
         model = cls(pretrain_weights=str(record.file("weights")), num_classes=record.num_classes,
                     resolution=record.resolution, device=device)
+        if device != "mps":
+            precision, compile = "fp32", False
+        if precision not in ("fp32", "fp16"):
+            raise LocalModelError(f"precision must be fp32 or fp16, got {precision!r}")
         self._torch, self._dev = torch, device
-        self._net = model.model.model.eval().to(device)
+        self._dtype = {"fp32": torch.float32, "fp16": torch.float16}[precision]
+        self._net = model.model.model.eval().to(device=device, dtype=self._dtype)
+        self._fn = torch.compile(self._net) if compile else self._net
         self.describe = {"runtime": "torch", "device": device, "torch": torch.__version__,
-                         "rfdetr": getattr(rfdetr, "__version__", "1.12.1")}
+                         "rfdetr": getattr(rfdetr, "__version__", "1.12.1"), "precision": precision,
+                         "compiled": bool(compile), "batch_frames": 1}
 
     def __call__(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         with self._torch.no_grad():
-            out = self._net(self._torch.from_numpy(x).to(self._dev))
+            out = self._fn(self._torch.from_numpy(x).to(device=self._dev, dtype=self._dtype))
         return out["pred_boxes"][0].float().cpu().numpy(), out["pred_logits"][0].float().cpu().numpy()
 
 
@@ -169,6 +180,7 @@ class LocalRFDETRDetector:
         self._rec, self._run, self._conf = record, runner, confidence
         self._names = tuple(class_names)
         self._map = [self._names.index(c) if c else -1 for c in record.output_classes]
+        self.timer = StageTimer(False)   # spana.profiling; a no-op unless the caller sets an enabled timer
 
     @property
     def class_names(self) -> tuple:
@@ -182,15 +194,20 @@ class LocalRFDETRDetector:
 
     def detect(self, frame_bgr: np.ndarray) -> List[Detection]:
         h, w = frame_bgr.shape[:2]
-        boxes, logits = self._run(preprocess(frame_bgr, self._rec.resolution))
-        return decode(boxes, logits, w, h, self._conf, self._map)
+        with self.timer.stage("detect.preprocess"):
+            x = preprocess(frame_bgr, self._rec.resolution)
+        with self.timer.stage("detect.model"):       # ends with the host copy of the outputs (GPU sync)
+            boxes, logits = self._run(x)
+        with self.timer.stage("detect.decode"):
+            return decode(boxes, logits, w, h, self._conf, self._map)
 
 
-def make_runner(record: LocalModelRecord, runtime: str, device: str):
+def make_runner(record: LocalModelRecord, runtime: str, device: str, precision: str = "fp32", compile: bool = False):
+    """precision / compile: the GPU settings (config `inference`); ignored on the CPU and by the onnx runtime."""
     if runtime not in RUNTIMES:
         raise LocalModelError(f"runtime must be one of {RUNTIMES}")
     if runtime == "onnx":
         if device != "cpu":
             raise LocalModelError("runtime 'onnx' runs on device 'cpu' only (CoreML fails on this model; RECORD)")
         return OnnxRunner(record)
-    return TorchRunner(record, device)
+    return TorchRunner(record, device, precision, compile)
