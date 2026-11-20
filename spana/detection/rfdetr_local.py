@@ -6,7 +6,8 @@ an output the model never uses). Two interchangeable runners give the same raw o
 records/local_inference_2026-11-16/RECORD.md):
   * "torch": rfdetr + PyTorch on `device` ("mps" = Apple GPU, "cpu"); optional dependencies
     (requirements-local-detector.txt), imported only when this runner is chosen. On the GPU, config `inference`
-    may run it in fp16 and / or torch.compile it (records/identity_speed_2026-11-18); the CPU stays fp32, eager;
+    may run it in fp16 and / or torch.compile it (records/identity_speed_2026-11-18); cuda and the CPU stay fp32,
+    eager (cuda: DEV cloud measurements, tools/cloud_bench.py);
   * "onnx": ONNX Runtime on CPU, using only the engine's pinned dependencies.
 Pre-processing: BGR -> RGB, plain resize to resolution x resolution (bilinear), / 255, ImageNet mean / std.
 Post-processing: sigmoid over (queries x outputs), the top `queries` scores, unused outputs dropped, boxes (normalised
@@ -152,7 +153,7 @@ class OnnxRunner:
 
 
 class TorchRunner:
-    """precision / compile apply on the GPU (mps) only; on the CPU the network runs fp32, eager (unchanged)."""
+    """precision / compile apply on the Apple GPU (mps) only; on cuda and the CPU the network runs fp32, eager."""
 
     def __init__(self, record: LocalModelRecord, device: str, precision: str = "fp32", compile: bool = False):
         try:
@@ -162,6 +163,8 @@ class TorchRunner:
             raise LocalModelError(f"runtime 'torch' needs requirements-local-detector.txt installed ({e})") from None
         if device == "mps" and not torch.backends.mps.is_available():
             raise LocalModelError("device 'mps' requested but the Apple GPU backend is not available")
+        if device == "cuda" and not torch.cuda.is_available():
+            raise LocalModelError("device 'cuda' requested but no NVIDIA GPU is available")
         cls = getattr(rfdetr, f"RFDETR{record.variant.capitalize()}")
         model = cls(pretrain_weights=str(record.file("weights")), num_classes=record.num_classes,
                     resolution=record.resolution, device=device)

@@ -1,0 +1,48 @@
+# Cloud speed / identity test on Modal GPUs (tools/cloud_bench.py). DEV only, measurement only: nothing here changes
+# the product. Every value is read and validated by tools/cloud_bench.py (no code defaults); unknown keys are refused.
+schema_version: "1.0.0"
+
+modal:
+  app_name: spana-cloud-bench
+  volume_name: spana-dev-footage   # private Modal volume holding the footage and the model weights
+  python_version: "3.13"           # same as the Mac engine venv
+  gpu: L4                          # default GPU type; --gpu overrides per run (recorded in the result)
+  max_gpus: 8                      # a run never uses more GPUs than this at once
+  timeout_s: 3600                  # one unit (one clip / window on one GPU) is killed after this
+  # Matches whose footage may go to Modal: Nathan, 2026-11-20 (DECISIONS). Each must also be on the licensed
+  # allow-list of config/roboflow.yaml as split dev with third_party_processing_confirmed: true. EVAL never.
+  confirmed_matches: [DEV_G1_SYDNEY_UNITED_APIA, DEV_G2_NWS_SPIRIT_SD_RAIDERS]
+
+# Files allowed to be uploaded, by content: a file is uploaded only if its sha256 is listed here under a confirmed
+# DEV match. Game 3 (FRESH_07 to FRESH_10) is not licensed for third-party processing and is not listed.
+footage:
+  - name: DEV_G1_full
+    match_id: DEV_G1_SYDNEY_UNITED_APIA
+    file: Sydney_United_APIA.mp4
+    sha256: c9f1dd9b3c252a5da4c0af533c586cfc3045e01db4eb7d0b1d7679a91d71f20b
+  - name: FRESH_02
+    match_id: DEV_G1_SYDNEY_UNITED_APIA
+    file: FRESH_02_G1_3000_midfield_buildup_passing.mp4
+    sha256: 8ba8551fb1a0b5da6fb0649601238f7b02016ce8e8e0fdd3159560431a1bbeff
+  - name: FRESH_05
+    match_id: DEV_G2_NWS_SPIRIT_SD_RAIDERS
+    file: FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper.mp4
+    sha256: b7d67bdab79adcf808a08f224c35ad36391e650228fb2bcd0dd6a05cf4b22813
+
+# What one run does. A unit = detect + track of one footage range on one GPU; units run in parallel.
+#   window units are judged by tools/identity_speed.py compare against `baseline` (218 probes on the Mac);
+#   labelled units are scored locally (tools/benchmark.py, tools/target_score.py) and judged with the
+#   performance.option_* limits against the Mac outputs of the same clips (tag `baseline.labelled_tag`).
+suites:
+  dev_standard:
+    - {unit: G1W, footage: DEV_G1_full, start: 45000, stop: 49500, labels: null}
+    - {unit: F02, footage: FRESH_02, start: 0, stop: null, labels: data/labels/FRESH_02_G1_3000_midfield_buildup_passing/v1}
+    - {unit: F05, footage: FRESH_05, start: 0, stop: null, labels: data/labels/FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper/v1}
+
+baseline:                          # Mac outputs (gitignored runs/, sha256 in records/identity_speed_2026-11-20 and
+  window_identity: runs/identity_speed/baseline.identity.json   # records/detector_options_2026-11-20)
+  window_tracks: runs/identity_speed/baseline.trk.json
+  labelled_dir: runs/detector_options/labelled
+  labelled_tag: base
+
+decode_check_frames: 30            # first frames of each unit hashed in the cloud and on the Mac: must be identical

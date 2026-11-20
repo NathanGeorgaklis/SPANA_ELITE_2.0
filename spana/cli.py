@@ -247,7 +247,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     d.add_argument("--dataset-config")
     d.add_argument("--match-id")
     d.add_argument("--runtime", choices=("torch", "onnx"), help="local backend: torch (GPU / CPU) or onnx (CPU)")
-    d.add_argument("--device", choices=("mps", "cpu"), help="local backend: mps (Apple GPU) or cpu")
+    d.add_argument("--device", choices=("mps", "cuda", "cpu"),
+                   help="local backend: mps (Apple GPU), cuda (NVIDIA GPU, fp32 eager) or cpu")
     d.add_argument("--start", type=int, default=0)
     d.add_argument("--stop", type=int, default=None)
     d.add_argument("--stride", type=int, default=1, help="analyse every N-th frame (tracking is time-based)")
