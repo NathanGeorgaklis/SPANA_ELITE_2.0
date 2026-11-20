@@ -1,0 +1,16 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/. Re-baseline: main 1a161ca (code32/); pan-aware: a61c2a2
+# (code33/). Detections ~/SPANA_ELITE_2.0/runs/person_view_compare/F0x_local.det.json and runs/window_f05/G2_w.det.json.
+11e18a84fe760f5e074635cc7280508a2208c433b5a9469cb340522e22f80529  run_rebase_1a161ca.sh
+2d787dba06bbb7f3e069c6e80f83f7323a49822f76f7b992c9281bbfd565b410  run_panaware.sh
+40eea8ebaa334c69859643690a25359018ecd1faaf94f02b7977ca8632a6b0a1  run_window_pan.sh
+83b681d28c60fc63fbeabab9da83d69bbbc6b607df71df664d909fdf851e8b2e  out/target_m1a_default.json
+3460c759cb5372bf650f8623da7e2806681426fafe0fde8cce9ad3d099ddb6ea  out/target_m1a_reviewer.json
+ed8db659c6d92d1b4eae4c9e3c99228c6f5a3c07093f53095adb36176e149729  out/F02_pa_on.trk.json
+1741e5f03c956d9242e3b0690cb8448562d7e4f72b009b22e78d3d3ba0c550bb  out/F05_pa_on.trk.json
+16b2ef9bc8f6d5d2f23fb7eb70ccf50e976e892b097cf8b34b66e22465697646  out/F07_pa_on.trk.json
+8ea018b1122a80fab1b270d990cf281ceccfc4420ff6bcf653515491350956ea  out/F08_pa_on.trk.json
+63b6b5ddb962d5c8aa8eb5563b6f9946c12e6301c2296768857b2c1b68a7b223  out/F08_pa_on.bench.json
+6e2df4742ab916c0581fbf9364f2fb27a5d39576546ea82651dda7137b62be45  out/target_pa_on_default.json
+a7f9827cb7aa6a9ccf9182f9ae73baf19dfc3ac886573817caee83bb80b109b6  out/target_pa_on_reviewer.json
+ba0f45f601418e0f62f61db1850fe121015403aef17510d143abf3e33641ce8f  out/G2_wp_off.trk.json
+798938679bafc8ddc61f42a540fb9f0c3c3a62e5b429e3bd1ae38b1aa8841480  out/G2_wp_on.trk.json

@@ -81,8 +81,8 @@ class PanAware(unittest.TestCase):
             _, frames = run(script, on)
             self.assertEqual(ids(frames), ["T000001", "T000002"], on)
 
-    def test_off_by_default(self):
-        self.assertFalse(cfg().appearance.pan_aware)
+    def test_on_by_default(self):
+        self.assertTrue(cfg().appearance.pan_aware)          # met the agreed tracking bar on DEV
 
 
 if __name__ == "__main__":
