@@ -1,0 +1,118 @@
+{
+ "argv": [
+  "/Users/nathangeorgaklis/.claude/jobs/4191fcf8/tmp/cloud-bench-wt/tools/cloud_bench.py",
+  "score",
+  "--suite",
+  "dev_standard",
+  "--tag",
+  "l4_fp32_r1"
+ ],
+ "checks": {
+  "decode_identical": {
+   "ok": false,
+   "per_unit": {
+    "F02": false,
+    "F05": false,
+    "G1W": false
+   }
+  },
+  "labelled_identity": {
+   "detail": {
+    "detection_recall": {
+     "base": 0.9837,
+     "candidate": 0.9857,
+     "max_drop": 0.01,
+     "ok": true
+    },
+    "id_switches": {
+     "base": 31,
+     "candidate": 31,
+     "max_rise": 0.05,
+     "ok": true,
+     "rise": 0.0
+    },
+    "unflagged_transfers": {
+     "base": 0,
+     "candidate": 0,
+     "max_increase": 0,
+     "ok": true
+    },
+    "wrong_frames_reviewer": {
+     "base": 1,
+     "candidate": 0,
+     "max_increase": 0,
+     "ok": true
+    }
+   },
+   "info": {
+    "fragments": [
+     31,
+     31
+    ],
+    "identity_transfers": [
+     3,
+     4
+    ],
+    "reviewer_correct_time": [
+     0.8511,
+     0.8424
+    ]
+   },
+   "ok": true
+  },
+  "window_identity": {
+   "detail": {
+    "agreement": {
+     "min": 0.99,
+     "ok": false,
+     "value": 0.930885
+    },
+    "conflicting_answers": {
+     "max": 0,
+     "ok": false,
+     "value": 3
+    },
+    "lost_unknown_rise": {
+     "max": 0.01,
+     "ok": true,
+     "value": -0.0055
+    }
+   },
+   "ok": false
+  }
+ },
+ "code_object_ids": {
+  "config": "d866335df5abc931320183409b93186042952700",
+  "models/rfdetr_v1.json": "252910cc651c74819f1439e40a9b545c6bb9513c",
+  "spana": "19b5c1e1d47c74dff6afef5e6abbc3ae66b20c77",
+  "tools": "9bb3f2f5c03e3c43898e8ff36fc1222c14063154"
+ },
+ "commit": "73fedf955e5d559ce882a646aa639a39f0628ec8",
+ "comparable_to_mac": false,
+ "elapsed_s": 795.1,
+ "gpu": [
+  "NVIDIA L4, 610.57.04, 23034 MiB"
+ ],
+ "gpu_seconds": 871.8,
+ "gpus": 3,
+ "schema": "spana.cloud_bench",
+ "schema_version": "1.0.0",
+ "speed": {
+  "detect_ms": 91.985,
+  "full_match_minutes_by_gpus (projection)": {
+   "1": 324.1,
+   "2": 199.9,
+   "3": 158.5,
+   "4": 137.8,
+   "5": 125.4,
+   "6": 117.1,
+   "7": 111.2,
+   "8": 106.7
+  },
+  "ms_per_frame": 120.022,
+  "realtime_factor_1gpu": 3.601,
+  "track_ms": 28.037
+ },
+ "suite": "dev_standard",
+ "tag": "l4_fp32_r1"
+}

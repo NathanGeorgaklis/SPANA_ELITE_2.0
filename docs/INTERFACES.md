@@ -199,6 +199,11 @@ Follow the user's chosen player through a clip, and say so when unsure.
   - `record`: a DEV model record at another input size;
   - `judge`: `spana.detector_option_judge` 1.0.0.
 - `rfdetr_local.preprocess(frame, resolution, height=None)`: optional non-square input; the default is unchanged.
+- `detect --device cuda` (local backend): NVIDIA GPU, fp32, eager. `inference.mps_*` applies to mps only.
+- `tools/cloud_bench.py` (`config/cloud_bench.yaml` 1.0.0, DEV only):
+  - `upload`: listed footage only, by sha256, for confirmed licensed DEV matches;
+  - `run`: units on Modal GPUs from the committed code; writes `run.json` `spana.cloud_bench_run` 1.0.0;
+  - `score`: local scoring; writes `summary.json` `spana.cloud_bench` 1.0.0 with the decode / window identity / labelled identity checks and `comparable_to_mac`.
 
 ## Not yet defined
 | layer | inputs / outputs | state enum |

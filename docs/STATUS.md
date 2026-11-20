@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-20 (branch performance/detector-speed-options, on performance/detect-preprocess-overlap e4e94d1; main 11b5a80).
-- Full suite: `python -m pytest tests -q` → 408 passed, 7 skipped (Nathan's Mac, Python 3.13, torch 2.15 on MPS).
+As of 2026-11-20 (branch performance/cloud-bench, on performance/detector-speed-options 1cc7a58; main has moved on since: merge needed).
+- Full suite: `python -m pytest tests -q` → 417 passed, 7 skipped (Nathan's Mac, Python 3.13, torch 2.15 on MPS).
 - Re-ID labelling tests (`tests/test_reid_cluster.py`): 20 passed on Nathan's Mac, incl. both review-page tests (Playwright on system Chrome).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -112,6 +112,13 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
     - Nothing reaches 3x real time within the identity limits.
     - medium at 960: 5.0x (7.5 h per match), passed all limits on 4 labelled clips. But 1088 failed (silent transfers), so the evidence is weak.
   - Open for Nathan: input 960 (more DEV evidence first), hardware, or detector cadence.
+  - Cloud GPUs (`tools/cloud_bench.py`, Modal; `records/cloud_bench_2026-11-20`). DEV G1 / G2 footage only (Game 3 refused, not licensed).
+    - NVIDIA L4, CUDA fp32: network 79 ms vs 329 ms on the M3; pipeline 120 ms/frame (3.6x real time on 1 GPU).
+    - CPU stages are slower in the container (tracking 15.7 vs 3.8 ms). Projected full match: 107 min on 8 GPUs, with tracking as the floor.
+    - **Not comparable to the Mac yet:**
+      - The Linux OpenCV wheel bundles another FFmpeg, so the decoded pixels differ (mean 1.5 levels, max 23).
+      - Window identity fails (agreement 0.931, 3 conflicting answers).
+      - Labelled identity on FRESH_02 / 05 passes.
   - Per-stage profiling: `profiling.enabled` (off by default).
 - README pipeline table is stale (artifact versions listed as 1.1.0 / 2.0.0; code is detections 1.3.0, tracks 2.1.0).
 
@@ -167,3 +174,6 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
    - Medium at input 960 is the best measured option: 5.0x, passed the limits on 4 clips. The evidence is weak.
      If Nathan wants it, the next step is more DEV evidence: other DEV windows or a DEV half, and the identity probes on the 2.5-min window.
    - Under 3x on the M3, only lower inputs (≤ 768) qualify, and they lose persons / the ball. Otherwise: detector cadence (a rules decision) or other hardware.
+   - Cloud (`records/cloud_bench_2026-11-20`):
+     a. Make decoding give identical pixels on the Mac and in the cloud. This is a video-layer task, needs Nathan's OK, and moves the Mac baselines.
+     b. Then re-run `cloud_bench`: more CPU per container, TensorRT / fp16 (gated by identity), and tracking in chunks for minutes per match.

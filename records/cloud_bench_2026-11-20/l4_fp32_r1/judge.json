@@ -1,0 +1,106 @@
+{
+ "checks": {
+  "detection_recall": {
+   "base": 0.9837,
+   "candidate": 0.9857,
+   "max_drop": 0.01,
+   "ok": true
+  },
+  "id_switches": {
+   "base": 31,
+   "candidate": 31,
+   "max_rise": 0.05,
+   "ok": true,
+   "rise": 0.0
+  },
+  "unflagged_transfers": {
+   "base": 0,
+   "candidate": 0,
+   "max_increase": 0,
+   "ok": true
+  },
+  "wrong_frames_reviewer": {
+   "base": 1,
+   "candidate": 0,
+   "max_increase": 0,
+   "ok": true
+  }
+ },
+ "info_base_vs_candidate": {
+  "fragments": [
+   31,
+   31
+  ],
+  "identity_transfers": [
+   3,
+   4
+  ],
+  "reviewer_correct_time": [
+   0.8511,
+   0.8424
+  ]
+ },
+ "per_clip_base_vs_candidate": {
+  "F02": {
+   "detection_recall": [
+    0.9774,
+    0.9804
+   ],
+   "fragments_total": [
+    24,
+    24
+   ],
+   "id_switches": [
+    24,
+    24
+   ],
+   "identity_transfers": [
+    3,
+    4
+   ],
+   "missed_players": [
+    23,
+    20
+   ],
+   "track_coverage": [
+    0.9686,
+    0.9695
+   ],
+   "unflagged_transfers": [
+    0,
+    0
+   ]
+  },
+  "F05": {
+   "detection_recall": [
+    0.9978,
+    0.9978
+   ],
+   "fragments_total": [
+    7,
+    7
+   ],
+   "id_switches": [
+    7,
+    7
+   ],
+   "identity_transfers": [
+    0,
+    0
+   ],
+   "missed_players": [
+    1,
+    1
+   ],
+   "track_coverage": [
+    0.9978,
+    0.9978
+   ],
+   "unflagged_transfers": [
+    0,
+    0
+   ]
+  }
+ },
+ "viable": true
+}
