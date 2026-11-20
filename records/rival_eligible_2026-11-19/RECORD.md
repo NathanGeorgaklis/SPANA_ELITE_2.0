@@ -84,6 +84,7 @@ with the old one. FRESH_02 and FRESH_05 are unchanged.
 no transfer on a track the new rule linked. **All met → on by default.**
 
 ## Not done
-- Not checked on the 10-minute DEV window (the extent link was).
+- ~~Not checked on the 10-minute DEV window~~ Done 2026-11-20 (records/fresh08_followup_2026-11-20): track starts
+  −2.5 %, no sign of harm.
 - The follower and re-ID results on the identity branches (`identity/offer-hold` and before) were measured on
   today's tracks. They need re-tracked tracks and re-embedding once this is merged.
