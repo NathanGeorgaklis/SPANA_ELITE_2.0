@@ -1,7 +1,7 @@
 # STATUS
 
 As of 2026-11-20 (branch evaluation/dev-label-windows-v1 on main 1a161ca = PR #13 merged: re-ID resolution, off).
-- Full suite: `python -m pytest tests -q` → 547 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+- Full suite: `python -m pytest tests -q` → 550 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -184,7 +184,8 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
          - DEV labelling packs for that (`records/dev_label_windows_2026-11-20`, `tools/dev/label_windows.py`): 3 windows
            chosen from track logs by generic events (occlusion, exit, entry, flagged, similar-looking rival) - G2 match
            104:08-104:21, FRESH_01, FRESH_03 - plus dense every-frame windows behind the 2 wrong frames (FRESH_02 player 9
-           frame 276, FRESH_07 player 14 frame 66). Packs on Nathan's Mac, waiting for labels.
+           frame 276, FRESH_07 player 14 frame 66). Detector-assisted packs (pack 1.2.0, suggestions >= detection.score_high;
+           DECISIONS 2026-11-20) on Nathan's Mac, waiting for labels.
          - Merge DEV check (`records/reid_merge_dev_2026-11-19`): with `reid_resolve` off, tracks / follower / reviewer
            equal main exactly; on (+ `resume_after_reid`): tracks identical, 2 FRESH_02 episodes cleared by re-ID,
            unaided 0.532 -> 0.537, reviewer 0.777 -> 0.782, wrong frames 1 / 2 (same players), silent swaps 0,

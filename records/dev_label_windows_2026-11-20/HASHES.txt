@@ -19,3 +19,16 @@ a715b8a1152cdb1c27f90d34f2b722400b3f6fd5bff56dd51a7574fead195b62  Downloads/SPAN
 cd64fbd636eff37ac351cf68c74f73cc006a0394755b14af0f90b3ca30ae66cd  Downloads/SPANA_dev_label_packs_2026-11-20/FRESH_07_G3_1205_midfield_passing_switch_dense_f36_97/manifest.json
 # Source videos (sha256 in the manifests): G2 match 527f2bdc..., FRESH_01 109416c5..., FRESH_03 d02b2ce6...,
 # FRESH_02 8ba8551f... (= its v1 labels), FRESH_07 e7db339b... (= its v1 labels).
+
+# Addendum 2026-11-20: detector-assisted packs (code 7493712; Nathan's decision), same windows.json.
+ef11f1bd40eacf3ec1ec063ba919a252663b17fa3b2d47528f01f6c1a61cb9c3  spana-label-windows/run_build_assisted.sh
+bfa7a8a9e3bd1ea3d0d20c78cec48ebee72211c72d5082e6300ffa7a902e838e  SPANA_ELITE_2.0/runs/window_f05/G2_w.det.json (G2 suggestions)
+151649f627ee4f39cad6c7f841904c2a81f5e0237ed962e36bb506a3cb1960e8  spana-label-windows/out/FRESH_01.det.json (FRESH_01 suggestions)
+a9dc38893e2928e014a88436c6c89226c67ddd7031d480313d2fb593dd033fa7  spana-label-windows/out/FRESH_03.det.json (FRESH_03 suggestions)
+93173b7de3881d8f68cbc95e87c0374f23db1f921111f06c9837bebb40585f01  SPANA_ELITE_2.0/runs/person_view_compare/F02_local.det.json (FRESH_02 suggestions)
+24a7e203cfd6a9d4abfedff109d1cfba4e11b30435e2b90e6e53a5c74b96bcc1  SPANA_ELITE_2.0/runs/person_view_compare/F07_local.det.json (FRESH_07 suggestions)
+4aed8bde490784331d3ea61e7843fb7ae847221b11f9b4bc35e3e7952754a3e5  Downloads/SPANA_dev_label_packs_2026-11-20_assisted/DEV_G2_NWS_SPIRIT_SD_RAIDERS_f187440_187830/manifest.json
+30e99ca5e857c64f49f514eed5f66a7ad4644ed053b5e4bab9977b56f435ff9c  Downloads/SPANA_dev_label_packs_2026-11-20_assisted/FRESH_01_G1_2697_setpiece_delivery_keeper_claim_throw_f0_390/manifest.json
+c15c4759662f76a0c53fb9701da575b823803b2c9377811cef20a47a31dd4dfa  Downloads/SPANA_dev_label_packs_2026-11-20_assisted/FRESH_03_G2_2712_midfield_possession_switch_of_play_f0_780/manifest.json
+fb70798550819bfe9a308277c3ef7d9d193c5c2fadc6c0236a9e6b8250b7a2ab  Downloads/SPANA_dev_label_packs_2026-11-20_assisted/FRESH_02_G1_3000_midfield_buildup_passing_dense_f246_307/manifest.json
+154614930d65c26b8172bd14211f1928627f8ffb17556644bacea36ab6fa97f8  Downloads/SPANA_dev_label_packs_2026-11-20_assisted/FRESH_07_G3_1205_midfield_passing_switch_dense_f36_97/manifest.json

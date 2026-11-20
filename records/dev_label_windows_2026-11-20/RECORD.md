@@ -89,3 +89,28 @@ Nathan's go-ahead for step 3 (more labelled DEV footage, `records/reid_margin_fl
   - FRESH_01 / 03 have them: `spana-label-windows/out/`.
   - For the G2 window: track the same 10-minute detections.
 - **Not done here:** labelling (Nathan), freezing, scoring.
+
+## Addendum: detector-assisted packs (Nathan's decision, same day)
+- **Why:** Nathan asked to label in Roboflow, then chose detector suggestions in our own labeller instead (DECISIONS
+  2026-11-20).
+  - Frames never leave the Mac, so FRESH_07 (Game 3, no third-party permission) is included.
+  - IDs stay human.
+- **What changed:** the same 5 windows were rebuilt as **assisted packs** (`spana.label_pack` 1.2.0, code 7493712).
+  - Each frame shows, as dashed suggestions, the detections the window was chosen and tracked from, scoring ≥
+    `detection.score_high` 0.50.
+  - The pages hide a suggestion once a label box covers it (IoU ≥ 0.5, `config/label_windows.yaml`).
+  - Location: `Downloads/SPANA_dev_label_packs_2026-11-20_assisted/` (101 MB), with the `_reference` ID images.
+  - The unassisted packs are unchanged in `Downloads/SPANA_dev_label_packs_2026-11-20/`.
+
+| pack | frames | suggestions (per frame) |
+|---|---|---|
+| G2 match 104:08–104:21 | 65 | 809 (12.4) |
+| FRESH_01 | 65 | 1,249 (19.2) |
+| FRESH_03 | 65 | 710 (10.9) |
+| FRESH_02 dense | 61 | 954 (15.6) |
+| FRESH_07 dense | 61 | 1,029 (16.9) |
+
+- **Spot check (FRESH_07 frame 66, the wrong-answer frame):** the suggestions sit on the players. The detector misses
+  the far-left linesman and a player in front of the boards; the central tangle (two red, one blue) is where the
+  wrong answer happened.
+- The frozen labels of these packs will carry `assisted` (file hash, threshold). The freeze refuses a mismatch.
