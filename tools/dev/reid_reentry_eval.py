@@ -27,7 +27,7 @@ from scipy.stats import beta
 
 from spana.artifacts import read_json, validate_track_embeddings, validate_tracks
 from spana.config import load_config
-from spana.identity.reid import ReentryContext, cosine, reentry_choice
+from spana.identity.reid import ReentryContext, appearance, reentry_choice
 from tools.benchmark import load_frozen
 from tools.target_score import attributions
 
@@ -35,6 +35,7 @@ SIMS = (0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9)
 VARIANTS = {"plain": (False, False), "position": (True, False), "mutual": (False, True), "both": (True, True)}
 MARGINS = (0.0, 0.1, 0.2)
 GAP_BINS = ((0.0, 1.0), (1.0, 3.0), (3.0, 1e9))
+DEFAULT_CONFIG = Path(__file__).resolve().parents[2] / "config" / "default.yaml"
 
 
 def upper95(k: int, n: int) -> float:
@@ -78,8 +79,10 @@ def clip_events(label_dir: str, trk_p: str, emb_p: str, window_s: float, cfg=Non
             t0 = t_of[last_obs[a]]
             gap = t_of[born[b]] - t0
             cands = [c for c in born if c != a and born[c] > last_obs[a] and t_of[born[c]] - t0 <= window_s]
-            last = sig.get(a, {}).get("last")
-            sims = {c: cosine(last, sig.get(c, {}).get("first")) for c in cands}
+            tcs = cfg.target if cfg is not None else load_config(DEFAULT_CONFIG).target
+            last = sig.get(a, {}).get("last") if tcs.reentry_signature == "mean" else \
+                (sig.get(a, {}).get("last_crops") or None)
+            sims = {c: appearance(sig, a, c, tcs) for c in cands}
             sims = {c: v for c, v in sims.items() if v is not None}
             picks = {}
             if cfg is not None and last is not None:
@@ -137,9 +140,12 @@ def main() -> int:
     ap.add_argument("--out", required=True)
     ap.add_argument("--window-s", type=float, required=True)
     ap.add_argument("--config", required=True, help="spana config (tracking speed bound, target section)")
+    ap.add_argument("--signature", choices=("mean", "set"), help="override target.reentry_signature")
     ap.add_argument("--clip", nargs=3, action="append", required=True, metavar=("LABELS", "TRACKS", "EMBEDDINGS"))
     a = ap.parse_args()
     cfg = load_config(a.config)
+    if a.signature:
+        cfg = dataclasses.replace(cfg, target=dataclasses.replace(cfg.target, reentry_signature=a.signature))
     per_clip = {Path(c[0]).parent.name: clip_events(*c, a.window_s, cfg) for c in a.clip}
     events = [dict(e, clip=k) for k, v in per_clip.items() for e in v["events"]]
     usable = [e for e in events if e["in_window"] and e["lost_has_signature"]]

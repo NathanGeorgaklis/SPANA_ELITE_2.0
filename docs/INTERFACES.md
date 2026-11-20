@@ -83,10 +83,18 @@ Follow the user's chosen player through a clip, and say so when unsure.
   - `track_at_frame` 1.0.0 = a tap on a box the app showed: the track must be live and ACTIVE (observed) on that
     frame. Otherwise `SelectionError` (refused, never guessed).
   - Tap is the chosen way to pick (decision 2026-11-16). Shirt number / photo may come later as hints.
-- Out: **`spana.target` 2.6.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
-  2.5.0, 2.4.0, 2.3.0, 2.2.0, 2.1.0, 2.0.0 and 1.0.0 documents still validate with their own meaning.
-  - 2.6.0: + target_config `resume_after_reid` (answer again after an episode the tracker cleared by re-ID,
+- Out: **`spana.target` 2.9.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
+  2.8.0, 2.7.0, 2.6.0, 2.5.0, 2.4.0, 2.3.0, 2.2.0, 2.1.0, 2.0.0 and 1.0.0 documents still validate with their own meaning.
+  - 2.9.0: + target_config `resume_after_reid` (answer again after an episode the tracker cleared by re-ID,
     `resolved_by` REID; off by default). Needs tracks 2.3.0 for a REID resolution to exist.
+  - 2.8.0: + target_config `offer_hold_s` (an offer kept while its track is briefly hidden; CANDIDATE still only
+    on frames where the track is ACTIVE, confirmed, CERTAIN).
+  - 2.7.0: + target_config `reentry_exit_edge`, `reentry_exit_edge_max_frac`; + `reentry_log[].exit_excluded`
+    (candidates ruled out because the player left the picture by another side). With the tracks the validator
+    re-checks every re-ID offer with `spana.identity.reid.exit_side`.
+  - 2.6.0: + target_config `reentry_signature` ("mean" | "set"), `reentry_wait_samples`, `reentry_withdraw`; with
+    "set" a re-ID offer's similarity is the crop-set similarity (candidate crops <= proposed_frame when waiting);
+    relink `dropped_reason` may be WITHDRAWN.
   - 2.5.0: + top-level `reentry_log` (re-entry rule decisions logged when they change during a loss: `frame,
     from_track, offer, reason, track, appearance, position, position_informative, position_reason, combined,
     second_combined, margin, reverse_second_combined, candidates[{track, appearance, position, position_reason,
@@ -167,13 +175,15 @@ Follow the user's chosen player through a clip, and say so when unsure.
     - `target.relink_auto_confirm` (default false) promotes immediately; for measurement only.
 - CLI: `python -m spana.cli target --tracks --config --select-track --select-frame [--actions FILE]
   [--embeddings FILE] --out`
-- Re-ID signatures (`spana/identity/reid.py`): **`spana.track_embeddings` 1.0.0** — `schema, schema_version,
+- Re-ID signatures (`spana/identity/reid.py`): **`spana.track_embeddings` 1.1.0** (1.0.0 still validates) — 1.1.0
+  adds per track `first_crops, last_crops`: `[{frame, quality (0, 1], emb}]`, crop sets under the looser
+  `reid.set_*` rules, compared by `set_similarity` (quality-weighted best pair). `schema, schema_version,
   provenance, video, tracks_sha256, model {name, version, sha256, embedding_dim}, reid_config, tracks`; per track
   `{first, last, first_frames, last_frames}`: unit-length signatures (mean of up to `reid.samples` clean crops at the
   track's start / end) or null. Validated by `validate_track_embeddings(doc, tracks)`. Model pinned by
   `models/spana_reid_v2.json` (ONNX sha256; weights not in git). CLI: `python -m spana.cli embed --video --tracks
   --config --model-record --out`.
-- Re-ID evidence in the tracker (config 2.8.0 `reid_resolve`, off by default): `spana.cli track` loads the model
+- Re-ID evidence in the tracker (config 2.12.0 `reid_resolve`, off by default): `spana.cli track` loads the model
   record named by `reid_resolve.model_record` and refuses it unless the record pins exactly
   `reid_resolve.model_sha256` and the ONNX file has that hash (`spana.identity.reid.load_pinned`). Model registry:
   `models/spana_reid_v2.json` (`c269450e…`, the calibrated one), `models/spana_reid_v3.json` (`56a1b4c8…`, candidate,

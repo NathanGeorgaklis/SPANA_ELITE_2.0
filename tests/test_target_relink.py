@@ -18,6 +18,7 @@ from tests.test_target_follow import CFG, ROOT, A, AU, L, N, tracks_doc
 W = {"t1": N, "t2": N}
 SEL = Selection.track_at_frame("t1", 1)
 AUTO = dataclasses.replace(CFG, target=dataclasses.replace(CFG.target, relink_auto_confirm=True))
+NO_HOLD = dataclasses.replace(CFG, target=dataclasses.replace(CFG.target, offer_hold_s=0.0))   # drop at once
 
 
 def lost_then_new(extra_new=None, gap_frames=1, more=2):
@@ -82,7 +83,7 @@ class RelinkTest(unittest.TestCase):
     def test_candidate_dropped_when_it_becomes_unusable(self):
         doc = tracks_doc([W, {"t1": A, "t2": A}, {"t1": L, "t2": A, "t3": N}, {"t1": L, "t2": A, "t3": A},
                           {"t1": L, "t2": A, "t3": L}, {"t1": L, "t2": A, "t3": A}], preds={"t3": ["t1"]})
-        frames, info = follow(doc, SEL, CFG)
+        frames, info = follow(doc, SEL, NO_HOLD)          # with the default offer hold: tests/test_offer_hold.py
         self.assertEqual([s for s, _ in states(frames)], ["TARGET", "LOST", "CANDIDATE", "LOST", "LOST"])
         self.assertEqual(info["relinks"][0]["dropped_reason"], "CANDIDATE_NOT_USABLE")
 
@@ -134,7 +135,7 @@ class RelinkArtifactTest(unittest.TestCase):
 
     def test_valid(self):
         validate_target(self.doc, self.tracks)
-        self.assertEqual(self.doc["schema_version"], "2.6.0")
+        self.assertEqual(self.doc["schema_version"], "2.9.0")
 
     def test_validator_refuses_inconsistent_documents(self):
         def broken(edit):
@@ -182,14 +183,15 @@ class RelinkArtifactTest(unittest.TestCase):
 class RelinkScoreTest(unittest.TestCase):
     """tools/target_score.py: candidate frames counted apart from answers; the simulated user confirms right ones."""
 
-    def _score(self, cfg, simulate_user):
+    def _score(self, cfg, simulate_user, rows=None, simulate_reviewer=False):
         import hashlib
         from tools.target_score import score_clip
         tracks = lost_then_new(more=3)          # t3 born frame 3, confirmed from frame 4; frames 0..6
         # live tracks are drawn at x = 100 * (index among the frame's sorted ids): t1 x0, t2 x100, t3 x200
-        rows = []
-        for f in (1, 2, 4, 5):
-            rows += [f"{f + 1},1,{0 if f == 1 else 200},100,40,100,1,1,1", f"{f + 1},2,100,100,40,100,1,1,1"]
+        if rows is None:
+            rows = []
+            for f in (1, 2, 4, 5):
+                rows += [f"{f + 1},1,{0 if f == 1 else 200},100,40,100,1,1,1", f"{f + 1},2,100,100,40,100,1,1,1"]
         gt = ("\n".join(rows) + "\n").encode()
         with tempfile.TemporaryDirectory() as tmp:
             d = Path(tmp) / "lab"
@@ -201,7 +203,7 @@ class RelinkScoreTest(unittest.TestCase):
             (d / "labels_frozen.json").write_text(json.dumps({"frames_labelled": [1, 2, 4, 5]}))
             trk = Path(tmp) / "trk.json"
             write_json_atomic(trk, tracks)
-            rep = score_clip(d, trk, cfg, None, simulate_user)
+            rep = score_clip(d, trk, cfg, None, simulate_user, simulate_reviewer)
         return next(p for p in rep["per_player"] if p["player"] == "1"), rep
 
     def test_candidates_never_count_as_correct_time(self):
@@ -209,6 +211,22 @@ class RelinkScoreTest(unittest.TestCase):
         self.assertEqual((p1["correct"], p1["candidate_correct"], p1["lost"]), (1, 2, 1))
         self.assertEqual(p1["relinks"][0]["verdict"], "right")
         self.assertEqual(rep["pooled"]["relinks"]["proposed"], 1)
+
+    def test_an_offer_of_another_player_is_wrong_while_ours_is_out_of_the_picture(self):
+        """Player 1 leaves after frame 2; the offered t3 is player 3. Before 2026-11-19 this was "undecided"
+        because player 1 is not labelled on the offer's frames."""
+        rows = [f"{f + 1},1,0,100,40,100,1,1,1" for f in (1, 2)]
+        rows += [f"{f + 1},2,100,100,40,100,1,1,1" for f in (1, 2, 4, 5)]
+        rows += [f"{f + 1},3,200,100,40,100,1,1,1" for f in (4, 5)]
+        every_gap = dataclasses.replace(CFG, target=dataclasses.replace(CFG.target, review_min_gap_s=0.0))
+        p1, rep = self._score(every_gap, False, rows)
+        r = p1["relinks"][0]
+        self.assertEqual((r["verdict"], r["verdict_player"]), ("wrong", "3"))
+        self.assertEqual((p1["candidate_wrong"], p1["candidates_while_absent_on_other_player"]), (0, 2))
+        self.assertEqual(rep["pooled"]["relinks"]["wrong"], 1)
+        rev, _ = self._score(every_gap, False, rows, simulate_reviewer=True)
+        self.assertEqual((rev["actions"]["reject_candidate"], rev["actions"]["confirm_relink"]), (1, 0))
+        self.assertEqual(rev["wrong"], 0)
 
     def test_simulated_user_confirms_the_right_candidate(self):
         p1, rep = self._score(CFG, True)

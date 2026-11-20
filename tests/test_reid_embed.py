@@ -13,7 +13,8 @@ import numpy as np
 
 from spana.artifacts import TRACKS_SCHEMA, read_json, tracklet_rows, tracks_frame, validate_track_embeddings
 from spana.config import load_config
-from spana.identity.reid import (ReidEmbedder, ReidModelError, ReidModelRecord, cosine, embeddings_document)
+from spana.identity.reid import (ReidEmbedder, ReidModelError, ReidModelRecord, cosine, embeddings_document,
+                                 set_similarity)
 from spana.records import CameraObservation, CameraStatus, Detection
 from spana.tracking.tracker import MultiPlayerTracker
 from spana.video import VideoSource, sha256_file
@@ -92,6 +93,15 @@ class Embed(unittest.TestCase):
             self.assertEqual(len(sig[t]["first_frames"]), CFG.reid.samples)
             self.assertGreater(cosine(sig[t]["first"], sig[t]["last"]), 0.99)       # same shirt start and end
         self.assertLess(cosine(sig[a]["last"], sig[b]["first"]), cosine(sig[a]["last"], sig[a]["first"]))
+        self.assertEqual(doc["schema_version"], "1.1.0")                          # crop sets (option 2)
+        for t in (a, b):
+            cs = sig[t]["first_crops"]
+            self.assertTrue(CFG.reid.samples <= len(cs) <= CFG.reid.set_samples)   # 1.2 s clip, 0.2 s apart: 6
+            gaps = np.diff([c["frame"] for c in cs]) / FPS
+            self.assertTrue((gaps >= CFG.reid.set_min_gap_s - 1e-9).all())
+            self.assertTrue(all(0.0 < c["quality"] <= 1.0 for c in cs))
+        self.assertGreater(set_similarity(sig[a]["last_crops"], sig[a]["first_crops"]),
+                           set_similarity(sig[a]["last_crops"], sig[b]["first_crops"]))
 
     def test_wrong_weights_hash_is_refused(self):
         with self.assertRaises(ReidModelError):

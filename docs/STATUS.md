@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-19 (branch identity/reid-merge-v1 = main 5c7dac5 + tracking/margin-floor-guard 68bf1a9).
-- Full suite: `python -m pytest tests -q` → 503 passed, 5 skipped (container, Python 3.13, with torch + transformers for
+As of 2026-11-20 (branch identity/reid-merge-v1 = main 24ccd58 + the re-ID resolution work; PR #13).
+- Full suite: `python -m pytest tests -q` → 536 passed, 5 skipped (container, Python 3.13, with torch + transformers for
   the re-ID tests).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -9,7 +9,9 @@ DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 | Layer | State | Module path | Tests | Notes |
 |---|---|---|---|---|
 | player detection | PARTIAL | `spana/detection/` (`onnx_backend.py`, `postprocess.py`, `tiling.py`, `roboflow_backend.py`, `base.py`) | `tests/test_detection_camera.py`, `tests/test_merge_detections.py`, `tests/test_multi_body.py`, `tests/test_roboflow_dataset.py`, `tests/test_detector_eval.py`, `tests/test_detection_interface.py`, `tests/test_dev_bench.py` | Football detector v1 trained (`nathans-workspace-9brdc/spana-elite-2-rfdetr-medium-t1`, RF-DETR medium, dataset version 2), adapter `RoboflowDetector.from_detector_config` (config `detector`, confidence / iou 0.50 untuned). Scored only on the M001 valid split (table below), which shares a broadcaster with training: generalisation unknown. DEV benchmark uploaded and pre-labelled (76 frames, 2 DEV matches), waiting for Nathan's label review; not scored. Pipeline CLI still uses pinned COCO YOLOX-s, person only (`models/yolox_s.json`); FRESH_02 recall 0.971 (NESTED_V1). YOLOX inference test skipped without weights. |
-| player tracking | PARTIAL | `spana/tracking/` (`tracker.py`, `kalman.py`, `camera.py`), `spana/appearance.py` | `tests/test_tracker.py`, `tests/test_camera_uncertainty.py`, `tests/test_identity_uncertain.py`, `tests/test_unconfirmed_low_score.py`, `tests/test_cli_e2e.py`, `tests/test_foundation.py` | Generic multi-player tracker with camera compensation and per-track IDENTITY_UNCERTAIN (`spana.tracks` 2.2.0: + `identity_doubt`). DEV 4 clips (local detector): 120 fragments, 121 ID switches, 6 transfers, 0 silent (NESTED_V2). Fragmentation remains the largest error. Where ByteTrack kept one track (76 of 120 fragments) ours broke mostly at the identity gate (44; 25 of them the torso-colour veto on the track's own next box), then low-score (7), LOST timeout (4), M2 nested (4), other (17) (`records/continuity_attribution_2026-11-18`). Appearance doubt link (`tracking.appearance_doubt_link`, S3b): continues such tracks flagged IDENTITY_UNCERTAIN: fragments 120 → 108, silent transfers 0, but reviewer correct-time 0.778 → 0.698 because doubts rarely resolve and the follower abstains on them. Self-consistent doubt resolution (`tracking.doubt_resolve_self_consistent`, option (a)): 5 more doubts cleared, fragments 106. With the follower's tap vouch (b): 0.783 correct, 2 wrong, but actions 6.27 / min = today, so the pass bar (fewer actions) is not met; **all off by default** (`records/doubt_resolution_2026-11-18`). Nested-box fix (M2) deferred pending Nathan's approval. Tests also `tests/test_appearance_doubt_link.py`. |
+| player tracking | PARTIAL | `spana/tracking/` (`tracker.py`, `kalman.py`, `camera.py`), `spana/appearance.py` | `tests/test_tracker.py`, `tests/test_camera_uncertainty.py`, `tests/test_identity_uncertain.py`, `tests/test_unconfirmed_low_score.py`, `tests/test_cli_e2e.py`, `tests/test_foundation.py` | Generic multi-player tracker with camera compensation and per-track IDENTITY_UNCERTAIN (`spana.tracks` 2.2.0: + `identity_doubt`). DEV 4 clips (local detector): 120 fragments, 121 ID switches, 6 transfers, 0 silent (NESTED_V2). Fragmentation remains the largest error. Stale tracks past their recovery window no longer block S3c / S4
+(`tracking.rival_eligible_only` ON, `records/rival_eligible_2026-11-19`): fragments 110 -> 105, ID switches 112 -> 107,
+same 7 flagged transfers, 0 silent, reviewer 0.778 / 2 / 5.64 -> 0.783 / 2 / 5.50 (FRESH_08 player 10 no longer split). Where ByteTrack kept one track (76 of 120 fragments) ours broke mostly at the identity gate (44; 25 of them the torso-colour veto on the track's own next box), then low-score (7), LOST timeout (4), M2 nested (4), other (17) (`records/continuity_attribution_2026-11-18`). Appearance doubt link (`tracking.appearance_doubt_link`, S3b): continues such tracks flagged IDENTITY_UNCERTAIN: fragments 120 → 108, silent transfers 0, but reviewer correct-time 0.778 → 0.698 because doubts rarely resolve and the follower abstains on them. Self-consistent doubt resolution (`tracking.doubt_resolve_self_consistent`, option (a)): 5 more doubts cleared, fragments 106. With the follower's tap vouch (b): 0.783 correct, 2 wrong, but actions 6.27 / min = today, so the pass bar (fewer actions) is not met; **all off by default** (`records/doubt_resolution_2026-11-18`). Nested-box fix (M2) deferred pending Nathan's approval. Tests also `tests/test_appearance_doubt_link.py`. |
 | target identity | PARTIAL | `spana/identity/follower.py` | `tests/test_target_follow.py`, `tests/test_target_relink.py` | Follows one tapped track (selection `track_at_frame` 1.0.0) into `spana.target` 2.0.0 (TARGET / CANDIDATE / ABSTAIN / LOST). Fails closed (v1 rules). Relink v1: after a loss, proposes CANDIDATE on the tracker's unique predecessor link (gap ≤ `target.relink_max_gap_s` 0.5); TARGET only after the user confirms (`confirm_candidate` 1.0.0) or with `relink_auto_confirm` (off). DEV, 4 clips (`records/target_relink_v1_2026-11-16`): correct-time 0.509 without confirmation (= v1, wrong 1 frame) → **0.597 with a simulated user (wrong 2 frames: +1 from a tracker identity change after a correct confirmation)**; auto-confirm 0.597, wrong 3. Ceiling 0.853. Recovery inputs (`spana.target` 2.1.0): confirm / reject offers, tap to re-select, gap list. **Simulated after-match reviewer: correct-time 0.779, wrong 2 frames (the two known ones), but about 6.3 user actions per followed player-minute** (`records/target_recovery_v1_2026-11-17`). Long re-entries unsolved. Re-ID model: pilot trained on TRAIN_M001 only (`tools/reid_crops.py`, `tools/reid_train.py`, `config/reid_train.yaml`); DEV rival test 0.888 vs shirt colour 0.902, but 2–4× colour's true accepts at 1 % false accepts on hard pairs; not used by the product (`records/reid_pilot_v1_2026-11-18`). Colour + re-ID combined (DEV eval only, `tools/dev/cue_fusion.py`): pooled TAR @ 0.5 % FAR on hard pairs 0.172 vs re-ID 0.146 / colour 0.061, but below colour on FRESH_05 (0.717 vs 1.000) → not promising under the decision rule (`records/reid_fusion_dev_2026-11-18`). |
 | ball tracking | NOT BUILT | none | none | Only dataset tooling handles the ball class (ball tiling / size filter in `spana/dataset/prefilter.py`, `tools/roboflow_ball_sheet.py`). |
 | team classification | NOT BUILT | none | none | Torso colour histogram (`spana/appearance.py`) is used for track association only. Side labels (A/B/GK/REF) exist in re-ID labels only. |
@@ -148,15 +150,30 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
          16 / 1 / 2), offline 33 / 2 (was 28 / 3); the camera-carried position bound changed nothing (off).
          Position is now a SCORE (`target.reentry_position_weight` 0.5; `records/reentry_position_score_2026-11-18`,
          `spana.target` 2.5.0 with a reentry_log): offline rank-1 wrong 17 -> 13 (6 short-gap fixes, 2 new), offer
-         rule right 33 -> 36 / wrong 2; in the follower neutral (offers 15 / 0 / 1 vs 16 / 0 / 1). Pan / long
-         returns untouched by design. Option 2 (better signatures) queued. A
+         rule right 33 -> 36 / wrong 2; in the follower neutral (offers 15 / 0 / 1 vs 16 / 0 / 1; RE-SCORED
+         2026-11-19 by who the offered box is, `records/offer_verdict_2026-11-19`: 15 right / 1 wrong, reviewer
+         0.777 / 2 / 5.78 vs 0.778 / 2 / 5.64 without offers; the wrong one was made while the player was off
+         screen, found by Nathan in the FRESH_08 review videos). Pan / long
+         returns untouched by design. Option 2 (better signatures, `records/reid_signatures_v2_2026-11-19`, branch
+         identity/reid-signatures-v2, not on main): quality-weighted crop sets (`spana.track_embeddings` 1.1.0)
+         matched best-pair (`target.reentry_signature: set`, floor 0.65): by who the offered box is, 18 right /
+         3 wrong (all wrong offers made while our player was off screen). Not for main as is.
+         Exit side (`target.reentry_exit_edge` 0.05, `records/reentry_exit_side_2026-11-19`, `spana.target` 2.7.0):
+         after the player left the picture only tracks born at the side they left by are offered (17 / 17 DEV
+         returns within 0.011 of it). Follower: mean 15 / 0 (was 15 / 1), set 0.65 18 / 0 (was 18 / 3), no right
+         offer lost; reviewer 0.777 / 2 / 5.71 (no offers: 0.778 / 5.64). Lookalikes in the picture untouched.
+         Offer hold (`target.offer_hold_s`, `spana.target` 2.8.0, `records/offer_hold_2026-11-19`): ON at 0.2 s
+         after re-measuring on main's new tracks (right offer frames 442 -> 450, wrong unchanged; player 10's offer
+         now lasts 48-147). Merged main, DEV: re-ID offers 16 right / 0 wrong, unaided 0.536 / 1 wrong frame,
+         reviewer 0.783 / 2 / 5.50.
+         Wait-for-evidence + withdraw built but off (withdrew right offers, reviewer 0.762). A
          re-entry OFFER costs the reviewer one action, like a tap: it eases the action but does not lower actions
          per minute; only re-ID that acts without the user (auto-link at a strict margin, or crossing resolution)
          would, and both touch the 2026-11-16 rule that relinks need the user. Nathan to choose;
      (b) tracker: keep tracks alive across pans, fewer LOST_EXPIRED in crowds. The exit hold was tried
          (`records/exit_hold_2026-11-18`): no net gain without a stronger appearance signal; off by default.
      (c) re-ID evidence at crossings (IDENTITY_UNCERTAIN), merged onto main in `identity/reid-merge-v1`
-         (config 2.8.0 `reid_resolve`, tracks 2.3.0 `resolved_by`, target 2.6.0 `resume_after_reid`; all OFF):
+         (config 2.12.0 `reid_resolve`, tracks 2.3.0 `resolved_by`, target 2.9.0 `resume_after_reid`; all OFF):
          - TRAIN labels: M002 v1 (107 player tracklets, 21 players; group-then-confirm, `confirmed_only`) and M003 v1
            (81 player tracklets, 19 players; direct flow). Re-ID v2 (M001 + M002) DEV rival 0.921 vs colour 0.902;
            v3 (+ M003) 0.933 (`records/reid_retrain_m001_m002_2026-11-18`, `records/reid_retrain_m001_m003_2026-11-19`).

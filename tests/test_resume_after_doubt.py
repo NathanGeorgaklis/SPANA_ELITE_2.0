@@ -51,7 +51,7 @@ class Resume(unittest.TestCase):
     def test_document(self):
         doc = doc22([{"t1": N}, {"t1": C}, {"t1": D}, {"t1": C}])
         d = target_document(doc, SEL, RESUME, ["test"])
-        self.assertEqual(d["schema_version"], "2.6.0")
+        self.assertEqual(d["schema_version"], "2.9.0")
         self.assertTrue(d["target_config"]["resume_after_doubt_resolved"])
         validate_target(d, doc)
 
