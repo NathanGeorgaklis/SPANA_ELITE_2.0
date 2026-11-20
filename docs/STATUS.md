@@ -12,8 +12,8 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
 - Silent-transfer fix merged to main (2026-11-20, Nathan approved; config 2.13.0, both rules on): DEV silent
   3 -> 0, wrong frames 1 / 2 -> 0 / 0, but reviewer correct 0.783 -> 0.680 (`records/silent_transfer_fix_2026-11-20`).
   Full suite 583 passed, 6 skipped.
-- Re-ID episode resolution (branch identity/reid-episode-resolution, NOT merged; config 2.14.0, `reid_resolve` still
-  OFF): STOP condition met. Re-ID v2 separates no same-look pair on FRESH_07 / 08 at the calibrated margin (0 of 66 clean
+- Re-ID episode resolution MERGED to main (2026-11-20, Nathan approved; config 2.14.0, `reid_resolve` OFF by default,
+  follower guard kept; stays off until re-ID separates same-kit teammates AND references / clean crops reach the episodes): STOP condition met. Re-ID v2 separates no same-look pair on FRESH_07 / 08 at the calibrated margin (0 of 66 clean
   rival tests; FRESH_02 50 / 129, 0 wrong); margin not lowered. On: 2 / 2 resolutions right, 0 silent, 0 / 0 wrong,
   0 transfers on linked tracks, unaided 0.508 -> 0.513, reviewer 0.680 -> 0.680 (follower guard). 112 of 126 episodes
   refused: NO_REFERENCE 49 (39 ambiguous spawns whose predecessors were never CERTAIN), NO_CLEAN_CROP 29, NOT_OBSERVED
@@ -232,7 +232,7 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
            flagged transfers 7, actions 5.71 / min unchanged. Re-checked on main 24ccd58 (target 2.9.0, config 2.12.0):
            off = main; on: unaided 0.536 -> 0.540, reviewer 0.783 -> 0.787, wrong 1 / 2 (same players), silent 0,
            transfers 7, actions 5.50 unchanged. Still off by default (Nathan's decision).
-         - Episode resolution (2026-11-20, branch identity/reid-episode-resolution, not merged,
+         - Episode resolution (2026-11-20, merged to main, off by default,
            `records/reid_episode_resolution_2026-11-20`):
            - Built: a separate re-ID run (config 2.14.0, `reid_resolve.min_evidence_frames` 3). Colour that cannot tell
              same-look rivals apart no longer vetoes; ambiguous spawns are cleared by one predecessor beating the
