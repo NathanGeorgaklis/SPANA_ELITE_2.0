@@ -1,0 +1,4 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/. Code 089ee08-equivalent tracker (code33/ a61c2a2 with
+# pan_aware on via pa_on.yaml). Tracks out/F0x_pa_on.trk.json (records/pan_aware_appearance_2026-11-20/HASHES.txt).
+cfc11f8967cd43992c55896727e4dc87d8c01fd2db3df03971e8cf0d7af4f45e  probes/frag_causes_now.py
+020f07926466e04af8977447495dd3c0783ee4bd0cf2db577d0843b3b6a834cf  out/frag_causes_pa_on.json
