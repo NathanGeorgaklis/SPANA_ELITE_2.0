@@ -65,6 +65,20 @@ What the tracking layer receives from any detector, the football detector includ
 - Side output: decision log `*.decisions.jsonl` (every association, refusal, spawn, end).
 - CLI: `python -m spana.cli track --video --config --detections --out`.
 
+- Offline tracklet linking (branch `tracking/global-tracklet-linking-v1`, `spana/tracking/linking.py`): in a
+  `spana.tracks` document (2.1.0-2.3.0) + its decision log + the video; out the SAME contract and version (no field
+  added): a linked chain is one track (the first member's id), written as a tracker recovery (gap rows LOST / HELD,
+  camera-carried box, `recoveries` + 1, `last_gap_s` = gap; `uncertain_episodes` carried along the chain;
+  `confidence` never raised). Side outputs: `*.decisions.jsonl` (the input log, ids renamed, + `link` rows) and
+  `*.links.jsonl` (`spana.links` 1.0.0: header `{kind, schema, schema_version, tracks_in, tracks_out, linking_config,
+  embedder}`, then per predecessor tracklet with a candidate `{kind link|abstain, from_track, to_track, head, gap_s,
+  displacement_h, gate_h, similarity, terms{gap, motion, appearance, team}, cost, margin_successors,
+  margin_predecessors, cleared_by_appearance, reasons, from_last_observed_frame, to_first_frame, candidates,
+  predecessor_candidates}`). Provenance gains `stage, embedder, links, abstentions, source_tracks_provenance`.
+  Config `config/tracking/linking.yaml` (own schema 1.0.0). `Embedder`: `embed(frame, boxes) -> [vec|None]`,
+  `aggregate(vecs)`, `similarity(a, b) -> [0,1]|None`. CLI: `python -m spana.cli link --video --config
+  --linking-config --tracks --decisions --out`.
+
 ### State enums (`spana/records.py`)
 | enum | values |
 |---|---|
