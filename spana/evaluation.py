@@ -17,8 +17,13 @@ Detection layer
                       box by dup_ioa: partial-body boxes)
 Tracking layer
   identity_transfers  a track matched to player A and later to B (the unsafe error)
-  unflagged_transfers transfers on tracks with no ambiguity flag: no possible_predecessors, no recoveries, not
-                      IDENTITY_UNCERTAIN now, and no uncertainty episode since the track's previous attribution
+  unflagged_transfers SILENT transfers: the track was not IDENTITY_UNCERTAIN on any frame within the flag tolerance
+                      (seconds, config/benchmark.yaml) of the transfer frame, whatever its recoveries / links. Only the
+                      uncertain state is a flag a later layer acts on (rule of 2026-11-20; before it, recoveries,
+                      possible_predecessors and any episode since the previous attribution also counted as flags)
+  recovery_caused_*   transfers whose track had a tracker recovery after its previous attribution (all / silent)
+  link_caused_*       transfers whose track was continued by an offline link after its previous attribution
+  transfers_on_linked_tracks  transfers on any track that received a link (2026-11-18 linked-track rule)
   id_switches         player-centric: changes of a player's matched track id between matched frames
   wrong_recoveries    recovery decisions whose detection is a different player than the track's last one
   duplicate_tracks    frames where an extra OBSERVED track is eligible for a matched player under the rule, or an
@@ -30,7 +35,8 @@ Tracking layer
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
+import bisect
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -46,10 +52,68 @@ class TrackBox:
     track_id: str
     box: Box
     confirmed: bool
-    flagged: bool                 # has possible_predecessors or recoveries > 0
     detection_index: Optional[int]
     uncertain: bool = False       # IDENTITY_UNCERTAIN on this frame
-    uncertain_episodes: int = 0   # times the track has entered IDENTITY_UNCERTAIN so far
+
+
+class TransferFlags:
+    """What the transfer rule needs from EVERY processed frame of a run (scored frames are only the labelled ones):
+    when each track was IDENTITY_UNCERTAIN, when the tracker recovered it, and when an offline link continued it.
+
+    flagged(track, frame): uncertain on some frame within `tolerance_s` of `frame` (either side).
+    Without a TransferFlags, evaluate() uses tolerance 0 on the scored frames themselves."""
+
+    def __init__(self, frames: Iterable[Tuple[int, float, Iterable[Tuple[str, bool, int]]]],
+                 link_frames: Mapping[str, Iterable[int]], tolerance_s: float):
+        """frames: (frame, t, [(track_id, uncertain, recoveries count)]) for every processed frame, in order.
+        link_frames: track id -> frames on which a link continued it (its recoveries count rises there too)."""
+        if not tolerance_s >= 0:
+            raise ValueError(f"flag tolerance must be >= 0, got {tolerance_s!r}")
+        self.tolerance_s = float(tolerance_s)
+        self.t: Dict[int, float] = {}
+        self.uncertain: Dict[str, List[float]] = {}
+        self.recovery: Dict[str, List[int]] = {}
+        self.link = {k: sorted(v) for k, v in link_frames.items()}
+        last_rec: Dict[str, int] = {}
+        for f, t, rows in frames:
+            self.t[f] = float(t)
+            for tid, unc, rec in rows:
+                if unc:
+                    self.uncertain.setdefault(tid, []).append(float(t))
+                if rec > last_rec.get(tid, 0) and f not in self.link.get(tid, ()):
+                    self.recovery.setdefault(tid, []).append(f)
+                last_rec[tid] = rec
+
+    def flagged(self, tid: str, frame: int) -> bool:
+        t = self.t[frame]
+        ts = self.uncertain.get(tid, [])
+        k = bisect.bisect_left(ts, t - self.tolerance_s - 1e-9)
+        return k < len(ts) and ts[k] <= t + self.tolerance_s + 1e-9
+
+    @staticmethod
+    def _between(xs: Sequence[int], lo: int, hi: int) -> bool:
+        k = bisect.bisect_right(xs, lo)
+        return k < len(xs) and xs[k] <= hi
+
+    def recovery_caused(self, tid: str, prev_frame: int, frame: int) -> bool:
+        return self._between(self.recovery.get(tid, []), prev_frame, frame)
+
+    def link_caused(self, tid: str, prev_frame: int, frame: int) -> bool:
+        return self._between(self.link.get(tid, []), prev_frame, frame)
+
+    def linked(self, tid: str) -> bool:
+        return bool(self.link.get(tid))
+
+    @classmethod
+    def from_tracks(cls, tracks_doc: dict, decisions: Iterable[dict], tolerance_s: float) -> "TransferFlags":
+        """From a spana.tracks document and its decision log (`link` rows come from the offline linker)."""
+        links: Dict[str, List[int]] = {}
+        for d in decisions:
+            if d.get("kind") == "link":
+                links.setdefault(d["track_id"], []).append(d["frame"])
+        return cls(((fr["frame"], fr["t"], [(t["track_id"], t["identity"] != "CERTAIN", t["recoveries"])
+                                             for t in fr["tracks"]]) for fr in tracks_doc["frames"]),
+                   links, tolerance_s)
 
 
 @dataclass(frozen=True)
@@ -71,6 +135,12 @@ class Report:
     duplicate_dets: int = 0
     identity_transfers: int = 0
     unflagged_transfers: int = 0
+    recovery_caused_transfers: Optional[int] = None    # None without TransferFlags (cause unknown)
+    recovery_caused_silent: Optional[int] = None
+    link_caused_transfers: Optional[int] = None
+    link_caused_silent: Optional[int] = None
+    transfers_on_linked_tracks: Optional[int] = None
+    flag_tolerance_s: Optional[float] = None
     id_switches: int = 0
     wrong_recoveries: int = 0
     recoveries: int = 0
@@ -105,6 +175,11 @@ class Report:
                 "missed_players": self.missed_players, "missed_by_height_px": self.missed_by_height,
                 "gt_by_height_px": self.gt_by_height, "duplicate_detections": self.duplicate_dets,
                 "identity_transfers": self.identity_transfers, "unflagged_transfers": self.unflagged_transfers,
+                "flag_tolerance_s": self.flag_tolerance_s,
+                "recovery_caused_transfers": self.recovery_caused_transfers,
+                "recovery_caused_silent": self.recovery_caused_silent,
+                "link_caused_transfers": self.link_caused_transfers, "link_caused_silent": self.link_caused_silent,
+                "transfers_on_linked_tracks": self.transfers_on_linked_tracks,
                 "id_switches": self.id_switches, "wrong_recoveries": self.wrong_recoveries,
                 "recoveries": self.recoveries, "duplicate_track_frames": self.duplicate_frames,
                 "fragments_total": self.total_fragments, "players": len(self.fragments),
@@ -213,12 +288,17 @@ def _bin(h: float) -> str:
     return "inf"
 
 
-def evaluate(frames: Iterable[EvalFrame], rule: MatchRule = IOU_050, dup_ioa: float = 0.6) -> Report:
+def evaluate(frames: Iterable[EvalFrame], rule: MatchRule = IOU_050, dup_ioa: float = 0.6,
+             flags: Optional[TransferFlags] = None) -> Report:
     r = Report()
+    if flags is not None:
+        r.flag_tolerance_s = flags.tolerance_s
+        r.recovery_caused_transfers = r.recovery_caused_silent = 0
+        r.link_caused_transfers = r.link_caused_silent = r.transfers_on_linked_tracks = 0
     track_gt: Dict[str, str] = {}
     gt_last: Dict[str, str] = {}
     gt_tracks: Dict[str, List[str]] = {}
-    eps_at_attr: Dict[str, int] = {}               # track -> uncertainty episodes at its last attribution
+    attr_frame: Dict[str, int] = {}                # track -> frame of its last clear attribution
     for ef in frames:
         prev_track_gt = dict(track_gt)
         gids = sorted(ef.gt)
@@ -254,15 +334,24 @@ def evaluate(frames: Iterable[EvalFrame], rule: MatchRule = IOU_050, dup_ioa: fl
                                            "last_clear": track_gt.get(t.track_id)})
                 continue
             if t.track_id in track_gt and track_gt[t.track_id] != g:
-                flagged = t.flagged or t.uncertain or t.uncertain_episodes > eps_at_attr.get(t.track_id, 0)
+                prev = attr_frame[t.track_id]
+                flagged = flags.flagged(t.track_id, ef.frame) if flags is not None else t.uncertain
+                ev = {"frame": ef.frame, "previous_frame": prev, "track_id": t.track_id, "from": track_gt[t.track_id],
+                      "to": g, "flagged": flagged, "identity_uncertain": flagged}
                 r.identity_transfers += 1
                 r.unflagged_transfers += 0 if flagged else 1
-                r.transfer_events.append({"frame": ef.frame, "track_id": t.track_id, "from": track_gt[t.track_id],
-                                          "to": g, "flagged": flagged,
-                                          "identity_uncertain": t.uncertain or
-                                          t.uncertain_episodes > eps_at_attr.get(t.track_id, 0)})
+                if flags is not None:
+                    rc = flags.recovery_caused(t.track_id, prev, ef.frame)
+                    lc = flags.link_caused(t.track_id, prev, ef.frame)
+                    ev.update(recovery_caused=rc, link_caused=lc, on_linked_track=flags.linked(t.track_id))
+                    r.recovery_caused_transfers += rc
+                    r.recovery_caused_silent += rc and not flagged
+                    r.link_caused_transfers += lc
+                    r.link_caused_silent += lc and not flagged
+                    r.transfers_on_linked_tracks += flags.linked(t.track_id)
+                r.transfer_events.append(ev)
             track_gt[t.track_id] = g
-            eps_at_attr[t.track_id] = t.uncertain_episodes
+            attr_frame[t.track_id] = ef.frame
             if g in gt_last and gt_last[g] != t.track_id:
                 r.id_switches += 1
             gt_last[g] = t.track_id
@@ -288,6 +377,7 @@ def evaluate(frames: Iterable[EvalFrame], rule: MatchRule = IOU_050, dup_ioa: fl
 
 def frames_from_artifacts(tracks_doc: dict, detections_doc: dict, gt: Dict[int, Dict[str, Box]],
                           decisions: Iterable[dict]) -> List[EvalFrame]:
+    # (pair with TransferFlags.from_tracks(tracks_doc, decisions, tolerance) in evaluate())
     """Build evaluation frames from a run's artifacts and per-frame ground truth (frame index -> boxes)."""
     dets = {fr["frame"]: [r[:4] for r in fr["detections"]] for fr in detections_doc["frames"]}
     rec: Dict[int, List[Tuple[str, int]]] = {}
@@ -299,8 +389,7 @@ def frames_from_artifacts(tracks_doc: dict, detections_doc: dict, gt: Dict[int, 
             rec.setdefault(d["frame"], []).append((d["track_id"], t["detection_index"]))
     out = []
     for fr in tracks_doc["frames"]:
-        obs = [TrackBox(t["track_id"], t["box"], t["confirmed"], bool(t["possible_predecessors"]) or t["recoveries"] > 0,
-                        t["detection_index"], t["identity"] != "CERTAIN", t["uncertain_episodes"])
+        obs = [TrackBox(t["track_id"], t["box"], t["confirmed"], t["detection_index"], t["identity"] != "CERTAIN")
                for t in fr["tracks"] if t["source"] == "OBSERVED"]
         out.append(EvalFrame(fr["frame"], gt.get(fr["frame"], {}), dets.get(fr["frame"], []), obs,
                              rec.get(fr["frame"], [])))

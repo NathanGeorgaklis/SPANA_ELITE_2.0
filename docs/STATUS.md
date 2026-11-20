@@ -7,6 +7,8 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 - Tracklet linking v1 merged to main (2026-11-20, Nathan's Mac): `tests/test_tracklet_linking.py` 19 passed; full suite
   565 passed, 6 skipped.
+- Transfer flag rule merged to main (2026-11-20, Nathan's Mac; full suite 572 passed, 6 skipped). Silent-transfer counts
+  below that predate it use the OLD rule; under the merged rule our tracker has 3 silent of 7 (see Next task 0).
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
@@ -147,11 +149,13 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   (licence allow-list) and DEV clip names only in config comments.
 
 ## Next task (suggested)
-0. Follow-up (separate task, evaluation): fix `tools/benchmark.py` so transfers on linked / recovered tracks are not
-   automatically counted as flagged. Today `flagged` = `possible_predecessors` or `recoveries > 0`, so every transfer
-   on a track the tracker recovered or the linker linked counts as flagged even when the follower would show it as
-   the same player. `tools/dev/link_bench.py` works around this for links only (link-caused transfers, transfers on
-   linked tracks). Re-score the reference numbers after the fix.
+0. Transfer flagging fix (merged 2026-11-20; `records/benchmark_transfer_flagging_2026-11-20`). `tools/benchmark.py` now flags a transfer only if the track was
+   IDENTITY_UNCERTAIN within 0.5 s (`config/benchmark.yaml`) and reports recovery- / link-caused columns. Re-score:
+   our tracker 7 transfers, silent 0 -> **3** (FRESH_02 T000045 ambiguous spawn 9 -> 10; FRESH_07 T000018
+   14 -> 15 -> 14, the follower's one wrong frame); same 3 in both linking runs (none link-caused); ByteTrack /
+   BoT-SORT unchanged (rejection stands). Earlier "0 silent" claims superseded (DECISIONS 2026-11-20). Next: a
+   tracking task for the 3 silent transfers (ambiguous spawn with no uncertain state; FRESH_07 T000018
+   swap-and-return).
 1. Long-play capability (`records/window_f05_2026-11-18`, 10-minute DEV window of match G2; re-measured with the
    extent link in `records/extent_link_window_2026-11-18`).
    - Following one player unattended lasts one track; tracks end mostly at camera pans (LEFT_FRAME) and in crowds

@@ -13,8 +13,8 @@ TRACK_ON_FRONT = [1826.0, 422.0, 1874.0, 548.0]   # tracker box on the front pla
 APART_FRONT, APART_BEHIND = [1900.0, 438.0, 1926.0, 555.0], [1700.0, 411.0, 1730.0, 526.0]
 
 
-def frame(i, gt, track_box, flagged=False, occluded=()):
-    return EvalFrame(i, gt, [], [TrackBox("T1", track_box, True, flagged, None)], [], frozenset(occluded))
+def frame(i, gt, track_box, uncertain=False, occluded=()):
+    return EvalFrame(i, gt, [], [TrackBox("T1", track_box, True, None, uncertain)], [], frozenset(occluded))
 
 
 class NestedV2(unittest.TestCase):

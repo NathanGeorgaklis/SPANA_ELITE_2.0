@@ -234,6 +234,12 @@ Follow the user's chosen player through a clip, and say so when unsure.
 ## Evaluation (supporting) — `spana/evaluation.py`, `spana/labels.py`, `tools/benchmark.py`
 - In: tracks + detections artifacts, frozen MOT labels (`data/labels/<clip>/v1`). Out: `Report` metrics JSON.
 - Match rules: IoU 0.5, NESTED_V1, NESTED_V2 (default).
+- Transfers (rule of 2026-11-20): flagged only if IDENTITY_UNCERTAIN within
+  `config/benchmark.yaml` `transfer_flag_tolerance_s` (`spana.evaluation.TransferFlags`, from every tracks frame + the
+  decision log's `link` rows); report summary + `recovery_caused_transfers/silent`, `link_caused_transfers/silent`,
+  `transfers_on_linked_tracks`, `flag_tolerance_s`; events + `previous_frame, recovery_caused, link_caused,
+  on_linked_track`; report top level + `bench_config {path, sha256, transfer_flag_tolerance_s}`. CLI
+  `tools/benchmark.py ... [--bench-config]`.
 
 ## Re-ID labels (supporting) — `spana/reid_labels.py`
 - Schemas `spana.reid_match` 1.1.0, `spana.reid_identities` 1.0.0. Splits TRAIN / DEV / EVAL (EVAL needs approval).
