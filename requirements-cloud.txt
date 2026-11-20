@@ -1,0 +1,4 @@
+# Optional, on the Mac only: the Modal client for the DEV cloud test (tools/cloud_bench.py). Not needed by the engine.
+# Auth: `modal token new` stores the token in ~/.modal.toml (outside the repo). Apache-2.0.
+#   pip install -r requirements-cloud.txt
+modal==1.6.4

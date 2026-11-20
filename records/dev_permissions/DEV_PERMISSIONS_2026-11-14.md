@@ -26,3 +26,11 @@ permissions dated 31 October 2026 cover the full match footage of both DEV match
 includes third-party processing by Roboflow (upload and hosted inference). Videos used for the DEV benchmark
 (`tools/dev_bench.py`): DEV_G1_SYDNEY_UNITED_APIA `Sydney_United_APIA.mp4`, DEV_G2_NWS_SPIRIT_SD_RAIDERS
 `NWS_Spirit_SD_Raiders.mp4` (one file per match; sha256 in the `records/dev_bench/` manifests).
+
+## Processing on Modal GPUs (confirmed by Nathan, 2026-11-20)
+In the session of 2026-11-20 Nathan approved uploading the DEV footage to a private Modal volume (Modal Labs, cloud
+GPUs) for speed / identity tests ("yes, upload the DEV footage and start building"). Only footage of the two DEV
+matches above is covered, and only files listed by sha256 in `config/cloud_bench.yaml` are uploaded
+(`tools/cloud_bench.py upload` refuses anything else). Game 3 stays excluded: it is not on the allow-list.
+Uploaded on 2026-11-20 to volume `spana-dev-footage`: `Sydney_United_APIA.mp4` (DEV G1, full match),
+FRESH_02 (G1), FRESH_05 (G2), and the detector weights.
