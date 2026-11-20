@@ -1,0 +1,11 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/. Code main 74eb1a0 (code31/). Inputs: detections
+# ~/SPANA_ELITE_2.0/runs/person_view_compare/F0x_local.det.json, tracks out/F0x_main.trk.json, follower documents
+# ~/spana-test-out/F08_final/ (records/offer_hold_2026-11-19 addendum).
+541356940fa757e1c84d8ea27bb7b04c68d40c332dc5aa8c6d28b9f8af1a6b32  probes/probe_veto148.py
+f754b3257e39dafc48f502bd0c7f078c1db91ec0551b97efd5e7e1513c216fc8  probes/probe_veto_all.py
+ab66aa7c2ac5d6c4e919dc8c3f3b617d034fc2fca6f64c9a77e49b45f47aee88  probes/count_not_mutual.py
+cfc5e577744f92520b51c37bcd926957e21211f86c0b393e46abf0aa2d0b6d56  run_veto_all.sh
+9ac3624a0d02b00e3ff9d0a4af7178e93e74d14e7a85185c54b6ec6fddaaa92a  out/veto_all.json
+b8887f2f534125418a42fc2019d6e00f711658d4637cc7ef36429dc8a416ae71  out/veto148/probe_veto148.json
+0aebd03995ca954bc29c68d939b3bb10b680f8ee44e8a21ed4e2b9d00e95235d  out/veto148/T29_f50.png
+cfcf53f37c44dddac0224a19ea5e9f883ab7e6e479e31a465fae3ef70d4b75cd  out/veto148/det148_1.png
