@@ -276,15 +276,18 @@ class QARound2Regressions(unittest.TestCase):
                     assert_safe(self, res, (fps, look))
                 else:
                     # Same look: NMS merges the two bodies into one box right after an ambiguous spawn. Known
-                    # limit: a transfer may follow, only on a track spawned with possible_predecessors. Under the
-                    # 2026-11-20 transfer rule (flagged = IDENTITY_UNCERTAIN within the tolerance) that transfer is
-                    # SILENT at 60 fps (never uncertain) and flagged at 10 / 25 fps (records/benchmark_transfer_
-                    # flagging_2026-11-20). Pinned here so any change shows; not accepted as safe.
+                    # limit: a transfer may follow, on the track spawned naming both hidden players. Until
+                    # 2026-11-20 that track started CERTAIN and the transfer was SILENT at 60 fps. With
+                    # tracking.ambiguous_spawn_uncertain it starts IDENTITY_UNCERTAIN, so it is flagged at every
+                    # rate (records/silent_transfer_fix_2026-11-20).
                     m = evaluate(res)
                     silent = [e for e in m.transfer_events if not e["flagged"]]
-                    spawned_ambiguous = {o.track_id for ft in res.frames for o in ft.tracks if o.possible_predecessors}
-                    self.assertTrue(all(e["track_id"] in spawned_ambiguous for e in silent), (fps, silent))
-                    self.assertEqual(len(silent), 1 if fps == 60 else 0, (fps, look, silent))
+                    self.assertEqual(silent, [], (fps, look))
+                    born_uncertain = {o.track_id for ft in res.frames for o in ft.tracks
+                                      if o.age_frames == 0 and len(o.possible_predecessors) >= 2
+                                      and o.identity.value == "IDENTITY_UNCERTAIN"}
+                    self.assertTrue(all(e["track_id"] in born_uncertain for e in m.transfer_events),
+                                    (fps, m.transfer_events))
                     self.assertEqual(m.wrong_recoveries, 0, (fps, look))
 
     def test_h1_front_swap_at_crossing(self):

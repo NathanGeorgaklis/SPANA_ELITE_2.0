@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.12.0"
+schema_version: "2.13.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -105,6 +105,28 @@ tracking:
   # split one player three times. ON: DEV fragments 110 -> 105, ID switches 112 -> 107, the same 7 transfers (all
   # flagged, none on a newly linked track), 0 silent, 0 wrong recoveries; reviewer 0.778 / 2 / 5.64 -> 0.783 / 2 / 5.50.
   rival_eligible_only: true
+  # Silent-transfer fix (records/silent_transfer_fix_2026-11-20). Two ways a track carried another player's box
+  # while CERTAIN on DEV:
+  # - Ambiguous spawn: a track spawned naming >= 2 possible_predecessors could be any of them, yet started CERTAIN
+  #   (FRESH_02 T000045; the synthetic h1 same-look case at 60 fps). It now starts IDENTITY_UNCERTAIN with its
+  #   predecessors as rivals. That episode clears once clean crops are clearly unlike every predecessor but at most one
+  #   (<= appearance.min_similarity - min_margin) for identity_resolve_s. Same-look predecessors never clear (fail closed).
+  ambiguous_spawn_uncertain: true
+  # - Crossing without a contest: two crossing tracks with established velocities each gate only their own box,
+  #   so no contest is raised. One of them took a merged box holding the other's body (FRESH_07 T000018 / T000015,
+  #   79-95 % of the other player's own nested box inside it; swapped-assignment cost margin 0.37, so not an
+  #   assignment swap). A confirmed track whose detection holds >= crossing_min_ioa of another confirmed track's
+  #   detection on the same frame marks both IDENTITY_UNCERTAIN, unless appearance separates them: the crop by
+  #   appearance.min_margin, or without a crop, stored appearances below appearance.min_similarity.
+  #   0.60 = confirm_nested_ioa ("mostly inside another player's box"); a prior, not fitted.
+  #   DEV cost (records/silent_transfer_fix_2026-11-20): silent 3 -> 0 and wrong frames 1 / 2 -> 0 / 0, but reviewer
+  #   correct 0.783 -> 0.680 (same-look episodes rarely resolve and a tap cannot answer an uncertain track).
+  crossing_uncertain: true
+  crossing_min_ioa: 0.60
+  # Also count an UNOBSERVED rival (live or recoverable, its predicted box). The same transfers were caught, but
+  # reviewer correct fell to 0.594: most of those marks are a teammate hidden behind the track, which the OCCLUDED /
+  # recovery / hidden-rival rules already guard. Off.
+  crossing_hidden_rivals: false
 
 appearance:
   enabled: true
