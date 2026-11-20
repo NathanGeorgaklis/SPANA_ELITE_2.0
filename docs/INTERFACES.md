@@ -220,6 +220,12 @@ Follow the user's chosen player through a clip, and say so when unsure.
 ## Evaluation (supporting) — `spana/evaluation.py`, `spana/labels.py`, `tools/benchmark.py`
 - In: tracks + detections artifacts, frozen MOT labels (`data/labels/<clip>/v1`). Out: `Report` metrics JSON.
 - Match rules: IoU 0.5, NESTED_V1, NESTED_V2 (default).
+- DEV label packs (`tools/label_pack.py`, page `tools/labeller.html`, freeze `tools/freeze_labels.py`):
+  **`spana.label_pack` 1.0.0** = a whole clip; **1.1.0** = a named frame range `[start_frame, end_frame)` of a source
+  video (`--name --start-frame --end-frame`, `--step-s` or `--step-frames`): + `source {video, start_frame,
+  end_frame}`, `clip.name` = the label-set name, `clip.sha256` and frame indices = the source video's. Frozen as
+  `data/labels/<name>/vN` with `source` in FROZEN.json. Windows chosen by `tools/dev/label_windows.py`
+  (`spana.label_windows` 1.0.0; `config/label_windows.yaml`).
 
 ## Re-ID labels (supporting) — `spana/reid_labels.py`
 - Schemas `spana.reid_match` 1.1.0, `spana.reid_identities` 1.0.0. Splits TRAIN / DEV / EVAL (EVAL needs approval).

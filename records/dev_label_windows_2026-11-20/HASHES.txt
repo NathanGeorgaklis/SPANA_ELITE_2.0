@@ -1,0 +1,21 @@
+# sha256, files on Nathan's Mac. Code: main 1a161ca (spana-label-windows/code_main: detect / track), branch
+# evaluation/dev-label-windows-v1 fecfce4 (code_win: select / build). DEV only; EVAL not touched.
+9229089a1b7ce8e41627a693780bf7e8def72a6748e7ccccdcb005c2b3b4883f  spana-label-windows/run_detect_track.sh
+7b48f427222d33ceccf0e19e65fabaad0fb28c0f810d187e8cb7122188df62a4  spana-label-windows/run_select.sh
+8dc4f78251c1d432174887ad3c2767be0fc745ff817014c5be31e2c783d18efe  spana-label-windows/windows.json (this folder: the same content, jq -c)
+151649f627ee4f39cad6c7f841904c2a81f5e0237ed962e36bb506a3cb1960e8  spana-label-windows/out/FRESH_01.det.json
+a9dc38893e2928e014a88436c6c89226c67ddd7031d480313d2fb593dd033fa7  spana-label-windows/out/FRESH_03.det.json
+e6b7b2592a541c11f34a47ec0c366c1141625d61b0ccb3525e0e404c661786b7  spana-label-windows/out/FRESH_04.det.json
+794626f73d136a4c410142784bfdd05144a37e5835a435a98ec6fb7cf42d8e6d  spana-label-windows/out/FRESH_06.det.json
+763194a978823db66ab65b949bc99cb75318501f70d6b61fa2f3b3021fd61c46  spana-label-windows/out/FRESH_01.trk.json
+0fd5cecfc564c015f7976b543b67ce2b408688835c7b9726f410bdf32b0921c5  spana-label-windows/out/FRESH_03.trk.json
+444853b0a533cab9d2b444de3eee5476d2dc34bd7d041aefee9c1828661de4ee  spana-label-windows/out/FRESH_04.trk.json
+3ec04a1d4816966310b0a859098bb8726f5e48af511aebd39791db7f3ced8191  spana-label-windows/out/FRESH_06.trk.json
+37d237f36a5a4001ec124768f825102356dc48d34bc162d2557d3303501ab3bb  spana-label-windows/out/G2_w.trk.json (from SPANA_ELITE_2.0/runs/window_f05/G2_w.det.json)
+c23c3fd5f7de25ebdf15b981e1b20e8086aa0b13bc0dc6a6be6c4e2f75181587  Downloads/SPANA_dev_label_packs_2026-11-20/DEV_G2_NWS_SPIRIT_SD_RAIDERS_f187440_187830/manifest.json
+f4b8930e661e30b16218d63d9826f99a970ace1defde13c1089d8748bae20955  Downloads/SPANA_dev_label_packs_2026-11-20/FRESH_01_G1_2697_setpiece_delivery_keeper_claim_throw_f0_390/manifest.json
+a715b8a1152cdb1c27f90d34f2b722400b3f6fd5bff56dd51a7574fead195b62  Downloads/SPANA_dev_label_packs_2026-11-20/FRESH_03_G2_2712_midfield_possession_switch_of_play_f0_780/manifest.json
+83609b0969bfe616edf25cac9a40ebce7ef55da539892b143f4328c47b20d70b  Downloads/SPANA_dev_label_packs_2026-11-20/FRESH_02_G1_3000_midfield_buildup_passing_dense_f246_307/manifest.json
+cd64fbd636eff37ac351cf68c74f73cc006a0394755b14af0f90b3ca30ae66cd  Downloads/SPANA_dev_label_packs_2026-11-20/FRESH_07_G3_1205_midfield_passing_switch_dense_f36_97/manifest.json
+# Source videos (sha256 in the manifests): G2 match 527f2bdc..., FRESH_01 109416c5..., FRESH_03 d02b2ce6...,
+# FRESH_02 8ba8551f... (= its v1 labels), FRESH_07 e7db339b... (= its v1 labels).

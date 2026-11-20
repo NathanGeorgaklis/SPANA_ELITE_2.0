@@ -1,8 +1,7 @@
 # STATUS
 
-As of 2026-11-20 (branch identity/reid-merge-v1 = main 74eb1a0 + the re-ID resolution work; PR #13; main also has
-the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh08_followup_2026-11-20).
-- Full suite: `python -m pytest tests -q` → 539 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+As of 2026-11-20 (branch evaluation/dev-label-windows-v1 on main 1a161ca = PR #13 merged: re-ID resolution, off).
+- Full suite: `python -m pytest tests -q` → 547 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
@@ -182,6 +181,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
            0.517 chosen. v3 fails the floored clean check (286 / 0, bound 1.04 %; `records/reid_margin_floor_dev_2026-11-19`);
            its confident errors are crops of the wrong person (`records/reid_v3_wrong_answers_2026-11-19`). About 3
            more labelled DEV clips would let clean tests prove 0.5 %.
+         - DEV labelling packs for that (`records/dev_label_windows_2026-11-20`, `tools/dev/label_windows.py`): 3 windows
+           chosen from track logs by generic events (occlusion, exit, entry, flagged, similar-looking rival) - G2 match
+           104:08-104:21, FRESH_01, FRESH_03 - plus dense every-frame windows behind the 2 wrong frames (FRESH_02 player 9
+           frame 276, FRESH_07 player 14 frame 66). Packs on Nathan's Mac, waiting for labels.
          - Merge DEV check (`records/reid_merge_dev_2026-11-19`): with `reid_resolve` off, tracks / follower / reviewer
            equal main exactly; on (+ `resume_after_reid`): tracks identical, 2 FRESH_02 episodes cleared by re-ID,
            unaided 0.532 -> 0.537, reviewer 0.777 -> 0.782, wrong frames 1 / 2 (same players), silent swaps 0,
