@@ -11,7 +11,7 @@ The signatures are evidence for an OFFER only. Similarity never makes an answer 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -327,6 +327,10 @@ class ReentryContext:
     box_at: Dict[Tuple[str, int], List[float]]    # (track, frame index) -> box, for birth / last-observation rows
     width: Optional[float]                        # frame size; unknown -> position cannot judge
     height: Optional[float]
+    # Memo of exit_side / position_fit / appearance results. Each is a pure function of this document, the signatures
+    # and the config values in its key, but the follower re-runs the re-entry rule on every frame of a loss
+    # (records/reentry_cache_2026-11-20: 97 % of tools/target_score time). Exact: the same value, never approximated.
+    memo: Dict[tuple, object] = field(default_factory=dict, compare=False, repr=False)
 
     @staticmethod
     def of(tracks_doc: dict) -> "ReentryContext":
@@ -370,6 +374,16 @@ def position_fit(ctx: "ReentryContext", lost: str, lost_idx: int, cand: str, tc_
     Not informative (fit 0): gap > reentry_position_max_gap_s; a CUT / UNKNOWN camera frame in the gap; the lost track
     ended LEFT_FRAME by then; the carried point left the picture; the carried point moved more than
     reentry_position_max_pan_frac of the frame width (the camera panned); no frame size."""
+    key = ("position_fit", lost, lost_idx, cand, tc_target.reentry_position_weight,
+           tc_target.reentry_position_base_h, tc_target.reentry_position_speed_h_per_s,
+           tc_target.reentry_position_time_scale_s, tc_target.reentry_position_max_gap_s,
+           tc_target.reentry_position_max_pan_frac)
+    if key not in ctx.memo:
+        ctx.memo[key] = _position_fit(ctx, lost, lost_idx, cand, tc_target)
+    return ctx.memo[key]
+
+
+def _position_fit(ctx: "ReentryContext", lost: str, lost_idx: int, cand: str, tc_target) -> Tuple[float, str]:
     from ..geometry import affine_scale, apply_affine_points
     frames = ctx.frames
     b = ctx.birth[cand]
@@ -415,6 +429,13 @@ def exit_side(ctx: "ReentryContext", lost: str, lost_idx: int, cand: str) -> dic
                               (left / right) or height (top / bottom), 0 = touching it.
     records/reentry_exit_side_2026-11-19: every one of 17 labelled DEV off-screen returns was born <= 0.011 from the
     exit side; the three wrong DEV offers were 0.62-0.98 away."""
+    key = ("exit_side", lost, lost_idx, cand)
+    if key not in ctx.memo:
+        ctx.memo[key] = _exit_side(ctx, lost, lost_idx, cand)
+    return dict(ctx.memo[key])
+
+
+def _exit_side(ctx: "ReentryContext", lost: str, lost_idx: int, cand: str) -> dict:
     from ..geometry import apply_affine_points
     frames = ctx.frames
     b = ctx.birth[cand]
@@ -443,6 +464,16 @@ def exit_side(ctx: "ReentryContext", lost: str, lost_idx: int, cand: str) -> dic
     cb = ctx.box_at[(cand, b)]
     dist = {"left": cb[0] / W, "right": (W - cb[2]) / W, "top": cb[1] / H, "bottom": (H - cb[3]) / H}[side]
     return {"status": "off_screen", "side": side, "edge_dist": round(float(max(dist, 0.0)), 6)}
+
+
+def _appearance(ctx: ReentryContext, sig: Dict[str, dict], lost: str, cand: str, tc_target,
+                upto: Optional[int]) -> Optional[float]:
+    """appearance(), memoised in ctx (the frame cutoff only matters while waiting for crops)."""
+    key = ("appearance", id(sig), lost, cand, tc_target.reentry_signature, tc_target.reentry_wait_samples,
+           upto if tc_target.reentry_signature == "set" and tc_target.reentry_wait_samples > 0 else None)
+    if key not in ctx.memo:
+        ctx.memo[key] = (appearance(sig, lost, cand, tc_target, upto), sig)    # sig kept: its id stays unique
+    return ctx.memo[key][0]
 
 
 def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, sig: Dict[str, dict], tc_target,
@@ -491,7 +522,7 @@ def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, 
             and frames[b]["t"] - t0 <= tc_target.reentry_max_gap_s + 1e-9 and gate_ok(lost_idx, lost_box, c)]
     cands, excluded = {}, []
     for c in pool:
-        a = appearance(sig, lost, c, tc_target, upto)
+        a = _appearance(ctx, sig, lost, c, tc_target, upto)
         if a is None:
             continue
         if tc_target.reentry_exit_edge:
@@ -537,7 +568,7 @@ def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, 
             if lo is None or frames[b]["t"] - frames[lo]["t"] > tc_target.reentry_max_gap_s + 1e-9 or \
                     any(t["track_id"] == other and t["source"] == "OBSERVED" for t in frames[b]["tracks"]):
                 continue                          # not lost when the candidate appeared
-            v = appearance(sig, other, best, tc_target, upto)
+            v = _appearance(ctx, sig, other, best, tc_target, upto)
             if v is None:
                 continue
             obox = ctx.box_at.get((other, lo)) or next(t["box"] for t in frames[lo]["tracks"]
