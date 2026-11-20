@@ -50,7 +50,9 @@ Scope:
 | reviewer: abstain / LOST frames | 428 / 274 | 428 / 274 | 411 / 274 |
 | re-entry and relink offers right / wrong / undecided (unaided; reviewer) | 25 / 0 / 3; 35 / 0 / 5 | same | same |
 
-- **Wrong frames:** the same players in all variants (unaided: player 13 on one frame; reviewer: players 8 and 13).
+- **Wrong frames:** the same players in all variants (unaided: FRESH_07 player 14 on one frame; reviewer: + FRESH_02
+  player 9). Corrected 2026-11-20: first written as "8 and 13", which were list positions in the report, not player
+  ids.
 - **Main is reproduced:** these equal main's own latest record (`records/reentry_position_score_2026-11-18`:
   0.532 / 1; reviewer 0.777 / 2 / 5.71).
 
@@ -92,7 +94,9 @@ Scope:
 | reviewer: correct time / wrong frames / actions per min | 0.783 / 2 / 5.50 | same | **0.787** / 2 / 5.50 |
 | offers right / wrong / undecided (unaided; reviewer) | 26 / 0 / 2; 34 / 2 / 3 | same | same |
 
-- **Wrong frames:** the same players in all variants (unaided FRESH_07 player 13; reviewer + FRESH_02 player 8).
+- **Wrong frames:** the same players in all variants (unaided FRESH_07 player 14 at frame 66, shown on player 15;
+  reviewer + FRESH_02 player 9 at frame 276, shown on player 10). Corrected 2026-11-20 (first written as list
+  positions 13 / 8).
 - **Wrong offers:** main's 2 wrong offers with the reviewer are main's own; re-ID resolution changes no offer.
 - **Conclusion unchanged:**
   - Off = main exactly.

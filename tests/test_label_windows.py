@@ -81,15 +81,16 @@ class Dense(unittest.TestCase):
             lab.mkdir()
             (lab / "FROZEN.json").write_text(json.dumps({"split": "DEV", "clip": {"fps": 30.0, "sha256": "ab" * 32}}))
             (lab / "labels_frozen.json").write_text(json.dumps({"frames_labelled": [0, 6, 300], "frame_step": 6}))
-            rep = {"clips": [{"clip": "CLIP", "labels": {"dir": str(lab)}, "per_player": {
-                "8": {"events": [{"kind": "wrong", "frame": 276, "attributed_to": "10", "track_id": "T45"},
-                                 {"kind": "correct", "frame": 270}]},
-                "9": {"events": [{"kind": "wrong", "frame": 10, "attributed_to": "8"}]}}}]}
+            rep = {"clips": [{"clip": "CLIP", "labels": {"dir": str(lab)}, "per_player": [      # target_score layout
+                {"player": "9", "events": [{"kind": "wrong", "frame": 276, "attributed_to": "10", "track_id": "T45"},
+                                           {"kind": "correct", "frame": 270}]},
+                {"player": "4", "events": [{"kind": "wrong", "frame": 10, "attributed_to": "8"}]}]}]}
             w = LW.dense_windows(rep, td, CFG)
             self.assertEqual([(x["wrong_frame"], x["start_frame"], x["end_frame"]) for x in w],
                              [(276, 246, 306), (10, 0, 41)])            # +-1 s at 30 fps, clipped at frame 0
             self.assertEqual(w[0]["step_frames"], 1)
             self.assertEqual(w[0]["name"], "CLIP_dense_f246_306")
+            self.assertEqual([x["player"] for x in w], ["9", "4"])                     # the player ids, not positions
         finally:
             shutil.rmtree(td, ignore_errors=True)
 

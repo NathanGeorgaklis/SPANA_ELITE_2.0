@@ -132,7 +132,8 @@ def dense_windows(report: dict, clips_dir: Path, cfg: dict) -> List[dict]:
         half = int(round(cfg["dense"]["half_s"] * fps))
         rec = json.loads((Path(c["labels"]["dir"]) / "labels_frozen.json").read_text())
         last = max(rec["frames_labelled"]) + int(rec["frame_step"])
-        for player, pp in sorted(c["per_player"].items(), key=lambda kv: str(kv[0])):
+        for pp in c["per_player"]:                       # target_score: a list of per-player entries
+            player = pp["player"]
             for e in pp.get("events", []):
                 if e.get("kind") != "wrong":
                     continue
