@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.3.0"
+schema_version: "2.4.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -113,6 +113,15 @@ performance:
   identity_box_iou_min: 0.90       # same box = IoU at least this
   lost_unknown_rate_max_increase: 0.01
   identity_probe_every_s: 10.0     # simulated taps: every confirmed, CERTAIN, observed track at frames 10 s apart
+  # Detector speed options (tools/detector_options.py, DEV only; Nathan 2026-11-20). Intermediate target 3x real time.
+  # An option that changes detections (input size, model) is viable when, on the labelled DEV clips against the
+  # current detector: no more wrong follower frames, no more silent identity transfers, ID switches up at most 5 %,
+  # detection recall (and DEV bench persons found) down at most 1 point. Ball recall is reported, not gated.
+  option_realtime_factor_max: 3.0
+  option_wrong_frames_max_increase: 0
+  option_unflagged_transfers_max_increase: 0
+  option_id_switches_max_rise: 0.05
+  option_recall_max_drop: 0.01
 
 output:
   box_decimals: 1

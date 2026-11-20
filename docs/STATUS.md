@@ -1,7 +1,7 @@
 # STATUS
 
-As of 2026-11-20 (branch performance/detect-preprocess-overlap, on performance/identity-tracking-speed edc53c2; main 11b5a80).
-- Full suite: `python -m pytest tests -q` → 398 passed, 7 skipped (Nathan's Mac, Python 3.13, torch 2.15 on MPS).
+As of 2026-11-20 (branch performance/detector-speed-options, on performance/detect-preprocess-overlap e4e94d1; main 11b5a80).
+- Full suite: `python -m pytest tests -q` → 408 passed, 7 skipped (Nathan's Mac, Python 3.13, torch 2.15 on MPS).
 - Re-ID labelling tests (`tests/test_reid_cluster.py`): 20 passed on Nathan's Mac, incl. both review-page tests (Playwright on system Chrome).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
@@ -107,7 +107,11 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
     - fp32 + torch.compile, now the default. Identity is unchanged on 218 probes and on 4 labelled clips.
     - Bit-identical per-plane preprocessing, 26.9 → 5.7 ms (`records/identity_speed_2026-11-20`).
   - The target is 1x real time (`performance.realtime_factor_target`), a 33 ms/frame budget. It is out of reach while the RF-DETR medium network at 1280 takes ~325 ms/frame (95 % of the time).
-  - A decision on resolution, model size, cadence or hardware is open for Nathan.
+  - Speed options (`records/detector_options_2026-11-20`, `tools/detector_options.py`):
+    - Network time follows input pixels. RF-DETR small / nano are no faster than medium at the same input size.
+    - Nothing reaches 3x real time within the identity limits.
+    - medium at 960: 5.0x (7.5 h per match), passed all limits on 4 labelled clips. But 1088 failed (silent transfers), so the evidence is weak.
+  - Open for Nathan: input 960 (more DEV evidence first), hardware, or detector cadence.
   - Per-stage profiling: `profiling.enabled` (off by default).
 - README pipeline table is stale (artifact versions listed as 1.1.0 / 2.0.0; code is detections 1.3.0, tracks 2.1.0).
 
@@ -158,8 +162,8 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
    ByteTrack shows how much continuity is possible on the same detections (F07 11 / F08 22 fragments) and what it
    costs without flags (silent swaps): measure ByteTrack-style continuity inside our tracker, keeping the flags
    (`records/bytetrack_compare_2026-11-18`).
-5. Speed (`records/identity_speed_2026-11-18`, `records/identity_speed_2026-11-20`):
-   - Preprocessing is done.
-   - A thread overlap with the GPU does not work: the compiled graph needs the GIL for every kernel launch.
-   - What remains apart from the network is camera_motion (5.1 ms) and tracking (3.8 ms).
-   - 1x needs Nathan's decision on resolution, model, cadence or hardware.
+5. Speed (`records/identity_speed_2026-11-18`, `records/identity_speed_2026-11-20`, `records/detector_options_2026-11-20`):
+   - Preprocessing is done. Thread overlap with the GPU does not work (the GIL).
+   - Medium at input 960 is the best measured option: 5.0x, passed the limits on 4 clips. The evidence is weak.
+     If Nathan wants it, the next step is more DEV evidence: other DEV windows or a DEV half, and the identity probes on the 2.5-min window.
+   - Under 3x on the M3, only lower inputs (≤ 768) qualify, and they lose persons / the ball. Otherwise: detector cadence (a rules decision) or other hardware.

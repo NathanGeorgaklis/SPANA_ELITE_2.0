@@ -1,0 +1,1560 @@
+{
+ "argv": [
+  "/Users/nathangeorgaklis/SPANA_ELITE_2.0/tools/detector_options.py",
+  "speed",
+  "--video",
+  "/Users/nathangeorgaklis/Downloads/Sydney_United_APIA.mp4",
+  "--start",
+  "45000",
+  "--frames",
+  "120",
+  "--warmup",
+  "5",
+  "--profile-summary",
+  "runs/identity_speed/pre_v2.profile_summary.json",
+  "--variant",
+  "medium:1280x1280",
+  "--variant",
+  "medium:1088x1088",
+  "--variant",
+  "medium:960x960",
+  "--variant",
+  "medium:768x768",
+  "--variant",
+  "medium:1280x960",
+  "--variant",
+  "medium:1280x736",
+  "--variant",
+  "medium:1088x640",
+  "--variant",
+  "medium:960x544",
+  "--variant",
+  "small:1280x736",
+  "--variant",
+  "small:960x960",
+  "--variant",
+  "small:960x544",
+  "--variant",
+  "small:512x512",
+  "--variant",
+  "nano:1280x736",
+  "--variant",
+  "nano:960x544",
+  "--variant",
+  "nano:384x384",
+  "--coco-weights",
+  "small=/Users/nathangeorgaklis/.roboflow/models/rf-detr-small.pth",
+  "--coco-weights",
+  "nano=/Users/nathangeorgaklis/.roboflow/models/rf-detr-nano.pth",
+  "--out",
+  "runs/detector_options/stage1.json"
+ ],
+ "config_sha256": "52f11fb4cedbbc77e05fdd683b52b711b2975bec96265de589a2a6c6ec6035c2",
+ "dev_bench_labels_sha256": "088678a9017169a7c9c288b607eb736de096a149553e43b628a9f3c24beefa1d",
+ "device": "mps",
+ "fps": 30.0,
+ "frames": 120,
+ "inference": {
+  "mps_compile": true,
+  "mps_precision": "fp32"
+ },
+ "limits": {
+  "identity_agreement_min": 0.99,
+  "identity_box_iou_min": 0.9,
+  "identity_probe_every_s": 10.0,
+  "lost_unknown_rate_max_increase": 0.01,
+  "option_id_switches_max_rise": 0.05,
+  "option_realtime_factor_max": 3.0,
+  "option_recall_max_drop": 0.01,
+  "option_unflagged_transfers_max_increase": 0,
+  "option_wrong_frames_max_increase": 0,
+  "projection_footage_s": 5400.0,
+  "realtime_factor_target": 1.0
+ },
+ "other_stages_ms_per_frame": 11.99,
+ "profile_summary": "runs/identity_speed/pre_v2.profile_summary.json",
+ "schema": "spana.detector_options",
+ "schema_version": "1.0.0",
+ "stage2_candidates": [],
+ "start": 45000,
+ "variants": [
+  {
+   "built_at_resolution": 1280,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "dev_bench": {
+    "ball_recall_by_short_side_px": {
+     "iou_0.25": {
+      "0-8": {
+       "found": 3,
+       "labels": 5,
+       "recall": 0.6
+      },
+      "12-16": {
+       "found": 7,
+       "labels": 8,
+       "recall": 0.875
+      },
+      "16-24": {
+       "found": 4,
+       "labels": 6,
+       "recall": 0.6667
+      },
+      "8-12": {
+       "found": 14,
+       "labels": 21,
+       "recall": 0.6667
+      },
+      ">=24": {
+       "found": 3,
+       "labels": 4,
+       "recall": 0.75
+      }
+     },
+     "iou_0.5": {
+      "0-8": {
+       "found": 3,
+       "labels": 5,
+       "recall": 0.6
+      },
+      "12-16": {
+       "found": 7,
+       "labels": 8,
+       "recall": 0.875
+      },
+      "16-24": {
+       "found": 4,
+       "labels": 6,
+       "recall": 0.6667
+      },
+      "8-12": {
+       "found": 14,
+       "labels": 21,
+       "recall": 0.6667
+      },
+      ">=24": {
+       "found": 3,
+       "labels": 4,
+       "recall": 0.75
+      }
+     }
+    },
+    "map50": 0.6945,
+    "map50_95": 0.5258,
+    "per_class": {
+     "ball": {
+      "ap50": 0.8449,
+      "ap50_95": 0.5345,
+      "fn": 13,
+      "fp": 2,
+      "labels": 44,
+      "precision": 0.9394,
+      "predictions": 33,
+      "recall": 0.7045,
+      "tp": 31
+     },
+     "goalkeeper": {
+      "ap50": 0.5009,
+      "ap50_95": 0.3981,
+      "fn": 21,
+      "fp": 6,
+      "labels": 34,
+      "precision": 0.6842,
+      "predictions": 19,
+      "recall": 0.3824,
+      "tp": 13
+     },
+     "player": {
+      "ap50": 0.8967,
+      "ap50_95": 0.7347,
+      "fn": 125,
+      "fp": 24,
+      "labels": 708,
+      "precision": 0.9605,
+      "predictions": 607,
+      "recall": 0.8234,
+      "tp": 583
+     },
+     "referee": {
+      "ap50": 0.5353,
+      "ap50_95": 0.436,
+      "fn": 4,
+      "fp": 110,
+      "labels": 73,
+      "precision": 0.3855,
+      "predictions": 179,
+      "recall": 0.9452,
+      "tp": 69
+     }
+    },
+    "persons_found": {
+     "found": 772,
+     "labels": 815,
+     "share": 0.9472
+    }
+   },
+   "meets_option_target": false,
+   "model_ms_per_frame": 319.3,
+   "preprocess_ms_per_frame": 5.52,
+   "projected_hours": 15.16,
+   "projected_pipeline_ms_per_frame": 336.81,
+   "projected_realtime_factor": 10.104,
+   "timed_frames": 115,
+   "variant": "medium:1280x1280",
+   "weights": "spana",
+   "weights_sha256": "8e030d40db7e86ee801263578525901d32221e8c1f583e4d695fa2bd52f74987"
+  },
+  {
+   "bench_persons_found_drop": 0.0012,
+   "built_at_resolution": 1088,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "dev_bench": {
+    "ball_recall_by_short_side_px": {
+     "iou_0.25": {
+      "0-8": {
+       "found": 3,
+       "labels": 5,
+       "recall": 0.6
+      },
+      "12-16": {
+       "found": 7,
+       "labels": 8,
+       "recall": 0.875
+      },
+      "16-24": {
+       "found": 5,
+       "labels": 6,
+       "recall": 0.8333
+      },
+      "8-12": {
+       "found": 13,
+       "labels": 21,
+       "recall": 0.619
+      },
+      ">=24": {
+       "found": 3,
+       "labels": 4,
+       "recall": 0.75
+      }
+     },
+     "iou_0.5": {
+      "0-8": {
+       "found": 3,
+       "labels": 5,
+       "recall": 0.6
+      },
+      "12-16": {
+       "found": 7,
+       "labels": 8,
+       "recall": 0.875
+      },
+      "16-24": {
+       "found": 5,
+       "labels": 6,
+       "recall": 0.8333
+      },
+      "8-12": {
+       "found": 13,
+       "labels": 21,
+       "recall": 0.619
+      },
+      ">=24": {
+       "found": 3,
+       "labels": 4,
+       "recall": 0.75
+      }
+     }
+    },
+    "map50": 0.6952,
+    "map50_95": 0.5244,
+    "per_class": {
+     "ball": {
+      "ap50": 0.8284,
+      "ap50_95": 0.5204,
+      "fn": 13,
+      "fp": 2,
+      "labels": 44,
+      "precision": 0.9394,
+      "predictions": 33,
+      "recall": 0.7045,
+      "tp": 31
+     },
+     "goalkeeper": {
+      "ap50": 0.5278,
+      "ap50_95": 0.4265,
+      "fn": 21,
+      "fp": 5,
+      "labels": 34,
+      "precision": 0.7222,
+      "predictions": 18,
+      "recall": 0.3824,
+      "tp": 13
+     },
+     "player": {
+      "ap50": 0.8965,
+      "ap50_95": 0.7303,
+      "fn": 124,
+      "fp": 23,
+      "labels": 708,
+      "precision": 0.9621,
+      "predictions": 607,
+      "recall": 0.8249,
+      "tp": 584
+     },
+     "referee": {
+      "ap50": 0.5279,
+      "ap50_95": 0.4205,
+      "fn": 4,
+      "fp": 106,
+      "labels": 73,
+      "precision": 0.3943,
+      "predictions": 175,
+      "recall": 0.9452,
+      "tp": 69
+     }
+    },
+    "persons_found": {
+     "found": 771,
+     "labels": 815,
+     "share": 0.946
+    }
+   },
+   "meets_option_target": false,
+   "model_ms_per_frame": 209.4,
+   "preprocess_ms_per_frame": 4.25,
+   "projected_hours": 10.15,
+   "projected_pipeline_ms_per_frame": 225.64,
+   "projected_realtime_factor": 6.769,
+   "timed_frames": 115,
+   "variant": "medium:1088x1088",
+   "vs_reference": {
+    "ball": {
+     "0-24": {
+      "ref_boxes": 93,
+      "reproduced": 92,
+      "share": 0.9892
+     },
+     "all": {
+      "ref_boxes": 93,
+      "reproduced": 92,
+      "share": 0.9892
+     }
+    },
+    "persons": {
+     "24-48": {
+      "ref_boxes": 31,
+      "reproduced": 29,
+      "share": 0.9355
+     },
+     "48-96": {
+      "ref_boxes": 1708,
+      "reproduced": 1698,
+      "share": 0.9941
+     },
+     "96-inf": {
+      "ref_boxes": 15,
+      "reproduced": 14,
+      "share": 0.9333
+     },
+     "all": {
+      "ref_boxes": 1754,
+      "reproduced": 1741,
+      "share": 0.9926
+     }
+    }
+   },
+   "weights": "spana",
+   "weights_sha256": "8e030d40db7e86ee801263578525901d32221e8c1f583e4d695fa2bd52f74987"
+  },
+  {
+   "bench_persons_found_drop": 0.0036,
+   "built_at_resolution": 960,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "dev_bench": {
+    "ball_recall_by_short_side_px": {
+     "iou_0.25": {
+      "0-8": {
+       "found": 1,
+       "labels": 5,
+       "recall": 0.2
+      },
+      "12-16": {
+       "found": 7,
+       "labels": 8,
+       "recall": 0.875
+      },
+      "16-24": {
+       "found": 5,
+       "labels": 6,
+       "recall": 0.8333
+      },
+      "8-12": {
+       "found": 13,
+       "labels": 21,
+       "recall": 0.619
+      },
+      ">=24": {
+       "found": 4,
+       "labels": 4,
+       "recall": 1.0
+      }
+     },
+     "iou_0.5": {
+      "0-8": {
+       "found": 1,
+       "labels": 5,
+       "recall": 0.2
+      },
+      "12-16": {
+       "found": 7,
+       "labels": 8,
+       "recall": 0.875
+      },
+      "16-24": {
+       "found": 5,
+       "labels": 6,
+       "recall": 0.8333
+      },
+      "8-12": {
+       "found": 13,
+       "labels": 21,
+       "recall": 0.619
+      },
+      ">=24": {
+       "found": 4,
+       "labels": 4,
+       "recall": 1.0
+      }
+     }
+    },
+    "map50": 0.7084,
+    "map50_95": 0.5262,
+    "per_class": {
+     "ball": {
+      "ap50": 0.8448,
+      "ap50_95": 0.5155,
+      "fn": 14,
+      "fp": 3,
+      "labels": 44,
+      "precision": 0.9091,
+      "predictions": 33,
+      "recall": 0.6818,
+      "tp": 30
+     },
+     "goalkeeper": {
+      "ap50": 0.553,
+      "ap50_95": 0.4515,
+      "fn": 20,
+      "fp": 6,
+      "labels": 34,
+      "precision": 0.7,
+      "predictions": 20,
+      "recall": 0.4118,
+      "tp": 14
+     },
+     "player": {
+      "ap50": 0.9022,
+      "ap50_95": 0.7283,
+      "fn": 128,
+      "fp": 29,
+      "labels": 708,
+      "precision": 0.9524,
+      "predictions": 609,
+      "recall": 0.8192,
+      "tp": 580
+     },
+     "referee": {
+      "ap50": 0.5337,
+      "ap50_95": 0.4096,
+      "fn": 5,
+      "fp": 109,
+      "labels": 73,
+      "precision": 0.3842,
+      "predictions": 177,
+      "recall": 0.9315,
+      "tp": 68
+     }
+    },
+    "persons_found": {
+     "found": 769,
+     "labels": 815,
+     "share": 0.9436
+    }
+   },
+   "meets_option_target": false,
+   "model_ms_per_frame": 151.34,
+   "preprocess_ms_per_frame": 3.34,
+   "projected_hours": 7.5,
+   "projected_pipeline_ms_per_frame": 166.67,
+   "projected_realtime_factor": 5.0,
+   "timed_frames": 115,
+   "variant": "medium:960x960",
+   "vs_reference": {
+    "ball": {
+     "0-24": {
+      "ref_boxes": 93,
+      "reproduced": 89,
+      "share": 0.957
+     },
+     "all": {
+      "ref_boxes": 93,
+      "reproduced": 89,
+      "share": 0.957
+     }
+    },
+    "persons": {
+     "24-48": {
+      "ref_boxes": 31,
+      "reproduced": 29,
+      "share": 0.9355
+     },
+     "48-96": {
+      "ref_boxes": 1708,
+      "reproduced": 1695,
+      "share": 0.9924
+     },
+     "96-inf": {
+      "ref_boxes": 15,
+      "reproduced": 15,
+      "share": 1.0
+     },
+     "all": {
+      "ref_boxes": 1754,
+      "reproduced": 1739,
+      "share": 0.9914
+     }
+    }
+   },
+   "weights": "spana",
+   "weights_sha256": "8e030d40db7e86ee801263578525901d32221e8c1f583e4d695fa2bd52f74987"
+  },
+  {
+   "bench_persons_found_drop": 0.0122,
+   "built_at_resolution": 768,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "dev_bench": {
+    "ball_recall_by_short_side_px": {
+     "iou_0.25": {
+      "0-8": {
+       "found": 1,
+       "labels": 5,
+       "recall": 0.2
+      },
+      "12-16": {
+       "found": 7,
+       "labels": 8,
+       "recall": 0.875
+      },
+      "16-24": {
+       "found": 4,
+       "labels": 6,
+       "recall": 0.6667
+      },
+      "8-12": {
+       "found": 11,
+       "labels": 21,
+       "recall": 0.5238
+      },
+      ">=24": {
+       "found": 4,
+       "labels": 4,
+       "recall": 1.0
+      }
+     },
+     "iou_0.5": {
+      "0-8": {
+       "found": 1,
+       "labels": 5,
+       "recall": 0.2
+      },
+      "12-16": {
+       "found": 7,
+       "labels": 8,
+       "recall": 0.875
+      },
+      "16-24": {
+       "found": 4,
+       "labels": 6,
+       "recall": 0.6667
+      },
+      "8-12": {
+       "found": 11,
+       "labels": 21,
+       "recall": 0.5238
+      },
+      ">=24": {
+       "found": 4,
+       "labels": 4,
+       "recall": 1.0
+      }
+     }
+    },
+    "map50": 0.693,
+    "map50_95": 0.5001,
+    "per_class": {
+     "ball": {
+      "ap50": 0.8529,
+      "ap50_95": 0.4779,
+      "fn": 17,
+      "fp": 2,
+      "labels": 44,
+      "precision": 0.931,
+      "predictions": 29,
+      "recall": 0.6136,
+      "tp": 27
+     },
+     "goalkeeper": {
+      "ap50": 0.5219,
+      "ap50_95": 0.4143,
+      "fn": 19,
+      "fp": 9,
+      "labels": 34,
+      "precision": 0.625,
+      "predictions": 24,
+      "recall": 0.4412,
+      "tp": 15
+     },
+     "player": {
+      "ap50": 0.898,
+      "ap50_95": 0.7144,
+      "fn": 134,
+      "fp": 29,
+      "labels": 708,
+      "precision": 0.9519,
+      "predictions": 603,
+      "recall": 0.8107,
+      "tp": 574
+     },
+     "referee": {
+      "ap50": 0.499,
+      "ap50_95": 0.3938,
+      "fn": 8,
+      "fp": 109,
+      "labels": 73,
+      "precision": 0.3736,
+      "predictions": 174,
+      "recall": 0.8904,
+      "tp": 65
+     }
+    },
+    "persons_found": {
+     "found": 762,
+     "labels": 815,
+     "share": 0.935
+    }
+   },
+   "meets_option_target": false,
+   "model_ms_per_frame": 87.55,
+   "preprocess_ms_per_frame": 2.47,
+   "projected_hours": 4.59,
+   "projected_pipeline_ms_per_frame": 102.02,
+   "projected_realtime_factor": 3.06,
+   "timed_frames": 115,
+   "variant": "medium:768x768",
+   "vs_reference": {
+    "ball": {
+     "0-24": {
+      "ref_boxes": 93,
+      "reproduced": 85,
+      "share": 0.914
+     },
+     "all": {
+      "ref_boxes": 93,
+      "reproduced": 85,
+      "share": 0.914
+     }
+    },
+    "persons": {
+     "24-48": {
+      "ref_boxes": 31,
+      "reproduced": 27,
+      "share": 0.871
+     },
+     "48-96": {
+      "ref_boxes": 1708,
+      "reproduced": 1692,
+      "share": 0.9906
+     },
+     "96-inf": {
+      "ref_boxes": 15,
+      "reproduced": 15,
+      "share": 1.0
+     },
+     "all": {
+      "ref_boxes": 1754,
+      "reproduced": 1734,
+      "share": 0.9886
+     }
+    }
+   },
+   "weights": "spana",
+   "weights_sha256": "8e030d40db7e86ee801263578525901d32221e8c1f583e4d695fa2bd52f74987"
+  },
+  {
+   "bench_persons_found_drop": -0.0037,
+   "built_at_resolution": 1280,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "dev_bench": {
+    "ball_recall_by_short_side_px": {
+     "iou_0.25": {
+      "0-8": {
+       "found": 2,
+       "labels": 5,
+       "recall": 0.4
+      },
+      "12-16": {
+       "found": 7,
+       "labels": 8,
+       "recall": 0.875
+      },
+      "16-24": {
+       "found": 4,
+       "labels": 6,
+       "recall": 0.6667
+      },
+      "8-12": {
+       "found": 13,
+       "labels": 21,
+       "recall": 0.619
+      },
+      ">=24": {
+       "found": 3,
+       "labels": 4,
+       "recall": 0.75
+      }
+     },
+     "iou_0.5": {
+      "0-8": {
+       "found": 2,
+       "labels": 5,
+       "recall": 0.4
+      },
+      "12-16": {
+       "found": 7,
+       "labels": 8,
+       "recall": 0.875
+      },
+      "16-24": {
+       "found": 4,
+       "labels": 6,
+       "recall": 0.6667
+      },
+      "8-12": {
+       "found": 13,
+       "labels": 21,
+       "recall": 0.619
+      },
+      ">=24": {
+       "found": 3,
+       "labels": 4,
+       "recall": 0.75
+      }
+     }
+    },
+    "map50": 0.6942,
+    "map50_95": 0.5121,
+    "per_class": {
+     "ball": {
+      "ap50": 0.8622,
+      "ap50_95": 0.5166,
+      "fn": 15,
+      "fp": 3,
+      "labels": 44,
+      "precision": 0.9062,
+      "predictions": 32,
+      "recall": 0.6591,
+      "tp": 29
+     },
+     "goalkeeper": {
+      "ap50": 0.5171,
+      "ap50_95": 0.4101,
+      "fn": 21,
+      "fp": 4,
+      "labels": 34,
+      "precision": 0.7647,
+      "predictions": 17,
+      "recall": 0.3824,
+      "tp": 13
+     },
+     "player": {
+      "ap50": 0.8987,
+      "ap50_95": 0.7181,
+      "fn": 120,
+      "fp": 27,
+      "labels": 708,
+      "precision": 0.9561,
+      "predictions": 615,
+      "recall": 0.8305,
+      "tp": 588
+     },
+     "referee": {
+      "ap50": 0.4988,
+      "ap50_95": 0.4036,
+      "fn": 5,
+      "fp": 118,
+      "labels": 73,
+      "precision": 0.3656,
+      "predictions": 186,
+      "recall": 0.9315,
+      "tp": 68
+     }
+    },
+    "persons_found": {
+     "found": 775,
+     "labels": 815,
+     "share": 0.9509
+    }
+   },
+   "meets_option_target": false,
+   "model_ms_per_frame": 221.64,
+   "preprocess_ms_per_frame": 4.4,
+   "projected_hours": 10.71,
+   "projected_pipeline_ms_per_frame": 238.03,
+   "projected_realtime_factor": 7.141,
+   "timed_frames": 115,
+   "variant": "medium:1280x960",
+   "vs_reference": {
+    "ball": {
+     "0-24": {
+      "ref_boxes": 93,
+      "reproduced": 89,
+      "share": 0.957
+     },
+     "all": {
+      "ref_boxes": 93,
+      "reproduced": 89,
+      "share": 0.957
+     }
+    },
+    "persons": {
+     "24-48": {
+      "ref_boxes": 31,
+      "reproduced": 31,
+      "share": 1.0
+     },
+     "48-96": {
+      "ref_boxes": 1708,
+      "reproduced": 1705,
+      "share": 0.9982
+     },
+     "96-inf": {
+      "ref_boxes": 15,
+      "reproduced": 15,
+      "share": 1.0
+     },
+     "all": {
+      "ref_boxes": 1754,
+      "reproduced": 1751,
+      "share": 0.9983
+     }
+    }
+   },
+   "weights": "spana",
+   "weights_sha256": "8e030d40db7e86ee801263578525901d32221e8c1f583e4d695fa2bd52f74987"
+  },
+  {
+   "bench_persons_found_drop": 0.0233,
+   "built_at_resolution": 1280,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "dev_bench": {
+    "ball_recall_by_short_side_px": {
+     "iou_0.25": {
+      "0-8": {
+       "found": 2,
+       "labels": 5,
+       "recall": 0.4
+      },
+      "12-16": {
+       "found": 6,
+       "labels": 8,
+       "recall": 0.75
+      },
+      "16-24": {
+       "found": 4,
+       "labels": 6,
+       "recall": 0.6667
+      },
+      "8-12": {
+       "found": 11,
+       "labels": 21,
+       "recall": 0.5238
+      },
+      ">=24": {
+       "found": 3,
+       "labels": 4,
+       "recall": 0.75
+      }
+     },
+     "iou_0.5": {
+      "0-8": {
+       "found": 2,
+       "labels": 5,
+       "recall": 0.4
+      },
+      "12-16": {
+       "found": 6,
+       "labels": 8,
+       "recall": 0.75
+      },
+      "16-24": {
+       "found": 4,
+       "labels": 6,
+       "recall": 0.6667
+      },
+      "8-12": {
+       "found": 11,
+       "labels": 21,
+       "recall": 0.5238
+      },
+      ">=24": {
+       "found": 3,
+       "labels": 4,
+       "recall": 0.75
+      }
+     }
+    },
+    "map50": 0.7075,
+    "map50_95": 0.4966,
+    "per_class": {
+     "ball": {
+      "ap50": 0.8206,
+      "ap50_95": 0.4418,
+      "fn": 18,
+      "fp": 3,
+      "labels": 44,
+      "precision": 0.8966,
+      "predictions": 29,
+      "recall": 0.5909,
+      "tp": 26
+     },
+     "goalkeeper": {
+      "ap50": 0.4972,
+      "ap50_95": 0.3855,
+      "fn": 22,
+      "fp": 6,
+      "labels": 34,
+      "precision": 0.6667,
+      "predictions": 18,
+      "recall": 0.3529,
+      "tp": 12
+     },
+     "player": {
+      "ap50": 0.9124,
+      "ap50_95": 0.6916,
+      "fn": 136,
+      "fp": 21,
+      "labels": 708,
+      "precision": 0.9646,
+      "predictions": 593,
+      "recall": 0.8079,
+      "tp": 572
+     },
+     "referee": {
+      "ap50": 0.6,
+      "ap50_95": 0.4676,
+      "fn": 6,
+      "fp": 108,
+      "labels": 73,
+      "precision": 0.3829,
+      "predictions": 175,
+      "recall": 0.9178,
+      "tp": 67
+     }
+    },
+    "persons_found": {
+     "found": 753,
+     "labels": 815,
+     "share": 0.9239
+    }
+   },
+   "meets_option_target": false,
+   "model_ms_per_frame": 155.9,
+   "preprocess_ms_per_frame": 3.78,
+   "projected_hours": 7.73,
+   "projected_pipeline_ms_per_frame": 171.67,
+   "projected_realtime_factor": 5.15,
+   "timed_frames": 115,
+   "variant": "medium:1280x736",
+   "vs_reference": {
+    "ball": {
+     "0-24": {
+      "ref_boxes": 93,
+      "reproduced": 84,
+      "share": 0.9032
+     },
+     "all": {
+      "ref_boxes": 93,
+      "reproduced": 84,
+      "share": 0.9032
+     }
+    },
+    "persons": {
+     "24-48": {
+      "ref_boxes": 31,
+      "reproduced": 31,
+      "share": 1.0
+     },
+     "48-96": {
+      "ref_boxes": 1708,
+      "reproduced": 1689,
+      "share": 0.9889
+     },
+     "96-inf": {
+      "ref_boxes": 15,
+      "reproduced": 15,
+      "share": 1.0
+     },
+     "all": {
+      "ref_boxes": 1754,
+      "reproduced": 1735,
+      "share": 0.9892
+     }
+    }
+   },
+   "weights": "spana",
+   "weights_sha256": "8e030d40db7e86ee801263578525901d32221e8c1f583e4d695fa2bd52f74987"
+  },
+  {
+   "bench_persons_found_drop": 0.0171,
+   "built_at_resolution": 1088,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "dev_bench": {
+    "ball_recall_by_short_side_px": {
+     "iou_0.25": {
+      "0-8": {
+       "found": 1,
+       "labels": 5,
+       "recall": 0.2
+      },
+      "12-16": {
+       "found": 7,
+       "labels": 8,
+       "recall": 0.875
+      },
+      "16-24": {
+       "found": 4,
+       "labels": 6,
+       "recall": 0.6667
+      },
+      "8-12": {
+       "found": 9,
+       "labels": 21,
+       "recall": 0.4286
+      },
+      ">=24": {
+       "found": 3,
+       "labels": 4,
+       "recall": 0.75
+      }
+     },
+     "iou_0.5": {
+      "0-8": {
+       "found": 1,
+       "labels": 5,
+       "recall": 0.2
+      },
+      "12-16": {
+       "found": 7,
+       "labels": 8,
+       "recall": 0.875
+      },
+      "16-24": {
+       "found": 4,
+       "labels": 6,
+       "recall": 0.6667
+      },
+      "8-12": {
+       "found": 9,
+       "labels": 21,
+       "recall": 0.4286
+      },
+      ">=24": {
+       "found": 3,
+       "labels": 4,
+       "recall": 0.75
+      }
+     }
+    },
+    "map50": 0.6909,
+    "map50_95": 0.4786,
+    "per_class": {
+     "ball": {
+      "ap50": 0.7808,
+      "ap50_95": 0.4188,
+      "fn": 20,
+      "fp": 5,
+      "labels": 44,
+      "precision": 0.8276,
+      "predictions": 29,
+      "recall": 0.5455,
+      "tp": 24
+     },
+     "goalkeeper": {
+      "ap50": 0.4755,
+      "ap50_95": 0.3709,
+      "fn": 21,
+      "fp": 5,
+      "labels": 34,
+      "precision": 0.7222,
+      "predictions": 18,
+      "recall": 0.3824,
+      "tp": 13
+     },
+     "player": {
+      "ap50": 0.9097,
+      "ap50_95": 0.6839,
+      "fn": 131,
+      "fp": 29,
+      "labels": 708,
+      "precision": 0.9521,
+      "predictions": 606,
+      "recall": 0.815,
+      "tp": 577
+     },
+     "referee": {
+      "ap50": 0.5975,
+      "ap50_95": 0.4406,
+      "fn": 6,
+      "fp": 102,
+      "labels": 73,
+      "precision": 0.3964,
+      "predictions": 169,
+      "recall": 0.9178,
+      "tp": 67
+     }
+    },
+    "persons_found": {
+     "found": 758,
+     "labels": 815,
+     "share": 0.9301
+    }
+   },
+   "meets_option_target": false,
+   "model_ms_per_frame": 107.49,
+   "preprocess_ms_per_frame": 2.73,
+   "projected_hours": 5.5,
+   "projected_pipeline_ms_per_frame": 122.21,
+   "projected_realtime_factor": 3.666,
+   "timed_frames": 115,
+   "variant": "medium:1088x640",
+   "vs_reference": {
+    "ball": {
+     "0-24": {
+      "ref_boxes": 93,
+      "reproduced": 87,
+      "share": 0.9355
+     },
+     "all": {
+      "ref_boxes": 93,
+      "reproduced": 87,
+      "share": 0.9355
+     }
+    },
+    "persons": {
+     "24-48": {
+      "ref_boxes": 31,
+      "reproduced": 30,
+      "share": 0.9677
+     },
+     "48-96": {
+      "ref_boxes": 1708,
+      "reproduced": 1688,
+      "share": 0.9883
+     },
+     "96-inf": {
+      "ref_boxes": 15,
+      "reproduced": 15,
+      "share": 1.0
+     },
+     "all": {
+      "ref_boxes": 1754,
+      "reproduced": 1733,
+      "share": 0.988
+     }
+    }
+   },
+   "weights": "spana",
+   "weights_sha256": "8e030d40db7e86ee801263578525901d32221e8c1f583e4d695fa2bd52f74987"
+  },
+  {
+   "bench_persons_found_drop": 0.038,
+   "built_at_resolution": 960,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "dev_bench": {
+    "ball_recall_by_short_side_px": {
+     "iou_0.25": {
+      "0-8": {
+       "found": 1,
+       "labels": 5,
+       "recall": 0.2
+      },
+      "12-16": {
+       "found": 7,
+       "labels": 8,
+       "recall": 0.875
+      },
+      "16-24": {
+       "found": 5,
+       "labels": 6,
+       "recall": 0.8333
+      },
+      "8-12": {
+       "found": 9,
+       "labels": 21,
+       "recall": 0.4286
+      },
+      ">=24": {
+       "found": 4,
+       "labels": 4,
+       "recall": 1.0
+      }
+     },
+     "iou_0.5": {
+      "0-8": {
+       "found": 1,
+       "labels": 5,
+       "recall": 0.2
+      },
+      "12-16": {
+       "found": 7,
+       "labels": 8,
+       "recall": 0.875
+      },
+      "16-24": {
+       "found": 5,
+       "labels": 6,
+       "recall": 0.8333
+      },
+      "8-12": {
+       "found": 9,
+       "labels": 21,
+       "recall": 0.4286
+      },
+      ">=24": {
+       "found": 4,
+       "labels": 4,
+       "recall": 1.0
+      }
+     }
+    },
+    "map50": 0.6794,
+    "map50_95": 0.4441,
+    "per_class": {
+     "ball": {
+      "ap50": 0.7507,
+      "ap50_95": 0.3501,
+      "fn": 18,
+      "fp": 2,
+      "labels": 44,
+      "precision": 0.9286,
+      "predictions": 28,
+      "recall": 0.5909,
+      "tp": 26
+     },
+     "goalkeeper": {
+      "ap50": 0.5283,
+      "ap50_95": 0.3939,
+      "fn": 21,
+      "fp": 3,
+      "labels": 34,
+      "precision": 0.8125,
+      "predictions": 16,
+      "recall": 0.3824,
+      "tp": 13
+     },
+     "player": {
+      "ap50": 0.9075,
+      "ap50_95": 0.652,
+      "fn": 141,
+      "fp": 27,
+      "labels": 708,
+      "precision": 0.9545,
+      "predictions": 594,
+      "recall": 0.8008,
+      "tp": 567
+     },
+     "referee": {
+      "ap50": 0.531,
+      "ap50_95": 0.3802,
+      "fn": 6,
+      "fp": 102,
+      "labels": 73,
+      "precision": 0.3964,
+      "predictions": 169,
+      "recall": 0.9178,
+      "tp": 67
+     }
+    },
+    "persons_found": {
+     "found": 741,
+     "labels": 815,
+     "share": 0.9092
+    }
+   },
+   "meets_option_target": true,
+   "model_ms_per_frame": 77.14,
+   "preprocess_ms_per_frame": 1.44,
+   "projected_hours": 4.08,
+   "projected_pipeline_ms_per_frame": 90.57,
+   "projected_realtime_factor": 2.717,
+   "timed_frames": 115,
+   "variant": "medium:960x544",
+   "vs_reference": {
+    "ball": {
+     "0-24": {
+      "ref_boxes": 93,
+      "reproduced": 77,
+      "share": 0.828
+     },
+     "all": {
+      "ref_boxes": 93,
+      "reproduced": 77,
+      "share": 0.828
+     }
+    },
+    "persons": {
+     "24-48": {
+      "ref_boxes": 31,
+      "reproduced": 29,
+      "share": 0.9355
+     },
+     "48-96": {
+      "ref_boxes": 1708,
+      "reproduced": 1690,
+      "share": 0.9895
+     },
+     "96-inf": {
+      "ref_boxes": 15,
+      "reproduced": 15,
+      "share": 1.0
+     },
+     "all": {
+      "ref_boxes": 1754,
+      "reproduced": 1734,
+      "share": 0.9886
+     }
+    }
+   },
+   "weights": "spana",
+   "weights_sha256": "8e030d40db7e86ee801263578525901d32221e8c1f583e4d695fa2bd52f74987"
+  },
+  {
+   "built_at_resolution": 1280,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "meets_option_target": false,
+   "model_ms_per_frame": 155.08,
+   "preprocess_ms_per_frame": 3.99,
+   "projected_hours": 7.7,
+   "projected_pipeline_ms_per_frame": 171.06,
+   "projected_realtime_factor": 5.132,
+   "timed_frames": 115,
+   "variant": "small:1280x736",
+   "weights": "coco (speed only)",
+   "weights_sha256": "d81979a9213a2109345158ce9232668df4c1ae52e9b8db3f2ec0a8cbad959b33"
+  },
+  {
+   "built_at_resolution": 960,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "meets_option_target": false,
+   "model_ms_per_frame": 149.68,
+   "preprocess_ms_per_frame": 2.59,
+   "projected_hours": 7.39,
+   "projected_pipeline_ms_per_frame": 164.27,
+   "projected_realtime_factor": 4.928,
+   "timed_frames": 115,
+   "variant": "small:960x960",
+   "weights": "coco (speed only)",
+   "weights_sha256": "d81979a9213a2109345158ce9232668df4c1ae52e9b8db3f2ec0a8cbad959b33"
+  },
+  {
+   "built_at_resolution": 960,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "meets_option_target": true,
+   "model_ms_per_frame": 76.24,
+   "preprocess_ms_per_frame": 2.21,
+   "projected_hours": 4.07,
+   "projected_pipeline_ms_per_frame": 90.44,
+   "projected_realtime_factor": 2.713,
+   "timed_frames": 115,
+   "variant": "small:960x544",
+   "weights": "coco (speed only)",
+   "weights_sha256": "d81979a9213a2109345158ce9232668df4c1ae52e9b8db3f2ec0a8cbad959b33"
+  },
+  {
+   "built_at_resolution": 512,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "meets_option_target": true,
+   "model_ms_per_frame": 37.19,
+   "preprocess_ms_per_frame": 3.4,
+   "projected_hours": 2.37,
+   "projected_pipeline_ms_per_frame": 52.57,
+   "projected_realtime_factor": 1.577,
+   "timed_frames": 115,
+   "variant": "small:512x512",
+   "weights": "coco (speed only)",
+   "weights_sha256": "d81979a9213a2109345158ce9232668df4c1ae52e9b8db3f2ec0a8cbad959b33"
+  },
+  {
+   "built_at_resolution": 1280,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "meets_option_target": false,
+   "model_ms_per_frame": 154.16,
+   "preprocess_ms_per_frame": 2.89,
+   "projected_hours": 7.61,
+   "projected_pipeline_ms_per_frame": 169.04,
+   "projected_realtime_factor": 5.071,
+   "timed_frames": 115,
+   "variant": "nano:1280x736",
+   "weights": "coco (speed only)",
+   "weights_sha256": "d8d6b9ee57d4d0ed2b1f305163624712a0532cb7bce0c747317984fc5457440d"
+  },
+  {
+   "built_at_resolution": 960,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "meets_option_target": true,
+   "model_ms_per_frame": 75.42,
+   "preprocess_ms_per_frame": 1.44,
+   "projected_hours": 4.0,
+   "projected_pipeline_ms_per_frame": 88.85,
+   "projected_realtime_factor": 2.665,
+   "timed_frames": 115,
+   "variant": "nano:960x544",
+   "weights": "coco (speed only)",
+   "weights_sha256": "d8d6b9ee57d4d0ed2b1f305163624712a0532cb7bce0c747317984fc5457440d"
+  },
+  {
+   "built_at_resolution": 384,
+   "describe": {
+    "batch_frames": 1,
+    "compiled": true,
+    "device": "mps",
+    "precision": "fp32",
+    "rfdetr": "1.12.1",
+    "runtime": "torch",
+    "torch": "2.15.0"
+   },
+   "meets_option_target": true,
+   "model_ms_per_frame": 21.23,
+   "preprocess_ms_per_frame": 2.24,
+   "projected_hours": 1.6,
+   "projected_pipeline_ms_per_frame": 35.46,
+   "projected_realtime_factor": 1.064,
+   "timed_frames": 115,
+   "variant": "nano:384x384",
+   "weights": "coco (speed only)",
+   "weights_sha256": "d8d6b9ee57d4d0ed2b1f305163624712a0532cb7bce0c747317984fc5457440d"
+  }
+ ],
+ "video_sha256": "c9f1dd9b3c252a5da4c0af533c586cfc3045e01db4eb7d0b1d7679a91d71f20b"
+}

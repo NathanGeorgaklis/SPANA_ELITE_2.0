@@ -18,7 +18,7 @@ import hashlib
 import json
 from dataclasses import dataclass, fields
 from pathlib import Path
-from typing import List, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import cv2
 import numpy as np
@@ -96,15 +96,17 @@ class LocalModelRecord:
         return f
 
 
-def preprocess(frame_bgr: np.ndarray, resolution: int) -> np.ndarray:
-    """(1, 3, R, R) float32 network input: RGB, resized, ((u8 / 255) - MEAN) / STD per channel.
+def preprocess(frame_bgr: np.ndarray, resolution: int, height: Optional[int] = None) -> np.ndarray:
+    """(1, 3, H, R) float32 network input: RGB, resized to R wide x H high (H = R unless `height` is given),
+    ((u8 / 255) - MEAN) / STD per channel.
 
     The same float32 operations per element as the plain formula `((x / 255) - MEAN) / STD` on an HWC array,
     done per channel plane in place: bit-identical output, without the length-3 broadcast inner loop and the
     full-size temporaries (records/identity_speed_2026-11-20: 23 -> 4.5 ms per 1280 frame)."""
+    h = resolution if height is None else height
     rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-    u = cv2.resize(rgb, (resolution, resolution), interpolation=cv2.INTER_LINEAR)
-    out = np.empty((1, 3, resolution, resolution), np.float32)
+    u = cv2.resize(rgb, (resolution, h), interpolation=cv2.INTER_LINEAR)
+    out = np.empty((1, 3, h, resolution), np.float32)
     for c in range(3):
         p = out[0, c]
         np.divide(u[:, :, c], np.float32(255.0), out=p, dtype=np.float32)

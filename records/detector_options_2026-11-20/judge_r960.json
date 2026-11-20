@@ -1,0 +1,193 @@
+{
+ "argv": [
+  "/Users/nathangeorgaklis/SPANA_ELITE_2.0/tools/detector_options.py",
+  "judge",
+  "--base-dir",
+  "runs/detector_options/labelled",
+  "--tag",
+  "r960",
+  "--out",
+  "runs/detector_options/judge_r960.json"
+ ],
+ "base": "base",
+ "candidate": "r960",
+ "checks": {
+  "detection_recall": {
+   "base": 0.9783,
+   "candidate": 0.9807,
+   "max_drop": 0.01,
+   "ok": true
+  },
+  "id_switches": {
+   "base": 121,
+   "candidate": 102,
+   "max_rise": 0.05,
+   "ok": true,
+   "rise": -0.157
+  },
+  "unflagged_transfers": {
+   "base": 0,
+   "candidate": 0,
+   "max_increase": 0,
+   "ok": true
+  },
+  "wrong_frames_reviewer": {
+   "base": 2,
+   "candidate": 1,
+   "max_increase": 0,
+   "ok": true
+  }
+ },
+ "info_base_vs_candidate": {
+  "fragments": [
+   120,
+   100
+  ],
+  "identity_transfers": [
+   6,
+   6
+  ],
+  "reviewer_correct_time": [
+   0.7785,
+   0.7568
+  ]
+ },
+ "limits": {
+  "identity_agreement_min": 0.99,
+  "identity_box_iou_min": 0.9,
+  "identity_probe_every_s": 10.0,
+  "lost_unknown_rate_max_increase": 0.01,
+  "option_id_switches_max_rise": 0.05,
+  "option_realtime_factor_max": 3.0,
+  "option_recall_max_drop": 0.01,
+  "option_unflagged_transfers_max_increase": 0,
+  "option_wrong_frames_max_increase": 0,
+  "projection_footage_s": 5400.0,
+  "realtime_factor_target": 1.0
+ },
+ "per_clip_base_vs_candidate": {
+  "F02": {
+   "detection_recall": [
+    0.9774,
+    0.9794
+   ],
+   "fragments_total": [
+    24,
+    19
+   ],
+   "id_switches": [
+    24,
+    21
+   ],
+   "identity_transfers": [
+    3,
+    4
+   ],
+   "missed_players": [
+    23,
+    21
+   ],
+   "track_coverage": [
+    0.9686,
+    0.9686
+   ],
+   "unflagged_transfers": [
+    0,
+    0
+   ]
+  },
+  "F05": {
+   "detection_recall": [
+    0.9978,
+    0.9978
+   ],
+   "fragments_total": [
+    7,
+    7
+   ],
+   "id_switches": [
+    7,
+    7
+   ],
+   "identity_transfers": [
+    0,
+    0
+   ],
+   "missed_players": [
+    1,
+    1
+   ],
+   "track_coverage": [
+    0.9978,
+    0.9933
+   ],
+   "unflagged_transfers": [
+    0,
+    0
+   ]
+  },
+  "F07": {
+   "detection_recall": [
+    0.9818,
+    0.9818
+   ],
+   "fragments_total": [
+    38,
+    27
+   ],
+   "id_switches": [
+    38,
+    27
+   ],
+   "identity_transfers": [
+    2,
+    2
+   ],
+   "missed_players": [
+    22,
+    22
+   ],
+   "track_coverage": [
+    0.962,
+    0.9678
+   ],
+   "unflagged_transfers": [
+    0,
+    0
+   ]
+  },
+  "F08": {
+   "detection_recall": [
+    0.963,
+    0.9707
+   ],
+   "fragments_total": [
+    51,
+    47
+   ],
+   "id_switches": [
+    52,
+    47
+   ],
+   "identity_transfers": [
+    1,
+    0
+   ],
+   "missed_players": [
+    29,
+    23
+   ],
+   "track_coverage": [
+    0.9324,
+    0.9464
+   ],
+   "unflagged_transfers": [
+    0,
+    0
+   ]
+  }
+ },
+ "schema": "spana.detector_option_judge",
+ "schema_version": "1.0.0",
+ "viable": true
+}

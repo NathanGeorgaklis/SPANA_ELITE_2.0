@@ -19,7 +19,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.3.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + inference, profiling, performance
+CONFIG_SCHEMA_VERSION = "2.4.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + inference, profiling, performance; 2.4.0: + performance option_* keys
 
 
 class ConfigError(ValueError):
@@ -221,6 +221,13 @@ class PerformanceConfig:
     identity_box_iou_min: float    # a TARGET / CANDIDATE box counts as the same answer at or above this IoU
     lost_unknown_rate_max_increase: float  # allowed rise of the LOST + ABSTAIN share of frames (absolute)
     identity_probe_every_s: float  # comparison probes: every track that can be tapped, at frames this far apart
+    # Detector speed options (tools/detector_options.py, DEV): the intermediate target and when an option that changes
+    # detections (resolution, model) is viable on the labelled DEV clips, against the current detector.
+    option_realtime_factor_max: float          # an option must project to at most this real-time factor
+    option_wrong_frames_max_increase: int      # follower wrong player-frames (with the simulated reviewer), absolute
+    option_unflagged_transfers_max_increase: int   # silent identity transfers, absolute, summed over clips
+    option_id_switches_max_rise: float         # ID switches summed over clips, relative rise
+    option_recall_max_drop: float              # detection recall (labelled clips, DEV bench persons), absolute
 
     def validate(self) -> None:
         _pos("performance.realtime_factor_target", self.realtime_factor_target)
@@ -229,6 +236,12 @@ class PerformanceConfig:
         _unit("performance.identity_box_iou_min", self.identity_box_iou_min)
         _unit("performance.lost_unknown_rate_max_increase", self.lost_unknown_rate_max_increase)
         _pos("performance.identity_probe_every_s", self.identity_probe_every_s)
+        _pos("performance.option_realtime_factor_max", self.option_realtime_factor_max)
+        _pos_int("performance.option_wrong_frames_max_increase", self.option_wrong_frames_max_increase, allow_zero=True)
+        _pos_int("performance.option_unflagged_transfers_max_increase", self.option_unflagged_transfers_max_increase,
+                 allow_zero=True)
+        _unit("performance.option_id_switches_max_rise", self.option_id_switches_max_rise)
+        _unit("performance.option_recall_max_drop", self.option_recall_max_drop)
 
 
 @dataclass(frozen=True)

@@ -1,0 +1,21 @@
+{
+  "name": "SPANA detector v1 (RF-DETR medium, football: ball / goalkeeper / player / referee) [DEV speed option: input 1088]",
+  "source": "roboflow:nathans-workspace-9brdc/spana-elite-2-rfdetr-medium-t1 (training 9b0b72177c37bc0cd3aa, dataset version 2); weights via the Roboflow model weights download",
+  "version": "spana-elite-2-rfdetr-medium-t1-dev-r1088",
+  "licence": "RF-DETR architecture Apache-2.0 (rfdetr 1.12.1); weights trained by SPANA on SPANA-licensed TRAIN matches",
+  "variant": "medium",
+  "num_classes": 4,
+  "resolution": 1088,
+  "weights_path": "../../../models/rfdetr_v1/weights.pt",
+  "weights_sha256": "8e030d40db7e86ee801263578525901d32221e8c1f583e4d695fa2bd52f74987",
+  "onnx_path": "../../../models/rfdetr_v1/rfdetr-medium-1280.onnx",
+  "onnx_sha256": "369b7611af20a1302e43db8b04e99021d0ce99a001c2eeaf9770534308588382",
+  "output_classes": [
+    "",
+    "ball",
+    "goalkeeper",
+    "player",
+    "referee"
+  ],
+  "validation": "DEV speed option only (tools/detector_options.py), derived from rfdetr_v1.json; the ONNX file is the 1280 export and is not used by the torch runtime. Not validated."
+}
