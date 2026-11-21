@@ -1,0 +1,56 @@
+{
+ "schema": "spana.reid_heldout_fold",
+ "schema_version": "1.0.0",
+ "match_id": "TRAIN_M002_EASTERN_SUBURBS",
+ "model": "/Users/nathangeorgaklis/spana-reid-v4/runs/fold_M002/spana_reid.onnx",
+ "model_sha256": "0e13cfbf39b4a84f871cf1272754b9e3f320bee3b3f03e66c6d24dcf2d4f21f0",
+ "crops_index_sha256": "4af8b1cd83aaa94749bc8f7208742a0c3454c983d3669180d3b910132e4d1e35",
+ "config_sha256": "3ea10aec5603d30ea7721104d12ee7740a6fece16a22acdcd69af6de1d65b3f1",
+ "settings": {
+  "min_gap_s": 1.0,
+  "max_pairs": 200000,
+  "clean_max_iou": 0.05,
+  "target_false_rate": 0.005,
+  "confidence": 0.95,
+  "margin_floor": "all_tests"
+ },
+ "crops": 5968,
+ "identities": 21,
+ "retrieval": {
+  "queries": 5968,
+  "rank1": 0.8886,
+  "mAP": 0.5567
+ },
+ "auc_same_vs_teammate": 0.7909,
+ "auc_same_vs_other_side": 0.9788,
+ "same_player": {
+  "n": 200000,
+  "p05": 0.352,
+  "p25": 0.528,
+  "p50": 0.641,
+  "p75": 0.74,
+  "p95": 0.843
+ },
+ "teammate": {
+  "n": 200000,
+  "p05": 0.159,
+  "p25": 0.331,
+  "p50": 0.451,
+  "p75": 0.565,
+  "p95": 0.702
+ },
+ "other_side": {
+  "n": 200000,
+  "p05": -0.109,
+  "p25": 0.047,
+  "p50": 0.163,
+  "p75": 0.275,
+  "p95": 0.423
+ },
+ "rival": {
+  "tests": 29563,
+  "clean_tests": 28521,
+  "accuracy": 0.9444,
+  "clean_accuracy": 0.9448
+ }
+}

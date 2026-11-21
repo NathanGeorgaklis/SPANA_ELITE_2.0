@@ -1,0 +1,4 @@
+fold_M001 {"epoch": 12, "arcface": 0.0352, "triplet": 0.0154, "teammate_triplet": 0.0147, "minutes": 16.69, "holdout_rival_acc": 0.9886, "holdout_rival_n": 4912}
+fold_M002 {"epoch": 12, "arcface": 0.1599, "triplet": 0.0499, "teammate_triplet": 0.0405, "minutes": 17.71, "holdout_rival_acc": 0.9747, "holdout_rival_n": 17465}
+fold_M003 {"epoch": 12, "arcface": 0.1957, "triplet": 0.0561, "teammate_triplet": 0.0483, "minutes": 22.09, "holdout_rival_acc": 0.9773, "holdout_rival_n": 18851}
+final {"epoch": 12, "arcface": 0.2285, "triplet": 0.0671, "teammate_triplet": 0.0618, "minutes": 17.65, "holdout_rival_acc": 0.9787, "holdout_rival_n": 20614}

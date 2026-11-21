@@ -1,8 +1,12 @@
 # STATUS
 
-As of 2026-11-20 (branch identity/reid-merge-v1 = main 74eb1a0 + the re-ID resolution work; PR #13; main also has
+As of 2026-11-21 (re-ID v4 on identity/reid-v4; earlier: As of 2026-11-20 branch identity/reid-merge-v1 = main 74eb1a0 + the re-ID resolution work; PR #13; main also has
 the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh08_followup_2026-11-20).
 - Full suite: `python -m pytest tests -q` → 539 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+- Re-ID v4 (2026-11-21, branch identity/reid-v4, Nathan's Mac): FAILS the 2026-11-19 floored DEV gate (held out 274 / 0,
+  bound 1.09 %), not used anywhere; default model v2 and `reid_resolve` off unchanged. Teammate-only loss did not
+  separate same-kit teammates (held-out M003: AUC 0.553 vs v2 0.566; DEV same-look AUC 0.689 vs 0.696)
+  (`records/reid_v4_2026-11-21`). Full suite 624 passed, 10 skipped.
 - Full suite on Nathan's Mac, branch tracking/tracker-bench-v1-gtalink (2026-11-21, project venv): 604 passed, 12 skipped; bench venv: harness + summary tests 15 passed.
 - Full suite on Nathan's Mac, branch tracking/tracker-bench-v1-botsort (2026-11-20): 546 passed, 6 skipped; the BoT-SORT bench tests run end to end only with `trackers` on PYTHONPATH (8 passed).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
@@ -259,6 +263,14 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
              0.407; clean same-look rival tests at 0.517: F07 0 / 52, F08 0 / 14). Next: re-ID on more
              permissioned TRAIN footage; and references for spawned tracks (39 spawn episodes are blocked by
              predecessors with no trustworthy reference, which re-ID quality alone will not fix).
+         - Re-ID v4 (2026-11-21, `records/reid_v4_2026-11-21`, branch identity/reid-v4, NOT used): v3 data (M001-M003)
+           + teammate-only triplet (`config/reid_train.yaml` 1.1.0), leave-one-TRAIN-match-out (`tools/reid_heldout.py`).
+           Per fold rank-1 / mAP / teammate AUC: M001 0.770 / 0.402 / 0.700, M002 0.889 / 0.557 / 0.791, M003
+           0.876 / 0.499 / 0.553 (v2 on M003 0.878 / 0.502 / 0.566). Borrowed margin 0.853 (fold calibration fails held
+           out: 392 / 21,005 wrong). DEV gate FAIL (floored clean held out 274 / 0, bound 1.09 %); DEV same-look AUC
+           0.689 (v2 0.696); clean same-look tests at 0.517 F07 5 / 52, F02 35 / 129, F08 0 / 14. Next for same-kit
+           separation is not another loss term on the same 3 matches: more permissioned TRAIN matches, or more
+           labelled DEV clips for the gate (about 3), Nathan to choose.
 2. Relink v1 accepted as built (Nathan, 2026-11-16). Watch confirmed tracks that named several predecessors.
 3. Tracking-error history on the 4 DEV clips (for reference):
    Remaining tracking errors (F07 38 / F08 51 fragments): fewer fragments mean fewer gaps and fewer review actions.
