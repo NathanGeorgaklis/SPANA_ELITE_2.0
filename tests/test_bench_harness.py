@@ -104,7 +104,10 @@ def trackers_ready() -> bool:
 def external_ready(bench, name) -> bool:
     c = next(c for c in bench.candidates if c.name == name)
     d = checkout_dir(bench.external_dir, c)
-    return (d / ".git").exists() and head(d) == c.implementation["commit"]
+    # the checkout alone is not enough: its bench-only imports (bench/requirements-bench.txt) live in the bench venv
+    deps = {"deep_eiou": ("lap", "cython_bbox"), "gta_link": ("sklearn", "torch", "seaborn")}.get(name, ())
+    return (d / ".git").exists() and head(d) == c.implementation["commit"] and \
+        all(importlib.util.find_spec(m) is not None for m in deps)
 
 
 class Fixture(unittest.TestCase):
@@ -220,6 +223,7 @@ class MetricTests(unittest.TestCase):
     def out(self, f, tid, box, certain=True):
         return TrackOutput(tid, 0, box, certain)
 
+    @unittest.skipUnless(importlib.util.find_spec("trackeval") is not None, "trackeval not installed (bench venv only)")
     def test_perfect_run(self):
         g = self.gt()
         run = [(f, [self.out(f, "a", g.players[f]["1"]), self.out(f, "b", g.players[f]["2"])]) for f in range(4)]
@@ -249,6 +253,7 @@ class MetricTests(unittest.TestCase):
 
 class EndToEnd(Fixture):
     """cache -> track -> score through bench.run on synthetic DEV-style frozen labels (every 3rd frame)."""
+    @unittest.skipUnless(importlib.util.find_spec("trackeval") is not None, "trackeval not installed (bench venv only)")
     def test_track_and_score_write_the_csv(self):
         lab = self.td / "labels"
         lab.mkdir()
