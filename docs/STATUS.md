@@ -3,6 +3,7 @@
 As of 2026-11-20 (branch identity/reid-merge-v1 = main 74eb1a0 + the re-ID resolution work; PR #13; main also has
 the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh08_followup_2026-11-20).
 - Full suite: `python -m pytest tests -q` → 539 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
+- Full suite on Nathan's Mac, branch tracking/tracker-bench-v1-gtalink (2026-11-21, project venv): 604 passed, 12 skipped; bench venv: harness + summary tests 15 passed.
 - Full suite on Nathan's Mac, branch tracking/tracker-bench-v1-botsort (2026-11-20): 546 passed, 6 skipped; the BoT-SORT bench tests run end to end only with `trackers` on PYTHONPATH (8 passed).
 - Target / re-ID / guard tests (53) also passed on Nathan's Mac.
 - Tracklet linking v1 merged to main (2026-11-20, Nathan's Mac): `tests/test_tracklet_linking.py` 19 passed; full suite
@@ -82,6 +83,16 @@ Main DEV failure: class confusion from kit colour (91 of 708 players boxed as re
 team in G2; goalkeepers boxed as referee in G1). Players are found but given the wrong class. Off-pitch false positives
 are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
 
+## Tracker bench v1, A-D harness (`bench/`, `config/tracking/`; run on DEV 2026-11-21, `records/tracker_bench_v1_harness_2026-11-21`)
+- Candidates on the same frozen DEV detections: REF (ours), A ByteTrack and B BoT-SORT + CMC (Roboflow `trackers`
+  2.7.0, Apache-2.0), C Deep-EIoU (no licence: EVAL-ONLY, benchmark use only), D GTA-Link offline linking on B and on
+  C (MIT code). C / D use SPANA re-ID v2 embeddings. Licences in DECISIONS 2026-11-20. Bench venv only
+  (`bench/requirements-bench.txt`); tests: `tests/test_bench_harness.py` (skip what needs bench packages elsewhere).
+- **Recommended by the pre-registered rule: ours (REF)**, the only candidate with 0 unflagged wrong-player frames
+  (73 tapped players). D on BoT-SORT: 254 (BoT-SORT alone 273; FRESH_07 / FRESH_08 unchanged), so GTA-Link does not close
+  the silent-swap gap. ByteTrack 109, Deep-EIoU 152 (best IDF1 0.812, no licence). Ours has the lowest continuity
+  (IDF1 0.674, coverage 0.626 vs 0.71-0.81). The BoT-SORT rejection is reproduced by this independent scorer (273 vs 272).
+
 ## Open failures
 - No failing tests. Skipped: YOLOX inference (weights not fetched), two Playwright labeller UI tests (no browser).
 - Detection -> tracking: wired and run 2026-11-16 (`PersonView`, `detect --backend roboflow`, detections 1.4.0).
@@ -137,8 +148,8 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   20 identity transfers, all silent (ByteTrack 14 silent, ours 7 all flagged). Wrong-player time unaided 0.03 % /
   6.3 % / 7.9 %, with the reviewer 0.06 % / 8.2 % / 9.2 %. Not adopted; the adoption task was dropped (Nathan) and an
   uncertainty layer on BoT-SORT is not triggered, since BoT-SORT widens the silent-transfer gap.
-  The broader A-D harness on `tracking/tracker-bench-v1` (another session, not run on DEV) is separate; its BoT-SORT
-  candidate uses the same defaults and can cross-check these numbers.
+  Cross-checked 2026-11-21 by the A-D harness (`records/tracker_bench_v1_harness_2026-11-21`): BoT-SORT 273 unflagged
+  wrong frames there vs 272 here; GTA-Link on BoT-SORT 254.
 - Tracking continuity, DEV (`records/continuity_attribution_2026-11-18`): of the 76 fragments ByteTrack bridged, 44
   are identity-gate refusals; 25 of those are the colour veto on a continuing track's own next box (IoU 0.46–0.99,
   similarity 0.36–0.70). The doubt link removes 12 fragments with 0 silent transfers, but only 3 of 24 doubts

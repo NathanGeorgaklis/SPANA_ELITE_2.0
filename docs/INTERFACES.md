@@ -69,6 +69,13 @@ What the tracking layer receives from any detector, the football detector includ
 - Side output: decision log `*.decisions.jsonl` (every association, refusal, spawn, end). `identity_uncertain` rows
   carry `rule`: CONTESTED_MATCH, CROSSING (+ `rival_inside, rival_observed, look_similarity`) or AMBIGUOUS_SPAWN
   (+ `rivals`); `identity_resolved` rivals may include `(predecessors)`: PREDECESSOR.
+- Side output: decision log `*.decisions.jsonl` (every association, refusal, spawn, end).
+- Tracker protocol (`spana/tracking/protocol.py`, 2026-11-20, used by the tracker bench only; `spana.cli track`
+  still drives `MultiPlayerTracker` directly): `Tracker.update(detections, FrameInput) -> List[TrackOutput]`.
+  `FrameInput{index, t, image (BGR or None), embeddings (N x D per detection or None)}`; `TrackOutput{track_id,
+  detection_index, box, identity_certain}` = a confirmed track observed on exactly one of the frame's detections.
+  `check_outputs` enforces unique ids / detections and the detection's box. Candidates: `bench/adapters/`
+  (`bench/README.md`); nothing under `spana/` imports `bench`.
 - CLI: `python -m spana.cli track --video --config --detections --out`.
 
 - Offline tracklet linking (`spana/tracking/linking.py`, on main 2026-11-20): in a
