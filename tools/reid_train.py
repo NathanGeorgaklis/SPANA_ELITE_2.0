@@ -6,8 +6,10 @@
 
 Model: DINOv2 ViT-S/14 (the patch embedding and the first `model.frozen_blocks` blocks frozen), CLS token
 concatenated with `model.parts` horizontal part pools of the patch tokens -> linear -> BN -> L2-normalised
-`model.dim`-d embedding. Loss: ArcFace over the training identities + batch-hard triplet. PK batches drawn within
-one match, with at least `train.same_team_share` of the identities from one side.
+`model.dim`-d embedding. Loss: ArcFace over the training identities + batch-hard triplet + (v4) a teammate-only
+batch-hard triplet weighted `train.teammate_triplet_weight` (negatives only of the same side of the same match, i.e.
+same-kit teammates; side from the TRAIN labels; absent or 0 = the v2 / v3 loss). PK batches drawn within one match,
+with at least `train.same_team_share` of the identities from one side.
 
 Input = the Embedder convention of tools/dev/appearance_cue_eval.py: RGB, /255, ImageNet mean / std, 224x112.
 Crops whose split is "holdout" never enter training; after each epoch a holdout rival check (query of A vs a
@@ -222,6 +224,22 @@ def batch_hard_triplet(z, y, margin: float):
     return torch.relu(pos - neg + margin).mean()
 
 
+def teammate_triplet(z, y, team, margin: float):
+    """Batch-hard triplet whose negatives are only same-team identities (same match and side = same kit): the
+    hardest positive against the nearest teammate. Anchors without a teammate in the batch are left out; a batch
+    with none gives 0 (keeps the graph)."""
+    import torch
+    d = torch.cdist(z, z)
+    same = y[:, None] == y[None, :]
+    mate = (team[:, None] == team[None, :]) & ~same
+    has = mate.any(dim=1)
+    if not bool(has.any()):
+        return z.sum() * 0.0
+    pos = (d * same.float()).max(dim=1).values
+    neg = torch.where(mate, d, torch.full_like(d, float("inf"))).min(dim=1).values
+    return torch.relu(pos[has] - neg[has] + margin).mean()
+
+
 def embed_all(model, rows, idx, device, bs: int = 64) -> np.ndarray:
     import torch
     model.eval()
@@ -254,6 +272,9 @@ def train(a) -> int:
     hold = [i for i, r in enumerate(rows) if r["split"] == "holdout"]
     ids = sorted({rows[i]["identity"] for i in tr})
     label = {k: n for n, k in enumerate(ids)}
+    teams = sorted({rows[i]["team"] for i in tr})
+    team_label = {k: n for n, k in enumerate(teams)}
+    w_mate = float(tc.get("teammate_triplet_weight", 0.0))       # absent = the v2 / v3 loss
     hold = [i for i in hold if rows[i]["identity"] in label]
     hold_rows = [rows[i] for i in hold]
     triplets = [(hold[q], hold[x], hold[y]) for q, x, y in rival_triplets(hold_rows, tc["check_min_gap_s"])]
@@ -298,7 +319,7 @@ def train(a) -> int:
     t0 = time.time()
     model.train()
     for ep in range(start, tc["epochs"]):
-        la = lt = 0.0
+        la = lt = lm = 0.0
         for _ in range(tc["batches_per_epoch"]):
             b = [tr[i] for i in sampler.batch()]
             x = torch.from_numpy(to_input([augment(cv2.imread(rows[i]["path"]), ac, rng) for i in b])).to(device)
@@ -306,6 +327,11 @@ def train(a) -> int:
             z = model(x)
             l_arc, l_tri = head(z, y), batch_hard_triplet(z, y, tc["triplet_margin"])
             loss = l_arc + tc["triplet_weight"] * l_tri
+            if w_mate > 0:
+                tm = torch.tensor([team_label[rows[i]["team"]] for i in b], device=device)
+                l_mate = teammate_triplet(z, y, tm, tc["triplet_margin"])
+                loss = loss + w_mate * l_mate
+                lm += float(l_mate.detach())
             opt.zero_grad()
             loss.backward()
             opt.step()
@@ -313,6 +339,7 @@ def train(a) -> int:
             la, lt = la + float(l_arc.detach()), lt + float(l_tri.detach())
         n = tc["batches_per_epoch"]
         rec = {"epoch": ep + 1, "arcface": round(la / n, 4), "triplet": round(lt / n, 4),
+               **({"teammate_triplet": round(lm / n, 4)} if w_mate > 0 else {}),
                "minutes": round((time.time() - t0) / 60, 2), **holdout_check(model, rows, hold, triplets, device)}
         tmp = out / "checkpoint.pt.tmp"
         torch.save({"model": model.state_dict(), "head": head.state_dict(), "opt": opt.state_dict(),
