@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.14.0"
+schema_version: "2.15.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -256,6 +256,22 @@ reid_resolve:
   # evidence against resets. The run must span tracking.identity_resolve_s AND hold this many clearing frames.
   # A prior (never resolve on a single frame), not fitted.
   min_evidence_frames: 3
+
+ball:
+  # Ball view (spana/detection/ball_view.py) and ball tracker (spana/ball/tracker.py). Lengths in ball diameters
+  # (_d) measured in the image, so gates follow the zoom. ALL VALUES ARE PRIORS: no DEV ball-track labels exist yet
+  # (2026-11-19); fit on DEV only once they do. Detector v1 ball recall on DEV is 0.705 at confidence 0.50.
+  score_min: 0.30          # below detector.confidence: a weak ball is still evidence; a lone blip never confirms
+  nms_iou: 0.30            # two ball boxes overlapping this much are one ball
+  min_diameter_px: 4.0
+  gate_base_d: 3.0
+  max_speed_d_per_s: 150.0  # ~33 m/s for a 0.22 m ball: a hard shot
+  confirm_min_obs: 3       # 3 observations within 0.30 s (~8 frames at 25 fps) before a hypothesis can be the ball
+  confirm_window_s: 0.30
+  predict_max_s: 0.40      # a hidden ball is extrapolated this long, then LOST
+  lost_max_s: 1.00
+  diameter_window: 5
+  velocity_smoothing: 0.5
 
 output:
   box_decimals: 1

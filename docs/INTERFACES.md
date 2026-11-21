@@ -103,6 +103,23 @@ What the tracking layer receives from any detector, the football detector includ
 | `TargetState` (target identity) | TARGET, CANDIDATE (2.0.0: proposed relink awaiting confirmation), LOST, ABSTAIN |
 | `TargetReason` (target identity) | TRACK_OBSERVED, NOT_CONFIRMED, IDENTITY_UNCERTAIN, AFTER_UNCERTAIN, TRACK_OCCLUDED, TRACK_LOST, TRACK_ENDED, RELINK_PREDECESSOR (2.0.0), USER_VOUCHED (2.2.0), REENTRY_REID (2.4.0) |
 
+## Ball tracking — `spana/ball/`, `spana/detection/ball_view.py` (defined 2026-11-19)
+- Ball view: `BallView(detector, detector.ball_classes, cfg.ball)` keeps ball-class boxes with score >=
+  `ball.score_min`, NMS at `ball.nms_iou`, no size floor. `detect --backend {roboflow,local} --ball-out PATH` writes
+  it from the same detector pass as the person view (one request per frame; the detector is asked down to
+  min(detection.score_low, ball.score_min)). It is a `spana.detections` 1.4.0 document with `model.ball_view` and
+  `detection_config` = the `ball` config section. `track` refuses it; `ball` refuses anything else.
+- `spana.ball` 1.0.0 (`spana.cli ball --video --config --detections --out`, + `*.decisions.jsonl`): top level
+  `schema, schema_version, provenance, video, detections_sha256, ball_config, frames, hypotheses`; frame
+  `{frame, t, camera_status, state, reason, hypothesis, center[x,y], diameter, confidence, contested, candidates,
+  confirmed_live}` (centre / diameter in source px; confidence uncalibrated); hypothesis
+  `{hypothesis, first_frame, last_observed_frame, observed_frames, confirmed_frame, end_frame, end_reason}`.
+- `BallState` / `BallReason`: OBSERVED (SINGLE_CONFIRMED, CONTINUING), PREDICTED (SHORT_GAP), LOST
+  (NO_CONFIRMED_BALL, GAP_TOO_LONG, PREDICTED_OUTSIDE, CAMERA_DISCONTINUITY), AMBIGUOUS (RIVAL_CANDIDATES,
+  SELECTED_HIDDEN_RIVAL). Position / hypothesis / confidence are set only for OBSERVED / PREDICTED, and only on a
+  confirmed hypothesis. `BallEndReason`: UNCONFIRMED_EXPIRED, LOST_EXPIRED, CAMERA_DISCONTINUITY.
+- Independent of player tracking: no track input; camera motion is estimated in the ball pass.
+
 ## Target identity — `spana/identity/` (defined 2026-11-16)
 Follow the user's chosen player through a clip, and say so when unsure.
 - In: a validated `spana.tracks` artifact + the user's selection.

@@ -1,0 +1,236 @@
+"""Ball layer v1: ball view, ball tracker (synthetic sequences with ground truth), spana.ball artifact, CLI.
+No network, no real footage: generic scenes only."""
+from __future__ import annotations
+
+import dataclasses
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+import numpy as np
+import yaml
+
+from spana import cli
+from spana.artifacts import ArtifactError, read_json, validate_ball, validate_detections
+from spana.ball.tracker import BallTracker
+from spana.config import ConfigError, config_from_dict, load_config
+from spana.detection.ball_view import BallView, BallViewError
+from spana.records import BallReason, BallState, CameraObservation, CameraStatus, Detection
+from tests.synth import CONFIG_PATH
+from tests.test_cli_e2e import write_video
+from tests.test_person_view import NAMES, FakeClient, FakeDetector
+from tests.test_roboflow_prep import raw as raw_dataset_cfg
+
+CFG = load_config(CONFIG_PATH)
+B = CFG.ball
+FPS = 25.0
+W, H = 1280, 720
+
+
+def ball(x, y, d=10.0, score=0.8):
+    return Detection((x - d / 2, y - d / 2, x + d / 2, y + d / 2), score, 3)
+
+
+def cam(status=CameraStatus.OK, dx=0.0, dy=0.0):
+    return CameraObservation(status, ((1.0, 0.0, dx), (0.0, 1.0, dy)), 100, 0.0)
+
+
+def run(frames, cfg=B, cams=None):
+    """frames: list of candidate lists, one per frame at FPS. Returns the BallFrame answers."""
+    trk = BallTracker(cfg, W, H)
+    out = []
+    for i, cands in enumerate(frames):
+        c = cams[i] if cams else (cam(CameraStatus.FIRST) if i == 0 else cam())
+        out.append(trk.update(i, i / FPS, cands, c))
+    return out, trk
+
+
+def states(out):
+    return [f.state for f in out]
+
+
+class BallTrackerTests(unittest.TestCase):
+    def test_moving_ball_confirms_then_observed(self):
+        out, _ = run([[ball(100 + 8 * i, 300)] for i in range(10)])
+        k = B.confirm_min_obs - 1
+        self.assertTrue(all(f.state is BallState.LOST for f in out[:k]))       # not yet confirmed: no answer
+        self.assertTrue(all(f.state is BallState.OBSERVED for f in out[k:]))
+        self.assertEqual(len({f.hypothesis for f in out[k:]}), 1)
+        self.assertAlmostEqual(out[-1].center[0], 100 + 8 * 9)
+
+    def test_lone_blip_never_answered(self):
+        out, trk = run([[ball(400, 400)]] + [[] for _ in range(20)])
+        self.assertTrue(all(f.state is BallState.LOST for f in out))
+        self.assertEqual(trk.summaries()[0].end_reason, "UNCONFIRMED_EXPIRED")
+
+    def test_short_gap_predicted_then_lost(self):
+        seen = [[ball(100 + 8 * i, 300)] for i in range(6)]
+        out, _ = run(seen + [[] for _ in range(20)])
+        n_pred = int(B.predict_max_s * FPS + 1e-9)
+        gap = out[6:]
+        self.assertTrue(all(f.state is BallState.PREDICTED for f in gap[:n_pred]))
+        self.assertAlmostEqual(gap[0].center[0], 100 + 8 * 6, delta=1.0)        # extrapolated with its velocity
+        self.assertTrue(gap[0].confidence > gap[n_pred - 1].confidence)
+        self.assertEqual(gap[n_pred].state, BallState.LOST)
+        self.assertEqual(gap[n_pred].reason, BallReason.GAP_TOO_LONG)
+
+    def test_hidden_ball_reacquired_on_same_hypothesis(self):
+        seen = [[ball(100 + 8 * i, 300)] for i in range(6)]
+        back = [[ball(100 + 8 * i, 300)] for i in range(10, 14)]
+        out, _ = run(seen + [[] for _ in range(4)] + back)
+        self.assertEqual(out[-1].state, BallState.OBSERVED)
+        self.assertEqual(out[-1].hypothesis, out[5].hypothesis)
+
+    def test_kick_changes_velocity_within_speed_bound(self):
+        a = [[ball(300 + 4 * i, 300)] for i in range(6)]                       # slow dribble
+        b = [[ball(320 + 40 * j, 300 - 10 * j)] for j in range(1, 8)]          # struck: 10x faster, new direction
+        out, _ = run(a + b)
+        self.assertTrue(all(f.state is BallState.OBSERVED for f in out[B.confirm_min_obs - 1:]))
+        self.assertEqual(len({f.hypothesis for f in out[B.confirm_min_obs - 1:]}), 1)
+
+    def test_camera_pan_compensated(self):
+        # The ball is still on the pitch while the camera pans 20 px / frame: it moves in the image only by the pan.
+        frames = [[ball(600 - 20 * i, 300)] for i in range(12)]
+        cams = [cam(CameraStatus.FIRST)] + [cam(dx=-20.0) for _ in range(11)]
+        frames[8] = []                                                          # hidden one frame mid-pan
+        out, _ = run(frames, cams=cams)
+        self.assertEqual(out[8].state, BallState.PREDICTED)
+        self.assertAlmostEqual(out[8].center[0], 600 - 20 * 8, delta=1.0)
+        self.assertEqual(out[-1].hypothesis, out[5].hypothesis)
+
+    def test_camera_cut_drops_everything(self):
+        frames = [[ball(100 + 8 * i, 300)] for i in range(12)]
+        cams = [cam(CameraStatus.FIRST)] + [cam() for _ in range(5)] + [cam(CameraStatus.CUT)] + \
+            [cam() for _ in range(5)]
+        out, trk = run(frames, cams=cams)
+        self.assertEqual(out[6].state, BallState.LOST)
+        self.assertEqual(out[6].reason, BallReason.CAMERA_DISCONTINUITY)
+        self.assertNotEqual(out[-1].hypothesis, out[5].hypothesis)               # re-confirmed from scratch
+        self.assertEqual(trk.summaries()[0].end_reason, "CAMERA_DISCONTINUITY")
+
+    def test_static_false_positive_does_not_steal_the_ball(self):
+        # A confirmed static blob (pitch spot) next to the moving ball: the ball, once selected, keeps the answer;
+        # it is marked contested while both are observed.
+        frames = [[ball(100 + 8 * i, 300)] for i in range(4)] + \
+            [[ball(100 + 8 * i, 300), ball(900, 500, score=0.9)] for i in range(4, 12)]
+        out, _ = run(frames)
+        sel = out[3].hypothesis
+        self.assertTrue(all(f.hypothesis == sel and f.state is BallState.OBSERVED for f in out[3:]))
+        self.assertTrue(out[-1].contested)
+
+    def test_two_balls_from_the_start_ambiguous(self):
+        frames = [[ball(100 + 8 * i, 300), ball(900 - 8 * i, 500)] for i in range(10)]
+        out, _ = run(frames)
+        self.assertTrue(all(f.state in (BallState.LOST, BallState.AMBIGUOUS) for f in out))
+        self.assertEqual(out[-1].reason, BallReason.RIVAL_CANDIDATES)
+
+    def test_no_silent_switch_while_selected_hidden(self):
+        # The ball disappears; another confirmed candidate is seen while the ball is still within predict_max_s.
+        a = [[ball(100 + 8 * i, 300)] for i in range(6)]
+        other = [[ball(1000, 600)] for _ in range(6)]
+        out, _ = run(a + other)
+        k = B.confirm_min_obs - 1
+        hidden = out[6 + k:6 + int(B.predict_max_s * FPS)]
+        self.assertTrue(hidden and all(f.state is BallState.AMBIGUOUS for f in hidden))
+        self.assertTrue(all(f.reason is BallReason.SELECTED_HIDDEN_RIVAL for f in hidden))
+
+    def test_prediction_leaving_picture_is_lost(self):
+        a = [[ball(W - 60 + 20 * i, 300)] for i in range(3)]                    # heading out at the right edge
+        out, _ = run(a + [[] for _ in range(5)])
+        self.assertIn(BallReason.PREDICTED_OUTSIDE, [f.reason for f in out])
+
+    def test_deterministic(self):
+        rng = np.random.default_rng(3)
+        frames = [[ball(*rng.uniform(50, 700, 2)) for _ in range(rng.integers(0, 4))] for _ in range(40)]
+        a, _ = run(frames)
+        b, _ = run(frames)
+        self.assertEqual([dataclasses.astuple(f) for f in a], [dataclasses.astuple(f) for f in b])
+
+
+class BallConfigTests(unittest.TestCase):
+    def test_predict_must_not_exceed_lost(self):
+        with open(CONFIG_PATH) as fh:
+            raw = yaml.safe_load(fh)
+        raw["ball"]["predict_max_s"] = raw["ball"]["lost_max_s"] + 0.1
+        with self.assertRaisesRegex(ConfigError, "predict_max_s"):
+            config_from_dict(raw)
+
+
+class BallViewTests(unittest.TestCase):
+    frame = np.zeros((180, 320, 3), np.uint8)
+
+    def test_keeps_ball_class_only_and_merges(self):
+        dets = [Detection((100.0, 50.0, 120.0, 100.0), 0.9, 0),       # player
+                Detection((200.0, 90.0, 206.0, 96.0), 0.95, 3),       # ball
+                Detection((201.0, 90.0, 207.0, 96.0), 0.60, 3),       # same ball again
+                Detection((40.0, 40.0, 44.0, 44.0), 0.10, 3)]         # below ball.score_min
+        out = BallView(FakeDetector(dets), ("ball",), B).detect(self.frame)
+        self.assertEqual([(d.class_id, d.score) for d in out], [(3, 0.95)])
+
+    def test_refusals(self):
+        with self.assertRaisesRegex(BallViewError, "score_min"):
+            BallView(FakeDetector([], confidence=0.9), ("ball",), B)
+        with self.assertRaisesRegex(BallViewError, "not all in"):
+            BallView(FakeDetector([]), ("puck",), B)
+
+
+class BallCli(unittest.TestCase):
+    def setUp(self):
+        self.td = Path(tempfile.mkdtemp())
+        self.video = self.td / "clip.avi"
+        write_video(self.video, 8, 25.0)
+        d = raw_dataset_cfg()
+        d["licensed_matches"] = [{"match_id": "M_DEV", "split": "dev", "permission": "test",
+                                  "third_party_processing_confirmed": True}]
+        d["preflight"]["split_matches"] = ["train:M_X", "valid:M_Y"]
+        self.dcfg = self.td / "roboflow.yaml"
+        self.dcfg.write_text(yaml.safe_dump(d))
+        FakeClient.calls = []
+
+    def detect(self, *extra):
+        with mock.patch("spana.detection.roboflow_backend.HttpInferenceClient", FakeClient), \
+                mock.patch("spana.secrets.load_secret", return_value="k"):
+            return cli.main(["detect", "--backend", "roboflow", "--video", str(self.video), "--config",
+                             str(CONFIG_PATH), "--dataset-config", str(self.dcfg), "--match-id", "M_DEV",
+                             "--out", str(self.td / "d.json"), *extra])
+
+    def test_detect_ball_out_then_ball(self):
+        bd, bo = self.td / "bd.json", self.td / "ball.json"
+        self.assertEqual(self.detect("--ball-out", str(bd)), 0)
+        self.assertEqual(len(FakeClient.calls), 8)                              # one request per frame, shared
+        ddoc, bdoc = read_json(self.td / "d.json"), read_json(bd)
+        validate_detections(bdoc)
+        self.assertEqual(bdoc["model"]["ball_view"], {"ball_classes": ["ball"]})
+        self.assertTrue(all([r[5] for r in f["detections"]] == [NAMES.index("ball")] for f in bdoc["frames"]))
+        self.assertTrue(all(NAMES.index("ball") not in [r[5] for r in f["detections"]] for f in ddoc["frames"]))
+        self.assertEqual(cli.main(["ball", "--video", str(self.video), "--config", str(CONFIG_PATH),
+                                   "--detections", str(bd), "--out", str(bo)]), 0)
+        doc = read_json(bo)
+        validate_ball(doc, bdoc)
+        self.assertEqual(doc["frames"][-1]["state"], "OBSERVED")              # a still ball, confirmed
+        self.assertTrue(bo.with_suffix(".decisions.jsonl").is_file())
+        with self.assertRaisesRegex(ArtifactError, "ball-view"):               # player tracking refuses it
+            cli.main(["track", "--video", str(self.video), "--config", str(CONFIG_PATH),
+                      "--detections", str(bd), "--out", str(self.td / "t.json")])
+        with self.assertRaisesRegex(ArtifactError, "not a ball-view"):         # ball refuses person detections
+            cli.main(["ball", "--video", str(self.video), "--config", str(CONFIG_PATH),
+                      "--detections", str(self.td / "d.json"), "--out", str(self.td / "b2.json")])
+
+    def test_ball_artifact_validation(self):
+        bd, bo = self.td / "bd.json", self.td / "ball.json"
+        self.detect("--ball-out", str(bd))
+        cli.main(["ball", "--video", str(self.video), "--config", str(CONFIG_PATH), "--detections", str(bd),
+                  "--out", str(bo)])
+        doc = read_json(bo)
+        bad = {**doc, "frames": [dict(f) for f in doc["frames"]]}
+        bad["frames"][0] = {**bad["frames"][0], "state": "OBSERVED", "reason": "SINGLE_CONFIRMED"}
+        with self.assertRaises(ArtifactError):                                  # an answer with no position
+            validate_ball(bad)
+        bad["frames"][0] = {**doc["frames"][0], "reason": "SHORT_GAP"}
+        with self.assertRaises(ArtifactError):                                  # reason not allowed with LOST
+            validate_ball(bad)
+
+
+if __name__ == "__main__":
+    unittest.main()

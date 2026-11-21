@@ -21,7 +21,7 @@ import yaml
 
 from ..config import ConfigError, _pos, _pos_int, _unit, typed_from_dict
 
-DATASET_CONFIG_SCHEMA_VERSION = "1.7.0"
+DATASET_CONFIG_SCHEMA_VERSION = "1.8.0"   # 1.8.0: + detector.ball_classes
 SPLITS = ("train", "dev", "eval")
 UPLOADABLE_SPLITS = ("train", "dev")
 ROBOFLOW_SPLITS = ("train", "valid", "test")
@@ -457,10 +457,15 @@ class DetectorSection:
     iou: float                         # NMS overlap sent with each request
     timeout_s: float
     person_classes: Tuple[str, ...]    # classes passed to tracking as persons (spana.detection.person_view)
+    ball_classes: Tuple[str, ...]      # classes passed to the ball tracker as candidates (spana.detection.ball_view)
 
     def validate(self) -> None:
         if not self.person_classes or len(set(self.person_classes)) != len(self.person_classes):
             raise ConfigError("detector.person_classes must be a non-empty list of distinct class names")
+        if not self.ball_classes or len(set(self.ball_classes)) != len(self.ball_classes):
+            raise ConfigError("detector.ball_classes must be a non-empty list of distinct class names")
+        if set(self.ball_classes) & set(self.person_classes):
+            raise ConfigError("detector.ball_classes and person_classes must not overlap")
         u = urlparse(self.api_url)
         if u.scheme not in ("http", "https") or not u.hostname:
             raise ConfigError("detector.api_url must be an http(s) URL")
@@ -630,6 +635,9 @@ class DatasetConfig:
         unknown = [c for c in self.detector.person_classes if c not in self.classes]
         if unknown:
             raise ConfigError(f"detector.person_classes {unknown} are not configured classes")
+        unknown = [c for c in self.detector.ball_classes if c not in self.classes]
+        if unknown:
+            raise ConfigError(f"detector.ball_classes {unknown} are not configured classes")
         e = self.detector_eval
         if e.size_recall_class not in self.classes or any(c not in self.classes for c in e.worst_classes):
             raise ConfigError("detector_eval.size_recall_class / worst_classes must be configured classes")

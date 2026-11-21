@@ -5,7 +5,8 @@ a wrong type or an out-of-range value raises ConfigError. No value has a code de
 
 Units convention:
   * times are seconds (converted to frames with `frames_for(seconds, fps)`);
-  * lengths are fractions of a body height (``*_h``) or of the frame height/diagonal (``*_frac``).
+  * lengths are fractions of a body height (``*_h``), of the frame height/diagonal (``*_frac``) or, for the ball,
+    multiples of the ball's own image diameter (``*_d``).
 """
 from __future__ import annotations
 
@@ -19,7 +20,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.14.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.15.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
@@ -28,6 +29,7 @@ CONFIG_SCHEMA_VERSION = "2.14.0"   # 2.1.0: + target section; 2.2.0: + target re
 #   2.11.0: + tracking.rival_eligible_only; 2.12.0: + reid_resolve section (re-ID evidence for IDENTITY_UNCERTAIN),
 #   target.resume_after_reid; 2.13.0: + tracking.ambiguous_spawn_uncertain, crossing_uncertain, crossing_min_ioa;
 #   2.14.0: + reid_resolve.min_evidence_frames (re-ID clears an episode on its own run, never on one frame)
+#   2.15.0: + ball section (ball view + ball tracker)
 
 
 class ConfigError(ValueError):
@@ -321,6 +323,34 @@ class ReidResolveConfig:
 
 
 @dataclass(frozen=True)
+class BallConfig:
+    """Ball view of the detector (spana.detection.ball_view) and the ball tracker (spana.ball.tracker)."""
+    score_min: float               # ball candidates below this are discarded (the detector is asked down to it)
+    nms_iou: float                 # overlapping ball boxes above this IoU are one candidate
+    min_diameter_px: float         # floor on a hypothesis' diameter (gates scale with it)
+    gate_base_d: float             # a candidate may join a hypothesis within this many diameters of its last position
+    max_speed_d_per_s: float       # ... plus this speed x time since the last observation (a hard kick)
+    confirm_min_obs: int           # a hypothesis is confirmed after this many observations ...
+    confirm_window_s: float        # ... within this window; unconfirmed hypotheses unobserved this long end
+    predict_max_s: float           # the selected ball is reported PREDICTED for at most this long unobserved
+    lost_max_s: float              # a confirmed hypothesis ends after this long unobserved
+    diameter_window: int           # the hypothesis diameter is the median of its last N observed diameters
+    velocity_smoothing: float      # weight of the newest velocity estimate in the running velocity (1 = newest only)
+
+    def validate(self) -> None:
+        _unit("ball.score_min", self.score_min)
+        _unit("ball.nms_iou", self.nms_iou)
+        _unit("ball.velocity_smoothing", self.velocity_smoothing)
+        for n in ("min_diameter_px", "gate_base_d", "max_speed_d_per_s", "confirm_window_s", "predict_max_s",
+                  "lost_max_s"):
+            _pos(f"ball.{n}", getattr(self, n))
+        _pos_int("ball.confirm_min_obs", self.confirm_min_obs)
+        _pos_int("ball.diameter_window", self.diameter_window)
+        if self.predict_max_s > self.lost_max_s:
+            raise ConfigError("ball.predict_max_s must be <= ball.lost_max_s")
+
+
+@dataclass(frozen=True)
 class OutputConfig:
     box_decimals: int
     score_decimals: int
@@ -341,6 +371,7 @@ class SpanaConfig:
     target: TargetConfig
     reid: ReidConfig
     reid_resolve: ReidResolveConfig
+    ball: BallConfig
     output: OutputConfig
 
     def validate(self) -> None:

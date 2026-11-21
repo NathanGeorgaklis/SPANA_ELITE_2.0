@@ -2,6 +2,10 @@
 
 As of 2026-11-20 (branch identity/reid-merge-v1 = main 74eb1a0 + the re-ID resolution work; PR #13; main also has
 the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh08_followup_2026-11-20).
+- Ball tracker v1 MERGED to main (2026-11-22, Nathan; config 2.15.0 `ball` section, dataset config 1.8.0, `spana.ball` 1.0.0,
+  `spana.cli ball`, `detect --ball-out`). Full suite in the container: 635 passed, 14 skipped, 2 failed (BoT-SORT bench
+  only: `supervision` not installed, as on main). UNMEASURED on footage: every `ball` value is a prior; next = DEV
+  ball-track labels, then score and fit on DEV only.
 - Full suite: `python -m pytest tests -q` → 539 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Full suite on Nathan's Mac, branch tracking/tracker-bench-v1-gtalink (2026-11-21, project venv): 604 passed, 12 skipped; bench venv: harness + summary tests 15 passed.
 - Full suite on Nathan's Mac, branch tracking/tracker-bench-v1-botsort (2026-11-20): 546 passed, 6 skipped; the BoT-SORT bench tests run end to end only with `trackers` on PYTHONPATH (8 passed).
