@@ -45,6 +45,10 @@ is unsafe (2 right vetoes at 0.62 / 0.67). The two-way re-entry check prevented 
 
 Supporting (not pipeline layers): `spana/video.py`, `spana/provenance.py`, `spana/artifacts.py`, `spana/config.py`,
 `spana/evaluation.py` + `tools/benchmark.py` (scoring vs frozen labels), `spana/labels.py`, `spana/cli.py`.
+Re-ID training on Modal (cloud GPU): `tools/modal_reid.py` + `tools/modal_reid_plan.py`, config
+`config/modal_reid.yaml` (A10G, 120 min per call, training stops at 105 and resumes on rerun), volume `spana-reid`;
+auto-deployed by `.github/workflows/modal-deploy.yml` on main (secrets MODAL_TOKEN_ID / MODAL_TOKEN_SECRET set by
+Nathan 2026-11-20). Not yet run on real crops; `tests/test_modal_reid.py`.
 
 ## Detector v1 (M001 valid, 295 frames, confidence 0.50, IoU 0.50; `records/detector_v1/RECORD.md`)
 mAP50 0.922, mAP50-95 0.730. Not a generalisation measure: M001 shares a broadcaster with the training matches.
