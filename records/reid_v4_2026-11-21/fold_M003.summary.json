@@ -1,0 +1,56 @@
+{
+ "schema": "spana.reid_heldout_fold",
+ "schema_version": "1.0.0",
+ "match_id": "TRAIN_M003_SYDNEY_OLYMPIC",
+ "model": "/Users/nathangeorgaklis/spana-reid-v4/runs/fold_M003/spana_reid.onnx",
+ "model_sha256": "7465738f69b91403832bcf824b0a8fc0cb2e5b7a081efa10fc41977c70c6791a",
+ "crops_index_sha256": "bb09c000a632e3b023fe3eb6804e834ab74f4f813f9cf813af91b9ff714b7d36",
+ "config_sha256": "3ea10aec5603d30ea7721104d12ee7740a6fece16a22acdcd69af6de1d65b3f1",
+ "settings": {
+  "min_gap_s": 1.0,
+  "max_pairs": 200000,
+  "clean_max_iou": 0.05,
+  "target_false_rate": 0.005,
+  "confidence": 0.95,
+  "margin_floor": "all_tests"
+ },
+ "crops": 3884,
+ "identities": 19,
+ "retrieval": {
+  "queries": 3884,
+  "rank1": 0.8759,
+  "mAP": 0.499
+ },
+ "auc_same_vs_teammate": 0.5534,
+ "auc_same_vs_other_side": 0.8796,
+ "same_player": {
+  "n": 200000,
+  "p05": 0.398,
+  "p25": 0.605,
+  "p50": 0.718,
+  "p75": 0.797,
+  "p95": 0.872
+ },
+ "teammate": {
+  "n": 200000,
+  "p05": 0.455,
+  "p25": 0.611,
+  "p50": 0.693,
+  "p75": 0.759,
+  "p95": 0.831
+ },
+ "other_side": {
+  "n": 200000,
+  "p05": 0.021,
+  "p25": 0.223,
+  "p50": 0.395,
+  "p75": 0.563,
+  "p95": 0.701
+ },
+ "rival": {
+  "tests": 16191,
+  "clean_tests": 15583,
+  "accuracy": 0.9256,
+  "clean_accuracy": 0.9275
+ }
+}

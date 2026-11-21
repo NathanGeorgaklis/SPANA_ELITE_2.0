@@ -1,0 +1,773 @@
+{
+ "target_false_rate": 0.005,
+ "confidence": 0.95,
+ "options": {
+  "hist": {
+   "held_out": {
+    "per_clip": {
+     "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper": {
+      "fit_on": [
+       "FRESH_07_G3_1205_midfield_passing_switch",
+       "FRESH_02_G1_3000_midfield_buildup_passing",
+       "FRESH_08_G3_2103_attack_into_box_clearance"
+      ],
+      "margin": 0.5178710942911813,
+      "weight": null,
+      "tests": 53,
+      "resolved": 34,
+      "wrong": 0,
+      "coverage": 0.6415,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.08433964335062538
+     },
+     "FRESH_07_G3_1205_midfield_passing_switch": {
+      "fit_on": [
+       "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+       "FRESH_02_G1_3000_midfield_buildup_passing",
+       "FRESH_08_G3_2103_attack_into_box_clearance"
+      ],
+      "margin": 0.6355174775228154,
+      "weight": null,
+      "tests": 1496,
+      "resolved": 815,
+      "wrong": 0,
+      "coverage": 0.5448,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.003668997839455477
+     },
+     "FRESH_02_G1_3000_midfield_buildup_passing": {
+      "fit_on": [
+       "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+       "FRESH_07_G3_1205_midfield_passing_switch",
+       "FRESH_08_G3_2103_attack_into_box_clearance"
+      ],
+      "margin": 0.5178710942911813,
+      "weight": null,
+      "tests": 1329,
+      "resolved": 158,
+      "wrong": 0,
+      "coverage": 0.1189,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.018781714429240908
+     },
+     "FRESH_08_G3_2103_attack_into_box_clearance": {
+      "fit_on": [
+       "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+       "FRESH_07_G3_1205_midfield_passing_switch",
+       "FRESH_02_G1_3000_midfield_buildup_passing"
+      ],
+      "margin": 0.32451460832431733,
+      "weight": null,
+      "tests": 1610,
+      "resolved": 976,
+      "wrong": 20,
+      "coverage": 0.6062,
+      "wrong_rate": 0.02049,
+      "upper_bound": 0.02963819055428442
+     }
+    },
+    "pooled": {
+     "tests": 4488,
+     "resolved": 1983,
+     "wrong": 20,
+     "coverage": 0.4418,
+     "wrong_rate": 0.01009,
+     "upper_bound": 0.014622067498848854
+    }
+   },
+   "final": {
+    "option": "hist",
+    "margin": 0.5178710942911813,
+    "in_sample": {
+     "tests": 4488,
+     "resolved": 1806,
+     "wrong": 3,
+     "coverage": 0.4024,
+     "wrong_rate": 0.00166,
+     "upper_bound": 0.0042876287125130546
+    }
+   },
+   "final_by_query_height": {
+    "0-90": {
+     "tests": 436,
+     "resolved": 235,
+     "wrong": 0,
+     "coverage": 0.539,
+     "wrong_rate": 0.0,
+     "upper_bound": 0.012666887914453933
+    },
+    "90-130": {
+     "tests": 3193,
+     "resolved": 1399,
+     "wrong": 3,
+     "coverage": 0.4381,
+     "wrong_rate": 0.00214,
+     "upper_bound": 0.0055328751327050054
+    },
+    "130-10000": {
+     "tests": 859,
+     "resolved": 172,
+     "wrong": 0,
+     "coverage": 0.2002,
+     "wrong_rate": 0.0,
+     "upper_bound": 0.01726624808604452
+    }
+   }
+  },
+  "spana": {
+   "held_out": {
+    "per_clip": {
+     "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper": {
+      "fit_on": [
+       "FRESH_07_G3_1205_midfield_passing_switch",
+       "FRESH_02_G1_3000_midfield_buildup_passing",
+       "FRESH_08_G3_2103_attack_into_box_clearance"
+      ],
+      "margin": 0.5306582275814671,
+      "weight": null,
+      "tests": 53,
+      "resolved": 40,
+      "wrong": 0,
+      "coverage": 0.7547,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.07215752450551456
+     },
+     "FRESH_07_G3_1205_midfield_passing_switch": {
+      "fit_on": [
+       "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+       "FRESH_02_G1_3000_midfield_buildup_passing",
+       "FRESH_08_G3_2103_attack_into_box_clearance"
+      ],
+      "margin": null,
+      "weight": null,
+      "tests": 1496,
+      "resolved": 0,
+      "wrong": 0,
+      "coverage": 0.0,
+      "wrong_rate": null,
+      "upper_bound": null
+     },
+     "FRESH_02_G1_3000_midfield_buildup_passing": {
+      "fit_on": [
+       "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+       "FRESH_07_G3_1205_midfield_passing_switch",
+       "FRESH_08_G3_2103_attack_into_box_clearance"
+      ],
+      "margin": 0.5664525232150702,
+      "weight": null,
+      "tests": 1329,
+      "resolved": 308,
+      "wrong": 0,
+      "coverage": 0.2318,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.009679255008705267
+     },
+     "FRESH_08_G3_2103_attack_into_box_clearance": {
+      "fit_on": [
+       "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+       "FRESH_07_G3_1205_midfield_passing_switch",
+       "FRESH_02_G1_3000_midfield_buildup_passing"
+      ],
+      "margin": 0.5306582275814671,
+      "weight": null,
+      "tests": 1610,
+      "resolved": 313,
+      "wrong": 1,
+      "coverage": 0.1944,
+      "wrong_rate": 0.00319,
+      "upper_bound": 0.01506577492731897
+     }
+    },
+    "pooled": {
+     "tests": 4488,
+     "resolved": 661,
+     "wrong": 1,
+     "coverage": 0.1473,
+     "wrong_rate": 0.00151,
+     "upper_bound": 0.007156507108119523
+    }
+   },
+   "final": {
+    "option": "spana",
+    "margin": 0.5306582275814671,
+    "in_sample": {
+     "tests": 4488,
+     "resolved": 1174,
+     "wrong": 1,
+     "coverage": 0.2616,
+     "wrong_rate": 0.00085,
+     "upper_bound": 0.004034333204406286
+    }
+   },
+   "final_by_query_height": {
+    "0-90": {
+     "tests": 436,
+     "resolved": 138,
+     "wrong": 0,
+     "coverage": 0.3165,
+     "wrong_rate": 0.0,
+     "upper_bound": 0.02147427757293661
+    },
+    "90-130": {
+     "tests": 3193,
+     "resolved": 670,
+     "wrong": 1,
+     "coverage": 0.2098,
+     "wrong_rate": 0.00149,
+     "upper_bound": 0.007060643428747925
+    },
+    "130-10000": {
+     "tests": 859,
+     "resolved": 366,
+     "wrong": 0,
+     "coverage": 0.4261,
+     "wrong_rate": 0.0,
+     "upper_bound": 0.008151654452708797
+    }
+   }
+  },
+  "combined": {
+   "held_out": {
+    "per_clip": {
+     "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper": {
+      "fit_on": [
+       "FRESH_07_G3_1205_midfield_passing_switch",
+       "FRESH_02_G1_3000_midfield_buildup_passing",
+       "FRESH_08_G3_2103_attack_into_box_clearance"
+      ],
+      "margin": 1.310609828886019,
+      "weight": 0.4,
+      "tests": 53,
+      "resolved": 48,
+      "wrong": 0,
+      "coverage": 0.9057,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.0605034093488943
+     },
+     "FRESH_07_G3_1205_midfield_passing_switch": {
+      "fit_on": [
+       "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+       "FRESH_02_G1_3000_midfield_buildup_passing",
+       "FRESH_08_G3_2103_attack_into_box_clearance"
+      ],
+      "margin": 1.523512481206497,
+      "weight": 0.4,
+      "tests": 1496,
+      "resolved": 950,
+      "wrong": 1,
+      "coverage": 0.635,
+      "wrong_rate": 0.00105,
+      "upper_bound": 0.004983712837706218
+     },
+     "FRESH_02_G1_3000_midfield_buildup_passing": {
+      "fit_on": [
+       "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+       "FRESH_07_G3_1205_midfield_passing_switch",
+       "FRESH_08_G3_2103_attack_into_box_clearance"
+      ],
+      "margin": 1.23161863559467,
+      "weight": 0.5,
+      "tests": 1329,
+      "resolved": 563,
+      "wrong": 2,
+      "coverage": 0.4236,
+      "wrong_rate": 0.00355,
+      "upper_bound": 0.01113999572575928
+     },
+     "FRESH_08_G3_2103_attack_into_box_clearance": {
+      "fit_on": [
+       "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+       "FRESH_07_G3_1205_midfield_passing_switch",
+       "FRESH_02_G1_3000_midfield_buildup_passing"
+      ],
+      "margin": 1.0364076037838106,
+      "weight": 0.6,
+      "tests": 1610,
+      "resolved": 964,
+      "wrong": 9,
+      "coverage": 0.5988,
+      "wrong_rate": 0.00934,
+      "upper_bound": 0.01623507079719635
+     }
+    },
+    "pooled": {
+     "tests": 4488,
+     "resolved": 2525,
+     "wrong": 12,
+     "coverage": 0.5626,
+     "wrong_rate": 0.00475,
+     "upper_bound": 0.007688678200965006
+    }
+   },
+   "final": {
+    "option": "combined",
+    "weight": 0.4,
+    "margin": 1.2421244596190084,
+    "in_sample": {
+     "tests": 4488,
+     "resolved": 2503,
+     "wrong": 6,
+     "coverage": 0.5577,
+     "wrong_rate": 0.0024,
+     "upper_bound": 0.004725760310424468
+    },
+    "cues": [
+     "hist",
+     "spana"
+    ],
+    "stats": {
+     "hist": {
+      "method": "zscore",
+      "mean": 0.6225848503212762,
+      "sd": 0.30105211042948105
+     },
+     "spana": {
+      "method": "zscore",
+      "mean": 0.4029578557843074,
+      "sd": 0.2588862592266776
+     }
+    }
+   },
+   "final_by_query_height": {
+    "0-90": {
+     "tests": 436,
+     "resolved": 297,
+     "wrong": 0,
+     "coverage": 0.6812,
+     "wrong_rate": 0.0,
+     "upper_bound": 0.010035941097792442
+    },
+    "90-130": {
+     "tests": 3193,
+     "resolved": 1670,
+     "wrong": 4,
+     "coverage": 0.523,
+     "wrong_rate": 0.0024,
+     "upper_bound": 0.005472696157179686
+    },
+    "130-10000": {
+     "tests": 859,
+     "resolved": 536,
+     "wrong": 2,
+     "coverage": 0.624,
+     "wrong_rate": 0.00373,
+     "upper_bound": 0.011698903204559286
+    }
+   }
+  }
+ },
+ "clean": {
+  "available": true,
+  "max_iou": 0.05,
+  "exclude_occluded": true,
+  "margin_floor": "all_tests",
+  "tests_per_clip": {
+   "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper": {
+    "all": 53,
+    "clean": 38
+   },
+   "FRESH_07_G3_1205_midfield_passing_switch": {
+    "all": 1496,
+    "clean": 509
+   },
+   "FRESH_02_G1_3000_midfield_buildup_passing": {
+    "all": 1329,
+    "clean": 486
+   },
+   "FRESH_08_G3_2103_attack_into_box_clearance": {
+    "all": 1610,
+    "clean": 384
+   }
+  },
+  "options": {
+   "hist": {
+    "held_out": {
+     "per_clip": {
+      "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper": {
+       "fit_on": [
+        "FRESH_07_G3_1205_midfield_passing_switch",
+        "FRESH_02_G1_3000_midfield_buildup_passing",
+        "FRESH_08_G3_2103_attack_into_box_clearance"
+       ],
+       "margin": 0.5178710942911813,
+       "weight": null,
+       "tests": 38,
+       "resolved": 27,
+       "wrong": 0,
+       "coverage": 0.7105,
+       "wrong_rate": 0.0,
+       "upper_bound": 0.10501923017634429,
+       "own_margin": 0.5150209482954468,
+       "floor_margin": 0.5178710942911813
+      },
+      "FRESH_07_G3_1205_midfield_passing_switch": {
+       "fit_on": [
+        "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+        "FRESH_02_G1_3000_midfield_buildup_passing",
+        "FRESH_08_G3_2103_attack_into_box_clearance"
+       ],
+       "margin": null,
+       "weight": null,
+       "tests": 509,
+       "resolved": 0,
+       "wrong": 0,
+       "coverage": 0.0,
+       "wrong_rate": null,
+       "upper_bound": null,
+       "own_margin": null,
+       "floor_margin": 0.6355174775228154
+      },
+      "FRESH_02_G1_3000_midfield_buildup_passing": {
+       "fit_on": [
+        "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+        "FRESH_07_G3_1205_midfield_passing_switch",
+        "FRESH_08_G3_2103_attack_into_box_clearance"
+       ],
+       "margin": null,
+       "weight": null,
+       "tests": 486,
+       "resolved": 0,
+       "wrong": 0,
+       "coverage": 0.0,
+       "wrong_rate": null,
+       "upper_bound": null,
+       "own_margin": null,
+       "floor_margin": 0.5178710942911813
+      },
+      "FRESH_08_G3_2103_attack_into_box_clearance": {
+       "fit_on": [
+        "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+        "FRESH_07_G3_1205_midfield_passing_switch",
+        "FRESH_02_G1_3000_midfield_buildup_passing"
+       ],
+       "margin": 0.32451460832431733,
+       "weight": null,
+       "tests": 384,
+       "resolved": 235,
+       "wrong": 10,
+       "coverage": 0.612,
+       "wrong_rate": 0.04255,
+       "upper_bound": 0.0711106086334264,
+       "own_margin": 0.18893109518477824,
+       "floor_margin": 0.32451460832431733
+      }
+     },
+     "pooled": {
+      "tests": 1417,
+      "resolved": 262,
+      "wrong": 10,
+      "coverage": 0.1849,
+      "wrong_rate": 0.03817,
+      "upper_bound": 0.06388122624024463
+     }
+    },
+    "final": {
+     "option": "hist",
+     "margin": 0.5178710942911813,
+     "in_sample": {
+      "tests": 1417,
+      "resolved": 649,
+      "wrong": 0,
+      "coverage": 0.458,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.004605283310923179
+     },
+     "own_margin": 0.5150209482954468,
+     "floor_margin": 0.5178710942911813
+    },
+    "final_by_query_height": {
+     "0-90": {
+      "tests": 174,
+      "resolved": 92,
+      "wrong": 0,
+      "coverage": 0.5287,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.03203786317545173
+     },
+     "90-130": {
+      "tests": 836,
+      "resolved": 470,
+      "wrong": 0,
+      "coverage": 0.5622,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.006353628253217006
+     },
+     "130-10000": {
+      "tests": 407,
+      "resolved": 87,
+      "wrong": 0,
+      "coverage": 0.2138,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.03384761068161958
+     }
+    }
+   },
+   "spana": {
+    "held_out": {
+     "per_clip": {
+      "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper": {
+       "fit_on": [
+        "FRESH_07_G3_1205_midfield_passing_switch",
+        "FRESH_02_G1_3000_midfield_buildup_passing",
+        "FRESH_08_G3_2103_attack_into_box_clearance"
+       ],
+       "margin": 0.5306582275814671,
+       "weight": null,
+       "tests": 38,
+       "resolved": 33,
+       "wrong": 0,
+       "coverage": 0.8684,
+       "wrong_rate": 0.0,
+       "upper_bound": 0.08678118929147495,
+       "own_margin": 0.15224849897051917,
+       "floor_margin": 0.5306582275814671
+      },
+      "FRESH_07_G3_1205_midfield_passing_switch": {
+       "fit_on": [
+        "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+        "FRESH_02_G1_3000_midfield_buildup_passing",
+        "FRESH_08_G3_2103_attack_into_box_clearance"
+       ],
+       "margin": null,
+       "weight": null,
+       "tests": 509,
+       "resolved": 0,
+       "wrong": 0,
+       "coverage": 0.0,
+       "wrong_rate": null,
+       "upper_bound": null,
+       "own_margin": 0.25045193459093884,
+       "floor_margin": null
+      },
+      "FRESH_02_G1_3000_midfield_buildup_passing": {
+       "fit_on": [
+        "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+        "FRESH_07_G3_1205_midfield_passing_switch",
+        "FRESH_08_G3_2103_attack_into_box_clearance"
+       ],
+       "margin": 0.5664525232150702,
+       "weight": null,
+       "tests": 486,
+       "resolved": 155,
+       "wrong": 0,
+       "coverage": 0.3189,
+       "wrong_rate": 0.0,
+       "upper_bound": 0.01914173010876828,
+       "own_margin": 0.2506545870669044,
+       "floor_margin": 0.5664525232150702
+      },
+      "FRESH_08_G3_2103_attack_into_box_clearance": {
+       "fit_on": [
+        "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+        "FRESH_07_G3_1205_midfield_passing_switch",
+        "FRESH_02_G1_3000_midfield_buildup_passing"
+       ],
+       "margin": 0.5306582275814671,
+       "weight": null,
+       "tests": 384,
+       "resolved": 86,
+       "wrong": 0,
+       "coverage": 0.224,
+       "wrong_rate": 0.0,
+       "upper_bound": 0.034234372849120204,
+       "own_margin": 0.09695671454022209,
+       "floor_margin": 0.5306582275814671
+      }
+     },
+     "pooled": {
+      "tests": 1417,
+      "resolved": 274,
+      "wrong": 0,
+      "coverage": 0.1934,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.01087377784900224
+     }
+    },
+    "final": {
+     "option": "spana",
+     "margin": 0.5306582275814671,
+     "in_sample": {
+      "tests": 1417,
+      "resolved": 511,
+      "wrong": 0,
+      "coverage": 0.3606,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.005845338910907342
+     },
+     "own_margin": 0.13929211910300243,
+     "floor_margin": 0.5306582275814671
+    },
+    "final_by_query_height": {
+     "0-90": {
+      "tests": 174,
+      "resolved": 65,
+      "wrong": 0,
+      "coverage": 0.3736,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.045042258123013525
+     },
+     "90-130": {
+      "tests": 836,
+      "resolved": 250,
+      "wrong": 0,
+      "coverage": 0.299,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.011911419714980635
+     },
+     "130-10000": {
+      "tests": 407,
+      "resolved": 196,
+      "wrong": 0,
+      "coverage": 0.4816,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.01516813551488552
+     }
+    }
+   },
+   "combined": {
+    "held_out": {
+     "per_clip": {
+      "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper": {
+       "fit_on": [
+        "FRESH_07_G3_1205_midfield_passing_switch",
+        "FRESH_02_G1_3000_midfield_buildup_passing",
+        "FRESH_08_G3_2103_attack_into_box_clearance"
+       ],
+       "margin": 1.3124321669965213,
+       "weight": 0.4,
+       "tests": 38,
+       "resolved": 38,
+       "wrong": 0,
+       "coverage": 1.0,
+       "wrong_rate": 0.0,
+       "upper_bound": 0.07580765168296455,
+       "own_margin": 0.7363896502912759,
+       "floor_margin": 1.3124321669965213
+      },
+      "FRESH_07_G3_1205_midfield_passing_switch": {
+       "fit_on": [
+        "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+        "FRESH_02_G1_3000_midfield_buildup_passing",
+        "FRESH_08_G3_2103_attack_into_box_clearance"
+       ],
+       "margin": 1.5239048352444717,
+       "weight": 0.4,
+       "tests": 509,
+       "resolved": 392,
+       "wrong": 0,
+       "coverage": 0.7701,
+       "wrong_rate": 0.0,
+       "upper_bound": 0.0076130469997529844,
+       "own_margin": 0.7993611026794827,
+       "floor_margin": 1.5239048352444717
+      },
+      "FRESH_02_G1_3000_midfield_buildup_passing": {
+       "fit_on": [
+        "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+        "FRESH_07_G3_1205_midfield_passing_switch",
+        "FRESH_08_G3_2103_attack_into_box_clearance"
+       ],
+       "margin": 1.2323871963492452,
+       "weight": 0.5,
+       "tests": 486,
+       "resolved": 278,
+       "wrong": 0,
+       "coverage": 0.572,
+       "wrong_rate": 0.0,
+       "upper_bound": 0.010718162114520074,
+       "own_margin": 0.7872590202248085,
+       "floor_margin": 1.2323871963492452
+      },
+      "FRESH_08_G3_2103_attack_into_box_clearance": {
+       "fit_on": [
+        "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+        "FRESH_07_G3_1205_midfield_passing_switch",
+        "FRESH_02_G1_3000_midfield_buildup_passing"
+       ],
+       "margin": 1.0317616739264253,
+       "weight": 0.6,
+       "tests": 384,
+       "resolved": 235,
+       "wrong": 1,
+       "coverage": 0.612,
+       "wrong_rate": 0.00426,
+       "upper_bound": 0.020026568245120294,
+       "own_margin": 0.14190216813213638,
+       "floor_margin": 1.0317616739264253
+      }
+     },
+     "pooled": {
+      "tests": 1417,
+      "resolved": 943,
+      "wrong": 1,
+      "coverage": 0.6655,
+      "wrong_rate": 0.00106,
+      "upper_bound": 0.005020634104302631
+     }
+    },
+    "final": {
+     "option": "combined",
+     "weight": 0.4,
+     "margin": 1.2426698527240168,
+     "in_sample": {
+      "tests": 1417,
+      "resolved": 943,
+      "wrong": 0,
+      "coverage": 0.6655,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.0031717697472026475
+     },
+     "cues": [
+      "hist",
+      "spana"
+     ],
+     "stats": {
+      "hist": {
+       "method": "zscore",
+       "mean": 0.6218133867753481,
+       "sd": 0.3000412754835881
+      },
+      "spana": {
+       "method": "zscore",
+       "mean": 0.39965012209464884,
+       "sd": 0.2596001682784077
+      }
+     },
+     "own_margin": 0.7316120414527004,
+     "floor_margin": 1.2426698527240168
+    },
+    "final_by_query_height": {
+     "0-90": {
+      "tests": 174,
+      "resolved": 120,
+      "wrong": 0,
+      "coverage": 0.6897,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.02465540105565638
+     },
+     "90-130": {
+      "tests": 836,
+      "resolved": 542,
+      "wrong": 0,
+      "coverage": 0.6483,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.0055119345533426465
+     },
+     "130-10000": {
+      "tests": 407,
+      "resolved": 281,
+      "wrong": 0,
+      "coverage": 0.6904,
+      "wrong_rate": 0.0,
+      "upper_bound": 0.010604342226155736
+     }
+    }
+   }
+  }
+ },
+ "inputs": {
+  "tables_sha256": "34b68f7021ff32e6d0a5e64851f4d47793bccaab85bdd238995bebb5a8d75f77",
+  "config_sha256": "fb7a4071b79b2cd4570d7b8a840491797fe9ab4a7e845b0533c687af33700424",
+  "fusion_config_sha256": "d0226d5d24fbc178af431eeda853f8f76a7dee9739ff39d0c457884c853f3188"
+ }
+}
