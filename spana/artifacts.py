@@ -69,7 +69,7 @@ import math
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from .config import OutputConfig
 from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityState, PositionSource, TargetReason,
@@ -78,7 +78,7 @@ from .records import (CameraStatus, Detection, EndReason, FrameTracks, IdentityS
 DETECTIONS_SCHEMA = ("spana.detections", "1.4.0")   # 1.4.0: class_names (class_id indexes it)
 TRACKS_SCHEMA = ("spana.tracks", "2.3.0")   # 2.1.0 / 2.2.0 documents still validate (validate_tracks)
 TRACKS_ACCEPTED = ("2.1.0", "2.2.0", "2.3.0")
-TARGET_SCHEMA = ("spana.target", "2.9.0")   # 1.0.0 and 2.0.0 - 2.8.0 still validate
+TARGET_SCHEMA = ("spana.target", "2.10.0")   # 1.0.0 and 2.0.0 - 2.8.0 still validate
 
 
 class ArtifactError(ValueError):
@@ -389,7 +389,7 @@ def validate_target(doc: Any, tracks: Optional[dict] = None, embeddings: Optiona
     version = doc.get("schema_version")
     if version == "1.0.0":
         return _validate_target_v1(doc, tracks)
-    if version in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"):
+    if version in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0", "2.10.0"):
         return _validate_target_v2(doc, tracks, version, embeddings)
     raise ArtifactError(f"unsupported spana.target version {version!r}")
 
@@ -471,6 +471,14 @@ _TARGET_REASONS_V22 = {**_TARGET_REASONS_V2,
 _TARGET_REASONS_V24 = {**_TARGET_REASONS_V22,
                        TargetState.CANDIDATE.value: {TargetReason.RELINK_PREDECESSOR.value,
                                                      TargetReason.REENTRY_REID.value}}
+_TARGET_REASONS_V210 = {**_TARGET_REASONS_V24,
+                        TargetState.TARGET.value: _TARGET_REASONS_V24[TargetState.TARGET.value] |
+                        {TargetReason.PLAYER_CONFIRMED.value, TargetReason.GALLERY_REID.value},
+                        TargetState.ABSTAIN.value: _TARGET_REASONS_V24[TargetState.ABSTAIN.value] |
+                        {TargetReason.PLAYER_REJECTED.value, TargetReason.CONFIRMATION_CONFLICT.value}}
+_CLOG_KEYS = ("confirmation_id", "record", "status", "episode", "track_identity", "track_rivals", "target_track",
+              "conflicts", "evidence", "gallery_crops", "revocation")
+_GREID_KEYS = ("track_id", "episode", "evaluated", "clear", "against", "hold", "resolved_frame", "margins", "answered")
 _RELINK_KEYS = ("from_track", "to_track", "lost_frame", "proposed_frame", "gap_s", "evidence", "confirmation",
                 "outcome", "dropped_reason")
 _CONFIRM = ("confirm_candidate", "1.0.0")
@@ -512,14 +520,16 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
                         embeddings: Optional[dict] = None) -> None:
     """2.0.0 - 2.9.0. Structure, then (with the source tracks) every answer and every relink against the
     tracks. 2.9.0 = 2.8.0 + target_config.resume_after_reid."""
-    order = ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0")
+    order = ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0", "2.10.0")
     since = lambda v: order.index(version) >= order.index(v)      # noqa: E731
     v21, v22, v23, v24, v25 = since("2.1.0"), since("2.2.0"), since("2.3.0"), since("2.4.0"), since("2.5.0")
-    v26, v27, v28, v29 = since("2.6.0"), since("2.7.0"), since("2.8.0"), since("2.9.0")
+    v26, v27, v28, v29, v210 = since("2.6.0"), since("2.7.0"), since("2.8.0"), since("2.9.0"), since("2.10.0")
     _header(doc, ("spana.target", version),
             ("schema", "schema_version", "provenance", "video", "tracks_sha256", "selection",
              "user_actions" if v21 else "confirmations", "target_config", "track_ends", "relinks", "frames")
-            + (("gaps",) if v21 else ()) + (("embeddings_sha256",) if v24 else ()) + (("reentry_log",) if v25 else ()))
+            + (("gaps",) if v21 else ()) + (("embeddings_sha256",) if v24 else ()) + (("reentry_log",) if v25 else ())
+            + (("crop_features", "claims_identities", "confirmation_log", "gallery", "gallery_reid_log")
+               if v210 else ()))
     if v24 and doc["embeddings_sha256"] is not None and not isinstance(doc["embeddings_sha256"], str):
         raise ArtifactError("embeddings_sha256 must be a string or null")
     sel = doc["selection"]
@@ -536,8 +546,15 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
           + (("reentry_signature", "reentry_wait_samples", "reentry_withdraw") if v26 else ())
           + (("reentry_exit_edge", "reentry_exit_edge_max_frac") if v27 else ())
           + (("offer_hold_s",) if v28 else ())
-          + (("resume_after_reid",) if v29 else ()),
+          + (("resume_after_reid",) if v29 else ())
+          + (("confirm_contradict_reid_margin", "confirm_contradict_colour_margin", "gallery_reid_resolve",
+              "confirmation_scope", "reid_resolve_enabled", "reid_margin") if v210 else ()),
           "target_config")
+    if v210 and not (_num(tc["confirm_contradict_reid_margin"]) and _num(tc["confirm_contradict_colour_margin"]) and
+                     isinstance(tc["gallery_reid_resolve"], bool) and isinstance(tc["reid_resolve_enabled"], bool) and
+                     tc["confirmation_scope"] in ("range", "episode") and
+                     _num(tc["reid_margin"])):
+        raise ArtifactError("bad target_config confirmation keys")
     if v28 and not (_num(tc["offer_hold_s"]) and tc["offer_hold_s"] >= 0):
         raise ArtifactError("bad target_config offer_hold_s")
     if v27 and not (isinstance(tc["reentry_exit_edge"], bool) and _num(tc["reentry_exit_edge_max_frac"]) and
@@ -564,13 +581,26 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
     if not isinstance(confs, list):
         raise ArtifactError("user actions must be a list")
     allowed = _ACTION_KEYS if v21 else {_CONFIRM: _ACTION_KEYS[_CONFIRM]}
+    from .identity.confirmation import PLAYER_CONFIRMATION, REVOKE_CONFIRMATION, is_record_ok
+    player = [c for c in confs if isinstance(c, dict) and (c.get("kind"), c.get("version")) in
+              (PLAYER_CONFIRMATION, REVOKE_CONFIRMATION)] if v210 else []
     for c in confs:
+        if any(c is x for x in player):
+            if not is_record_ok(c):
+                raise ArtifactError(f"bad player confirmation record {c!r}")
+            continue
         kind = (c.get("kind"), c.get("version")) if isinstance(c, dict) else None
         if kind not in allowed:
             raise ArtifactError(f"bad user action {c!r}")
         _keys(c, allowed[kind], "user action")
         if not isinstance(c["frame"], int) or isinstance(c["frame"], bool):
             raise ArtifactError(f"bad user action {c!r}")
+    is_me_at: Dict[str, List[int]] = {}           # track -> first frames of its applied IS_ME confirmations
+    if v210:
+        _check_confirmation_log(doc, player, tc)
+        for e in doc["confirmation_log"]:
+            if e["status"] == "APPLIED" and e["record"]["verdict"] == "IS_ME":
+                is_me_at.setdefault(e["record"]["track_id"], []).append(e["record"]["frame"])
     reselected = {}
     for c in confs:
         if (c["kind"], c["version"]) == ("track_at_frame", "1.0.0"):
@@ -642,6 +672,7 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
                 used_confs.append(c)
             else:
                 raise ArtifactError(f"relink {r['from_track']}->{r['to_track']}: confirmation not among the user actions")
+    used_confs += player
     if len(used_confs) != len(confs) or any(used_confs.count(c) > 1 for c in used_confs):
         raise ArtifactError("a user action applies to nothing (or to two things)")
     frames = doc["frames"]
@@ -660,8 +691,8 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
         if not _num(fr["t"]) or fr["t"] <= prev_t:
             raise ArtifactError(f"{where}: time not strictly increasing")
         prev_t = fr["t"]
-        if fr["reason"] not in (_TARGET_REASONS_V24 if v24 else _TARGET_REASONS_V22 if v22 else _TARGET_REASONS_V2
-                                ).get(fr["state"], set()):
+        if fr["reason"] not in (_TARGET_REASONS_V210 if v210 else _TARGET_REASONS_V24 if v24 else
+                                _TARGET_REASONS_V22 if v22 else _TARGET_REASONS_V2).get(fr["state"], set()):
             raise ArtifactError(f"{where}: state {fr['state']!r} with reason {fr['reason']!r}")
         tid, b = fr["track_id"], fr["box"]
         if not isinstance(tid, str):
@@ -674,7 +705,8 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
             raise ArtifactError(f"{where}: bad box")
         if fr["state"] == TargetState.TARGET.value and tid != sel["track_id"] and \
                 not (tid in confirmed_at and confirmed_at[tid] <= fr["frame"]) and \
-                not any(g <= fr["frame"] for g in reselected.get(tid, [])):
+                not any(g <= fr["frame"] for g in reselected.get(tid, [])) and \
+                not any(g <= fr["frame"] for g in is_me_at.get(tid, [])):
             raise ArtifactError(f"{where}: TARGET on {tid}: not the selection, a re-selection or a confirmed relink")
         if fr["state"] == TargetState.CANDIDATE.value:
             kind = "reid" if fr["reason"] == TargetReason.REENTRY_REID.value else "predecessor"
@@ -750,15 +782,120 @@ def _validate_target_v2(doc: Any, tracks: Optional[dict] = None, version: str = 
     if v27 and tc["reentry_exit_edge"]:
         _check_exit_side(doc, rels, tracks, tc)
     taps = sorted([(sel["frame"], sel["track_id"])] + [(g, tid) for tid, fs in reselected.items() for g in fs])
+    if v210:
+        _check_confirmations_against_tracks(doc, tracks, src, frames)
     for k, (tf, fr) in enumerate(zip(src, frames)):
         if fr["reason"] == TargetReason.USER_VOUCHED.value:
             _check_vouched(tc, src, frames, k, taps)
+        elif fr["reason"] in (TargetReason.PLAYER_CONFIRMED.value, TargetReason.GALLERY_REID.value):
+            pass                                  # checked by _check_confirmations_against_tracks
         elif fr["state"] in (TargetState.TARGET.value, TargetState.CANDIDATE.value):
             tr = next((t for t in tf["tracks"] if t["track_id"] == fr["track_id"]), None)
             if not (tr is not None and tr["state"] == TrackState.ACTIVE.value and tr["confirmed"]
                     and tr["identity"] == IdentityState.CERTAIN.value and tr["box"] == fr["box"]):
                 raise ArtifactError(f"frame {tf['frame']}: {fr['state']} not backed by an ACTIVE, confirmed, CERTAIN "
                                     "track box")
+
+
+def _check_confirmation_log(doc: dict, player: List[dict], tc: dict) -> None:
+    """2.10.0 structure: one log entry per player_confirmation (in action order), statuses consistent with the
+    conflicts and revocations, gallery entries only from APPLIED IS_ME frames, gallery re-ID log well formed."""
+    from .identity.confirmation import CONFLICT_REASONS, PLAYER_CONFIRMATION
+    log = doc["confirmation_log"]
+    if not isinstance(log, list):
+        raise ArtifactError("confirmation_log must be a list")
+    recs = [c for c in player if (c["kind"], c["version"]) == PLAYER_CONFIRMATION]
+    revs = {c["confirmation_id"]: c for c in player if (c["kind"], c["version"]) != PLAYER_CONFIRMATION}
+    if [e.get("record") if isinstance(e, dict) else None for e in log] != recs:
+        raise ArtifactError("confirmation_log must hold one entry per player confirmation, in action order")
+    by_id = {}
+    for e in log:
+        _keys(e, _CLOG_KEYS, "confirmation_log entry")
+        cid = e["confirmation_id"]
+        by_id[cid] = e
+        if cid != e["record"]["confirmation_id"] or e["status"] not in ("APPLIED", "CONFLICT", "REVOKED"):
+            raise ArtifactError(f"confirmation {cid}: bad id / status")
+        if (e["status"] == "REVOKED") != (cid in revs) or \
+                (e["status"] == "REVOKED" and e["revocation"] != revs[cid]) or \
+                (e["status"] != "REVOKED" and e["revocation"] is not None):
+            raise ArtifactError(f"confirmation {cid}: revocation disagrees with the user actions")
+        if (e["status"] == "CONFLICT") != bool(e["conflicts"]) or \
+                any(c.get("reason") not in CONFLICT_REASONS for c in e["conflicts"]):
+            raise ArtifactError(f"confirmation {cid}: CONFLICT exactly when conflicts are listed")
+        is_me_applied = e["status"] == "APPLIED" and e["record"]["verdict"] == "IS_ME"
+        if not isinstance(e["gallery_crops"], int) or (e["gallery_crops"] and not is_me_applied):
+            raise ArtifactError(f"confirmation {cid}: gallery crops only from an applied IS_ME")
+    gal = doc["gallery"]
+    _keys(gal, ("human_confirmed",), "gallery")
+    counts: Dict[str, int] = {}
+    for g in gal["human_confirmed"]:
+        _keys(g, ("confirmation_id", "track_id", "frame", "box"), "gallery entry")
+        e = by_id.get(g["confirmation_id"])
+        if e is None or e["status"] != "APPLIED" or e["record"]["verdict"] != "IS_ME" or \
+                g["track_id"] != e["record"]["track_id"] or \
+                not e["record"]["frame"] <= g["frame"] <= e["record"]["frame_end"]:
+            raise ArtifactError(f"gallery entry {g!r} is not a frame of an applied IS_ME confirmation")
+        counts[g["confirmation_id"]] = counts.get(g["confirmation_id"], 0) + 1
+    if any(counts.get(cid, 0) != e["gallery_crops"] for cid, e in by_id.items()):
+        raise ArtifactError("gallery entries disagree with the confirmations' gallery_crops")
+    for r in doc["gallery_reid_log"]:
+        _keys(r, _GREID_KEYS, "gallery_reid_log entry")
+        if r["resolved_frame"] is not None and not (tc["gallery_reid_resolve"] and tc["reid_resolve_enabled"]):
+            raise ArtifactError("gallery re-ID resolution while gallery_reid_resolve / reid_resolve is off")
+
+
+def _check_confirmations_against_tracks(doc: dict, tracks: dict, src: List[dict], frames: List[dict]) -> None:
+    """2.10.0 with the tracks: every non-revoked confirmation names one episode of a track observed on its first
+    frame; PLAYER_CONFIRMED only on frames an applied IS_ME covers (its range; with confirmation_scope "episode" the
+    rest of its episode), GALLERY_REID only on an
+    episode the gallery re-ID log resolved (from its frame), PLAYER_REJECTED exactly on episodes an applied NOT_ME
+    covers, and never a TARGET there; PLAYER_CONFIRMED / GALLERY_REID boxes are the ACTIVE, confirmed track's box."""
+    tf_of = {tf["frame"]: tf for tf in tracks["frames"]}
+    order = [tf["frame"] for tf in tracks["frames"]]
+
+    def track_at(f: int, tid: str) -> Optional[dict]:
+        tf = tf_of.get(f)
+        return None if tf is None else next((t for t in tf["tracks"] if t["track_id"] == tid), None)
+
+    episode_scope = doc["target_config"]["confirmation_scope"] == "episode"
+    is_me: Dict[Tuple[str, int], List[Tuple[int, float]]] = {}
+    not_me: Dict[Tuple[str, int], int] = {}
+    for e in doc["confirmation_log"]:
+        if e["status"] == "REVOKED":
+            continue
+        rec = e["record"]
+        if rec["frame"] not in tf_of or rec["frame_end"] not in tf_of:
+            raise ArtifactError(f"confirmation {e['confirmation_id']}: frames not in the tracks")
+        span = order[order.index(rec["frame"]):order.index(rec["frame_end"]) + 1]
+        trs = [track_at(f, rec["track_id"]) for f in span]
+        if any(t is None for t in trs) or trs[0]["state"] != TrackState.ACTIVE.value or \
+                any(t["uncertain_episodes"] != e["episode"] for t in trs):
+            raise ArtifactError(f"confirmation {e['confirmation_id']}: not one episode of an observed track")
+        if e["status"] == "APPLIED":
+            key = (rec["track_id"], e["episode"])
+            if rec["verdict"] == "IS_ME":
+                is_me.setdefault(key, []).append((rec["frame"], math.inf if episode_scope else rec["frame_end"]))
+            else:
+                not_me[key] = min(not_me.get(key, rec["frame"]), rec["frame"])
+    resolved = {(r["track_id"], r["episode"]): r["resolved_frame"] for r in doc["gallery_reid_log"]
+                if r["resolved_frame"] is not None}
+    for fr in frames:
+        t = track_at(fr["frame"], fr["track_id"])
+        key = None if t is None else (fr["track_id"], t["uncertain_episodes"])
+        where = f"target frame {fr['frame']}"
+        if fr["reason"] in (TargetReason.PLAYER_CONFIRMED.value, TargetReason.GALLERY_REID.value):
+            if fr["reason"] == TargetReason.PLAYER_CONFIRMED.value:
+                backed = any(a <= fr["frame"] <= b for a, b in is_me.get(key, []))
+            else:
+                backed = key in resolved and resolved[key] <= fr["frame"]
+            if key is None or not backed or not (
+                    t["state"] == TrackState.ACTIVE.value and t["confirmed"] and t["box"] == fr["box"]):
+                raise ArtifactError(f"{where}: {fr['reason']} not backed by a confirmed episode / track box")
+        if key is not None and key in not_me and not_me[key] <= fr["frame"]:
+            if fr["state"] == TargetState.TARGET.value:
+                raise ArtifactError(f"{where}: TARGET on an episode the player said NOT_ME for")
+        if fr["reason"] == TargetReason.PLAYER_REJECTED.value and not (key in not_me and not_me[key] <= fr["frame"]):
+            raise ArtifactError(f"{where}: PLAYER_REJECTED without an applied NOT_ME")
 
 
 def _relink_kind(r: dict) -> str:

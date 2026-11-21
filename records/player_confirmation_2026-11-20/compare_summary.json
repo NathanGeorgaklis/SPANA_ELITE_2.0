@@ -1,0 +1,1790 @@
+{
+ "reid_on": {
+  "target_confirm_correct": {
+   "abstain_frames": 295,
+   "actions": 108,
+   "actions_per_min": 7.52,
+   "answers_by_reason": {
+    "CONFIRMATION_CONFLICT": 0,
+    "GALLERY_REID": 0,
+    "PLAYER_CONFIRMED": 468,
+    "PLAYER_REJECTED": 0
+   },
+   "confirmations": {
+    "applied": 70,
+    "conflict": 0,
+    "correct_blocked": 0,
+    "issued": 70,
+    "wrong": 0,
+    "wrong_blocked": 0,
+    "wrong_through": 0
+   },
+   "conflict_reasons": {},
+   "correct": 0.87,
+   "followed_min": 14.36,
+   "gallery_crops": 2309,
+   "gallery_reid": {
+    "against": 0,
+    "episodes": [
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_02",
+      "episode": 1,
+      "evaluated": 6,
+      "hold": {
+       "NO_CLEAN_CROP": 6
+      },
+      "margins": null,
+      "player": "10",
+      "resolved_frame": null,
+      "track_id": "T000033"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_02",
+      "episode": 1,
+      "evaluated": 17,
+      "hold": {
+       "NO_CLEAN_CROP": 10,
+       "NO_RIVAL_REFERENCE": 7
+      },
+      "margins": null,
+      "player": "10",
+      "resolved_frame": null,
+      "track_id": "T000048"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_02",
+      "episode": 1,
+      "evaluated": 17,
+      "hold": {
+       "NO_CLEAN_CROP": 17
+      },
+      "margins": null,
+      "player": "16",
+      "resolved_frame": null,
+      "track_id": "T000042"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_02",
+      "episode": 1,
+      "evaluated": 2,
+      "hold": {
+       "NO_GALLERY_REFERENCE": 2
+      },
+      "margins": null,
+      "player": "17",
+      "resolved_frame": null,
+      "track_id": "T000039"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_02",
+      "episode": 1,
+      "evaluated": 1,
+      "hold": {
+       "BELOW_MARGIN": 1
+      },
+      "margins": null,
+      "player": "17",
+      "resolved_frame": null,
+      "track_id": "T000040"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_02",
+      "episode": 1,
+      "evaluated": 2,
+      "hold": {
+       "NO_RIVAL": 2
+      },
+      "margins": null,
+      "player": "17",
+      "resolved_frame": null,
+      "track_id": "T000043"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_07",
+      "episode": 1,
+      "evaluated": 2,
+      "hold": {
+       "NO_CLEAN_CROP": 2
+      },
+      "margins": null,
+      "player": "4",
+      "resolved_frame": null,
+      "track_id": "T000053"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_07",
+      "episode": 1,
+      "evaluated": 5,
+      "hold": {
+       "NO_CLEAN_CROP": 5
+      },
+      "margins": null,
+      "player": "4",
+      "resolved_frame": null,
+      "track_id": "T000061"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_07",
+      "episode": 1,
+      "evaluated": 5,
+      "hold": {
+       "NO_CLEAN_CROP": 5
+      },
+      "margins": null,
+      "player": "5",
+      "resolved_frame": null,
+      "track_id": "T000051"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_07",
+      "episode": 2,
+      "evaluated": 2,
+      "hold": {
+       "NO_CLEAN_CROP": 2
+      },
+      "margins": null,
+      "player": "8",
+      "resolved_frame": null,
+      "track_id": "T000023"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_07",
+      "episode": 1,
+      "evaluated": 1,
+      "hold": {
+       "NO_CLEAN_CROP": 1
+      },
+      "margins": null,
+      "player": "9",
+      "resolved_frame": null,
+      "track_id": "T000024"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_07",
+      "episode": 1,
+      "evaluated": 2,
+      "hold": {
+       "NO_GALLERY_REFERENCE": 2
+      },
+      "margins": null,
+      "player": "13",
+      "resolved_frame": null,
+      "track_id": "T000014"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_07",
+      "episode": 2,
+      "evaluated": 2,
+      "hold": {
+       "NO_CLEAN_CROP": 1,
+       "NO_RIVAL_REFERENCE": 1
+      },
+      "margins": null,
+      "player": "14",
+      "resolved_frame": null,
+      "track_id": "T000018"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_07",
+      "episode": 1,
+      "evaluated": 4,
+      "hold": {
+       "NO_GALLERY_REFERENCE": 4
+      },
+      "margins": null,
+      "player": "15",
+      "resolved_frame": null,
+      "track_id": "T000040"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_07",
+      "episode": 1,
+      "evaluated": 2,
+      "hold": {
+       "NO_RIVAL": 2
+      },
+      "margins": null,
+      "player": "15",
+      "resolved_frame": null,
+      "track_id": "T000041"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 1,
+      "evaluated": 2,
+      "hold": {
+       "NO_GALLERY_REFERENCE": 2
+      },
+      "margins": null,
+      "player": "8",
+      "resolved_frame": null,
+      "track_id": "T000024"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 1,
+      "evaluated": 10,
+      "hold": {
+       "NO_CLEAN_CROP": 10
+      },
+      "margins": null,
+      "player": "9",
+      "resolved_frame": null,
+      "track_id": "T000086"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 2,
+      "evaluated": 0,
+      "hold": {},
+      "margins": null,
+      "player": "13",
+      "resolved_frame": null,
+      "track_id": "T000054"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 1,
+      "evaluated": 0,
+      "hold": {},
+      "margins": null,
+      "player": "15",
+      "resolved_frame": null,
+      "track_id": "T000025"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 1,
+      "evaluated": 0,
+      "hold": {},
+      "margins": null,
+      "player": "15",
+      "resolved_frame": null,
+      "track_id": "T000028"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 1,
+      "evaluated": 1,
+      "hold": {
+       "NO_RIVAL_REFERENCE": 1
+      },
+      "margins": null,
+      "player": "15",
+      "resolved_frame": null,
+      "track_id": "T000033"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 1,
+      "evaluated": 0,
+      "hold": {},
+      "margins": null,
+      "player": "15",
+      "resolved_frame": null,
+      "track_id": "T000045"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 1,
+      "evaluated": 0,
+      "hold": {},
+      "margins": null,
+      "player": "16",
+      "resolved_frame": null,
+      "track_id": "T000014"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 1,
+      "evaluated": 3,
+      "hold": {
+       "NO_CLEAN_CROP": 3
+      },
+      "margins": null,
+      "player": "16",
+      "resolved_frame": null,
+      "track_id": "T000080"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 1,
+      "evaluated": 4,
+      "hold": {
+       "NO_CLEAN_CROP": 4
+      },
+      "margins": null,
+      "player": "17",
+      "resolved_frame": null,
+      "track_id": "T000017"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 1,
+      "evaluated": 0,
+      "hold": {},
+      "margins": null,
+      "player": "17",
+      "resolved_frame": null,
+      "track_id": "T000082"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 1,
+      "evaluated": 23,
+      "hold": {
+       "NO_CLEAN_CROP": 16,
+       "NO_GALLERY_REFERENCE": 7
+      },
+      "margins": null,
+      "player": "19",
+      "resolved_frame": null,
+      "track_id": "T000078"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 1,
+      "evaluated": 3,
+      "hold": {
+       "NO_GALLERY_REFERENCE": 3
+      },
+      "margins": null,
+      "player": "25",
+      "resolved_frame": null,
+      "track_id": "T000022"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 2,
+      "evaluated": 3,
+      "hold": {
+       "NO_CLEAN_CROP": 3
+      },
+      "margins": null,
+      "player": "25",
+      "resolved_frame": null,
+      "track_id": "T000056"
+     },
+     {
+      "against": 0,
+      "answered": 0,
+      "clear": 0,
+      "clip": "FRESH_08",
+      "episode": 1,
+      "evaluated": 24,
+      "hold": {
+       "NO_CLEAN_CROP": 21,
+       "NO_RIVAL_REFERENCE": 3
+      },
+      "margins": null,
+      "player": "25",
+      "resolved_frame": null,
+      "track_id": "T000069"
+     }
+    ],
+    "episodes_answered": 0,
+    "episodes_evaluated": 30,
+    "frames_answered": 0,
+    "hold_reasons": {
+     "BELOW_MARGIN": 1,
+     "NO_CLEAN_CROP": 106,
+     "NO_GALLERY_REFERENCE": 20,
+     "NO_RIVAL": 4,
+     "NO_RIVAL_REFERENCE": 12
+    }
+   },
+   "lost_frames": 123,
+   "per_clip": {
+    "FRESH_02": {
+     "abstain": 85,
+     "confirmations": {
+      "applied": 19,
+      "conflict": 0,
+      "correct_blocked": 0,
+      "issued": 19,
+      "wrong": 0,
+      "wrong_blocked": 0,
+      "wrong_through": 0
+     },
+     "correct": 0.854,
+     "wrong": 0
+    },
+    "FRESH_05": {
+     "abstain": 14,
+     "confirmations": {
+      "applied": 0,
+      "conflict": 0,
+      "correct_blocked": 0,
+      "issued": 0,
+      "wrong": 0,
+      "wrong_blocked": 0,
+      "wrong_through": 0
+     },
+     "correct": 0.964,
+     "wrong": 0
+    },
+    "FRESH_07": {
+     "abstain": 57,
+     "confirmations": {
+      "applied": 23,
+      "conflict": 0,
+      "correct_blocked": 0,
+      "issued": 23,
+      "wrong": 0,
+      "wrong_blocked": 0,
+      "wrong_through": 0
+     },
+     "correct": 0.92,
+     "wrong": 0
+    },
+    "FRESH_08": {
+     "abstain": 139,
+     "confirmations": {
+      "applied": 28,
+      "conflict": 0,
+      "correct_blocked": 0,
+      "issued": 28,
+      "wrong": 0,
+      "wrong_blocked": 0,
+      "wrong_through": 0
+     },
+     "correct": 0.758,
+     "wrong": 0
+    }
+   },
+   "scored": 3449,
+   "undo": {
+    "alone_equal": 30,
+    "full_equal": 29,
+    "full_not_comparable": 1,
+    "players_checked": 30
+   },
+   "unverified": 32,
+   "wrong": 0,
+   "wrong_confirmations": []
+  },
+  "target_reviewer": {
+   "abstain_frames": 735,
+   "actions": 59,
+   "actions_per_min": 4.11,
+   "answers_by_reason": {
+    "CONFIRMATION_CONFLICT": 0,
+    "GALLERY_REID": 0,
+    "PLAYER_CONFIRMED": 0,
+    "PLAYER_REJECTED": 0
+   },
+   "confirmations": {
+    "applied": 0,
+    "conflict": 0,
+    "correct_blocked": 0,
+    "issued": 0,
+    "wrong": 0,
+    "wrong_blocked": 0,
+    "wrong_through": 0
+   },
+   "conflict_reasons": {},
+   "correct": 0.68,
+   "followed_min": 14.36,
+   "gallery_crops": 0,
+   "gallery_reid": {
+    "against": 0,
+    "episodes": [],
+    "episodes_answered": 0,
+    "episodes_evaluated": 0,
+    "frames_answered": 0,
+    "hold_reasons": {}
+   },
+   "lost_frames": 338,
+   "per_clip": {
+    "FRESH_02": {
+     "abstain": 213,
+     "confirmations": {
+      "applied": 0,
+      "conflict": 0,
+      "correct_blocked": 0,
+      "issued": 0,
+      "wrong": 0,
+      "wrong_blocked": 0,
+      "wrong_through": 0
+     },
+     "correct": 0.695,
+     "wrong": 0
+    },
+    "FRESH_05": {
+     "abstain": 14,
+     "confirmations": {
+      "applied": 0,
+      "conflict": 0,
+      "correct_blocked": 0,
+      "issued": 0,
+      "wrong": 0,
+      "wrong_blocked": 0,
+      "wrong_through": 0
+     },
+     "correct": 0.964,
+     "wrong": 0
+    },
+    "FRESH_07": {
+     "abstain": 244,
+     "confirmations": {
+      "applied": 0,
+      "conflict": 0,
+      "correct_blocked": 0,
+      "issued": 0,
+      "wrong": 0,
+      "wrong_blocked": 0,
+      "wrong_through": 0
+     },
+     "correct": 0.685,
+     "wrong": 0
+    },
+    "FRESH_08": {
+     "abstain": 264,
+     "confirmations": {
+      "applied": 0,
+      "conflict": 0,
+      "correct_blocked": 0,
+      "issued": 0,
+      "wrong": 0,
+      "wrong_blocked": 0,
+      "wrong_through": 0
+     },
+     "correct": 0.487,
+     "wrong": 0
+    }
+   },
+   "scored": 3449,
+   "undo": {
+    "alone_equal": 0,
+    "full_equal": 0,
+    "full_not_comparable": 0,
+    "players_checked": 0
+   },
+   "unverified": 30,
+   "wrong": 0,
+   "wrong_confirmations": []
+  },
+  "tracker_episodes": {
+   "episodes": 126,
+   "refusal_reasons": {
+    "AGAINST": 1,
+    "BELOW_MARGIN": 7,
+    "NOT_OBSERVED": 24,
+    "NO_CLEAN_CROP": 29,
+    "NO_REFERENCE": 49,
+    "RUN_TOO_SHORT": 2
+   },
+   "refused": {
+    "CLIP_END": 40,
+    "TRACK_ENDED": 72
+   },
+   "resolved": {
+    "APPEARANCE": 12,
+    "REID": 2
+   },
+   "verdicts": {
+    "APPEARANCE": {
+     "right": 2,
+     "unknown": 10
+    },
+    "REID": {
+     "right": 2
+    }
+   }
+  }
+ },
+ "target_confirm_correct": {
+  "abstain_frames": 295,
+  "actions": 108,
+  "actions_per_min": 7.52,
+  "answers_by_reason": {
+   "CONFIRMATION_CONFLICT": 0,
+   "GALLERY_REID": 0,
+   "PLAYER_CONFIRMED": 467,
+   "PLAYER_REJECTED": 0
+  },
+  "confirmations": {
+   "applied": 70,
+   "conflict": 0,
+   "correct_blocked": 0,
+   "issued": 70,
+   "wrong": 0,
+   "wrong_blocked": 0,
+   "wrong_through": 0
+  },
+  "conflict_reasons": {},
+  "correct": 0.87,
+  "followed_min": 14.36,
+  "gallery_crops": 2309,
+  "gallery_reid": {
+   "against": 0,
+   "episodes": [],
+   "episodes_answered": 0,
+   "episodes_evaluated": 0,
+   "frames_answered": 0,
+   "hold_reasons": {}
+  },
+  "lost_frames": 123,
+  "per_clip": {
+   "FRESH_02": {
+    "abstain": 85,
+    "confirmations": {
+     "applied": 19,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 19,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.854,
+    "wrong": 0
+   },
+   "FRESH_05": {
+    "abstain": 14,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.964,
+    "wrong": 0
+   },
+   "FRESH_07": {
+    "abstain": 57,
+    "confirmations": {
+     "applied": 23,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 23,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.92,
+    "wrong": 0
+   },
+   "FRESH_08": {
+    "abstain": 139,
+    "confirmations": {
+     "applied": 28,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 28,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.758,
+    "wrong": 0
+   }
+  },
+  "scored": 3449,
+  "undo": {
+   "alone_equal": 30,
+   "full_equal": 29,
+   "full_not_comparable": 1,
+   "players_checked": 30
+  },
+  "unverified": 32,
+  "wrong": 0,
+  "wrong_confirmations": []
+ },
+ "target_confirm_episode_scope": {
+  "abstain_frames": 232,
+  "actions": 102,
+  "actions_per_min": 7.1,
+  "answers_by_reason": {
+   "CONFIRMATION_CONFLICT": 0,
+   "GALLERY_REID": 0,
+   "PLAYER_CONFIRMED": 543,
+   "PLAYER_REJECTED": 0
+  },
+  "confirmations": {
+   "applied": 64,
+   "conflict": 0,
+   "correct_blocked": 0,
+   "issued": 64,
+   "wrong": 0,
+   "wrong_blocked": 0,
+   "wrong_through": 0
+  },
+  "conflict_reasons": {},
+  "correct": 0.865,
+  "followed_min": 14.36,
+  "gallery_crops": 2137,
+  "gallery_reid": {
+   "against": 0,
+   "episodes": [],
+   "episodes_answered": 0,
+   "episodes_evaluated": 0,
+   "frames_answered": 0,
+   "hold_reasons": {}
+  },
+  "lost_frames": 112,
+  "per_clip": {
+   "FRESH_02": {
+    "abstain": 75,
+    "confirmations": {
+     "applied": 15,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 15,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.836,
+    "wrong": 18
+   },
+   "FRESH_05": {
+    "abstain": 14,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.964,
+    "wrong": 0
+   },
+   "FRESH_07": {
+    "abstain": 44,
+    "confirmations": {
+     "applied": 24,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 24,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.905,
+    "wrong": 33
+   },
+   "FRESH_08": {
+    "abstain": 99,
+    "confirmations": {
+     "applied": 25,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 25,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.784,
+    "wrong": 0
+   }
+  },
+  "scored": 3449,
+  "undo": {
+   "alone_equal": 30,
+   "full_equal": 27,
+   "full_not_comparable": 3,
+   "players_checked": 30
+  },
+  "unverified": 70,
+  "wrong": 51,
+  "wrong_confirmations": []
+ },
+ "target_confirm_err": {
+  "abstain_frames": 294,
+  "actions": 109,
+  "actions_per_min": 7.59,
+  "answers_by_reason": {
+   "CONFIRMATION_CONFLICT": 0,
+   "GALLERY_REID": 0,
+   "PLAYER_CONFIRMED": 468,
+   "PLAYER_REJECTED": 0
+  },
+  "confirmations": {
+   "applied": 71,
+   "conflict": 0,
+   "correct_blocked": 0,
+   "issued": 71,
+   "wrong": 1,
+   "wrong_blocked": 0,
+   "wrong_through": 1
+  },
+  "conflict_reasons": {},
+  "containment": {
+   "changed_without_own_wrong_tap": [],
+   "players_changed": 1,
+   "players_with_wrong_taps": 1
+  },
+  "correct": 0.87,
+  "followed_min": 14.36,
+  "gallery_crops": 2305,
+  "gallery_reid": {
+   "against": 0,
+   "episodes": [],
+   "episodes_answered": 0,
+   "episodes_evaluated": 0,
+   "frames_answered": 0,
+   "hold_reasons": {}
+  },
+  "lost_frames": 123,
+  "per_clip": {
+   "FRESH_02": {
+    "abstain": 85,
+    "confirmations": {
+     "applied": 19,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 19,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.854,
+    "wrong": 0
+   },
+   "FRESH_05": {
+    "abstain": 14,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.964,
+    "wrong": 0
+   },
+   "FRESH_07": {
+    "abstain": 56,
+    "confirmations": {
+     "applied": 24,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 24,
+     "wrong": 1,
+     "wrong_blocked": 0,
+     "wrong_through": 1
+    },
+    "correct": 0.92,
+    "wrong": 1
+   },
+   "FRESH_08": {
+    "abstain": 139,
+    "confirmations": {
+     "applied": 28,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 28,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.758,
+    "wrong": 0
+   }
+  },
+  "scored": 3449,
+  "undo": {
+   "alone_equal": 30,
+   "full_equal": 29,
+   "full_not_comparable": 1,
+   "players_checked": 30
+  },
+  "unverified": 32,
+  "wrong": 1,
+  "wrong_confirmations": [
+   {
+    "attributed_to": "8",
+    "clip": "FRESH_07",
+    "confirmation_id": "9@78#0",
+    "frame": 78,
+    "player": "9",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000023"
+   }
+  ]
+ },
+ "target_confirm_err30": {
+  "abstain_frames": 345,
+  "actions": 112,
+  "actions_per_min": 7.8,
+  "answers_by_reason": {
+   "CONFIRMATION_CONFLICT": 0,
+   "GALLERY_REID": 0,
+   "PLAYER_CONFIRMED": 363,
+   "PLAYER_REJECTED": 0
+  },
+  "confirmations": {
+   "applied": 65,
+   "conflict": 11,
+   "correct_blocked": 3,
+   "issued": 76,
+   "wrong": 22,
+   "wrong_blocked": 8,
+   "wrong_through": 14
+  },
+  "conflict_reasons": {
+   "COLOUR_CONTRARY": 22,
+   "OTHER_IDENTITY_CERTAIN": 5,
+   "REID_CONTRARY": 1
+  },
+  "containment": {
+   "changed_without_own_wrong_tap": [],
+   "players_changed": 13,
+   "players_with_wrong_taps": 14
+  },
+  "correct": 0.82,
+  "followed_min": 14.36,
+  "gallery_crops": 1824,
+  "gallery_reid": {
+   "against": 0,
+   "episodes": [],
+   "episodes_answered": 0,
+   "episodes_evaluated": 0,
+   "frames_answered": 0,
+   "hold_reasons": {}
+  },
+  "lost_frames": 217,
+  "per_clip": {
+   "FRESH_02": {
+    "abstain": 97,
+    "confirmations": {
+     "applied": 19,
+     "conflict": 5,
+     "correct_blocked": 3,
+     "issued": 24,
+     "wrong": 8,
+     "wrong_blocked": 2,
+     "wrong_through": 6
+    },
+    "correct": 0.803,
+    "wrong": 5
+   },
+   "FRESH_05": {
+    "abstain": 14,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.964,
+    "wrong": 0
+   },
+   "FRESH_07": {
+    "abstain": 92,
+    "confirmations": {
+     "applied": 24,
+     "conflict": 2,
+     "correct_blocked": 0,
+     "issued": 26,
+     "wrong": 7,
+     "wrong_blocked": 2,
+     "wrong_through": 5
+    },
+    "correct": 0.86,
+    "wrong": 20
+   },
+   "FRESH_08": {
+    "abstain": 142,
+    "confirmations": {
+     "applied": 22,
+     "conflict": 4,
+     "correct_blocked": 0,
+     "issued": 26,
+     "wrong": 7,
+     "wrong_blocked": 4,
+     "wrong_through": 3
+    },
+    "correct": 0.697,
+    "wrong": 2
+   }
+  },
+  "scored": 3449,
+  "undo": {
+   "alone_equal": 30,
+   "full_equal": 29,
+   "full_not_comparable": 1,
+   "players_checked": 30
+  },
+  "unverified": 32,
+  "wrong": 27,
+  "wrong_confirmations": [
+   {
+    "attributed_to": "14",
+    "clip": "FRESH_02",
+    "confirmation_id": "9@270#1",
+    "frame": 270,
+    "player": "9",
+    "reasons": [
+     "OTHER_IDENTITY_CERTAIN"
+    ],
+    "status": "CONFLICT",
+    "track_id": "T000030"
+   },
+   {
+    "attributed_to": "8",
+    "clip": "FRESH_02",
+    "confirmation_id": "9@294#2",
+    "frame": 294,
+    "player": "9",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000049"
+   },
+   {
+    "attributed_to": "8",
+    "clip": "FRESH_02",
+    "confirmation_id": "10@186#0",
+    "frame": 186,
+    "player": "10",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000035"
+   },
+   {
+    "attributed_to": "14",
+    "clip": "FRESH_02",
+    "confirmation_id": "13@276#0",
+    "frame": 276,
+    "player": "13",
+    "reasons": [
+     "OTHER_IDENTITY_CERTAIN",
+     "REID_CONTRARY"
+    ],
+    "status": "CONFLICT",
+    "track_id": "T000030"
+   },
+   {
+    "attributed_to": "16",
+    "clip": "FRESH_02",
+    "confirmation_id": "15@282#1",
+    "frame": 282,
+    "player": "15",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000042"
+   },
+   {
+    "attributed_to": "17",
+    "clip": "FRESH_02",
+    "confirmation_id": "16@246#0",
+    "frame": 246,
+    "player": "16",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000043"
+   },
+   {
+    "attributed_to": "15",
+    "clip": "FRESH_02",
+    "confirmation_id": "16@282#2",
+    "frame": 282,
+    "player": "16",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000028"
+   },
+   {
+    "attributed_to": "15",
+    "clip": "FRESH_02",
+    "confirmation_id": "16@288#3",
+    "frame": 288,
+    "player": "16",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000028"
+   },
+   {
+    "attributed_to": "9",
+    "clip": "FRESH_07",
+    "confirmation_id": "8@78#1",
+    "frame": 78,
+    "player": "8",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000024"
+   },
+   {
+    "attributed_to": "8",
+    "clip": "FRESH_07",
+    "confirmation_id": "9@78#0",
+    "frame": 78,
+    "player": "9",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000023"
+   },
+   {
+    "attributed_to": "12",
+    "clip": "FRESH_07",
+    "confirmation_id": "9@246#2",
+    "frame": 246,
+    "player": "9",
+    "reasons": [
+     "OTHER_IDENTITY_CERTAIN"
+    ],
+    "status": "CONFLICT",
+    "track_id": "T000012"
+   },
+   {
+    "attributed_to": "8",
+    "clip": "FRESH_07",
+    "confirmation_id": "13@228#0",
+    "frame": 228,
+    "player": "13",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000023"
+   },
+   {
+    "attributed_to": "8",
+    "clip": "FRESH_07",
+    "confirmation_id": "13@234#1",
+    "frame": 234,
+    "player": "13",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000023"
+   },
+   {
+    "attributed_to": "9",
+    "clip": "FRESH_07",
+    "confirmation_id": "13@294#4",
+    "frame": 294,
+    "player": "13",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000037"
+   },
+   {
+    "attributed_to": "13",
+    "clip": "FRESH_07",
+    "confirmation_id": "15@264#3",
+    "frame": 264,
+    "player": "15",
+    "reasons": [
+     "COLOUR_CONTRARY",
+     "COLOUR_CONTRARY",
+     "COLOUR_CONTRARY",
+     "COLOUR_CONTRARY",
+     "COLOUR_CONTRARY",
+     "COLOUR_CONTRARY",
+     "COLOUR_CONTRARY",
+     "COLOUR_CONTRARY",
+     "COLOUR_CONTRARY",
+     "COLOUR_CONTRARY"
+    ],
+    "status": "CONFLICT",
+    "track_id": "T000036"
+   },
+   {
+    "attributed_to": "11",
+    "clip": "FRESH_08",
+    "confirmation_id": "9@54#0",
+    "frame": 54,
+    "player": "9",
+    "reasons": [
+     "OTHER_IDENTITY_CERTAIN"
+    ],
+    "status": "CONFLICT",
+    "track_id": "T000019"
+   },
+   {
+    "attributed_to": "11",
+    "clip": "FRESH_08",
+    "confirmation_id": "9@60#1",
+    "frame": 60,
+    "player": "9",
+    "reasons": [
+     "OTHER_IDENTITY_CERTAIN"
+    ],
+    "status": "CONFLICT",
+    "track_id": "T000019"
+   },
+   {
+    "attributed_to": "25",
+    "clip": "FRESH_08",
+    "confirmation_id": "15@48#2",
+    "frame": 48,
+    "player": "15",
+    "reasons": [
+     "COLOUR_CONTRARY",
+     "COLOUR_CONTRARY"
+    ],
+    "status": "CONFLICT",
+    "track_id": "T000022"
+   },
+   {
+    "attributed_to": "25",
+    "clip": "FRESH_08",
+    "confirmation_id": "15@66#4",
+    "frame": 66,
+    "player": "15",
+    "reasons": [
+     "COLOUR_CONTRARY",
+     "COLOUR_CONTRARY",
+     "COLOUR_CONTRARY",
+     "COLOUR_CONTRARY"
+    ],
+    "status": "CONFLICT",
+    "track_id": "T000022"
+   },
+   {
+    "attributed_to": "16",
+    "clip": "FRESH_08",
+    "confirmation_id": "17@336#1",
+    "frame": 336,
+    "player": "17",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000080"
+   },
+   {
+    "attributed_to": "19",
+    "clip": "FRESH_08",
+    "confirmation_id": "20@384#1",
+    "frame": 384,
+    "player": "20",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000078"
+   },
+   {
+    "attributed_to": "8",
+    "clip": "FRESH_08",
+    "confirmation_id": "25@12#0",
+    "frame": 12,
+    "player": "25",
+    "reasons": [],
+    "status": "APPLIED",
+    "track_id": "T000024"
+   }
+  ]
+ },
+ "target_default": {
+  "abstain_frames": 513,
+  "actions": 0,
+  "actions_per_min": 0.0,
+  "answers_by_reason": {
+   "CONFIRMATION_CONFLICT": 0,
+   "GALLERY_REID": 0,
+   "PLAYER_CONFIRMED": 0,
+   "PLAYER_REJECTED": 0
+  },
+  "confirmations": {
+   "applied": 0,
+   "conflict": 0,
+   "correct_blocked": 0,
+   "issued": 0,
+   "wrong": 0,
+   "wrong_blocked": 0,
+   "wrong_through": 0
+  },
+  "conflict_reasons": {},
+  "correct": 0.508,
+  "followed_min": 14.36,
+  "gallery_crops": 0,
+  "gallery_reid": {
+   "against": 0,
+   "episodes": [],
+   "episodes_answered": 0,
+   "episodes_evaluated": 0,
+   "frames_answered": 0,
+   "hold_reasons": {}
+  },
+  "lost_frames": 1107,
+  "per_clip": {
+   "FRESH_02": {
+    "abstain": 164,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.477,
+    "wrong": 0
+   },
+   "FRESH_05": {
+    "abstain": 11,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.716,
+    "wrong": 0
+   },
+   "FRESH_07": {
+    "abstain": 145,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.628,
+    "wrong": 0
+   },
+   "FRESH_08": {
+    "abstain": 193,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.242,
+    "wrong": 0
+   }
+  },
+  "scored": 3449,
+  "undo": {
+   "alone_equal": 0,
+   "full_equal": 0,
+   "full_not_comparable": 0,
+   "players_checked": 0
+  },
+  "unverified": 25,
+  "wrong": 0,
+  "wrong_confirmations": []
+ },
+ "target_linked_confirm_correct": {
+  "abstain_frames": 293,
+  "actions": 99,
+  "actions_per_min": 6.9,
+  "answers_by_reason": {
+   "CONFIRMATION_CONFLICT": 0,
+   "GALLERY_REID": 0,
+   "PLAYER_CONFIRMED": 467,
+   "PLAYER_REJECTED": 0
+  },
+  "confirmations": {
+   "applied": 70,
+   "conflict": 0,
+   "correct_blocked": 0,
+   "issued": 70,
+   "wrong": 0,
+   "wrong_blocked": 0,
+   "wrong_through": 0
+  },
+  "conflict_reasons": {},
+  "correct": 0.87,
+  "followed_min": 14.36,
+  "gallery_crops": 0,
+  "gallery_reid": {
+   "against": 0,
+   "episodes": [],
+   "episodes_answered": 0,
+   "episodes_evaluated": 0,
+   "frames_answered": 0,
+   "hold_reasons": {}
+  },
+  "lost_frames": 123,
+  "per_clip": {
+   "FRESH_02": {
+    "abstain": 85,
+    "confirmations": {
+     "applied": 19,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 19,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.854,
+    "wrong": 0
+   },
+   "FRESH_05": {
+    "abstain": 14,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.964,
+    "wrong": 0
+   },
+   "FRESH_07": {
+    "abstain": 57,
+    "confirmations": {
+     "applied": 23,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 23,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.92,
+    "wrong": 0
+   },
+   "FRESH_08": {
+    "abstain": 137,
+    "confirmations": {
+     "applied": 28,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 28,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.76,
+    "wrong": 0
+   }
+  },
+  "scored": 3449,
+  "undo": {
+   "alone_equal": 30,
+   "full_equal": 29,
+   "full_not_comparable": 1,
+   "players_checked": 30
+  },
+  "unverified": 32,
+  "wrong": 0,
+  "wrong_confirmations": []
+ },
+ "target_linked_reviewer": {
+  "abstain_frames": 733,
+  "actions": 52,
+  "actions_per_min": 3.62,
+  "answers_by_reason": {
+   "CONFIRMATION_CONFLICT": 0,
+   "GALLERY_REID": 0,
+   "PLAYER_CONFIRMED": 0,
+   "PLAYER_REJECTED": 0
+  },
+  "confirmations": {
+   "applied": 0,
+   "conflict": 0,
+   "correct_blocked": 0,
+   "issued": 0,
+   "wrong": 0,
+   "wrong_blocked": 0,
+   "wrong_through": 0
+  },
+  "conflict_reasons": {},
+  "correct": 0.681,
+  "followed_min": 14.36,
+  "gallery_crops": 0,
+  "gallery_reid": {
+   "against": 0,
+   "episodes": [],
+   "episodes_answered": 0,
+   "episodes_evaluated": 0,
+   "frames_answered": 0,
+   "hold_reasons": {}
+  },
+  "lost_frames": 338,
+  "per_clip": {
+   "FRESH_02": {
+    "abstain": 213,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.695,
+    "wrong": 0
+   },
+   "FRESH_05": {
+    "abstain": 14,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.964,
+    "wrong": 0
+   },
+   "FRESH_07": {
+    "abstain": 244,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.685,
+    "wrong": 0
+   },
+   "FRESH_08": {
+    "abstain": 262,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.49,
+    "wrong": 0
+   }
+  },
+  "scored": 3449,
+  "undo": {
+   "alone_equal": 0,
+   "full_equal": 0,
+   "full_not_comparable": 0,
+   "players_checked": 0
+  },
+  "unverified": 30,
+  "wrong": 0,
+  "wrong_confirmations": []
+ },
+ "target_reviewer": {
+  "abstain_frames": 735,
+  "actions": 59,
+  "actions_per_min": 4.11,
+  "answers_by_reason": {
+   "CONFIRMATION_CONFLICT": 0,
+   "GALLERY_REID": 0,
+   "PLAYER_CONFIRMED": 0,
+   "PLAYER_REJECTED": 0
+  },
+  "confirmations": {
+   "applied": 0,
+   "conflict": 0,
+   "correct_blocked": 0,
+   "issued": 0,
+   "wrong": 0,
+   "wrong_blocked": 0,
+   "wrong_through": 0
+  },
+  "conflict_reasons": {},
+  "correct": 0.68,
+  "followed_min": 14.36,
+  "gallery_crops": 0,
+  "gallery_reid": {
+   "against": 0,
+   "episodes": [],
+   "episodes_answered": 0,
+   "episodes_evaluated": 0,
+   "frames_answered": 0,
+   "hold_reasons": {}
+  },
+  "lost_frames": 338,
+  "per_clip": {
+   "FRESH_02": {
+    "abstain": 213,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.695,
+    "wrong": 0
+   },
+   "FRESH_05": {
+    "abstain": 14,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.964,
+    "wrong": 0
+   },
+   "FRESH_07": {
+    "abstain": 244,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.685,
+    "wrong": 0
+   },
+   "FRESH_08": {
+    "abstain": 264,
+    "confirmations": {
+     "applied": 0,
+     "conflict": 0,
+     "correct_blocked": 0,
+     "issued": 0,
+     "wrong": 0,
+     "wrong_blocked": 0,
+     "wrong_through": 0
+    },
+    "correct": 0.487,
+    "wrong": 0
+   }
+  },
+  "scored": 3449,
+  "undo": {
+   "alone_equal": 0,
+   "full_equal": 0,
+   "full_not_comparable": 0,
+   "players_checked": 0
+  },
+  "unverified": 30,
+  "wrong": 0,
+  "wrong_confirmations": []
+ },
+ "tracking": {
+  "linked": {
+   "fragments_total": 92,
+   "id_switches": 94,
+   "identity_transfers": 7,
+   "transfers_on_linked_tracks": 0,
+   "unflagged_transfers": 0
+  },
+  "ours": {
+   "fragments_total": 101,
+   "id_switches": 103,
+   "identity_transfers": 7,
+   "transfers_on_linked_tracks": 0,
+   "unflagged_transfers": 0
+  },
+  "reid_on": {
+   "fragments_total": 101,
+   "id_switches": 103,
+   "identity_transfers": 7,
+   "transfers_on_linked_tracks": 0,
+   "unflagged_transfers": 0
+  }
+ }
+}

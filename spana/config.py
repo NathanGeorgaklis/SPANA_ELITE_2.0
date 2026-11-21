@@ -20,7 +20,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.15.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.16.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
@@ -30,6 +30,8 @@ CONFIG_SCHEMA_VERSION = "2.15.0"   # 2.1.0: + target section; 2.2.0: + target re
 #   target.resume_after_reid; 2.13.0: + tracking.ambiguous_spawn_uncertain, crossing_uncertain, crossing_min_ioa;
 #   2.14.0: + reid_resolve.min_evidence_frames (re-ID clears an episode on its own run, never on one frame)
 #   2.15.0: + ball section (ball view + ball tracker)
+#   2.16.0: + target.confirm_contradict_reid_margin / confirm_contradict_colour_margin / gallery_reid_resolve
+#   / confirmation_scope (player confirmations of target identity episodes, spana.identity.confirmation)
 
 
 class ConfigError(ValueError):
@@ -250,12 +252,23 @@ class TargetConfig:
                                    #   long after its last usable frame (0 = drop at once, the behaviour before)
     resume_after_reid: bool        # answer again after an IDENTITY_UNCERTAIN episode that the calibrated re-ID margin
                                    #   cleared for every rival (track resolved_by == REID); others stay as above
+    confirm_contradict_reid_margin: float   # a player's IS_ME is in CONFLICT when every clean crop of the confirmed
+                                   #   track is nearer another identity's re-ID reference than the target's by this
+    confirm_contradict_colour_margin: float # ... or nearer another identity's torso colour by this (Bhattacharyya)
+    gallery_reid_resolve: bool     # a later uncertainty episode of the answered track may be cleared for the target by
+                                   #   re-ID against the human-confirmed gallery (needs reid_resolve.enabled)
+    confirmation_scope: str        # "range": an IS_ME answers the frames it names (fail closed); "episode": the rest
+                                   #   of the episode too (measurement only: identity can change inside an episode)
 
     def validate(self) -> None:
         _pos("target.relink_max_gap_s", self.relink_max_gap_s)
         if not (isinstance(self.review_min_gap_s, (int, float)) and self.review_min_gap_s >= 0):
             raise ConfigError("target.review_min_gap_s must be >= 0")
         _pos("target.reentry_max_gap_s", self.reentry_max_gap_s)
+        _pos("target.confirm_contradict_reid_margin", self.confirm_contradict_reid_margin)
+        _pos("target.confirm_contradict_colour_margin", self.confirm_contradict_colour_margin)
+        if self.confirmation_scope not in ("range", "episode"):
+            raise ConfigError("target.confirmation_scope must be 'range' or 'episode'")
         if not -1.0 <= self.reentry_min_similarity <= 1.0:
             raise ConfigError("target.reentry_min_similarity must be a cosine in [-1, 1]")
         if not 0.0 <= self.reentry_min_margin <= 2.0:

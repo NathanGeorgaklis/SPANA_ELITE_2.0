@@ -101,7 +101,7 @@ What the tracking layer receives from any detector, the football detector includ
 | `CameraStatus` | OK, UNKNOWN, CUT, FIRST |
 | `EndReason` | UNCONFIRMED_MISSED, UNCONFIRMED_TIMEOUT, LOST_EXPIRED, CAMERA_CUT, CAMERA_MOTION_UNKNOWN, LEFT_FRAME |
 | `TargetState` (target identity) | TARGET, CANDIDATE (2.0.0: proposed relink awaiting confirmation), LOST, ABSTAIN |
-| `TargetReason` (target identity) | TRACK_OBSERVED, NOT_CONFIRMED, IDENTITY_UNCERTAIN, AFTER_UNCERTAIN, TRACK_OCCLUDED, TRACK_LOST, TRACK_ENDED, RELINK_PREDECESSOR (2.0.0), USER_VOUCHED (2.2.0), REENTRY_REID (2.4.0) |
+| `TargetReason` (target identity) | TRACK_OBSERVED, NOT_CONFIRMED, IDENTITY_UNCERTAIN, AFTER_UNCERTAIN, TRACK_OCCLUDED, TRACK_LOST, TRACK_ENDED, RELINK_PREDECESSOR (2.0.0), USER_VOUCHED (2.2.0), REENTRY_REID (2.4.0), PLAYER_CONFIRMED / GALLERY_REID / PLAYER_REJECTED / CONFIRMATION_CONFLICT (2.10.0) |
 
 ## Ball tracking — `spana/ball/`, `spana/detection/ball_view.py` (defined 2026-11-19)
 - Ball view: `BallView(detector, detector.ball_classes, cfg.ball)` keeps ball-class boxes with score >=
@@ -127,8 +127,19 @@ Follow the user's chosen player through a clip, and say so when unsure.
   - `track_at_frame` 1.0.0 = a tap on a box the app showed: the track must be live and ACTIVE (observed) on that
     frame. Otherwise `SelectionError` (refused, never guessed).
   - Tap is the chosen way to pick (decision 2026-11-16). Shirt number / photo may come later as hints.
-- Out: **`spana.target` 2.9.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
-  2.8.0, 2.7.0, 2.6.0, 2.5.0, 2.4.0, 2.3.0, 2.2.0, 2.1.0, 2.0.0 and 1.0.0 documents still validate with their own meaning.
+- Out: **`spana.target` 2.10.0** (`spana/artifacts.py` `validate_target`; canonical, atomic, never overwritten).
+  2.9.0, 2.8.0, 2.7.0, 2.6.0, 2.5.0, 2.4.0, 2.3.0, 2.2.0, 2.1.0, 2.0.0 and 1.0.0 documents still validate with their own meaning.
+  - 2.10.0 (player confirmations, `spana/identity/confirmation.py`, config 2.16.0): + user actions
+    `player_confirmation` 1.0.0 / `revoke_confirmation` 1.0.0 (below); + top level `crop_features` (meta of the clean
+    crop features used, or null), `claims_identities` (other identities whose CERTAIN answers were given),
+    `confirmation_log`, `gallery {human_confirmed: [...]}`, `gallery_reid_log`; + target_config
+    `confirm_contradict_reid_margin, confirm_contradict_colour_margin, gallery_reid_resolve, confirmation_scope,
+    reid_resolve_enabled, reid_margin`; + reasons TARGET PLAYER_CONFIRMED / GALLERY_REID, ABSTAIN PLAYER_REJECTED /
+    CONFIRMATION_CONFLICT. Validated: one log entry per confirmation (action order); CONFLICT exactly when conflicts
+    are listed; REVOKED exactly when revoked; gallery entries only from an applied IS_ME's frames; with the tracks,
+    each confirmation names one episode of a track observed on its first frame, PLAYER_CONFIRMED only on covered
+    frames, GALLERY_REID only after the logged qualifying frame, no TARGET on a NOT_ME episode. Appearance conflict
+    verdicts are logged with their margins but not recomputed (the crops are not in the document).
   - 2.9.0: + target_config `resume_after_reid` (answer again after an episode the tracker cleared by re-ID,
     `resolved_by` REID; off by default). Needs tracks 2.3.0 for a REID resolution to exist.
   - 2.8.0: + target_config `offer_hold_s` (an offer kept while its track is briefly hidden; CANDIDATE still only
@@ -167,6 +178,48 @@ Follow the user's chosen player through a clip, and say so when unsure.
 | `reject_candidate` 1.0.0 | `frame, from_track, to_track, proposed_frame` | decline an offer: withdrawn (`REJECTED_BY_USER`), never re-proposed for that loss |
 | `track_at_frame` 1.0.0 | `frame, track_id` | a tap on an observed box mid-clip: re-selects the player from that frame on; earlier answers kept |
 
+  - **Player confirmation event** (spana.target 2.10.0; decision 2026-11-20). The player's own statement about a
+    track; both records are user actions, refused (`UserActionError`) if they do not apply:
+
+| record | fields | meaning |
+|---|---|---|
+| `player_confirmation` 1.0.0 | `confirmation_id` (unique), `track_id`, `frame`, `frame_end` (= `frame` for one tap), `verdict` IS_ME / NOT_ME, `source` "player" | the track is / is not me on frames `frame..frame_end`; the track must be observed on `frame`, live throughout, in ONE uncertainty episode (same `uncertain_episodes`) |
+| `revoke_confirmation` 1.0.0 | `confirmation_id`, `source` | undo: that confirmation is ignored; every output recomputes as if it had never been made (logged REVOKED) |
+
+    - Episode = (track id, `uncertain_episodes`). Effects only on this target's document: the tracks document, rivals
+      and other identities are never changed.
+    - IS_ME, applied: the track becomes the answered track from `frame` (like a tap). With `target.confirmation_scope`
+      `range` (default) it is answered TARGET PLAYER_CONFIRMED (TRACK_OBSERVED where CERTAIN) on `frame..frame_end`
+      only; afterwards, if the track was still uncertain on `frame_end`, the episode taints the track as any
+      uncertainty episode (target.resume_after_uncertain). `episode` (measurement only) covers the rest of the
+      episode.
+    - NOT_ME, applied: the episode is removed from target candidates (ABSTAIN PLAYER_REJECTED while answered; never
+      offered by relink / re-entry; no gallery crops).
+    - CONFLICT (not applied; logged with evidence; `spana.identity.follower.reconfirmation_list(doc)` lists them for
+      re-confirmation): IS_ME when another identity's CERTAIN answer (`claims`) is on the track in the range
+      (OTHER_IDENTITY_CERTAIN), the target is CERTAIN on another track (TARGET_CERTAIN_ELSEWHERE), the player said
+      NOT_ME for that episode (PLAYER_CONTRADICTION), or every clean crop of the range is nearer another identity's
+      reference than the target's own by `confirm_contradict_reid_margin` (REID_CONTRARY) /
+      `confirm_contradict_colour_margin` (COLOUR_CONTRARY). NOT_ME when the target is CERTAIN on that track
+      (TARGET_CERTAIN: the target then ABSTAINs there, CONFIRMATION_CONFLICT) or the player said IS_ME for it.
+    - `confirmation_log[]`: `{confirmation_id, record, status APPLIED|CONFLICT|REVOKED, episode, track_identity,
+      track_rivals, target_track, conflicts[{reason, ...}], evidence {clean_crops, appearance {crops, identities
+      {id: {reid: [margins], colour: [margins]}}, references}}, gallery_crops, revocation}`.
+    - `gallery.human_confirmed[]`: `{confirmation_id, track_id, frame, box}`, one per CLEAN crop (CropFeatures) of an
+      applied IS_ME's frames; the machine partition is the target's own TARGET answers (not stored).
+    - Gallery re-ID (`target.gallery_reid_resolve` and `reid_resolve.enabled`, off by default): on a later episode
+      that alone taints the answered track, each clean uncontested crop is compared with the latest gallery crop from
+      before the episode and every rival's reference (its latest clean CERTAIN crop before the episode; the target's
+      own earlier tracks are not rivals): CLEAR at >= reid_resolve.margin for every rival, AGAINST at <= -margin (run
+      reset), else HOLD (NO_CLEAN_CROP / NO_GALLERY_REFERENCE / NO_RIVAL / NO_RIVAL_REFERENCE / BELOW_MARGIN). Once a
+      run spans tracking.identity_resolve_s with reid_resolve.min_evidence_frames clears, each further CLEAR frame
+      is answered TARGET GALLERY_REID; nothing carries past it. `gallery_reid_log[]`: `{track_id, episode, evaluated,
+      clear, against, hold{reason: n}, resolved_frame, margins, answered}`.
+  - Clean crop features (`spana.identity.confirmation.CropFeatures`, `.npz`, `spana.crop_features` 1.0.0 meta with
+    tracks_sha256 and re-ID model): per (frame, track) of an ACTIVE, uncontested, non-multi-body observation with no
+    other detection above `reid.clean_max_iou` and >= `reid.min_crop_height_px` tall: torso colour and (with
+    `--reid`) the pinned re-ID embedding. CLI `python -m spana.cli crops --video --tracks --detections --config
+    [--reid] --out X.crops.npz`; `spana.cli target ... [--crops X.crops.npz] [--claims OTHER.target.json ...]`.
   - Review list (not part of the document): `spana.identity.follower.review_list(gaps, cfg)` returns the gaps
     lasting at least `target.review_min_gap_s` (`gap_duration_s` = end_t - start_t); 0 lists every gap.
   - `gaps` (2.1.0): the review timeline. Maximal runs of frames without a TARGET answer:
@@ -243,6 +296,12 @@ Follow the user's chosen player through a clip, and say so when unsure.
   - `--simulate-user` confirms every candidate judged right.
   - `--simulate-reviewer` works through the gap list. Per gap: confirm a right offer or reject a wrong one,
     otherwise tap the player on the gap's first labelled frame. Reports the actions taken (effort).
+  - `--confirmations` (2.10.0): a reviewer tap on an IDENTITY_UNCERTAIN track issues `player_confirmation` IS_ME over
+    the following labelled frames of the gap where the track is still this player's (same episode); other players'
+    CERTAIN answers (their reviewer run without confirmations) are the claims; a CONFLICT is retried once.
+    `--review-sim-config config/review_sim.yaml` adds a seeded share of wrong taps (another player's track, rivals
+    first); `--crops` loads `<tracks>.crops.npz`. Reports confirmations issued / applied / conflict by reason /
+    wrong / blocked / through and an undo check per player.
 
 - Review video (for people, not an input to any layer): `tools/target_render.py`.
   - Usage: `--video --tracks --target --out`, H.264 via ffmpeg.

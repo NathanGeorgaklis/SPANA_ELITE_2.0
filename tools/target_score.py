@@ -27,18 +27,31 @@ on that frame: an offered box that is clearly another player is wrong even while
 every candidate judged right, and nothing else. --simulate-reviewer works through the gap list after the match
 (decision 2026-11-16): per gap, confirm a right offer / reject a wrong one, else tap the player on the gap's first
 labelled frame where they have an unambiguous track; it reports the actions taken (effort) next to the times. Run with relink_auto_confirm true (config) to see automatic promotion.
+--confirmations (with --simulate-reviewer; spana.target 2.10.0): a reviewer tap on a track that is IDENTITY_UNCERTAIN
+on that frame issues a player_confirmation IS_ME instead of a re-selection, covering the following labelled frames of
+the same gap where the track is still this player's, in the same episode. --review-sim-config sets a share of wrong
+taps (config/review_sim.yaml: another labelled player's track, the tapped track's rivals first). The other players'
+CERTAIN answers (their reviewer run without confirmations) are the other identities' claims for the conflict rule; a
+confirmation in CONFLICT is retried once on a later labelled frame of the same gap (re-confirmation). --crops loads
+each clip's clean crop features (<tracks>.crops.npz, spana.cli crops) for the gallery / appearance conflicts / gallery
+re-ID. Reports confirmations issued / applied / conflict (by reason) / wrong / wrong blocked / wrong through, and an
+undo check per player (confirm then revoke == no confirmation, every output).
 Pooled per clip = sums over its players. DEV labels only (refused otherwise); EVAL is never read.
 """
 from __future__ import annotations
 
 import argparse
 import dataclasses
+import math
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+import hashlib
+
 from spana.artifacts import read_json, sha256_doc, validate_track_embeddings, validate_tracks, write_json_atomic
-from spana.config import load_config
+from spana.config import load_config, typed_from_dict
+from spana.identity.confirmation import CropFeatures, claims_from_targets, player_confirmation, revoke_confirmation
 from spana.evaluation import NESTED_V2, _match
 from spana.artifacts import gaps_of
 from spana.identity.follower import (Selection, confirm_candidate, confirm_relink, follow, reject_candidate, reselect,
@@ -46,6 +59,43 @@ from spana.identity.follower import (Selection, confirm_candidate, confirm_relin
 from tools.benchmark import IGNORE_IOA, _ioa, load_frozen
 
 RULE = NESTED_V2
+OUTPUTS = ("track_ends", "relinks", "reentry_log", "gallery", "gallery_reid_log")
+
+
+@dataclasses.dataclass(frozen=True)
+class ReviewSimConfig:
+    schema_version: str
+    wrong_is_me_rate: float      # share of confirmation taps that land on another player's track
+    seed: int
+
+
+def load_review_sim(path) -> ReviewSimConfig:
+    import yaml
+    c = typed_from_dict(ReviewSimConfig, yaml.safe_load(Path(path).read_text()), "review_sim")
+    if c.schema_version != "1.0.0" or not 0.0 <= c.wrong_is_me_rate <= 1.0:
+        raise SystemExit("review_sim config: schema_version 1.0.0 and wrong_is_me_rate in [0, 1]")
+    return c
+
+
+def draw(sim: ReviewSimConfig, *key) -> float:
+    """Deterministic uniform [0, 1) for one tap."""
+    h = hashlib.sha256("|".join(str(k) for k in (sim.seed,) + key).encode()).hexdigest()
+    return int(h[:12], 16) / float(16 ** 12)
+
+
+def wrong_track(tracks_frame: dict, attr_f: dict, hit: str, pid: str) -> Optional[str]:
+    """The track a mistaken tap lands on: another labelled player's observed track on that frame, the tapped track's
+    identity rivals first, else the nearest box (centre distance)."""
+    live = {t["track_id"]: t for t in tracks_frame["tracks"]}
+    others = [tid for tid, (p, amb) in attr_f.items() if p is not None and p != pid and not amb and tid != hit]
+    if not others:
+        return None
+    rivals = [t for t in live[hit]["identity_rivals"] if t in others]
+    if rivals:
+        return sorted(rivals)[0]
+    hb = live[hit]["box"]
+    c = lambda b: ((b[0] + b[2]) / 2, (b[1] + b[3]) / 2)     # noqa: E731
+    return min(others, key=lambda t: (math.dist(c(live[t]["box"]), c(hb)), t))
 COUNTS = ("correct", "wrong", "unverified", "candidate_correct", "candidate_wrong", "candidate_unverified", "abstain",
           "lost")
 
@@ -130,18 +180,53 @@ def offer_verdict(r: dict, gt, attr, pid: str) -> str:
     return "undecided"
 
 
+def confirmation_end(tracks_doc: dict, gt, attr, pid: str, tid: str, f: int, g: dict) -> int:
+    """Last labelled frame of gap g, from f on, up to which the reviewer can vouch for tid: every labelled frame in
+    between attributes tid to this player unambiguously, and tid stays live in the same uncertainty episode."""
+    trk = {fr["frame"]: {t["track_id"]: t for t in fr["tracks"]} for fr in tracks_doc["frames"]}
+    eps = trk[f][tid]["uncertain_episodes"]
+    end = f
+    for fr in tracks_doc["frames"]:
+        x = fr["frame"]
+        if x <= f:
+            continue
+        if x > g["end_frame"] or tid not in trk[x] or trk[x][tid]["uncertain_episodes"] != eps:
+            break
+        if x in attr:
+            p, amb = attr[x].get(tid, (None, False))
+            if p != pid or amb:
+                break
+            end = x
+    return end
+
+
 def simulated_review(tracks_doc: dict, sel: Selection, cfg, gt, attr, pid: str, max_steps: int = 1000,
-                     emb: Optional[dict] = None) -> List[dict]:
+                     emb: Optional[dict] = None, confirm: bool = False, sim: Optional[ReviewSimConfig] = None,
+                     clip: str = "", crops: Optional[CropFeatures] = None, claims: Optional[dict] = None,
+                     stats: Optional[dict] = None) -> List[dict]:
     """An after-match reviewer working through the gap list (decision 2026-11-16), knowing the truth: for each gap in
     turn, it confirms an offer judged right or rejects one judged wrong (on the offer's first frame); otherwise it taps
     the player on the gap's first labelled frame where they have an unambiguous track. Best case of the review UI.
     Only the gaps the review list shows (target.review_min_gap_s) are worked through."""
     actions: List[dict] = []
     handled: set = set()
+    retried: set = set()
+    trk = {fr["frame"]: fr for fr in tracks_doc["frames"]}
+    wrong_ids: set = set()
+    gap_of: Dict[str, int] = {}            # confirmation id -> start frame of the gap it was made in
     for _ in range(max_steps):
-        frames, info = follow(tracks_doc, sel, cfg, actions, emb)
+        frames, info = follow(tracks_doc, sel, cfg, actions, emb, crops, claims)
+        last = actions[-1] if actions else None
+        if confirm and last is not None and last["kind"] == "player_confirmation":
+            e = next(x for x in info["confirmation_log"] if x["confirmation_id"] == last["confirmation_id"])
+            gs = gap_of[last["confirmation_id"]]
+            if e["status"] == "CONFLICT" and gs not in retried:     # surfaced for re-confirmation: once more
+                retried.add(gs)
+                handled.discard(gs)
         todo = [g for g in review_list(gaps_of(frames, info["relinks"]), cfg) if g["start_frame"] not in handled]
         if not todo:
+            if stats is not None:
+                stats["wrong_ids"] = wrong_ids
             return actions
         g = todo[0]
         handled.add(g["start_frame"])
@@ -159,21 +244,59 @@ def simulated_review(tracks_doc: dict, sel: Selection, cfg, gt, attr, pid: str, 
                 break
         if act is None:
             ans = {a["frame"]: a for a in frames}
-            taken = {a["frame"] for a in actions if a["kind"] in ("confirm_relink", "track_at_frame")}
+            taken = {a["frame"] for a in actions if a["kind"] in ("confirm_relink", "track_at_frame",
+                                                                  "player_confirmation")}
             for f in gt.frames:
                 if not (g["start_frame"] <= f <= g["end_frame"]) or pid not in gt.players.get(f, {}) or f in taken:
                     continue
                 hit = [tid for tid, (p, amb) in attr[f].items() if p == pid and not amb]
                 if hit and not (ans[f]["track_id"] == hit[0] and ans[f]["reason"] == "NOT_CONFIRMED"):
-                    act = reselect(hit[0], f)
+                    tr = next(t for t in trk[f]["tracks"] if t["track_id"] == hit[0])
+                    if confirm and tr["identity"] != "CERTAIN":
+                        cid = f"{pid}@{f}#{len(actions)}"
+                        tid, f_end = hit[0], confirmation_end(tracks_doc, gt, attr, pid, hit[0], f, g)
+                        if sim is not None and draw(sim, clip, pid, f, len(actions)) < sim.wrong_is_me_rate:
+                            w = wrong_track(trk[f], attr[f], hit[0], pid)
+                            if w is not None:
+                                tid, f_end = w, f
+                                wrong_ids.add(cid)
+                        act = player_confirmation(cid, tid, f, "IS_ME", f_end)
+                        gap_of[cid] = g["start_frame"]
+                    else:
+                        act = reselect(hit[0], f)
                     break
         if act is not None:
             actions.append(act)
     raise RuntimeError(f"simulated review did not settle for player {pid}")
 
 
+def same_outputs(a: Tuple[List[dict], dict], b: Tuple[List[dict], dict]) -> bool:
+    return a[0] == b[0] and all(a[1][k] == b[1][k] for k in OUTPUTS) and \
+        gaps_of(a[0], a[1]["relinks"]) == gaps_of(b[0], b[1]["relinks"])
+
+
+def undo_check(tracks_doc: dict, sel: Selection, cfg, actions: List[dict], emb, crops, claims) -> dict:
+    """Confirm then revoke == no confirmation, on every output: (a) the reviewer's confirmations alone vs no action;
+    (b) the full reviewer action list + revocations vs the list without the confirmations (when that list applies)."""
+    confs = [a for a in actions if a["kind"] == "player_confirmation"]
+    if not confs:
+        return {"confirmations": 0}
+    revs = [revoke_confirmation(a["confirmation_id"]) for a in confs]
+    a_ok = same_outputs(follow(tracks_doc, sel, cfg, confs + revs, emb, crops, claims),
+                        follow(tracks_doc, sel, cfg, [], emb, crops, claims))
+    rest = [a for a in actions if a["kind"] != "player_confirmation"]
+    try:
+        ref = follow(tracks_doc, sel, cfg, rest, emb, crops, claims)
+    except Exception:              # an action that only applied because of a confirmation: (b) not comparable
+        ref = None
+    b_ok = None if ref is None else same_outputs(follow(tracks_doc, sel, cfg, actions + revs, emb, crops, claims), ref)
+    return {"confirmations": len(confs), "alone_equal": a_ok, "full_equal": b_ok}
+
+
 def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Path], clip: str,
-                 simulate_user: bool = False, simulate_reviewer: bool = False, emb: Optional[dict] = None) -> dict:
+                 simulate_user: bool = False, simulate_reviewer: bool = False, emb: Optional[dict] = None,
+                 confirm: bool = False, sim: Optional[ReviewSimConfig] = None, crops: Optional[CropFeatures] = None,
+                 claims: Optional[dict] = None) -> dict:
     visible = [f for f in gt.frames if pid in gt.players.get(f, {})]
     sel = first_selection(pid, gt, attr)
     row = {"player": pid, "labelled_frames": len(visible), "first_labelled_frame": visible[0] if visible else None}
@@ -181,9 +304,11 @@ def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Pa
         return {**row, "selected": False}
     n0, f0, tid = sel
     selection = Selection.track_at_frame(tid, f0)
+    stats: dict = {}
     confs = simulated_confirmations(tracks_doc, selection, cfg, gt, attr, pid, emb) if simulate_user else \
-        simulated_review(tracks_doc, selection, cfg, gt, attr, pid, emb=emb) if simulate_reviewer else []
-    doc = target_document(tracks_doc, selection, cfg, ["tools.target_score", clip, pid], confs, emb)
+        simulated_review(tracks_doc, selection, cfg, gt, attr, pid, emb=emb, confirm=confirm, sim=sim, clip=clip,
+                         crops=crops, claims=claims, stats=stats) if simulate_reviewer else []
+    doc = target_document(tracks_doc, selection, cfg, ["tools.target_score", clip, pid], confs, emb, crops, claims)
     if art_dir is not None:
         write_json_atomic(art_dir / f"{clip}.player{pid}.target.json", doc)
     ans = {fr["frame"]: fr for fr in doc["frames"]}
@@ -228,10 +353,45 @@ def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Pa
             "candidates_while_absent_on_other_player": absent_other_cand,
             "track_ends": doc["track_ends"], "confirmations": len(confs), "relinks": relinks,
             "actions": {k: sum(a["kind"] == k for a in confs) for k in
-                        ("confirm_candidate", "confirm_relink", "reject_candidate", "track_at_frame")},
+                        ("confirm_candidate", "confirm_relink", "reject_candidate", "track_at_frame",
+                         "player_confirmation")},
             "followed_s": round(doc["frames"][-1]["t"] - doc["frames"][0]["t"], 4),
             "gaps": len(doc["gaps"]),
+            "confirmation_stats": confirmation_stats(doc, attr, pid, stats.get("wrong_ids", set())),
+            "undo": undo_check(tracks_doc, selection, cfg, confs, emb, crops, claims) if confirm else None,
+            "gallery_crops": len(doc["gallery"]["human_confirmed"]),
+            "gallery_reid": [r for r in doc["gallery_reid_log"]],
+            "answers_by_reason": {r: sum(f["reason"] == r for f in doc["frames"] if f["frame"] in attr)
+                                  for r in ("PLAYER_CONFIRMED", "GALLERY_REID", "PLAYER_REJECTED",
+                                            "CONFIRMATION_CONFLICT")},
             "target_sha256": sha256_doc(doc), "events": events}
+
+
+def confirmation_stats(doc: dict, attr, pid: str, wrong_ids: set) -> dict:
+    """Issued / applied / conflict (by reason) player confirmations; wrong = the confirmed track is another labelled
+    player on the confirmation's frame (or a simulated wrong tap); blocked = wrong and in CONFLICT, through = wrong and
+    APPLIED; correct_blocked = right and in CONFLICT."""
+    out = {"issued": 0, "applied": 0, "conflict": 0, "reasons": {}, "wrong": 0, "wrong_blocked": 0,
+           "wrong_through": 0, "correct_blocked": 0, "wrong_events": []}
+    for e in doc["confirmation_log"]:
+        if e["status"] == "REVOKED":
+            continue
+        rec = e["record"]
+        out["issued"] += 1
+        out["applied" if e["status"] == "APPLIED" else "conflict"] += 1
+        for c in e["conflicts"]:
+            out["reasons"][c["reason"]] = out["reasons"].get(c["reason"], 0) + 1
+        p, amb = attr.get(rec["frame"], {}).get(rec["track_id"], (None, False))
+        wrong = rec["confirmation_id"] in wrong_ids or (p is not None and p != pid and not amb)
+        if wrong:
+            out["wrong"] += 1
+            out["wrong_blocked" if e["status"] == "CONFLICT" else "wrong_through"] += 1
+            out["wrong_events"].append({"confirmation_id": rec["confirmation_id"], "frame": rec["frame"],
+                                        "track_id": rec["track_id"], "attributed_to": p, "status": e["status"],
+                                        "reasons": [c["reason"] for c in e["conflicts"]]})
+        elif e["status"] == "CONFLICT":
+            out["correct_blocked"] += 1
+    return out
 
 
 def pct(c: Dict[str, int]) -> dict:
@@ -254,7 +414,8 @@ def relink_totals(players: List[dict], kind: Optional[str] = None) -> dict:
 
 
 def score_clip(label_dir: Path, tracks_path: Path, cfg, art_dir: Optional[Path], simulate_user: bool = False,
-               simulate_reviewer: bool = False, embeddings_path: Optional[Path] = None) -> dict:
+               simulate_reviewer: bool = False, embeddings_path: Optional[Path] = None, confirm: bool = False,
+               sim: Optional[ReviewSimConfig] = None, use_crops: bool = False) -> dict:
     frozen, gt = load_frozen(label_dir)
     tdoc = read_json(tracks_path)
     validate_tracks(tdoc)
@@ -267,8 +428,25 @@ def score_clip(label_dir: Path, tracks_path: Path, cfg, art_dir: Optional[Path],
     attr = attributions(gt, tdoc)
     ids = sorted({p for f in gt.frames for p in gt.players.get(f, {})}, key=int)
     clip = frozen["clip"]["name"]
-    players = [score_player(p, gt, attr, tdoc, cfg, art_dir, clip, simulate_user, simulate_reviewer, emb)
-               for p in ids]
+    crops = None
+    if use_crops:
+        crops = CropFeatures.load(tracks_path.with_name(tracks_path.name.replace(".trk.json", ".crops.npz")),
+                                  sha256_doc(tdoc))
+    claims_of: Dict[str, dict] = {}
+    if confirm:
+        # other identities' CERTAIN answers: each player's reviewer run WITHOUT confirmations (taps only)
+        base: Dict[str, dict] = {}
+        for p in ids:
+            s = first_selection(p, gt, attr)
+            if s is None:
+                continue
+            sel_p = Selection.track_at_frame(s[2], s[1])
+            acts = simulated_review(tdoc, sel_p, cfg, gt, attr, p, emb=emb)
+            base[p] = {"frames": follow(tdoc, sel_p, cfg, acts, emb)[0]}
+        allc = claims_from_targets(base.items())
+        claims_of = {p: {q: c for q, c in allc.items() if q != p} for p in ids}
+    players = [score_player(p, gt, attr, tdoc, cfg, art_dir, clip, simulate_user, simulate_reviewer, emb, confirm,
+                            sim, crops, claims_of.get(p)) for p in ids]
     sel = [p for p in players if p["selected"]]
     pooled = {k: sum(p[k] for p in sel) for k in COUNTS}
     return {"clip": clip, "labels": {"dir": str(label_dir), "gt_sha256": frozen["gt_sha256"],
@@ -286,7 +464,20 @@ def score_clip(label_dir: Path, tracks_path: Path, cfg, art_dir: Optional[Path],
                        "frames_before_selection": sum(p["frames_before_selection"] for p in sel),
                        "relinks": relink_totals(sel),
                        "actions": {k: sum(p["actions"][k] for p in sel) for k in sel[0]["actions"]} if sel else {},
-                       "followed_s": round(sum(p["followed_s"] for p in sel), 4)},
+                       "followed_s": round(sum(p["followed_s"] for p in sel), 4),
+                       "confirmations": {k: sum(p["confirmation_stats"][k] for p in sel)
+                                         for k in ("issued", "applied", "conflict", "wrong", "wrong_blocked",
+                                                   "wrong_through", "correct_blocked")},
+                       "conflict_reasons": {r: sum(p["confirmation_stats"]["reasons"].get(r, 0) for p in sel)
+                                            for r in sorted({r for p in sel for r in p["confirmation_stats"]["reasons"]})},
+                       "undo": {"players_checked": sum(1 for p in sel if p["undo"] and p["undo"]["confirmations"]),
+                                "alone_equal": sum(1 for p in sel if p["undo"] and p["undo"].get("alone_equal")),
+                                "full_equal": sum(1 for p in sel if p["undo"] and p["undo"].get("full_equal")),
+                                "full_not_comparable": sum(1 for p in sel if p["undo"] and p["undo"]["confirmations"]
+                                                           and p["undo"].get("full_equal") is None)},
+                       "gallery_crops": sum(p["gallery_crops"] for p in sel),
+                       "answers_by_reason": {r: sum(p["answers_by_reason"][r] for p in sel)
+                                             for r in sel[0]["answers_by_reason"]} if sel else {}},
             "per_player": players}
 
 
@@ -301,6 +492,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     p.add_argument("--simulate-user", action="store_true",
                    help="confirm each candidate that is the right player (first labelled candidate frame, NESTED_V2) "
                         "on its first frame; confirm nothing else")
+    p.add_argument("--confirmations", action="store_true",
+                   help="with --simulate-reviewer: taps on IDENTITY_UNCERTAIN tracks issue player_confirmation IS_ME")
+    p.add_argument("--review-sim-config", default=None,
+                   help="config/review_sim.yaml: share of wrong IS_ME taps (seeded); omit for always-correct taps")
+    p.add_argument("--crops", action="store_true",
+                   help="load each clip's clean crop features <tracks>.crops.npz (spana.cli crops)")
     p.add_argument("--simulate-reviewer", action="store_true",
                    help="after-match review of the gap list: confirm right offers, reject wrong ones, otherwise tap "
                         "the player on the gap's first labelled frame where they have a track (best case)")
@@ -311,11 +508,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         raise SystemExit("choose --simulate-user or --simulate-reviewer, not both")
     if any(len(c) not in (2, 3) for c in a.clip):
         raise SystemExit("--clip takes LABELS_DIR TRACKS_JSON [EMBEDDINGS_JSON]")
+    if a.confirmations and not a.simulate_reviewer:
+        raise SystemExit("--confirmations needs --simulate-reviewer")
+    sim = load_review_sim(a.review_sim_config) if a.review_sim_config else None
     clips = [score_clip(Path(c[0]), Path(c[1]), cfg, art, a.simulate_user, a.simulate_reviewer,
-                        Path(c[2]) if len(c) == 3 else None) for c in a.clip]
+                        Path(c[2]) if len(c) == 3 else None, a.confirmations, sim, a.crops) for c in a.clip]
     report = {"tool": "tools.target_score", "match_rule": RULE.name, "config_sha256": cfg.sha256(),
               "target_config": dataclasses.asdict(cfg.target), "simulate_user": a.simulate_user,
-              "simulate_reviewer": a.simulate_reviewer, "clips": clips}
+              "simulate_reviewer": a.simulate_reviewer, "confirmations": a.confirmations,
+              "review_sim": None if sim is None else dataclasses.asdict(sim), "crops": a.crops, "clips": clips}
     write_json_atomic(a.out, report)
     for c in clips:
         print(c["clip"], {k: c["pooled"][k] for k in ("correct_time", "wrong_time", "unverified_time",

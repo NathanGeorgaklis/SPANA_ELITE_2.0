@@ -1,0 +1,8 @@
+# Simulated after-match reviewer (tools/target_score.py --confirmations), DEV measurement only; never read by the
+# product. A reviewer tap on an IDENTITY_UNCERTAIN track issues a player_confirmation IS_ME (spana.target 2.10.0).
+# wrong_is_me_rate: share of those taps that land on another labelled player's observed track instead (preferring the
+# tapped track's identity rivals, else the nearest box): a player mistaking a rival for themself. 0 = always right.
+# A prior for the measurement (CODE TASK: "e.g. 5%"), not fitted. seed fixes which taps go wrong (sha256 draw).
+schema_version: "1.0.0"
+wrong_is_me_rate: 0.05
+seed: 20261120
