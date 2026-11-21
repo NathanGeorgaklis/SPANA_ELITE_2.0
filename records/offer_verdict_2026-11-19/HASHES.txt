@@ -1,0 +1,8 @@
+# sha256. Files on Nathan's Mac under ~/spana-continuity-run/. Code 3502196 (code21/). Inputs out/F0x_mdefault.trk.json
+# and .emb.json (records/reentry_reid_offers_2026-11-18/HASHES.txt).
+2f631fc5234480d93b49701680ae9c992b846731ab36b00e59bbcb509b303578  run_verdict.sh
+2996227c2a286271ac97eb6cba659842741d86c0d7979ded869f06a636a946cc  vf_summary.py
+0c50aa961384990d4adf8e359955d6ab4e35618eb5eb9a16933caeaa9c652462  out/target_vf_main_default.json
+41ee935a5c038efcd64be040103901e65293d164da03860f02081d25033ee6e2  out/target_vf_main_reviewer.json
+00e0acdbc514777459aeb4e81f7442cade8d27d15e68a881b04b05947304eca4  out/target_vf_noreid_default.json
+08a5685502b8556bd1f65ce41f18fdcb0945f016d8b3530555512f633a341905  out/target_vf_noreid_reviewer.json

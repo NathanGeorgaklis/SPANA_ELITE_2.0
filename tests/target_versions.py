@@ -3,7 +3,11 @@ from __future__ import annotations
 
 import copy
 
-ADDED = {"2.5.0": ("reentry_mutual", "reentry_position_weight"),
+ADDED = {"2.9.0": ("resume_after_reid",),
+         "2.8.0": ("offer_hold_s",),
+         "2.7.0": ("reentry_exit_edge", "reentry_exit_edge_max_frac"),
+         "2.6.0": ("reentry_signature", "reentry_wait_samples", "reentry_withdraw"),
+         "2.5.0": ("reentry_mutual", "reentry_position_weight"),
          "2.4.0": ("reentry_offer", "reentry_max_gap_s", "reentry_min_similarity", "reentry_min_margin"),
          "2.3.0": ("resume_after_doubt_resolved",), "2.2.0": ("tap_vouches_doubt",)}
 
@@ -11,11 +15,14 @@ ADDED = {"2.5.0": ("reentry_mutual", "reentry_position_weight"),
 def older(doc: dict, version: str) -> dict:
     """Drop the target_config keys, embeddings_sha256 and relink evidence kinds added after `version`."""
     d = copy.deepcopy(doc)
-    order = ["2.2.0", "2.3.0", "2.4.0", "2.5.0"]
+    order = ["2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"]
     for v in order:
         if v > version:
             for k in ADDED[v]:
                 d["target_config"].pop(k, None)
+    if version < "2.7.0":
+        for e in d.get("reentry_log", []):
+            e.pop("exit_excluded", None)
     if version < "2.5.0":
         d.pop("reentry_log", None)
         for r in d["relinks"]:

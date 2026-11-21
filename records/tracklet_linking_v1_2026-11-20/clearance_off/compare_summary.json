@@ -1,0 +1,782 @@
+{
+ "botsort": {
+  "following_default": {
+   "clips": {
+    "FRESH_02": {
+     "abstain": 15,
+     "actions": 0,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 718,
+     "followed_s": 203.8006,
+     "lost": 160,
+     "unverified": 49,
+     "wrong": 76,
+     "wrong_share": 0.0747
+    },
+    "FRESH_05": {
+     "abstain": 10,
+     "actions": 0,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 322,
+     "followed_s": 143.8,
+     "lost": 116,
+     "unverified": 2,
+     "wrong": 0,
+     "wrong_share": 0.0
+    },
+    "FRESH_07": {
+     "abstain": 18,
+     "actions": 0,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 949,
+     "followed_s": 246.6,
+     "lost": 81,
+     "unverified": 22,
+     "wrong": 135,
+     "wrong_share": 0.112
+    },
+    "FRESH_08": {
+     "abstain": 18,
+     "actions": 0,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 411,
+     "followed_s": 266.8,
+     "lost": 257,
+     "unverified": 27,
+     "wrong": 61,
+     "wrong_share": 0.0788
+    }
+   },
+   "pooled": {
+    "abstain": 61,
+    "actions": 0,
+    "actions_per_followed_min": 0.0,
+    "candidate_correct": 0,
+    "candidate_unverified": 0,
+    "candidate_wrong": 0,
+    "correct": 2400,
+    "correct_share": 0.6963,
+    "followed_min": 14.35,
+    "followed_s": 861.0006000000001,
+    "lost": 614,
+    "no_answer_share": 0.1958,
+    "scored": 3447,
+    "unverified": 100,
+    "wrong": 272,
+    "wrong_share": 0.0789
+   },
+   "simulate_reviewer": false
+  },
+  "following_reviewer": {
+   "clips": {
+    "FRESH_02": {
+     "abstain": 16,
+     "actions": 4,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 832,
+     "followed_s": 203.8006,
+     "lost": 24,
+     "unverified": 53,
+     "wrong": 93,
+     "wrong_share": 0.0914
+    },
+    "FRESH_05": {
+     "abstain": 12,
+     "actions": 7,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 435,
+     "followed_s": 143.8,
+     "lost": 0,
+     "unverified": 3,
+     "wrong": 0,
+     "wrong_share": 0.0
+    },
+    "FRESH_07": {
+     "abstain": 18,
+     "actions": 2,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 991,
+     "followed_s": 246.6,
+     "lost": 33,
+     "unverified": 28,
+     "wrong": 135,
+     "wrong_share": 0.112
+    },
+    "FRESH_08": {
+     "abstain": 19,
+     "actions": 13,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 587,
+     "followed_s": 266.8,
+     "lost": 38,
+     "unverified": 42,
+     "wrong": 88,
+     "wrong_share": 0.1137
+    }
+   },
+   "pooled": {
+    "abstain": 65,
+    "actions": 26,
+    "actions_per_followed_min": 1.81,
+    "candidate_correct": 0,
+    "candidate_unverified": 0,
+    "candidate_wrong": 0,
+    "correct": 2845,
+    "correct_share": 0.8254,
+    "followed_min": 14.35,
+    "followed_s": 861.0006000000001,
+    "lost": 95,
+    "no_answer_share": 0.0464,
+    "scored": 3447,
+    "unverified": 126,
+    "wrong": 316,
+    "wrong_share": 0.0917
+   },
+   "simulate_reviewer": true
+  },
+  "tracking": {
+   "clips": {
+    "FRESH_02": {
+     "flagged_transfers": 0,
+     "fragments_total": 9,
+     "id_switches": 9,
+     "identity_transfers": 5,
+     "track_coverage": 0.9666,
+     "unflagged_transfers": 5
+    },
+    "FRESH_05": {
+     "flagged_transfers": 0,
+     "fragments_total": 7,
+     "id_switches": 7,
+     "identity_transfers": 0,
+     "track_coverage": 0.9978,
+     "unflagged_transfers": 0
+    },
+    "FRESH_07": {
+     "flagged_transfers": 0,
+     "fragments_total": 7,
+     "id_switches": 10,
+     "identity_transfers": 8,
+     "track_coverage": 0.9628,
+     "unflagged_transfers": 8
+    },
+    "FRESH_08": {
+     "flagged_transfers": 0,
+     "fragments_total": 19,
+     "id_switches": 19,
+     "identity_transfers": 7,
+     "track_coverage": 0.9426,
+     "unflagged_transfers": 7
+    }
+   },
+   "pooled": {
+    "flagged_transfers": 0,
+    "fragments_total": 42,
+    "id_switches": 45,
+    "identity_transfers": 20,
+    "unflagged_transfers": 20
+   }
+  }
+ },
+ "bytetrack": {
+  "following_default": {
+   "clips": {
+    "FRESH_02": {
+     "abstain": 14,
+     "actions": 0,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 717,
+     "followed_s": 203.8006,
+     "lost": 189,
+     "unverified": 40,
+     "wrong": 58,
+     "wrong_share": 0.057
+    },
+    "FRESH_05": {
+     "abstain": 10,
+     "actions": 0,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 322,
+     "followed_s": 143.8,
+     "lost": 116,
+     "unverified": 2,
+     "wrong": 0,
+     "wrong_share": 0.0
+    },
+    "FRESH_07": {
+     "abstain": 18,
+     "actions": 0,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 874,
+     "followed_s": 246.6,
+     "lost": 132,
+     "unverified": 22,
+     "wrong": 159,
+     "wrong_share": 0.132
+    },
+    "FRESH_08": {
+     "abstain": 18,
+     "actions": 0,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 382,
+     "followed_s": 267.2,
+     "lost": 359,
+     "unverified": 17,
+     "wrong": 0,
+     "wrong_share": 0.0
+    }
+   },
+   "pooled": {
+    "abstain": 60,
+    "actions": 0,
+    "actions_per_followed_min": 0.0,
+    "candidate_correct": 0,
+    "candidate_unverified": 0,
+    "candidate_wrong": 0,
+    "correct": 2295,
+    "correct_share": 0.6654,
+    "followed_min": 14.36,
+    "followed_s": 861.4005999999999,
+    "lost": 796,
+    "no_answer_share": 0.2482,
+    "scored": 3449,
+    "unverified": 81,
+    "wrong": 217,
+    "wrong_share": 0.0629
+   },
+   "simulate_reviewer": false
+  },
+  "following_reviewer": {
+   "clips": {
+    "FRESH_02": {
+     "abstain": 14,
+     "actions": 5,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 840,
+     "followed_s": 203.8006,
+     "lost": 24,
+     "unverified": 47,
+     "wrong": 93,
+     "wrong_share": 0.0914
+    },
+    "FRESH_05": {
+     "abstain": 10,
+     "actions": 7,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 437,
+     "followed_s": 143.8,
+     "lost": 0,
+     "unverified": 3,
+     "wrong": 0,
+     "wrong_share": 0.0
+    },
+    "FRESH_07": {
+     "abstain": 18,
+     "actions": 4,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 974,
+     "followed_s": 246.6,
+     "lost": 26,
+     "unverified": 28,
+     "wrong": 159,
+     "wrong_share": 0.132
+    },
+    "FRESH_08": {
+     "abstain": 22,
+     "actions": 16,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 586,
+     "followed_s": 267.2,
+     "lost": 97,
+     "unverified": 41,
+     "wrong": 30,
+     "wrong_share": 0.0387
+    }
+   },
+   "pooled": {
+    "abstain": 64,
+    "actions": 32,
+    "actions_per_followed_min": 2.23,
+    "candidate_correct": 0,
+    "candidate_unverified": 0,
+    "candidate_wrong": 0,
+    "correct": 2837,
+    "correct_share": 0.8226,
+    "followed_min": 14.36,
+    "followed_s": 861.4005999999999,
+    "lost": 147,
+    "no_answer_share": 0.0612,
+    "scored": 3449,
+    "unverified": 119,
+    "wrong": 282,
+    "wrong_share": 0.0818
+   },
+   "simulate_reviewer": true
+  },
+  "tracking": {
+   "clips": {
+    "FRESH_02": {
+     "flagged_transfers": 0,
+     "fragments_total": 9,
+     "id_switches": 10,
+     "identity_transfers": 5,
+     "track_coverage": 0.9735,
+     "unflagged_transfers": 5
+    },
+    "FRESH_05": {
+     "flagged_transfers": 0,
+     "fragments_total": 7,
+     "id_switches": 7,
+     "identity_transfers": 0,
+     "track_coverage": 0.9978,
+     "unflagged_transfers": 0
+    },
+    "FRESH_07": {
+     "flagged_transfers": 0,
+     "fragments_total": 11,
+     "id_switches": 12,
+     "identity_transfers": 6,
+     "track_coverage": 0.9703,
+     "unflagged_transfers": 6
+    },
+    "FRESH_08": {
+     "flagged_transfers": 0,
+     "fragments_total": 22,
+     "id_switches": 23,
+     "identity_transfers": 3,
+     "track_coverage": 0.9362,
+     "unflagged_transfers": 3
+    }
+   },
+   "pooled": {
+    "flagged_transfers": 0,
+    "fragments_total": 49,
+    "id_switches": 52,
+    "identity_transfers": 14,
+    "unflagged_transfers": 14
+   }
+  }
+ },
+ "ours": {
+  "following_default": {
+   "clips": {
+    "FRESH_02": {
+     "abstain": 139,
+     "actions": 0,
+     "candidate_correct": 37,
+     "candidate_unverified": 3,
+     "candidate_wrong": 1,
+     "correct": 491,
+     "followed_s": 203.8006,
+     "lost": 332,
+     "unverified": 15,
+     "wrong": 0,
+     "wrong_share": 0.0
+    },
+    "FRESH_05": {
+     "abstain": 11,
+     "actions": 0,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 322,
+     "followed_s": 143.8,
+     "lost": 116,
+     "unverified": 1,
+     "wrong": 0,
+     "wrong_share": 0.0
+    },
+    "FRESH_07": {
+     "abstain": 106,
+     "actions": 0,
+     "candidate_correct": 29,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 785,
+     "followed_s": 246.6,
+     "lost": 276,
+     "unverified": 8,
+     "wrong": 1,
+     "wrong_share": 0.0008
+    },
+    "FRESH_08": {
+     "abstain": 73,
+     "actions": 0,
+     "candidate_correct": 81,
+     "candidate_unverified": 1,
+     "candidate_wrong": 0,
+     "correct": 249,
+     "followed_s": 267.2,
+     "lost": 367,
+     "unverified": 5,
+     "wrong": 0,
+     "wrong_share": 0.0
+    }
+   },
+   "pooled": {
+    "abstain": 329,
+    "actions": 0,
+    "actions_per_followed_min": 0.0,
+    "candidate_correct": 147,
+    "candidate_unverified": 4,
+    "candidate_wrong": 1,
+    "correct": 1847,
+    "correct_share": 0.5355,
+    "followed_min": 14.36,
+    "followed_s": 861.4005999999999,
+    "lost": 1091,
+    "no_answer_share": 0.4117,
+    "scored": 3449,
+    "unverified": 29,
+    "wrong": 1,
+    "wrong_share": 0.0003
+   },
+   "simulate_reviewer": false
+  },
+  "following_reviewer": {
+   "clips": {
+    "FRESH_02": {
+     "abstain": 148,
+     "actions": 18,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 781,
+     "followed_s": 203.8006,
+     "lost": 67,
+     "unverified": 21,
+     "wrong": 1,
+     "wrong_share": 0.001
+    },
+    "FRESH_05": {
+     "abstain": 14,
+     "actions": 7,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 434,
+     "followed_s": 143.8,
+     "lost": 0,
+     "unverified": 2,
+     "wrong": 0,
+     "wrong_share": 0.0
+    },
+    "FRESH_07": {
+     "abstain": 140,
+     "actions": 20,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 943,
+     "followed_s": 246.6,
+     "lost": 112,
+     "unverified": 9,
+     "wrong": 1,
+     "wrong_share": 0.0008
+    },
+    "FRESH_08": {
+     "abstain": 133,
+     "actions": 34,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 544,
+     "followed_s": 267.2,
+     "lost": 91,
+     "unverified": 8,
+     "wrong": 0,
+     "wrong_share": 0.0
+    }
+   },
+   "pooled": {
+    "abstain": 435,
+    "actions": 79,
+    "actions_per_followed_min": 5.5,
+    "candidate_correct": 0,
+    "candidate_unverified": 0,
+    "candidate_wrong": 0,
+    "correct": 2702,
+    "correct_share": 0.7834,
+    "followed_min": 14.36,
+    "followed_s": 861.4005999999999,
+    "lost": 270,
+    "no_answer_share": 0.2044,
+    "scored": 3449,
+    "unverified": 40,
+    "wrong": 2,
+    "wrong_share": 0.0006
+   },
+   "simulate_reviewer": true
+  },
+  "tracking": {
+   "clips": {
+    "FRESH_02": {
+     "flagged_transfers": 3,
+     "fragments_total": 23,
+     "id_switches": 23,
+     "identity_transfers": 3,
+     "track_coverage": 0.9686,
+     "unflagged_transfers": 0
+    },
+    "FRESH_05": {
+     "flagged_transfers": 0,
+     "fragments_total": 7,
+     "id_switches": 7,
+     "identity_transfers": 0,
+     "track_coverage": 0.9978,
+     "unflagged_transfers": 0
+    },
+    "FRESH_07": {
+     "flagged_transfers": 3,
+     "fragments_total": 28,
+     "id_switches": 29,
+     "identity_transfers": 3,
+     "track_coverage": 0.967,
+     "unflagged_transfers": 0
+    },
+    "FRESH_08": {
+     "flagged_transfers": 1,
+     "fragments_total": 47,
+     "id_switches": 48,
+     "identity_transfers": 1,
+     "track_coverage": 0.9426,
+     "unflagged_transfers": 0
+    }
+   },
+   "pooled": {
+    "flagged_transfers": 7,
+    "fragments_total": 105,
+    "id_switches": 107,
+    "identity_transfers": 7,
+    "unflagged_transfers": 0
+   }
+  }
+ },
+ "ours_linked": {
+  "following_default": {
+   "clips": {
+    "FRESH_02": {
+     "abstain": 143,
+     "actions": 0,
+     "candidate_correct": 29,
+     "candidate_unverified": 2,
+     "candidate_wrong": 2,
+     "correct": 527,
+     "followed_s": 203.8006,
+     "lost": 299,
+     "unverified": 16,
+     "wrong": 0,
+     "wrong_share": 0.0
+    },
+    "FRESH_05": {
+     "abstain": 11,
+     "actions": 0,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 322,
+     "followed_s": 143.8,
+     "lost": 116,
+     "unverified": 1,
+     "wrong": 0,
+     "wrong_share": 0.0
+    },
+    "FRESH_07": {
+     "abstain": 113,
+     "actions": 0,
+     "candidate_correct": 1,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 875,
+     "followed_s": 246.6,
+     "lost": 207,
+     "unverified": 8,
+     "wrong": 1,
+     "wrong_share": 0.0008
+    },
+    "FRESH_08": {
+     "abstain": 95,
+     "actions": 0,
+     "candidate_correct": 27,
+     "candidate_unverified": 1,
+     "candidate_wrong": 0,
+     "correct": 365,
+     "followed_s": 267.2,
+     "lost": 282,
+     "unverified": 6,
+     "wrong": 0,
+     "wrong_share": 0.0
+    }
+   },
+   "pooled": {
+    "abstain": 362,
+    "actions": 0,
+    "actions_per_followed_min": 0.0,
+    "candidate_correct": 57,
+    "candidate_unverified": 3,
+    "candidate_wrong": 2,
+    "correct": 2089,
+    "correct_share": 0.6057,
+    "followed_min": 14.36,
+    "followed_s": 861.4005999999999,
+    "lost": 904,
+    "no_answer_share": 0.3671,
+    "scored": 3449,
+    "unverified": 31,
+    "wrong": 1,
+    "wrong_share": 0.0003
+   },
+   "simulate_reviewer": false
+  },
+  "following_reviewer": {
+   "clips": {
+    "FRESH_02": {
+     "abstain": 148,
+     "actions": 16,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 781,
+     "followed_s": 203.8006,
+     "lost": 67,
+     "unverified": 21,
+     "wrong": 1,
+     "wrong_share": 0.001
+    },
+    "FRESH_05": {
+     "abstain": 14,
+     "actions": 7,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 434,
+     "followed_s": 143.8,
+     "lost": 0,
+     "unverified": 2,
+     "wrong": 0,
+     "wrong_share": 0.0
+    },
+    "FRESH_07": {
+     "abstain": 139,
+     "actions": 14,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 944,
+     "followed_s": 246.6,
+     "lost": 112,
+     "unverified": 9,
+     "wrong": 1,
+     "wrong_share": 0.0008
+    },
+    "FRESH_08": {
+     "abstain": 128,
+     "actions": 23,
+     "candidate_correct": 0,
+     "candidate_unverified": 0,
+     "candidate_wrong": 0,
+     "correct": 550,
+     "followed_s": 267.2,
+     "lost": 90,
+     "unverified": 8,
+     "wrong": 0,
+     "wrong_share": 0.0
+    }
+   },
+   "pooled": {
+    "abstain": 429,
+    "actions": 60,
+    "actions_per_followed_min": 4.18,
+    "candidate_correct": 0,
+    "candidate_unverified": 0,
+    "candidate_wrong": 0,
+    "correct": 2709,
+    "correct_share": 0.7854,
+    "followed_min": 14.36,
+    "followed_s": 861.4005999999999,
+    "lost": 269,
+    "no_answer_share": 0.2024,
+    "scored": 3449,
+    "unverified": 40,
+    "wrong": 2,
+    "wrong_share": 0.0006
+   },
+   "simulate_reviewer": true
+  },
+  "tracking": {
+   "clips": {
+    "FRESH_02": {
+     "flagged_transfers": 3,
+     "fragments_total": 21,
+     "id_switches": 21,
+     "identity_transfers": 3,
+     "track_coverage": 0.9686,
+     "unflagged_transfers": 0
+    },
+    "FRESH_05": {
+     "flagged_transfers": 0,
+     "fragments_total": 7,
+     "id_switches": 7,
+     "identity_transfers": 0,
+     "track_coverage": 0.9978,
+     "unflagged_transfers": 0
+    },
+    "FRESH_07": {
+     "flagged_transfers": 3,
+     "fragments_total": 21,
+     "id_switches": 23,
+     "identity_transfers": 3,
+     "track_coverage": 0.967,
+     "unflagged_transfers": 0
+    },
+    "FRESH_08": {
+     "flagged_transfers": 1,
+     "fragments_total": 36,
+     "id_switches": 37,
+     "identity_transfers": 1,
+     "track_coverage": 0.9426,
+     "unflagged_transfers": 0
+    }
+   },
+   "pooled": {
+    "flagged_transfers": 7,
+    "fragments_total": 85,
+    "id_switches": 88,
+    "identity_transfers": 7,
+    "unflagged_transfers": 0
+   }
+  }
+ }
+}

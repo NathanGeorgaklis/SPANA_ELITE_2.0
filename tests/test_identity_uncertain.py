@@ -13,7 +13,8 @@ from pathlib import Path
 import numpy as np
 
 from spana.config import load_config
-from spana.evaluation import NESTED_V2, EvalFrame, TrackBox, evaluate
+from spana.evaluation import NESTED_V2, EvalFrame, TrackBox, TransferFlags, evaluate
+from tests.metrics import TOLERANCE_S
 from spana.records import CameraObservation, CameraStatus, Detection, IdentityState
 from spana.tracking.tracker import MultiPlayerTracker
 from tests.synth import Player, kit, run
@@ -41,12 +42,14 @@ def replay_fixture():
 def score(doc, out, with_identity: bool):
     frames = []
     for f, gtb in sorted(((int(f), g) for f, g in doc["labels"].items())):
-        obs = [TrackBox(o.track_id, o.box, o.confirmed, bool(o.possible_predecessors) or o.recoveries > 0,
-                        o.detection_index, with_identity and o.identity != IdentityState.CERTAIN,
-                        o.uncertain_episodes if with_identity else 0)
+        obs = [TrackBox(o.track_id, o.box, o.confirmed, o.detection_index,
+                        with_identity and o.identity != IdentityState.CERTAIN)
                for o in out[f].tracks if o.source.value == "OBSERVED"]
         frames.append(EvalFrame(f, gtb, [], obs, [], frozenset(doc["occluded"][str(f)])))
-    return evaluate(frames, rule=NESTED_V2)
+    flags = TransferFlags(((f, ft.time_s, [(o.track_id, with_identity and o.identity != IdentityState.CERTAIN,
+                                            o.recoveries) for o in ft.tracks]) for f, ft in sorted(out.items())),
+                          {}, TOLERANCE_S)
+    return evaluate(frames, rule=NESTED_V2, flags=flags)
 
 
 class RealCrossing(unittest.TestCase):

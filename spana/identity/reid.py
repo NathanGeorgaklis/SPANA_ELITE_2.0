@@ -7,11 +7,14 @@ tall, at least `reid.sample_min_gap_s` apart, and overlap no other observed box 
 of those embeddings. A track without such a crop has no signature (`null`): it is never offered, never guessed.
 
 The signatures are evidence for an OFFER only. Similarity never makes an answer by itself.
+
+Also (config reid_resolve, off by default): per-box embeddings (embed_boxes) as evidence for clearing
+IDENTITY_UNCERTAIN in the tracker, from a record pinned by config sha256 (load_pinned); never to force an association.
 """
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -70,6 +73,20 @@ class ReidModelRecord:
         return rec
 
 
+REPO = Path(__file__).resolve().parents[2]
+
+
+def load_pinned(record_path: str | Path, expected_sha256: str, root: Path = REPO) -> ReidModelRecord:
+    """The model record named by config, refused unless it pins exactly expected_sha256 (the model a margin was
+    calibrated for) and its ONNX file has that hash (ReidModelRecord.load)."""
+    p = Path(record_path)
+    p = p if p.is_absolute() else root / p
+    rec = ReidModelRecord.load(p)
+    if rec.onnx_sha256 != expected_sha256:
+        raise ReidModelError(f"re-ID model record {p} pins {rec.onnx_sha256}, config expects {expected_sha256}")
+    return rec
+
+
 def cut_crop(img: np.ndarray, box: Sequence[float], pad: float, size_hw: Tuple[int, int]) -> np.ndarray:
     """Padded box, clipped to the image, resized to size_hw (BGR in, BGR out); the training crop convention."""
     x1, y1, x2, y2 = box
@@ -108,6 +125,24 @@ class ReidEmbedder:
         return y / np.maximum(np.linalg.norm(y, axis=1, keepdims=True), 1e-12)
 
 
+def embed_boxes(embedder: "ReidEmbedder", img_bgr: np.ndarray,
+                boxes: Sequence[Sequence[float]]) -> List[Optional[np.ndarray]]:
+    """One L2-normalised embedding per box (None for a box with an empty crop); IDENTITY_UNCERTAIN evidence
+    (spana.tracking.tracker, config reid_resolve). Same crop convention as the signatures and the training crops."""
+    crops: List[Optional[np.ndarray]] = []
+    for b in boxes:
+        try:
+            crops.append(cut_crop(img_bgr, b, embedder.rec.crop_pad, embedder.rec.input_size_hw))
+        except ValueError:
+            crops.append(None)
+    ok = [k for k, c in enumerate(crops) if c is not None]
+    out: List[Optional[np.ndarray]] = [None] * len(boxes)
+    if ok:
+        for k, v in zip(ok, embedder([crops[k] for k in ok])):
+            out[k] = v
+    return out
+
+
 def select_samples(tracks_doc: dict, cfg: SpanaConfig) -> Dict[str, Dict[str, List[Tuple[int, List[float]]]]]:
     """track -> {"first": [(frame, box)], "last": [(frame, box)]}: the clean observations that will be embedded."""
     rc = cfg.reid
@@ -138,6 +173,50 @@ def select_samples(tracks_doc: dict, cfg: SpanaConfig) -> Dict[str, Dict[str, Li
     return {tid: {"first": spaced(rows), "last": sorted(spaced(list(reversed(rows))))} for tid, rows in clean.items()}
 
 
+def crop_quality(height: float, overlap: float, rc) -> float:
+    """Quality weight of a crop in (0, 1]: full from reid.min_crop_height_px tall with overlap <= clean_max_iou;
+    smaller boxes scale down with height, overlap beyond clean_max_iou falls linearly to 0.1 at set_max_iou."""
+    q_h = min(1.0, height / rc.min_crop_height_px)
+    if overlap <= rc.clean_max_iou:
+        q_o = 1.0
+    else:
+        q_o = max(0.1, 1.0 - 0.9 * (overlap - rc.clean_max_iou) / max(rc.set_max_iou - rc.clean_max_iou, 1e-9))
+    return round(q_h * q_o, 4)
+
+
+def select_set_samples(tracks_doc: dict, cfg: SpanaConfig) -> Dict[str, Dict[str, List[Tuple[int, List[float], float]]]]:
+    """track -> {"first": [(frame, box, quality)], "last": [...]}: crop sets under the looser reid.set_* rules
+    (confirmed, CERTAIN, uncontested; >= set_min_height_px; overlap <= set_max_iou), up to set_samples per end,
+    set_min_gap_s apart, from each end of the track inwards."""
+    rc = cfg.reid
+    rows: Dict[str, List[Tuple[int, float, List[float], float]]] = {}
+    for fr in tracks_doc["frames"]:
+        obs = [t for t in fr["tracks"] if t["source"] == "OBSERVED"]
+        boxes = np.array([t["box"] for t in obs], dtype=float).reshape(-1, 4)
+        ov = iou_matrix(boxes, boxes) if len(obs) else np.zeros((0, 0))
+        if len(obs):
+            np.fill_diagonal(ov, 0.0)
+        for k, t in enumerate(obs):
+            b = t["box"]
+            o = float(ov[k].max()) if len(obs) > 1 else 0.0
+            if not t["confirmed"] or t["identity"] != "CERTAIN" or t["contested"] or \
+                    b[3] - b[1] < rc.set_min_height_px or o > rc.set_max_iou:
+                continue
+            rows.setdefault(t["track_id"], []).append((fr["frame"], fr["t"], list(b), crop_quality(b[3] - b[1], o, rc)))
+
+    def spaced(seq):
+        out, last_t = [], None
+        for f, t, b, q in seq:
+            if last_t is None or abs(t - last_t) >= rc.set_min_gap_s - 1e-9:
+                out.append((f, b, q))
+                last_t = t
+            if len(out) == rc.set_samples:
+                break
+        return out
+
+    return {tid: {"first": spaced(r), "last": sorted(spaced(list(reversed(r))))} for tid, r in rows.items()}
+
+
 def signature(emb: np.ndarray) -> Optional[List[float]]:
     if not len(emb):
         return None
@@ -147,13 +226,19 @@ def signature(emb: np.ndarray) -> Optional[List[float]]:
 
 
 def track_embeddings(video, tracks_doc: dict, embedder: ReidEmbedder, cfg: SpanaConfig) -> Dict[str, dict]:
-    """Per track {first, last, first_frames, last_frames}; reads only the frames that hold a sample."""
+    """Per track {first, last, first_frames, last_frames} (the 1.0.0 averaged signatures, unchanged) and
+    {first_crops, last_crops}: the 1.1.0 crop sets [{frame, quality, emb}]. Reads only the frames that hold a crop."""
     samples = select_samples(tracks_doc, cfg)
+    sets = select_set_samples(tracks_doc, cfg)
     need: Dict[int, List[Tuple[str, str, List[float]]]] = {}
     for tid, s in samples.items():
         for end in ("first", "last"):
             for f, b in s[end]:
                 need.setdefault(f, []).append((tid, end, b))
+    for tid, s in sets.items():
+        for end in ("first", "last"):
+            for f, b, _ in s[end]:
+                need.setdefault(f, []).append((tid, f"{end}_set", b))
     crops: Dict[Tuple[str, str], List[np.ndarray]] = {}
     if need:
         first, last = min(need), max(need)
@@ -162,14 +247,52 @@ def track_embeddings(video, tracks_doc: dict, embedder: ReidEmbedder, cfg: Spana
                 crops.setdefault((tid, end), []).append(
                     cut_crop(img, b, embedder.rec.crop_pad, embedder.rec.input_size_hw))
     out = {}
-    for tid in sorted(samples):
+    for tid in sorted(set(samples) | set(sets)):
         row = {}
         for end in ("first", "last"):
             c = crops.get((tid, end), [])
             row[end] = signature(embedder(c)) if c else None
-            row[f"{end}_frames"] = [f for f, _ in samples[tid][end]]
+            row[f"{end}_frames"] = [f for f, _ in samples.get(tid, {}).get(end, [])]
+            cs = crops.get((tid, f"{end}_set"), [])
+            embs = embedder(cs) if cs else np.zeros((0, 0))
+            row[f"{end}_crops"] = [{"frame": f, "quality": q, "emb": [round(float(v), DECIMALS) for v in e]}
+                                   for (f, _, q), e in zip(sets.get(tid, {}).get(end, []), embs)]
         out[tid] = row
     return out
+
+
+def set_similarity(a: Sequence[dict], b: Sequence[dict]) -> Optional[float]:
+    """Quality-weighted best-pair similarity of two crop sets: each crop's best cosine in the other set, averaged
+    with the crops' quality weights, in both directions, then the mean of the two directions. None if either set is
+    empty."""
+    if not a or not b:
+        return None
+    A = np.array([c["emb"] for c in a], float)
+    B = np.array([c["emb"] for c in b], float)
+    A /= np.maximum(np.linalg.norm(A, axis=1, keepdims=True), 1e-12)
+    B /= np.maximum(np.linalg.norm(B, axis=1, keepdims=True), 1e-12)
+    C = A @ B.T
+    wa = np.array([c["quality"] for c in a], float)
+    wb = np.array([c["quality"] for c in b], float)
+    return float(0.5 * ((wa * C.max(axis=1)).sum() / wa.sum() + (wb * C.max(axis=0)).sum() / wb.sum()))
+
+
+def appearance(sig: Dict[str, dict], lost: str, cand: str, tc_target, upto_frame: Optional[int] = None
+               ) -> Optional[float]:
+    """Appearance similarity of the lost track's last end and the candidate's first end, by
+    target.reentry_signature: "mean" = cosine of the averaged signatures (1.0.0); "set" = set_similarity() of the
+    crop sets (1.1.0), the candidate's crops limited to frames <= upto_frame and required to number at least
+    target.reentry_wait_samples when that is > 0. None = no evidence (never offered, never guessed)."""
+    if tc_target.reentry_signature == "mean":
+        return cosine(sig.get(lost, {}).get("last"), sig.get(cand, {}).get("first"))
+    a = sig.get(lost, {}).get("last_crops") or []
+    b = sig.get(cand, {}).get("first_crops") or []
+    if tc_target.reentry_wait_samples > 0:
+        if upto_frame is not None:
+            b = [c for c in b if c["frame"] <= upto_frame]
+        if len(b) < tc_target.reentry_wait_samples:
+            return None
+    return set_similarity(a, b)
 
 
 def cosine(a: Optional[Sequence[float]], b: Optional[Sequence[float]]) -> Optional[float]:
@@ -181,7 +304,7 @@ def cosine(a: Optional[Sequence[float]], b: Optional[Sequence[float]]) -> Option
 
 def embeddings_document(video, tracks_doc: dict, embedder: ReidEmbedder, cfg: SpanaConfig,
                         argv: Sequence[str] = ()) -> dict:
-    """Validated spana.track_embeddings 1.0.0 document for a validated spana.tracks document and its video."""
+    """Validated spana.track_embeddings 1.1.0 document for a validated spana.tracks document and its video."""
     import dataclasses
     import sys
     if video.meta.sha256 != tracks_doc["video"]["sha256"]:
@@ -239,6 +362,10 @@ class ReentryContext:
     box_at: Dict[Tuple[str, int], List[float]]    # (track, frame index) -> box, for birth / last-observation rows
     width: Optional[float]                        # frame size; unknown -> position cannot judge
     height: Optional[float]
+    # Memo of exit_side / position_fit / appearance results. Each is a pure function of this document, the signatures
+    # and the config values in its key, but the follower re-runs the re-entry rule on every frame of a loss
+    # (records/reentry_cache_2026-11-20: 97 % of tools/target_score time). Exact: the same value, never approximated.
+    memo: Dict[tuple, object] = field(default_factory=dict, compare=False, repr=False)
 
     @staticmethod
     def of(tracks_doc: dict) -> "ReentryContext":
@@ -282,6 +409,16 @@ def position_fit(ctx: "ReentryContext", lost: str, lost_idx: int, cand: str, tc_
     Not informative (fit 0): gap > reentry_position_max_gap_s; a CUT / UNKNOWN camera frame in the gap; the lost track
     ended LEFT_FRAME by then; the carried point left the picture; the carried point moved more than
     reentry_position_max_pan_frac of the frame width (the camera panned); no frame size."""
+    key = ("position_fit", lost, lost_idx, cand, tc_target.reentry_position_weight,
+           tc_target.reentry_position_base_h, tc_target.reentry_position_speed_h_per_s,
+           tc_target.reentry_position_time_scale_s, tc_target.reentry_position_max_gap_s,
+           tc_target.reentry_position_max_pan_frac)
+    if key not in ctx.memo:
+        ctx.memo[key] = _position_fit(ctx, lost, lost_idx, cand, tc_target)
+    return ctx.memo[key]
+
+
+def _position_fit(ctx: "ReentryContext", lost: str, lost_idx: int, cand: str, tc_target) -> Tuple[float, str]:
     from ..geometry import affine_scale, apply_affine_points
     frames = ctx.frames
     b = ctx.birth[cand]
@@ -316,8 +453,66 @@ def position_fit(ctx: "ReentryContext", lost: str, lost_idx: int, cand: str, tc_
     return dist_fit * time_fit, "INFORMATIVE"
 
 
+def exit_side(ctx: "ReentryContext", lost: str, lost_idx: int, cand: str) -> dict:
+    """Where did the lost player leave the picture, and how far from that edge was `cand` born?
+    {"status": "unknown"}     a CUT / UNKNOWN camera frame between the last observation and cand's birth
+    {"status": "in_picture"}  the lost track did not end LEFT_FRAME by then and its last box centre, carried through the
+                              per-frame camera transforms to cand's birth, is still inside the picture
+    {"status": "off_screen", "side", "edge_dist"}  side = the side the carried centre is beyond (largest excess), or,
+                              if still inside (ended LEFT_FRAME at the edge), the nearest side of the carried last box;
+                              edge_dist = cand's birth box distance from that side as a share of the frame width
+                              (left / right) or height (top / bottom), 0 = touching it.
+    records/reentry_exit_side_2026-11-19: every one of 17 labelled DEV off-screen returns was born <= 0.011 from the
+    exit side; the three wrong DEV offers were 0.62-0.98 away."""
+    key = ("exit_side", lost, lost_idx, cand)
+    if key not in ctx.memo:
+        ctx.memo[key] = _exit_side(ctx, lost, lost_idx, cand)
+    return dict(ctx.memo[key])
+
+
+def _exit_side(ctx: "ReentryContext", lost: str, lost_idx: int, cand: str) -> dict:
+    from ..geometry import apply_affine_points
+    frames = ctx.frames
+    b = ctx.birth[cand]
+    if ctx.width is None or ctx.height is None:
+        return {"status": "unknown"}
+    W, H = float(ctx.width), float(ctx.height)
+    x1, y1, x2, y2 = ctx.box_at[(lost, lost_idx)]
+    pts = np.array([[(x1 + x2) / 2, (y1 + y2) / 2], [x1, y1], [x2, y2]], dtype=float)
+    left_frame = False
+    for k in range(lost_idx + 1, b + 1):
+        cam = frames[k]["camera"]
+        if cam["status"] in _BREAK:
+            return {"status": "unknown"}
+        pts = apply_affine_points(np.asarray(cam["affine"], dtype=float), pts)
+        left_frame = left_frame or any(e[0] == lost and e[1] == "LEFT_FRAME" for e in frames[k]["ended"])
+    cx, cy = pts[0]
+    excess = {"left": -cx, "right": cx - W, "top": -cy, "bottom": cy - H}
+    outside = max(excess.values()) > 0
+    if not (outside or left_frame):
+        return {"status": "in_picture"}
+    if outside:
+        side = max(excess, key=excess.get)
+    else:
+        gaps = {"left": pts[1][0], "right": W - pts[2][0], "top": pts[1][1], "bottom": H - pts[2][1]}
+        side = min(gaps, key=gaps.get)
+    cb = ctx.box_at[(cand, b)]
+    dist = {"left": cb[0] / W, "right": (W - cb[2]) / W, "top": cb[1] / H, "bottom": (H - cb[3]) / H}[side]
+    return {"status": "off_screen", "side": side, "edge_dist": round(float(max(dist, 0.0)), 6)}
+
+
+def _appearance(ctx: ReentryContext, sig: Dict[str, dict], lost: str, cand: str, tc_target,
+                upto: Optional[int]) -> Optional[float]:
+    """appearance(), memoised in ctx (the frame cutoff only matters while waiting for crops)."""
+    key = ("appearance", id(sig), lost, cand, tc_target.reentry_signature, tc_target.reentry_wait_samples,
+           upto if tc_target.reentry_signature == "set" and tc_target.reentry_wait_samples > 0 else None)
+    if key not in ctx.memo:
+        ctx.memo[key] = (appearance(sig, lost, cand, tc_target, upto), sig)    # sig kept: its id stays unique
+    return ctx.memo[key][0]
+
+
 def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, sig: Dict[str, dict], tc_target,
-                   tc_tracking, allowed=lambda c: True) -> dict:
+                   tc_tracking, allowed=lambda c: True, causal: bool = False) -> dict:
     """The re-entry rule shared by the follower's offer and the DEV evaluation. Always returns a decision:
     {offer, reason, track, appearance, position, position_informative, position_reason, combined, second_combined,
      margin, reverse_second_combined, candidates: {track: {appearance, position, position_reason, combined}}}.
@@ -333,14 +528,20 @@ def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, 
     when its APPEARANCE reaches reentry_min_similarity and its combined score beats every other candidate's (offerable
     or not) by reentry_min_margin; with reentry_mutual, the lost track's combined score must also beat, by the same
     margin, every other track that was lost when the candidate appeared (scored the same way, towards the candidate).
+    With target.reentry_exit_edge, when the lost player left the picture (exit_side() off_screen), a candidate born
+    more than reentry_exit_edge_max_frac of the frame from the side they left by is not a candidate at all (listed in
+    `exit_excluded`): a returning player comes back in where they went out. Unknown (camera cut) or in-picture: no
+    effect.
     Abstention reasons: NO_SIGNATURE, NO_CANDIDATE, BELOW_MIN_SIMILARITY, MARGIN, NOT_MUTUAL."""
     frames = ctx.frames
     w = tc_target.reentry_position_weight
     out = {"offer": False, "reason": None, "track": None, "appearance": None, "position": None,
            "position_informative": None, "position_reason": None, "combined": None, "second_combined": None,
-           "margin": None, "reverse_second_combined": None, "candidates": {}}
-    last = sig.get(lost, {}).get("last")
-    if last is None:
+           "margin": None, "reverse_second_combined": None, "candidates": {}, "exit_excluded": []}
+    upto = frames[now_idx]["frame"] if causal else None
+    has_last = sig.get(lost, {}).get("last") is not None if tc_target.reentry_signature == "mean" \
+        else bool(sig.get(lost, {}).get("last_crops"))
+    if not has_last:
         return {**out, "reason": "NO_SIGNATURE"}
     t0 = frames[lost_idx]["t"]
     lost_box = ctx.box_at[(lost, lost_idx)]
@@ -354,11 +555,16 @@ def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, 
 
     pool = [c for c, b in ctx.birth.items() if c != lost and lost_idx < b <= now_idx
             and frames[b]["t"] - t0 <= tc_target.reentry_max_gap_s + 1e-9 and gate_ok(lost_idx, lost_box, c)]
-    cands = {}
+    cands, excluded = {}, []
     for c in pool:
-        a = cosine(last, sig.get(c, {}).get("first"))
+        a = _appearance(ctx, sig, lost, c, tc_target, upto)
         if a is None:
             continue
+        if tc_target.reentry_exit_edge:
+            ex = exit_side(ctx, lost, lost_idx, c)
+            if ex["status"] == "off_screen" and ex["edge_dist"] > tc_target.reentry_exit_edge_max_frac + 1e-9:
+                excluded.append(c)
+                continue
         fit, why = position_fit(ctx, lost, lost_idx, c, tc_target)
         cands[c] = {"appearance": a, "position": fit, "position_reason": why}
     # The camera or an exit silences position for the whole decision: a pan return must never lose to a candidate
@@ -371,6 +577,7 @@ def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, 
         v["combined"] = round(v["appearance"] + w * v["position"], 6)
         v["appearance"], v["position"] = round(v["appearance"], 6), round(v["position"], 6)
     out["candidates"] = cands
+    out["exit_excluded"] = sorted(excluded)
     offerable = [c for c in cands if allowed(c)]
     if not offerable:
         return {**out, "reason": "NO_CANDIDATE"}
@@ -388,7 +595,6 @@ def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, 
         return {**out, "reason": "MARGIN"}
     if tc_target.reentry_mutual:
         b = ctx.birth[best]
-        first = sig[best]["first"]
         rival = []
         for other in ctx.birth:
             if other in (lost, best):
@@ -397,7 +603,7 @@ def reentry_choice(lost: str, lost_idx: int, now_idx: int, ctx: ReentryContext, 
             if lo is None or frames[b]["t"] - frames[lo]["t"] > tc_target.reentry_max_gap_s + 1e-9 or \
                     any(t["track_id"] == other and t["source"] == "OBSERVED" for t in frames[b]["tracks"]):
                 continue                          # not lost when the candidate appeared
-            v = cosine(sig.get(other, {}).get("last"), first)
+            v = _appearance(ctx, sig, other, best, tc_target, upto)
             if v is None:
                 continue
             obox = ctx.box_at.get((other, lo)) or next(t["box"] for t in frames[lo]["tracks"]

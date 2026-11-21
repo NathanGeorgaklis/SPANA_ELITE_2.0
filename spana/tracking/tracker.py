@@ -57,13 +57,24 @@ Per frame:
           gap^2 body heights of the constant-velocity prediction (OCCLUDED tracks keep their velocity). A gap
           longer than rematch_max_s (occlusion only) additionally REQUIRES appearance that matches the track and
           beats every other track by min_margin, so same-looking players are never recovered on a guess.
+       Claimants (tracking.rival_eligible_only, on by default since 2026-11-19): S3c's "no other track gates or extent-fits the
+          detection" and S4's "no other unmatched track's gate" then count only tracks that could take a detection on
+          this frame (observed on the previous frame, or still recoverable); a stale track past its recovery window
+          no longer blocks (records/rival_eligible_2026-11-19).
      Refused recovery is safe: the old track stays unobserved and expires; a new track is spawned and lists
      the unobserved tracks whose gate it lies in as `possible_predecessors` (evidence, not a merge).
      Known limit: a never-tracked player who looks the same and appears exactly on a hidden player's predicted
      path is indistinguishable from him; every bridged gap is therefore recorded (`recoveries`, `last_gap_s`).
   Identity: a contested match of a confirmed track that a rival confirmed track also passes, with appearance
      unable to separate them, marks both IDENTITY_UNCERTAIN (appearance frozen) until clean appearance evidence
-     favours the track over every recorded rival for identity_resolve_s.
+     favours the track over every recorded rival for identity_resolve_s. With config reid_resolve on, calibrated re-ID
+     evidence (spana.identity.reid) counts as well; the track records how the episode was cleared (resolved_by).
+     Two more triggers (records/silent_transfer_fix_2026-11-20):
+     - tracking.crossing_uncertain: a confirmed track whose detection holds >= crossing_min_ioa of a similar-looking
+       confirmed track's detection on the same frame marks both uncertain, contested or not. Crossing tracks with established
+       velocities gate only their own box, so the contested rule above never sees them.
+     - tracking.ambiguous_spawn_uncertain: a track spawned naming >= 2 possible_predecessors starts uncertain, its
+       predecessors as rivals, cleared once clean crops rule out all of them but at most one.
   5. Spawn: a high-score detection starts an unconfirmed track unless it duplicates an observed box
      (IoU > duplicate_iou, or inside it by duplicate_ioa of its own area: a partial-body duplicate).
      Confirmation needs an observed span >= confirm_s AND the box not nested (IoA >= confirm_nested_ioa) inside
@@ -87,7 +98,7 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Deque, Dict, List, Optional, Sequence, Set, Tuple
+from typing import Callable, Deque, Dict, List, Optional, Sequence, Set, Tuple
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -103,11 +114,20 @@ _INVALID = 1e6
 _EPS = 1e-9
 
 
+def _ioa(inner: np.ndarray, outer: np.ndarray) -> float:
+    """Share of `inner`'s area lying inside `outer` (boxes x1, y1, x2, y2)."""
+    iw = max(0.0, min(inner[2], outer[2]) - max(inner[0], outer[0]))
+    ih = max(0.0, min(inner[3], outer[3]) - max(inner[1], outer[1]))
+    return float(iw * ih / max((inner[2] - inner[0]) * (inner[3] - inner[1]), _EPS))
+
+
 @dataclass
 class _Rival:
     """One unresolved identity ambiguity between a track and a rival track."""
     appearance: Optional[np.ndarray]    # the rival's stored appearance when the ambiguity (re)started, or None
     since_t: float                      # time of the latest contest between the two (evidence must come after it)
+    reid: Optional[np.ndarray] = None   # the rival's re-ID reference when the ambiguity (re)started, or None
+    predecessor: bool = False           # named at an ambiguous spawn: the track may BE this player (cleared jointly)
 
 
 @dataclass
@@ -138,6 +158,12 @@ class _Track:
     resolve_since_t: Optional[float] = None    # start of the current run of clean evidence favouring this track
     appearance_doubt_since: Optional[float] = None   # latest S3b doubt link (None = no appearance doubt)
     doubt_appearance: Optional[np.ndarray] = None    # self-consistent resolution: appearance seen during the doubt
+    reid_run_since_t: Optional[float] = None   # start of the current re-ID run (config reid_resolve)
+    reid_run_frames: int = 0                   # clean frames in that run on which re-ID cleared every rival
+    reid_run_pred: Optional[str] = None        # ambiguous spawn: the predecessor re-ID picked in that run
+    resolved_by: Optional[str] = None          # rule that cleared the latest episode (APPEARANCE / REID)
+    reid_ref: Optional[np.ndarray] = None      # re-ID reference (clean, uncontested, CERTAIN observation)
+    reid_ref_t: Optional[float] = None
     scores: Deque[Tuple[float, float]] = field(default_factory=deque)      # (time, score or 0)
     history: Deque[HistoryEntry] = field(default_factory=deque)
 
@@ -150,6 +176,7 @@ class MultiPlayerTracker:
         self.cfg = cfg
         self.tc = cfg.tracking
         self.ac = cfg.appearance
+        self.rc = cfg.reid_resolve
         self.frame_w, self.frame_h = frame_w, frame_h
         self._tracks: List[_Track] = []
         self._next_id = 1
@@ -162,7 +189,10 @@ class MultiPlayerTracker:
 
     # ------------------------------------------------------------------ public
     def update(self, frame_index: int, time_s: float, detections: Sequence[Detection], camera: CameraObservation,
-               appearance: Optional[Sequence[Optional[np.ndarray]]] = None) -> FrameTracks:
+               appearance: Optional[Sequence[Optional[np.ndarray]]] = None,
+               reid_embed: Optional[Callable[[List[int]], List[Optional[np.ndarray]]]] = None) -> FrameTracks:
+        """reid_embed (config reid_resolve.enabled only): detection indices -> L2-normalised re-ID embeddings, computed on
+        demand for the few detections that need one (spana.identity.reid)."""
         if self._last_frame is not None and frame_index <= self._last_frame:
             raise ValueError(f"frames must be strictly increasing ({frame_index} after {self._last_frame})")
         if (camera.status == CameraStatus.FIRST) != (self._last_frame is None):
@@ -212,9 +242,10 @@ class MultiPlayerTracker:
         self._log_unmatched(dets, desc, time_s, matched, out)                    # read-only diagnostics
         self._contest_multi_body(matched, dets, out)
         self._identity_ambiguity(matched, dets, desc, time_s, out)
-        self._identity_resolution(matched, dets, desc, time_s, out)
+        emb = self._embeddings(matched, dets, time_s, reid_embed)
+        self._identity_resolution(matched, dets, desc, time_s, out, emb)
 
-        self._apply_matches(matched, dets, desc, frame_index, time_s)
+        self._apply_matches(matched, dets, desc, frame_index, time_s, emb)
         self._lifecycle(matched, dets, frame_index, time_s, out)
         self._spawn(rem_high, dets, desc, matched, frame_index, time_s, out)
         out.tracks = self._emit(matched, dets, frame_index, time_s)
@@ -366,7 +397,7 @@ class MultiPlayerTracker:
             i = mine[0]
             if any(gated[k, j] for j in all_d if j != i):
                 continue                      # the track's own gate holds another detection
-            if any(gated[j, i] or fit[(j, i)] for j in all_t if j != k):
+            if any((gated[j, i] or fit[(j, i)]) and self._may_claim(self._tracks[j], time_s) for j in all_t if j != k):
                 continue                      # another track could take this box
             sim = similarity(desc[i], t.appearance)
             if sim is not None and sim < self.ac.min_similarity:
@@ -420,22 +451,100 @@ class MultiPlayerTracker:
                 s_own, s_riv = similarity(desc[i], t.appearance), similarity(desc[i], r.appearance)
                 if s_own is not None and s_riv is not None and abs(s_own - s_riv) >= self.ac.min_margin:
                     continue                      # appearance tells them apart: an ordinary contest
-                for a, b in ((t, r), (r, t)):
-                    if not self._uncertain(a):
-                        a.uncertain_episodes += 1
-                    prev = a.identity_rivals.get(b.track_id)
-                    snap = prev.appearance if prev is not None else (None if b.appearance is None
-                                                                      else b.appearance.copy())
-                    a.identity_rivals[b.track_id] = _Rival(snap, time_s)
-                    a.resolve_since_t = None
-                out.decisions.append({"kind": "identity_uncertain", "track_id": t.track_id, "rival": r.track_id,
-                                      "detection": i, "own_similarity": s_own, "rival_similarity": s_riv})
+                self._mark_rivals(t, r, time_s)
+                out.decisions.append({"kind": "identity_uncertain", "rule": "CONTESTED_MATCH", "track_id": t.track_id,
+                                      "rival": r.track_id, "detection": i, "own_similarity": s_own,
+                                      "rival_similarity": s_riv})
+        if self.tc.crossing_uncertain:
+            self._crossings(matched, dets, desc, time_s, out)
+
+    def _crossings(self, matched: Dict[int, Tuple[int, bool]], dets: Sequence[Detection],
+                   desc: Sequence[Optional[np.ndarray]], time_s: float, out: FrameTracks) -> None:
+        """IDENTITY_UNCERTAIN trigger without a contest (tracking.crossing_uncertain). Real DEV finding (FRESH_07,
+        records/silent_transfer_fix_2026-11-20): two crossing tracks with established velocities each gate only
+        their own box, so no contest is raised. One took a merged box holding the other's body, and the labels then
+        saw the other player under it. A confirmed track whose detection holds >= crossing_min_ioa of another
+        confirmed track's matched detection on this frame marks BOTH uncertain. With tracking.crossing_hidden_rivals,
+        an unobserved live or recoverable track's predicted box also counts (off: DEV cost, records above).
+        This is skipped when appearance separates them: with a crop, the two similarities differ by
+        appearance.min_margin (as in the contested rule); without one, the two stored appearances are clearly
+        different (< appearance.min_similarity). Read-only on predicted states, like the contested rule."""
+        for k, (i, _) in list(matched.items()):
+            t = self._tracks[k]
+            if not t.confirmed:
+                continue
+            box = dets[i].as_array()
+            for j, r in enumerate(self._tracks):
+                if j == k or not r.confirmed or (j not in matched and (
+                        not self.tc.crossing_hidden_rivals or not self._recoverable_or_live(r, time_s))):
+                    continue
+                rb = dets[matched[j][0]].as_array() if j in matched else r.box()
+                inside = _ioa(rb, box)
+                if inside < self.tc.crossing_min_ioa:
+                    continue
+                s_own, s_riv = similarity(desc[i], t.appearance), similarity(desc[i], r.appearance)
+                look = similarity(t.appearance, r.appearance)
+                if s_own is not None and s_riv is not None:
+                    if abs(s_own - s_riv) >= self.ac.min_margin:
+                        continue                  # the crop tells them apart
+                elif look is not None and look < self.ac.min_similarity:
+                    continue                      # no crop, but the two players look clearly different
+                self._mark_rivals(t, r, time_s)
+                out.decisions.append({"kind": "identity_uncertain", "rule": "CROSSING", "track_id": t.track_id,
+                                      "rival": r.track_id, "detection": i, "rival_inside": round(inside, 4),
+                                      "rival_observed": j in matched, "own_similarity": s_own,
+                                      "rival_similarity": s_riv, "look_similarity": look})
+
+    def _mark_rivals(self, t: _Track, r: _Track, time_s: float) -> None:
+        """t and r may have swapped players: each becomes (or stays) IDENTITY_UNCERTAIN naming the other. The rival's
+        appearance / re-ID reference is snapshotted when the ambiguity starts; every new contest restarts resolution."""
+        for a, b in ((t, r), (r, t)):
+            if not self._uncertain(a):
+                a.uncertain_episodes += 1
+            prev = a.identity_rivals.get(b.track_id)
+            snap = prev.appearance if prev is not None else (None if b.appearance is None else b.appearance.copy())
+            rsnap = prev.reid if prev is not None else (None if b.reid_ref is None else b.reid_ref.copy())
+            a.identity_rivals[b.track_id] = _Rival(snap, time_s, rsnap)
+            a.resolve_since_t, a.resolved_by = None, None
+            self._reset_reid_run(a)
 
     def _recoverable_or_live(self, t: _Track, time_s: float) -> bool:
         return t.observed_last_frame or time_s - t.last_observed_t <= self.tc.occlusion_max_s + _EPS
 
+    def _embeddings(self, matched: Dict[int, Tuple[int, bool]], dets: Sequence[Detection], time_s: float,
+                    reid_embed) -> Dict[int, Optional[np.ndarray]]:
+        """Re-ID embeddings for the clean, uncontested matches that need one: uncertain tracks (evidence) and
+        CERTAIN confirmed tracks whose reference is due (reid_resolve.ref_update_s). Empty when it is off."""
+        if not self.rc.enabled or reid_embed is None:
+            return {}
+        need = set()
+        for k, (i, contested) in matched.items():
+            t = self._tracks[k]
+            if contested or not self._clean(i, dets, matched):
+                continue
+            if t.identity_rivals or (not self._uncertain(t) and t.confirmed and
+                                     (t.reid_ref is None or time_s - t.reid_ref_t >= self.rc.ref_update_s - _EPS)):
+                need.add(i)
+        if not need:
+            return {}
+        idx = sorted(need)
+        vecs = list(reid_embed(idx))
+        if len(vecs) != len(idx):
+            raise ValueError("reid_embed must return one embedding (or None) per requested detection")
+        return dict(zip(idx, vecs))
+
+    def reid_verdict(self, e: Optional[np.ndarray], own: Optional[np.ndarray],
+                     rival: Optional[np.ndarray]) -> Optional[bool]:
+        """One rival pair: the crop is nearer the track's own reference than the rival's by reid_resolve.margin
+        (True), nearer the rival's by the margin (False: evidence of a swap, never a reason to switch), or neither / unknown (None)."""
+        if e is None or own is None or rival is None:
+            return None
+        m = float(e @ own) - float(e @ rival)
+        return True if m >= self.rc.margin else (False if m <= -self.rc.margin else None)
+
     def _identity_resolution(self, matched: Dict[int, Tuple[int, bool]], dets: Sequence[Detection],
-                             desc: Sequence[Optional[np.ndarray]], time_s: float, out: FrameTracks) -> None:
+                             desc: Sequence[Optional[np.ndarray]], time_s: float, out: FrameTracks,
+                             emb: Optional[Dict[int, Optional[np.ndarray]]] = None) -> None:
         """An uncertain track becomes CERTAIN only after clean evidence (uncontested match, clean crop) clears EVERY
         rival pair on the same frame and no pair has been contradicted for identity_resolve_s. Per pair:
           TWO_SIDED  both appearances stored: own crop matches own (>= min_similarity) and beats the rival's by
@@ -444,20 +553,40 @@ class MultiPlayerTracker:
           OWN_ONLY   only own stored: own crop matches own, and the rival's latest clean crop taken after the
                      contest is clearly unlike own (<= min_similarity - min_margin); no such crop = no evidence;
           neither stored: never evidence.
+        Predecessor rivals (an ambiguous spawn, tracking.ambiguous_spawn_uncertain) are judged together, not per pair,
+        because the track may BE one of them: PREDECESSOR clears when the crop is clearly unlike every predecessor
+        but at most one (<= min_similarity - min_margin; a predecessor with no stored appearance can never be ruled out),
+        is evidence against when it is not clearly unlike two or more, else no evidence.
         An appearance doubt (S3b) is one more condition: own crop matches the track's frozen pre-doubt appearance
         (>= min_similarity); evidence must come after the latest doubt link. With
         tracking.doubt_resolve_self_consistent the doubt also passes (SELF_CONSISTENT) when the track is exclusive on
         this frame (its motion gate holds only this detection, no other track gates it) and the crop matches the
         appearance seen since the doubt began (the first such crop only starts that reference); a non-exclusive
         frame or a disagreeing crop is evidence against. On resolution the track adopts that appearance.
-        Any pair with clean evidence against it resets the run; frames without evidence for a pair hold it."""
+        Any pair with clean evidence against it resets the run; frames without evidence for a pair hold it; the
+        episode is then resolved_by APPEARANCE.
+        With reid_resolve on (config 2.14.0) re-ID has its own run (_reid_evidence, _advance_reid_run): it resolves
+        the episode (resolved_by REID) when re-ID cleared every rival, predecessors included, on
+        reid_resolve.min_evidence_frames clean frames spanning identity_resolve_s, with no evidence against in
+        between. Colour cannot clear for re-ID and its "cannot tell" does not stop a re-ID run (same-look rivals);
+        colour that clearly favours the rival does. Re-ID evidence against a rival also resets the colour run."""
         clear_max = self.ac.min_similarity - self.ac.min_margin
         gated: Optional[np.ndarray] = None
+        emb = emb or {}
         for k, (i, contested) in matched.items():
             t = self._tracks[k]
-            if not self._uncertain(t) or contested or desc[i] is None or not self._clean(i, dets, matched):
+            if not self._uncertain(t):
                 continue
-            s_own = similarity(desc[i], t.appearance)
+            if contested or not self._clean(i, dets, matched):
+                if self.rc.enabled:           # refused: re-ID uses clean, uncontested crops only
+                    out.decisions.append({"kind": "reid_evidence", "track_id": t.track_id, "detection": i,
+                                          "status": "CONTESTED" if contested else "NOT_CLEAN", "rivals": {},
+                                          "cleared": False, "run_frames": t.reid_run_frames})
+                continue
+            e = emb.get(i)
+            if desc[i] is None and e is None and not self.rc.enabled:
+                continue
+            s_own = similarity(desc[i], t.appearance) if desc[i] is not None else None
             verdicts: Dict[str, Tuple[str, Optional[bool]]] = {}
             if t.appearance_doubt_since is not None:
                 v = None if s_own is None or time_s <= t.appearance_doubt_since + _EPS \
@@ -480,8 +609,22 @@ class MultiPlayerTracker:
                         else:
                             t.doubt_appearance = desc[i].copy()             # restart the reference
                     verdicts["(appearance_doubt)"] = ("SELF_CONSISTENT", v)
+            preds = {rid: rv for rid, rv in t.identity_rivals.items() if rv.predecessor}
+            if preds:                         # ambiguous spawn: which of them (if any) is this?
+                if desc[i] is None:
+                    verdicts["(predecessors)"] = ("NO_CROP", None)
+                else:
+                    unknown = [r for r, rv in preds.items() if rv.appearance is None]
+                    near = [r for r, rv in preds.items()
+                            if rv.appearance is not None and similarity(desc[i], rv.appearance) > clear_max]
+                    v = True if len(near) + len(unknown) <= 1 else (False if len(near) >= 2 else None)
+                    verdicts["(predecessors)"] = ("PREDECESSOR", v)
             for rid, rv in t.identity_rivals.items():
-                if t.appearance is not None and rv.appearance is not None:
+                if rv.predecessor:
+                    continue                  # judged jointly above
+                if desc[i] is None:
+                    verdicts[rid] = ("NO_CROP", None)
+                elif t.appearance is not None and rv.appearance is not None:
                     ok = s_own >= self.ac.min_similarity and s_own - similarity(desc[i], rv.appearance) >= \
                         self.ac.min_margin
                     verdicts[rid] = ("TWO_SIDED", ok)
@@ -496,6 +639,13 @@ class MultiPlayerTracker:
                                          similarity(crop[1], t.appearance) <= clear_max)
                 else:
                     verdicts[rid] = ("NONE_STORED", None)
+            reid = self._reid_evidence(t, i, e, desc[i], time_s, out) if self.rc.enabled else None
+            if reid is not None and reid["against"]:
+                for rid in reid["against"]:   # re-ID evidence of a swap also stops a colour run (fail closed)
+                    rule, _ = verdicts.get(rid, ("REID", None))
+                    verdicts[rid] = (rule + "+REID_AGAINST", False)
+            if reid is not None and self._advance_reid_run(t, i, reid, s_own, time_s, out):
+                continue                      # resolved by re-ID on this frame
             if any(v is False for _, v in verdicts.values()):
                 if t.resolve_since_t is not None:
                     out.decisions.append({"kind": "identity_resolution_reset", "track_id": t.track_id,
@@ -510,12 +660,127 @@ class MultiPlayerTracker:
             if time_s - t.resolve_since_t >= self.tc.identity_resolve_s - _EPS:
                 out.decisions.append({"kind": "identity_resolved", "track_id": t.track_id, "detection": i,
                                       "rivals": {r: rule for r, (rule, _) in sorted(verdicts.items())},
-                                      "own_similarity": s_own})
+                                      "own_similarity": s_own, "resolved_by": "APPEARANCE"})
                 if verdicts.get("(appearance_doubt)", ("",))[0] == "SELF_CONSISTENT":
                     t.appearance, t.appearance_t = t.doubt_appearance.copy(), time_s   # the look seen since
-                t.identity_rivals, t.resolve_since_t, t.appearance_doubt_since = {}, None, None
-                t.doubt_appearance = None
-                self._pending_doubt.pop(t.track_id, None)   # this frame's doubt link is what just resolved
+                self._clear_episode(t, "APPEARANCE")
+
+    def _clear_episode(self, t: _Track, by: str) -> None:
+        t.identity_rivals, t.resolve_since_t, t.appearance_doubt_since = {}, None, None
+        t.doubt_appearance, t.resolved_by = None, by
+        self._reset_reid_run(t)
+        self._pending_doubt.pop(t.track_id, None)   # this frame's doubt link is what just resolved
+
+    @staticmethod
+    def _reset_reid_run(t: _Track) -> None:
+        t.reid_run_since_t, t.reid_run_frames, t.reid_run_pred = None, 0, None
+
+    def _reid_evidence(self, t: _Track, i: int, e: Optional[np.ndarray], d: Optional[np.ndarray], time_s: float,
+                       out: FrameTracks) -> dict:
+        """Re-ID verdict for every rival of an uncertain track on a clean, uncontested crop (config reid_resolve).
+        Per rival pair: margin = sim(crop, own reference) - sim(crop, rival reference at the contest); cleared at
+        >= reid_resolve.margin, against at <= -margin, else no evidence. Predecessors of an ambiguous spawn are
+        judged together (the track may BE one of them): cleared when one predecessor beats every other by the
+        margin; the picked predecessor is returned so a run can require the same pick on every frame. A missing
+        embedding or reference, a rival not yet re-observed after its contest, or an appearance doubt (no rival
+        reference) is no evidence. Colour can only veto (clearly favouring the rival / clearly unlike the pick),
+        never clear. Logged as `reid_evidence` with the scores, margins and the reason for every refusal."""
+        clear_max = self.ac.min_similarity - self.ac.min_margin
+        rivals: Dict[str, dict] = {}
+        against: List[str] = []
+        pick: Optional[str] = None
+        status = "EVALUATED"
+        if t.appearance_doubt_since is not None:
+            status = "APPEARANCE_DOUBT"
+        elif e is None:
+            status = "NO_EMBEDDING"
+        elif t.reid_ref is None and any(not rv.predecessor for rv in t.identity_rivals.values()):
+            status = "NO_OWN_REFERENCE"
+        if status == "EVALUATED":
+            for rid, rv in sorted(t.identity_rivals.items()):
+                if rv.predecessor:
+                    continue
+                row: dict = {"rule": "PAIR"}
+                if rv.reid is None:
+                    row["refused"] = "NO_RIVAL_REFERENCE"
+                elif time_s <= rv.since_t + _EPS:
+                    row["refused"] = "AT_CONTEST"
+                else:
+                    so, sr = float(e @ t.reid_ref), float(e @ rv.reid)
+                    m = so - sr
+                    row.update(own=round(so, 4), rival=round(sr, 4), margin=round(m, 4))
+                    if m <= -self.rc.margin:
+                        row["verdict"] = "AGAINST"
+                        against.append(rid)
+                    elif m < self.rc.margin:
+                        row["refused"] = "BELOW_MARGIN"
+                    elif d is not None and t.appearance is not None and rv.appearance is not None and \
+                            similarity(d, rv.appearance) - similarity(d, t.appearance) >= self.ac.min_margin:
+                        row["verdict"] = "COLOUR_CONTRARY"      # the cues disagree: fail closed
+                        against.append(rid)
+                    else:
+                        row["verdict"] = "CLEARED"
+                rivals[rid] = row
+            preds = {rid: rv for rid, rv in t.identity_rivals.items() if rv.predecessor}
+            if preds:
+                row = {"rule": "PREDECESSOR"}
+                if any(rv.reid is None for rv in preds.values()):
+                    row["refused"] = "NO_PREDECESSOR_REFERENCE"
+                    row["missing"] = sorted(r for r, rv in preds.items() if rv.reid is None)
+                else:
+                    sims = sorted(((float(e @ rv.reid), r) for r, rv in preds.items()), reverse=True)
+                    gap = sims[0][0] - sims[1][0]
+                    row.update(sims={r: round(v, 4) for v, r in sims}, best=sims[0][1], margin=round(gap, 4))
+                    best = preds[sims[0][1]]
+                    if gap < self.rc.margin:
+                        row["refused"] = "BELOW_MARGIN"
+                    elif t.reid_run_pred is not None and sims[0][1] != t.reid_run_pred:
+                        row["verdict"] = "PICK_CHANGED"         # a different predecessor than earlier in the run
+                        against.append("(predecessors)")
+                    elif d is not None and best.appearance is not None and similarity(d, best.appearance) <= clear_max:
+                        row["verdict"] = "COLOUR_CONTRARY"
+                        against.append("(predecessors)")
+                    else:
+                        row["verdict"] = "CLEARED"
+                        pick = sims[0][1]
+                rivals["(predecessors)"] = row
+        cleared = status == "EVALUATED" and bool(rivals) and all(r.get("verdict") == "CLEARED" for r in rivals.values())
+        out.decisions.append({"kind": "reid_evidence", "track_id": t.track_id, "detection": i, "status": status,
+                              "rivals": rivals, "cleared": cleared, "run_frames": t.reid_run_frames,
+                              "run_s": None if t.reid_run_since_t is None else round(time_s - t.reid_run_since_t, 4)})
+        return {"cleared": cleared, "against": against, "pick": pick, "rivals": rivals, "status": status}
+
+    def _advance_reid_run(self, t: _Track, i: int, reid: dict, s_own: Optional[float], time_s: float,
+                          out: FrameTracks) -> bool:
+        """The re-ID run of an uncertain track: any evidence against resets it, a frame where re-ID cleared every
+        rival advances it, any other frame holds it. It resolves the episode (resolved_by REID) only when it spans
+        tracking.identity_resolve_s AND holds reid_resolve.min_evidence_frames clearing frames: never one frame."""
+        if reid["against"]:
+            if t.reid_run_since_t is not None:
+                out.decisions.append({"kind": "reid_run_reset", "track_id": t.track_id, "detection": i,
+                                      "against": sorted(reid["against"]), "run_frames": t.reid_run_frames})
+            self._reset_reid_run(t)
+            return False
+        if not reid["cleared"]:
+            return False
+        if t.reid_run_since_t is None:
+            t.reid_run_since_t, t.reid_run_frames, t.reid_run_pred = time_s, 0, reid["pick"]
+        t.reid_run_frames += 1
+        run_s = time_s - t.reid_run_since_t
+        if run_s < self.tc.identity_resolve_s - _EPS or t.reid_run_frames < self.rc.min_evidence_frames:
+            return False
+        out.decisions.append({"kind": "identity_resolved", "track_id": t.track_id, "detection": i,
+                              "rivals": {r: row.get("rule") for r, row in sorted(reid["rivals"].items())},
+                              "own_similarity": s_own, "resolved_by": "REID", "reid": reid["rivals"],
+                              "reid_margin": self.rc.margin, "run_frames": t.reid_run_frames,
+                              "run_s": round(run_s, 4), "predecessor": t.reid_run_pred})
+        self._clear_episode(t, "REID")
+        return True
+
+    def _may_claim(self, t: _Track, time_s: float) -> bool:
+        """Could t take a detection on this frame (S3c / S4 claimant)? With tracking.rival_eligible_only, only a track
+        observed on the previous frame or still recoverable; otherwise any track (the behaviour before)."""
+        return not self.tc.rival_eligible_only or t.observed_last_frame or self._recoverable(t, time_s)
 
     def _recoverable(self, t: _Track, time_s: float) -> bool:
         """An unobserved track that a detection may still be re-associated to on this frame."""
@@ -592,7 +857,7 @@ class MultiPlayerTracker:
             in_gate = [i for i in all_d if gated[k, i]]
             if not in_gate:
                 continue
-            reason, sim, margin = None, None, None
+            reason, sim, margin, rivals = None, None, None, []
             unexplained = [i for i in in_gate if i not in matched_det]
             if any(matched_det.get(i) for i in in_gate):
                 reason = "CONTESTED_NEIGHBOUR"
@@ -602,7 +867,8 @@ class MultiPlayerTracker:
                 reason = "LOW_SCORE"
             else:
                 i = unexplained[0]
-                rivals = [self._tracks[j].track_id for j in unmatched_tracks if j != k and gated[j, i]]
+                rivals = [self._tracks[j].track_id for j in unmatched_tracks if j != k and gated[j, i]
+                          and self._may_claim(self._tracks[j], time_s)]
                 sim = similarity(desc[i], t.appearance)
                 if rivals:
                     reason = "RIVAL_TRACK"
@@ -624,6 +890,8 @@ class MultiPlayerTracker:
                      "margin": None if margin is None else round(margin, 4)}
             if reason:
                 entry["reason"] = reason
+                if reason == "RIVAL_TRACK":
+                    entry["rival_tracks"] = sorted(rivals)          # diagnostic: who the rival was
             else:
                 accepted[k] = unexplained[0]
             out.decisions.append(entry)
@@ -738,7 +1006,9 @@ class MultiPlayerTracker:
         t.appearance_t = time_s
 
     def _apply_matches(self, matched: Dict[int, Tuple[int, bool]], dets: Sequence[Detection],
-                       desc: Sequence[Optional[np.ndarray]], frame_index: int, time_s: float) -> None:
+                       desc: Sequence[Optional[np.ndarray]], frame_index: int, time_s: float,
+                       emb: Optional[Dict[int, Optional[np.ndarray]]] = None) -> None:
+        emb = emb or {}
         for k, t in enumerate(self._tracks):
             if k in matched:
                 i, contested = matched[k]
@@ -759,10 +1029,13 @@ class MultiPlayerTracker:
                         t.doubt_appearance = None
                     if starting or not self.tc.doubt_resolve_self_consistent:
                         t.resolve_since_t = None        # a continuing doubt keeps a self-consistent run going
+                    self._reset_reid_run(t)             # a doubt has no rival reference: re-ID cannot clear it
                 if not contested and self._clean(i, dets, matched) and desc[i] is not None:
                     self._clean_crops[t.track_id] = (time_s, desc[i])   # evidence only, never the model
                     if not self._uncertain(t):
                         self._update_appearance(t, desc[i], time_s)     # frozen while IDENTITY_UNCERTAIN
+                if not self._uncertain(t) and t.confirmed and emb.get(i) is not None:
+                    t.reid_ref, t.reid_ref_t = emb[i], time_s           # only requested when clean / uncontested
             else:
                 t.observed_last_frame = False
                 t.missed_frames += 1
@@ -886,6 +1159,17 @@ class MultiPlayerTracker:
             observed.append(d)
             out.decisions.append({"kind": "spawn", "track_id": tid, "detection": i,
                                   "possible_predecessors": list(preds)})
+            if self.tc.ambiguous_spawn_uncertain and len(preds) >= 2:
+                # More than one hidden player could be this one: the track starts IDENTITY_UNCERTAIN naming them
+                # (real DEV finding: FRESH_02 T000045 started CERTAIN and carried a second player 0.37 s later).
+                by_id = {o.track_id: o for o in self._tracks}
+                for p in preds:
+                    o = by_id[p]
+                    t.identity_rivals[p] = _Rival(None if o.appearance is None else o.appearance.copy(), time_s,
+                                                  None if o.reid_ref is None else o.reid_ref.copy(), predecessor=True)
+                t.uncertain_episodes = 1
+                out.decisions.append({"kind": "identity_uncertain", "rule": "AMBIGUOUS_SPAWN", "track_id": tid,
+                                      "rivals": list(preds), "detection": i})
 
     def _duplicate_of(self, d: np.ndarray, observed: List[np.ndarray]) -> Optional[dict]:
         if not observed:
@@ -933,7 +1217,8 @@ class MultiPlayerTracker:
                 t.observed_frames, t.epoch, t.occluder, round(o, 6), self._tracks[j].track_id if o > 0 else None,
                 t.recoveries, t.last_gap_s, t.predecessors,
                 IdentityState.IDENTITY_UNCERTAIN if self._uncertain(t) else IdentityState.CERTAIN,
-                tuple(sorted(t.identity_rivals)), t.uncertain_episodes, t.appearance_doubt_since is not None)
+                tuple(sorted(t.identity_rivals)), t.uncertain_episodes, t.appearance_doubt_since is not None,
+                None if self._uncertain(t) else t.resolved_by)
             obs.append(rec)
             t.history.append(HistoryEntry(frame_index, time_s, t.state, src, box, score))
             while t.history and time_s - t.history[0].time_s > self.tc.history_s + _EPS:

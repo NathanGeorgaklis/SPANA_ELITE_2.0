@@ -10,6 +10,8 @@
   python -m spana.cli ball   --video V --config C --detections ball_detections.json --out ball.json
   python -m spana.cli embed  --video V --config C --tracks tracks.json --model-record models/spana_reid_v2.json \
       --out embeddings.json
+  python -m spana.cli link   --video V --config C --linking-config config/tracking/linking.yaml --tracks tracks.json \
+      --decisions tracks.decisions.jsonl --out linked.json   # offline tracklet linking (same tracks contract)
   python -m spana.cli target --tracks tracks.json --config C --select-track T --select-frame F [--actions A.json] \
       --out target.json
 
@@ -20,6 +22,8 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import hashlib
+import json
 import sys
 from pathlib import Path
 from typing import List, Optional
@@ -174,6 +178,10 @@ def cmd_track(a: argparse.Namespace) -> int:
     det_frames = {fr["frame"]: fr for fr in ddoc["frames"]}
     cam = CameraMotionEstimator(cfg.camera, video.meta.width, video.meta.height, video.meta.fps)
     trk = MultiPlayerTracker(cfg, video.meta.width, video.meta.height)
+    embedder = None
+    if cfg.reid_resolve.enabled:               # re-ID evidence for IDENTITY_UNCERTAIN (pinned, calibrated model)
+        from .identity.reid import ReidEmbedder, embed_boxes, load_pinned
+        embedder = ReidEmbedder(load_pinned(cfg.reid_resolve.model_record, cfg.reid_resolve.model_sha256))
     frames, log = [], []
     first, last, stride = min(det_frames), max(det_frames), ddoc["frame_stride"]
     if sorted(det_frames) != list(range(first, last + 1, stride)):
@@ -183,7 +191,9 @@ def cmd_track(a: argparse.Namespace) -> int:
             continue
         dets = detections_from_frame(det_frames[i])
         boxes = [d.box for d in dets]
-        ft = trk.update(i, t, dets, cam.observe(img, boxes), describe(img, boxes, cfg.appearance))
+        reid_fn = (lambda idx, img=img, boxes=boxes: embed_boxes(embedder, img, [boxes[k] for k in idx])) \
+            if embedder else None
+        ft = trk.update(i, t, dets, cam.observe(img, boxes), describe(img, boxes, cfg.appearance), reid_fn)
         frames.append(tracks_frame(ft, cfg.output))
         log.extend({"frame": i, **d} for d in ft.decisions)
     if not frames or frames[-1]["frame"] != last:
@@ -191,7 +201,8 @@ def cmd_track(a: argparse.Namespace) -> int:
     doc = {
         "schema": TRACKS_SCHEMA[0], "schema_version": TRACKS_SCHEMA[1],
         "provenance": build_provenance(config_sha256=cfg.sha256(), argv=sys.argv,
-                                       inputs={"video": video.meta.sha256, "detections": sha256_doc(ddoc)}),
+                                       inputs={"video": video.meta.sha256, "detections": sha256_doc(ddoc),
+                                               **({"reid_model": embedder.rec.onnx_sha256} if embedder else {})}),
         "video": video.meta.to_dict(), "detections_sha256": sha256_doc(ddoc), "frames": frames,
         "tracklets": tracklet_rows(trk.summaries()),
     }
@@ -281,6 +292,49 @@ def cmd_embed(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_link(a: argparse.Namespace) -> int:
+    """Offline global tracklet linking (spana/tracking/linking.py): reads the video for appearance signatures,
+    writes the linked tracks (same contract), the renamed decision log and the link log."""
+    from .tracking.linking import (LINK_LOG_SCHEMA, TorsoColourEmbedder, compute_signatures, link_document,
+                                   load_linking_config, rename_decisions)
+    cfg = load_config(a.config)
+    lcfg = load_linking_config(a.linking_config)
+    decisions_path = Path(a.out).with_suffix(".decisions.jsonl")
+    links_path = Path(a.out).with_suffix(".links.jsonl")
+    refuse_existing(a.out, decisions_path, links_path)
+    tdoc = read_json(a.tracks)
+    validate_tracks(tdoc)
+    video = VideoSource(a.video, expected_sha256=a.video_sha256)
+    if tdoc["video"]["sha256"] != video.meta.sha256:
+        raise ArtifactError("tracks artifact was produced from a different video")
+    decisions = [json.loads(l) for l in Path(a.decisions).read_text().splitlines() if l.strip()]
+    embedder = TorsoColourEmbedder(cfg.appearance)
+    first, last = tdoc["frames"][0]["frame"], tdoc["frames"][-1]["frame"]
+    sig = compute_signatures(((i, img) for i, _, img in video.frames(first, last + 1)), tdoc, embedder,
+                             lcfg.signature_samples)
+    prov = build_provenance(config_sha256=lcfg.sha256(), argv=sys.argv,
+                            inputs={"video": video.meta.sha256, "tracks": sha256_doc(tdoc),
+                                    "decisions": hashlib.sha256(Path(a.decisions).read_bytes()).hexdigest(),
+                                    "config": cfg.sha256()})
+    doc, log, head_of = link_document(tdoc, sig, embedder.name, embedder.similarity, lcfg,
+                                      confidence_window_s=cfg.tracking.confidence_window_s,
+                                      score_decimals=cfg.output.score_decimals,
+                                      box_decimals=cfg.output.box_decimals, provenance=prov)
+    validate_tracks(doc)
+    header = {"kind": "header", "schema": LINK_LOG_SCHEMA[0], "schema_version": LINK_LOG_SCHEMA[1],
+              "tracks_in": sha256_doc(tdoc), "tracks_out": sha256_doc(doc), "linking_config": lcfg.sha256(),
+              "embedder": embedder.name}
+    print(write_jsonl_atomic(links_path, [header] + log))
+    print(write_jsonl_atomic(decisions_path, rename_decisions(decisions, head_of) +
+                             [{"kind": "link", "frame": e["to_first_frame"], "track_id": e["head"],
+                               "from_track": e["from_track"], "to_track": e["to_track"]}
+                              for e in log if e["kind"] == "link"]))
+    print(write_json_atomic(a.out, doc))
+    links = sum(e["kind"] == "link" for e in log)
+    print(f"links {links}, abstentions {len(log) - links}")
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     p = argparse.ArgumentParser(prog="spana")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -327,9 +381,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     e.add_argument("--config", required=True)
     e.add_argument("--model-record", required=True, help="re-ID model record, e.g. models/spana_reid_v2.json")
     e.add_argument("--out", required=True)
+    k = sub.add_parser("link", help="offline global tracklet linking (same spana.tracks contract + link log)")
+    k.add_argument("--video", required=True)
+    k.add_argument("--video-sha256", default=None, help="refuse to run if the video hash differs")
+    k.add_argument("--tracks", required=True)
+    k.add_argument("--decisions", required=True, help="the tracker's decision log of --tracks")
+    k.add_argument("--config", required=True)
+    k.add_argument("--linking-config", required=True, help="e.g. config/tracking/linking.yaml")
+    k.add_argument("--out", required=True)
     a = p.parse_args(argv)
-    cmds = {"detect": cmd_detect, "track": cmd_track, "ball": cmd_ball, "target": cmd_target, "embed": cmd_embed}
-    return cmds[a.cmd](a)
+    return {"detect": cmd_detect, "track": cmd_track, "ball": cmd_ball, "target": cmd_target, "embed": cmd_embed,
+            "link": cmd_link}[a.cmd](a)
 
 
 if __name__ == "__main__":

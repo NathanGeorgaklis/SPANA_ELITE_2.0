@@ -70,7 +70,9 @@ def run(players: Sequence[Player], *, fps: float, duration_s: float, frame_w: in
         camera: Optional[Callable[[int], CameraObservation]] = None,
         world_to_image: Optional[Callable[[int, np.ndarray], np.ndarray]] = None,
         config: Optional[SpanaConfig] = None, extra: Optional[Callable[[int, float], List[Detection]]] = None,
-        use_appearance: bool = True) -> RunResult:
+        use_appearance: bool = True, reid: Optional[Dict[str, np.ndarray]] = None,
+        reid_calls: Optional[List[List[int]]] = None) -> RunResult:
+    """reid: re-ID embedding per player id (None = unknown); reid_calls collects every embedding request."""
     c = config or cfg()
     trk = MultiPlayerTracker(c, frame_w, frame_h)
     n = int(round(duration_s * fps))
@@ -102,7 +104,11 @@ def run(players: Sequence[Player], *, fps: float, duration_s: float, frame_w: in
             dets, gids, app = [dets[k] for k in keep], [gids[k] for k in keep], [app[k] for k in keep]
         cam = camera(i) if camera else (CameraObservation.identity(CameraStatus.FIRST) if i == 0
                                         else CameraObservation.identity(CameraStatus.OK, inliers=100))
-        ft = trk.update(i, t, dets, cam, app)
+        def reid_fn(idx, gids=gids):
+            if reid_calls is not None:
+                reid_calls.append(list(idx))
+            return [None if gids[k] is None or reid is None else reid.get(gids[k]) for k in idx]
+        ft = trk.update(i, t, dets, cam, app, reid_fn)
         res.frames.append(ft)
         res.gt_of_detection.append(gids)
         res.gt_boxes.append(gtb)

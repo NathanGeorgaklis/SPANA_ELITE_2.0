@@ -1,0 +1,250 @@
+{
+ "margin": 0.517,
+ "clips": {
+  "FRESH_05": {
+   "same_player": {
+    "n": 6000,
+    "p05": 0.282,
+    "p25": 0.482,
+    "p50": 0.606,
+    "p75": 0.717,
+    "p95": 0.851
+   },
+   "same_look_diff_player": {
+    "n": 1766,
+    "p05": -0.012,
+    "p25": 0.307,
+    "p50": 0.463,
+    "p75": 0.589,
+    "p95": 0.721
+   },
+   "diff_look_diff_player": {
+    "n": 4234,
+    "p05": -0.202,
+    "p25": -0.068,
+    "p50": 0.047,
+    "p75": 0.181,
+    "p95": 0.501
+   },
+   "same_look_player_pairs": 20,
+   "player_pairs": 66,
+   "clean_rival_same_look": {
+    "n": 0,
+    "right_at_margin": 0,
+    "wrong_at_margin": 0,
+    "undecided": 0
+   },
+   "clean_rival_diff_look": {
+    "n": 38,
+    "p05": 0.487,
+    "p25": 0.586,
+    "p50": 0.699,
+    "p75": 0.792,
+    "p95": 0.906,
+    "right_at_margin": 34,
+    "wrong_at_margin": 0,
+    "undecided": 4
+   }
+  },
+  "FRESH_07": {
+   "same_player": {
+    "n": 6000,
+    "p05": 0.328,
+    "p25": 0.511,
+    "p50": 0.626,
+    "p75": 0.726,
+    "p95": 0.827
+   },
+   "same_look_diff_player": {
+    "n": 1716,
+    "p05": 0.192,
+    "p25": 0.354,
+    "p50": 0.463,
+    "p75": 0.569,
+    "p95": 0.694
+   },
+   "diff_look_diff_player": {
+    "n": 4284,
+    "p05": -0.097,
+    "p25": 0.08,
+    "p50": 0.203,
+    "p75": 0.343,
+    "p95": 0.562
+   },
+   "same_look_player_pairs": 54,
+   "player_pairs": 209,
+   "clean_rival_same_look": {
+    "n": 225,
+    "p05": -0.024,
+    "p25": 0.099,
+    "p50": 0.194,
+    "p75": 0.3,
+    "p95": 0.471,
+    "right_at_margin": 5,
+    "wrong_at_margin": 0,
+    "undecided": 220
+   },
+   "clean_rival_diff_look": {
+    "n": 619,
+    "p05": 0.145,
+    "p25": 0.344,
+    "p50": 0.493,
+    "p75": 0.653,
+    "p95": 0.845,
+    "right_at_margin": 278,
+    "wrong_at_margin": 0,
+    "undecided": 341
+   }
+  },
+  "FRESH_02": {
+   "same_player": {
+    "n": 6000,
+    "p05": 0.212,
+    "p25": 0.415,
+    "p50": 0.553,
+    "p75": 0.685,
+    "p95": 0.825
+   },
+   "same_look_diff_player": {
+    "n": 1807,
+    "p05": -0.005,
+    "p25": 0.172,
+    "p50": 0.299,
+    "p75": 0.43,
+    "p95": 0.589
+   },
+   "diff_look_diff_player": {
+    "n": 4193,
+    "p05": -0.176,
+    "p25": 0.001,
+    "p50": 0.134,
+    "p75": 0.257,
+    "p95": 0.441
+   },
+   "same_look_player_pairs": 45,
+   "player_pairs": 151,
+   "clean_rival_same_look": {
+    "n": 129,
+    "p05": 0.097,
+    "p25": 0.328,
+    "p50": 0.458,
+    "p75": 0.605,
+    "p95": 0.787,
+    "right_at_margin": 50,
+    "wrong_at_margin": 0,
+    "undecided": 79
+   },
+   "clean_rival_diff_look": {
+    "n": 357,
+    "p05": 0.04,
+    "p25": 0.21,
+    "p50": 0.361,
+    "p75": 0.539,
+    "p95": 0.821,
+    "right_at_margin": 102,
+    "wrong_at_margin": 0,
+    "undecided": 255
+   }
+  },
+  "FRESH_08": {
+   "same_player": {
+    "n": 6000,
+    "p05": 0.24,
+    "p25": 0.44,
+    "p50": 0.583,
+    "p75": 0.704,
+    "p95": 0.821
+   },
+   "same_look_diff_player": {
+    "n": 896,
+    "p05": 0.098,
+    "p25": 0.285,
+    "p50": 0.4,
+    "p75": 0.515,
+    "p95": 0.648
+   },
+   "diff_look_diff_player": {
+    "n": 5104,
+    "p05": -0.028,
+    "p25": 0.132,
+    "p50": 0.26,
+    "p75": 0.392,
+    "p95": 0.602
+   },
+   "same_look_player_pairs": 36,
+   "player_pairs": 208,
+   "clean_rival_same_look": {
+    "n": 73,
+    "p05": -0.083,
+    "p25": 0.049,
+    "p50": 0.148,
+    "p75": 0.294,
+    "p95": 0.585,
+    "right_at_margin": 7,
+    "wrong_at_margin": 0,
+    "undecided": 66
+   },
+   "clean_rival_diff_look": {
+    "n": 476,
+    "p05": -0.001,
+    "p25": 0.178,
+    "p50": 0.341,
+    "p75": 0.514,
+    "p95": 0.76,
+    "right_at_margin": 118,
+    "wrong_at_margin": 0,
+    "undecided": 358
+   }
+  }
+ },
+ "pooled": {
+  "same_player": {
+   "n": 24000,
+   "p05": 0.258,
+   "p25": 0.462,
+   "p50": 0.595,
+   "p75": 0.709,
+   "p95": 0.831
+  },
+  "same_look_diff_player": {
+   "n": 6185,
+   "p05": 0.05,
+   "p25": 0.269,
+   "p50": 0.407,
+   "p75": 0.534,
+   "p95": 0.682
+  },
+  "diff_look_diff_player": {
+   "n": 17815,
+   "p05": -0.153,
+   "p25": 0.029,
+   "p50": 0.167,
+   "p75": 0.315,
+   "p95": 0.545
+  },
+  "clean_rival_same_look": {
+   "n": 427,
+   "p05": -0.035,
+   "p25": 0.12,
+   "p50": 0.249,
+   "p75": 0.406,
+   "p95": 0.662,
+   "right_at_margin": 62,
+   "wrong_at_margin": 0,
+   "undecided": 365
+  },
+  "clean_rival_diff_look": {
+   "n": 1490,
+   "p05": 0.057,
+   "p25": 0.25,
+   "p50": 0.423,
+   "p75": 0.595,
+   "p95": 0.841,
+   "right_at_margin": 532,
+   "wrong_at_margin": 0,
+   "undecided": 958
+  },
+  "same_look_above_same_player_p25": 0.392,
+  "auc_same_vs_same_look": 0.696
+ }
+}

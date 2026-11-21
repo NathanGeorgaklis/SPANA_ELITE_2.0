@@ -218,6 +218,19 @@ class LostTrackSafety(unittest.TestCase):
         refused = [d for ft in res.frames for d in ft.decisions if d["kind"] == "recovery_refused"]
         self.assertTrue(refused)
 
+    def test_rival_track_refusal_names_the_rival(self):
+        # A and B (same kit) both vanish; one box comes back between them: each recovery is refused RIVAL_TRACK and
+        # the log names the other track (diagnostic field, records/rival_track_log_2026-11-19).
+        a = Player("A", (800, 500), (0, 0), appearance=kit(2), visible=lambda t: t < 1.0 or t >= 1.1)
+        b = Player("B", (800 + 0.2 * H, 500), (0, 0), appearance=kit(2), visible=lambda t: t < 1.0)
+        res = run([a, b], fps=30, duration_s=1.5)
+        assert_safe(self, res)
+        rival = [d for ft in res.frames for d in ft.decisions
+                 if d["kind"] == "recovery_refused" and d.get("reason") == "RIVAL_TRACK"]
+        self.assertTrue(rival)
+        for d in rival:
+            self.assertTrue(d["rival_tracks"] and d["track_id"] not in d["rival_tracks"])
+
     def test_appearance_mismatch_vetoes_short_gap(self):
         b = Player("B", (800, 500), (0, 0), appearance=kit(0), visible=lambda t: t < 1.0)
         a = Player("A", (800 + 0.2 * H, 500), (0, 0), appearance=kit(3), visible=lambda t: t >= 1.07)
@@ -263,9 +276,18 @@ class QARound2Regressions(unittest.TestCase):
                     assert_safe(self, res, (fps, look))
                 else:
                     # Same look: NMS merges the two bodies into one box right after an ambiguous spawn. Known
-                    # limit: a transfer may follow, but only on a track already flagged as ambiguous.
+                    # limit: a transfer may follow, on the track spawned naming both hidden players. Until
+                    # 2026-11-20 that track started CERTAIN and the transfer was SILENT at 60 fps. With
+                    # tracking.ambiguous_spawn_uncertain it starts IDENTITY_UNCERTAIN, so it is flagged at every
+                    # rate (records/silent_transfer_fix_2026-11-20).
                     m = evaluate(res)
-                    self.assertEqual(m.unflagged_transfers, 0, (fps, look))
+                    silent = [e for e in m.transfer_events if not e["flagged"]]
+                    self.assertEqual(silent, [], (fps, look))
+                    born_uncertain = {o.track_id for ft in res.frames for o in ft.tracks
+                                      if o.age_frames == 0 and len(o.possible_predecessors) >= 2
+                                      and o.identity.value == "IDENTITY_UNCERTAIN"}
+                    self.assertTrue(all(e["track_id"] in born_uncertain for e in m.transfer_events),
+                                    (fps, m.transfer_events))
                     self.assertEqual(m.wrong_recoveries, 0, (fps, look))
 
     def test_h1_front_swap_at_crossing(self):

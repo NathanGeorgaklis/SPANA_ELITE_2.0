@@ -1,0 +1,108 @@
+{
+ "clips": {
+  "F02": {
+   "abstention_reasons": {
+    "AMBIGUOUS_PREDECESSORS": 2,
+    "AMBIGUOUS_SUCCESSORS": 4,
+    "APPEARANCE_BELOW_MIN": 10,
+    "APPEARANCE_UNKNOWN": 4,
+    "IDENTITY_RIVAL": 4,
+    "NOT_MUTUAL_BEST": 9,
+    "UNCERTAIN_EPISODE": 12,
+    "UNCONFIRMED": 18
+   },
+   "abstentions": 31,
+   "identity_transfers": 3,
+   "link_caused_silent": 0,
+   "link_caused_transfers": 0,
+   "links": 2,
+   "links_cleared_by_appearance": 0,
+   "recovery_caused_silent": 0,
+   "recovery_caused_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "unflagged_transfers": 1
+  },
+  "F05": {
+   "abstention_reasons": {
+    "AMBIGUOUS_SUCCESSORS": 2,
+    "APPEARANCE_BELOW_MIN": 4,
+    "NOT_MUTUAL_BEST": 3,
+    "UNCONFIRMED": 9
+   },
+   "abstentions": 11,
+   "identity_transfers": 0,
+   "link_caused_silent": 0,
+   "link_caused_transfers": 0,
+   "links": 0,
+   "links_cleared_by_appearance": 0,
+   "recovery_caused_silent": 0,
+   "recovery_caused_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "unflagged_transfers": 0
+  },
+  "F07": {
+   "abstention_reasons": {
+    "AMBIGUOUS_PREDECESSORS": 3,
+    "AMBIGUOUS_SUCCESSORS": 3,
+    "APPEARANCE_BELOW_MIN": 5,
+    "APPEARANCE_UNKNOWN": 14,
+    "IDENTITY_RIVAL": 4,
+    "NOT_MUTUAL_BEST": 12,
+    "UNCERTAIN_EPISODE": 14,
+    "UNCONFIRMED": 19
+   },
+   "abstentions": 34,
+   "identity_transfers": 3,
+   "link_caused_silent": 0,
+   "link_caused_transfers": 0,
+   "links": 8,
+   "links_cleared_by_appearance": 0,
+   "recovery_caused_silent": 0,
+   "recovery_caused_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "unflagged_transfers": 2
+  },
+  "F08": {
+   "abstention_reasons": {
+    "AMBIGUOUS_PREDECESSORS": 7,
+    "AMBIGUOUS_SUCCESSORS": 16,
+    "APPEARANCE_BELOW_MIN": 16,
+    "APPEARANCE_UNKNOWN": 17,
+    "IDENTITY_RIVAL": 5,
+    "NOT_MUTUAL_BEST": 26,
+    "UNCERTAIN_EPISODE": 18,
+    "UNCONFIRMED": 43
+   },
+   "abstentions": 66,
+   "identity_transfers": 1,
+   "link_caused_silent": 0,
+   "link_caused_transfers": 0,
+   "links": 11,
+   "links_cleared_by_appearance": 0,
+   "recovery_caused_silent": 0,
+   "recovery_caused_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "unflagged_transfers": 0
+  }
+ },
+ "pooled": {
+  "abstentions": 142,
+  "identity_transfers": 7,
+  "link_caused_silent": 0,
+  "link_caused_transfers": 0,
+  "links": 21,
+  "links_cleared_by_appearance": 0,
+  "reason:AMBIGUOUS_PREDECESSORS": 12,
+  "reason:AMBIGUOUS_SUCCESSORS": 25,
+  "reason:APPEARANCE_BELOW_MIN": 35,
+  "reason:APPEARANCE_UNKNOWN": 35,
+  "reason:IDENTITY_RIVAL": 13,
+  "reason:NOT_MUTUAL_BEST": 50,
+  "reason:UNCERTAIN_EPISODE": 44,
+  "reason:UNCONFIRMED": 89,
+  "recovery_caused_silent": 0,
+  "recovery_caused_transfers": 0,
+  "transfers_on_linked_tracks": 0,
+  "unflagged_transfers": 3
+ }
+}

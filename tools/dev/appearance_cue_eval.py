@@ -11,6 +11,7 @@
 # reference crop of A and a reference crop of B, both >= MIN_GAP_S earlier; correct if it is nearer A's.
 #   python -m tools.dev.appearance_cue_eval OUT_JSON MODEL_DIR CLIP_SPEC [CLIP_SPEC ...]
 #   CLIP_SPEC = label_dir:video:tracks.json:decisions.jsonl   (tracks/decisions: the run whose uncertain cases count)
+#             or label_dir:video:pairs@REPORT.json:-          (replay the uncertain pairs an earlier OUT_JSON recorded)
 import collections
 import itertools
 import json
@@ -93,6 +94,10 @@ def load_clip(spec, cfg):
             break
         if i in want:
             want.discard(i)
+            ids = sorted(gt.players[i])
+            ov = iou_matrix(np.array([gt.players[i][g] for g in ids], float), np.array([gt.players[i][g] for g in ids], float))
+            np.fill_diagonal(ov, 0.0)
+            max_iou = {g: float(ov[k].max()) if len(ids) > 1 else 0.0 for k, g in enumerate(ids)}
             for g, b in gt.players[i].items():
                 x1, y1, x2, y2 = (int(round(v)) for v in b)
                 c = img[max(0, y1):y2, max(0, x1):x2]
@@ -100,6 +105,7 @@ def load_clip(spec, cfg):
                     continue
                 crops.append({"clip": fz["clip"]["name"], "frame": i, "t": i / fps, "player": g, "box": list(b),
                               "h": b[3] - b[1], "occluded": g in gt.occluded.get(i, set()), "img": c,
+                              "max_iou": max_iou[g],                  # largest IoU with any other labelled player
                               "hist": torso_descriptor(img, b, cfg.appearance), "number": read_number(img, b)})
         i += 1
     contact = set()
@@ -111,8 +117,20 @@ def load_clip(spec, cfg):
         for a, b in itertools.combinations(range(len(ids)), 2):
             if m[a, b] >= CONTACT_IOU:
                 contact.add(tuple(sorted((ids[a], ids[b]))))
-    rivals = uncertain_rival_pairs(gt, trk_path, dec_path)
+    if trk_path.startswith("pairs@"):
+        rivals = replayed_rival_pairs(trk_path[len("pairs@"):], fz["clip"]["name"])
+    else:
+        rivals = uncertain_rival_pairs(gt, trk_path, dec_path)
     return fz["clip"]["name"], crops, contact, rivals
+
+
+def replayed_rival_pairs(report_path, clip_name):
+    """The uncertain rival pairs an earlier OUT_JSON recorded for this clip (its tracker run is not kept), so another
+    model is scored on exactly the same tests. A clip missing from the report is refused (fail closed)."""
+    clips = json.load(open(report_path))["clips"]
+    if clip_name not in clips:
+        raise SystemExit(f"{report_path}: no recorded pairs for {clip_name}")
+    return {tuple(sorted(map(str, p))) for p in clips[clip_name]["uncertain_rival_pairs"]}
 
 
 def uncertain_rival_pairs(gt, trk_path, dec_path):
@@ -167,13 +185,23 @@ def fusion_table(name, crops, cues, sim_fn, same, diff_all, same_hard, diff_hard
     t["rival"]["qb"] = {c: np.array([sim_fn(c, q, b) for q, _, b, _ in triplets], float) for c in cues}
     t["rival"]["occluded"] = np.array([crops[q]["occluded"] for q, _, _, _ in triplets], bool)
     t["rival"]["pair"] = ["|".join(sorted((str(p), str(q)))) for _, _, _, (p, q) in triplets]
+    t["rival"]["height"] = [float(crops[q]["h"]) for q, _, _, _ in triplets]          # query crop height (px)
+    t["rival"]["gap_s"] = [float(crops[q]["t"] - crops[a]["t"]) for q, a, _, _ in triplets]
+    # tables 1.1.0: the cleanliness of all three crops of a test (query, reference of A, reference of B), so that a
+    # calibration can keep only tests whose crops the tracker itself would use (tools/dev/reid_calibrate.py)
+    t["rival"]["any_occluded"] = [bool(crops[q]["occluded"] or crops[a]["occluded"] or crops[b]["occluded"])
+                                  for q, a, b, _ in triplets]
+    t["rival"]["max_overlap"] = [max(crops[q]["max_iou"], crops[a]["max_iou"], crops[b]["max_iou"])
+                                 for q, a, b, _ in triplets]
     return t
 
 
 def main(out_json, model_dir, *specs):
     # optional "--fusion=CONFIG": also write OUT_JSON.fusion.json (tools/dev/cue_fusion.py); the main report is unchanged
     fusion_cfg = next((s.split("=", 1)[1] for s in specs if s.startswith("--fusion=")), None)
-    specs = [s for s in specs if not s.startswith("--fusion=")]
+    # optional "--dump-tables=PATH": every per-test score of every cue, for tools/dev/reid_calibrate.py
+    dump_path = next((s.split("=", 1)[1] for s in specs if s.startswith("--dump-tables=")), None)
+    specs = [s for s in specs if not s.startswith("--fusion=") and not s.startswith("--dump-tables=")]
     tables = []
     cfg = load_config("config/default.yaml")
     md = Path(model_dir)
@@ -225,7 +253,7 @@ def main(out_json, model_dir, *specs):
                     rb = [k for k in by_player.get(B, []) if crops[qk]["t"] - crops[k]["t"] >= MIN_GAP_S]
                     if ra and rb:
                         triplets.append((qk, ra[-1], rb[-1], (p, q)))
-        if fusion_cfg:
+        if fusion_cfg or dump_path:
             def sim_or_nan(cue, a, b):
                 if cue == "hist" and (crops[a]["hist"] is None or crops[b]["hist"] is None):
                     return float("nan")
@@ -287,6 +315,19 @@ def main(out_json, model_dir, *specs):
                   f"vis={r['rival_acc_query_visible']} gaps={[r[f'rival_acc_gap{lo}-{hi}s'] for lo, hi in GAP_BINS]} "
                   f"rival_pairs={r['rival_pair_accuracy']}")
     Path(out_json).write_text(json.dumps(report, indent=1, default=str))
+    if dump_path:
+        def plain(x):
+            if isinstance(x, dict):
+                return {k: plain(v) for k, v in x.items()}
+            if isinstance(x, (list, tuple, np.ndarray)):
+                return [plain(v) for v in x]
+            if isinstance(x, (float, np.floating)):
+                return None if np.isnan(x) else float(x)
+            if isinstance(x, (np.bool_, bool)):
+                return bool(x)
+            return x
+        Path(dump_path).write_text(json.dumps({"schema": "spana.cue_tables", "schema_version": "1.1.0", "cues": cues,
+                                               "model_dir": str(model_dir), "tables": plain(tables)}))
     if fusion_cfg:
         from tools.dev.cue_fusion import load_fusion_config, report as fusion_report
         fc = load_fusion_config(fusion_cfg)

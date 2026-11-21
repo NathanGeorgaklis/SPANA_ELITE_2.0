@@ -154,6 +154,9 @@ class TrackObservation:
     uncertain_episodes: int = 0             # times the track has entered IDENTITY_UNCERTAIN
     identity_doubt: bool = False            # uncertain because its own appearance disagreed on an exclusive
                                             #   continuation (no rival track to name); tracks 2.2.0
+    resolved_by: Optional[str] = None       # rule that cleared the latest episode: "APPEARANCE" (colour) or "REID"
+                                            #   (every rival cleared by the calibrated re-ID margin); None if none;
+                                            #   tracks 2.3.0
 
 
 @dataclass(frozen=True)

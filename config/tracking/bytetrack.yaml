@@ -1,0 +1,17 @@
+# Tracker bench v1, candidate A (bench/ only; the product never reads this file).
+# Published defaults of Roboflow `trackers` 2.7.0 ByteTrackTracker.__init__ (not tuned). frame_rate comes from the video.
+schema: spana.tracker_candidate
+schema_version: 1.0.0
+candidate: A
+name: bytetrack
+kind: online
+implementation: {package: trackers, version: 2.7.0, class: ByteTrackTracker}
+licence: {spdx: Apache-2.0, commercial_ok: true, source: "trackers 2.7.0 wheel METADATA + LICENSE"}
+needs_image: false
+needs_embeddings: false
+params:
+  lost_track_buffer: 30
+  track_activation_threshold: 0.7
+  minimum_consecutive_frames: 2
+  minimum_iou_threshold: 0.1
+  high_conf_det_threshold: 0.6

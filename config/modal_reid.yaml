@@ -1,0 +1,20 @@
+# SPANA re-ID training on Modal (cloud GPU). Read by tools/modal_reid_plan.py only; the product never reads this file.
+# Training settings stay in config/reid_train.yaml; this file only says where and on what hardware the run happens.
+schema: spana.modal_reid_config
+schema_version: 1.0.0
+app_name: spana-reid-train
+volume_name: spana-reid        # holds crops/, backbones/, runs/ and models/ (see tools/modal_reid.py)
+gpu: A10G
+python_version: "3.13"
+timeout_minutes: 120           # hard Modal limit for one call
+stop_margin_minutes: 15        # training stops after the epoch that crosses (timeout - margin); rerun resumes
+packages:                      # same pins as requirements-local-detector.lock.txt / requirements.lock.txt
+  - numpy==2.5.3
+  - opencv-python-headless==5.0.0.93
+  - PyYAML==6.0.3
+  - onnx==1.23.2
+  - onnxruntime==1.29.0
+  - torch==2.15.0
+  - transformers==5.23.0
+  - safetensors==0.8.0
+  - huggingface-hub==2.4.0

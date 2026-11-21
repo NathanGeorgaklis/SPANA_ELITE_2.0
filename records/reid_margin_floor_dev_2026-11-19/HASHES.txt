@@ -1,0 +1,10 @@
+# sha256, files on Nathan's Mac under spana-margin-floor/ (code c24cf06, branch tracking/margin-floor-guard)
+# inputs: the DEV tables 1.1.0 of records/reid_clean_calibration_dev_2026-11-19 (unchanged, not re-run)
+5113b1cf9afec656542c1a6591cbde2e293ac9037b2a1c64b02e2beafcd12d02  spana-clean-calib/out/tables_p2.json (re-ID v2 c269450e)
+9066f21c3ce42e6b2904d2dd218dd0738a406af8675ef934ba42fb480505491f  spana-clean-calib/out/tables_p3.json (re-ID v3 56a1b4c8)
+fb7a4071b79b2cd4570d7b8a840491797fe9ab4a7e845b0533c687af33700424  config/reid_calibration.yaml (1.2.0, margin_floor all_tests)
+dc48af3d9f7f736fccf4211fc33113004655e5c9c769f038ebfaa8a90736ee6e  out/calibration_p2.json
+68de48116edabbf6dc4c43aa71c2f2d22850fc9c25516bf1ac1d2354c4fdf931  out/calibration_p3.json
+# all-tests section ("options", jq -S) identical to records/reid_clean_calibration_dev_2026-11-19:
+a371340fde844007ac662103476cb26f6358b5489c547ed1c4ff81a7bff8bfaa  v2 options (before = after)
+9ef093bd86f1559812cfa5e10e410dfc27391c450d470ea54f1f1aeec302c277  v3 options (before = after)

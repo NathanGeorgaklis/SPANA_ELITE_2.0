@@ -17,10 +17,13 @@ For each labelled player of a clip:
                candidate_correct / candidate_wrong / candidate_unverified
                            CANDIDATE proposals (spana.target 2.0.0), judged like answers but never correct time
                abstain / lost   no answer
-             plus `answers_while_absent`: TARGET on a labelled frame where the player is not labelled (left the
-             picture or unlabelled), with how many of those are attributed to another player.
+             plus `answers_while_absent` / `candidates_while_absent`: TARGET / CANDIDATE on a labelled frame where
+             the player is not labelled (left the picture or unlabelled), with how many of those are attributed to
+             another player.
 Relinks: each proposal is judged right / wrong / undecided on the first labelled frame (from its proposal on) where
-the answer is on the relinked track and its box is clearly attributed. --simulate-user confirms, on its first frame,
+the answer is on the relinked track and its box is clearly attributed - whether or not the followed player is labelled
+on that frame: an offered box that is clearly another player is wrong even while ours is out of the picture
+(Nathan's FRESH_08 review, 2026-11-19; records/offer_verdict_2026-11-19). --simulate-user confirms, on its first frame,
 every candidate judged right, and nothing else. --simulate-reviewer works through the gap list after the match
 (decision 2026-11-16): per gap, confirm a right offer / reject a wrong one, else tap the player on the gap's first
 labelled frame where they have an unambiguous track; it reports the actions taken (effort) next to the times. Run with relink_auto_confirm true (config) to see automatic promotion.
@@ -82,13 +85,14 @@ def judge(attr, f: int, tid: str, pid: str) -> str:
 
 def relink_verdict(r: dict, frames: List[dict], gt, attr, pid: str) -> Tuple[str, Optional[int], Optional[str]]:
     """Right / wrong / undecided for one relink: the first labelled frame from its proposal on where the answer is on
-    the relinked track (CANDIDATE or TARGET), the player is labelled and the box is attributed clearly."""
+    the relinked track (CANDIDATE or TARGET) and that track's box is attributed clearly - to this player (right) or
+    to another labelled player (wrong), whether or not this player is labelled on that frame."""
     labelled = set(gt.frames)
     for a in frames:
         if a["frame"] < r["proposed_frame"] or a["track_id"] != r["to_track"] or \
                 a["state"] not in ("CANDIDATE", "TARGET"):
             continue
-        if a["frame"] in labelled and pid in gt.players.get(a["frame"], {}):
+        if a["frame"] in labelled:
             j = judge(attr, a["frame"], r["to_track"], pid)
             if j != "unverified":
                 p, _ = attr[a["frame"]].get(r["to_track"], (None, False))
@@ -116,9 +120,10 @@ def simulated_confirmations(tracks_doc: dict, sel: Selection, cfg, gt, attr, pid
 
 def offer_verdict(r: dict, gt, attr, pid: str) -> str:
     """What a reviewer sees in an offer: who the offered track is, on the first labelled frame from the proposal
-    where the player is labelled and the offered track is clearly attributed (whether or not it was still offered)."""
+    where the offered track is clearly attributed (whether or not it was still offered, and whether or not this
+    player is labelled there)."""
     for f in gt.frames:
-        if f >= r["proposed_frame"] and pid in gt.players.get(f, {}):
+        if f >= r["proposed_frame"]:
             j = judge(attr, f, r["to_track"], pid)
             if j != "unverified":
                 return "right" if j == "correct" else "wrong"
@@ -184,7 +189,7 @@ def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Pa
     ans = {fr["frame"]: fr for fr in doc["frames"]}
     c = {k: 0 for k in COUNTS}
     absent = {"TARGET": 0, "CANDIDATE": 0}
-    absent_other, events = 0, []
+    absent_other, absent_other_cand, events = 0, 0, []
     for f in gt.frames:
         if f < f0:
             continue
@@ -195,6 +200,7 @@ def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Pa
                 absent[a["state"]] += 1
                 p, amb = attr[f].get(a["track_id"], (None, False))
                 absent_other += int(a["state"] == "TARGET" and p is not None and not amb)
+                absent_other_cand += int(a["state"] == "CANDIDATE" and p is not None and not amb)
                 events.append({"frame": f, "kind": f"{a['state'].lower()}_while_absent", "track_id": a["track_id"],
                                "attributed_to": p})
             continue
@@ -219,6 +225,7 @@ def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Pa
     return {**row, "selected": True, "selection": doc["selection"], "frames_before_selection": n0,
             "scored_frames": scored, **c, **pct(c), "answers_while_absent": absent["TARGET"],
             "candidates_while_absent": absent["CANDIDATE"], "answers_while_absent_on_other_player": absent_other,
+            "candidates_while_absent_on_other_player": absent_other_cand,
             "track_ends": doc["track_ends"], "confirmations": len(confs), "relinks": relinks,
             "actions": {k: sum(a["kind"] == k for a in confs) for k in
                         ("confirm_candidate", "confirm_relink", "reject_candidate", "track_at_frame")},
@@ -274,6 +281,8 @@ def score_clip(label_dir: Path, tracks_path: Path, cfg, art_dir: Optional[Path],
                        "candidates_while_absent": sum(p["candidates_while_absent"] for p in sel),
                        "answers_while_absent_on_other_player": sum(p["answers_while_absent_on_other_player"]
                                                                    for p in sel),
+                       "candidates_while_absent_on_other_player": sum(
+                           p["candidates_while_absent_on_other_player"] for p in sel),
                        "frames_before_selection": sum(p["frames_before_selection"] for p in sel),
                        "relinks": relink_totals(sel),
                        "actions": {k: sum(p["actions"][k] for p in sel) for k in sel[0]["actions"]} if sel else {},

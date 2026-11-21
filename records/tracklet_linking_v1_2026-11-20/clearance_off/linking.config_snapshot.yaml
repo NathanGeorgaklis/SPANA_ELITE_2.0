@@ -1,0 +1,28 @@
+# Offline global tracklet linking v1 (spana/tracking/linking.py). One generic setting for every clip; never tuned
+# per clip. Values are taken from the tracker's own config (config/default.yaml) where a counterpart exists; the
+# rest are policy, set BEFORE the DEV bench was run (records/tracklet_linking_v1_2026-11-20). Units: seconds and
+# body heights (box height of the player), as in config/default.yaml.
+schema_version: "1.1.0"   # 1.1.0: + allow_uncertain_clearance
+
+# --- candidates: B starts after A's last observation, same epoch (no cut / unknown camera in between)
+max_gap_s: 2.0                 # = tracking.lost_max_s: the longest gap the tracker itself keeps a track for
+gate_base_h: 0.35              # = tracking.gate_base_h: reach at zero elapsed time
+max_speed_h_per_s: 5.0         # = tracking.max_speed_h_per_s: camera-carried displacement <= base + speed * gap
+max_height_ratio: 1.5          # = tracking.max_height_ratio: B / A box height within [1/r, r]
+velocity_window_s: 0.5         # A's velocity from its observations in this window before its last one
+extrapolate_max_s: 0.5         # = tracking.predict_max_s: constant-velocity prediction at most this long
+
+# --- appearance (Embedder: torso colour histogram, spana/appearance.py, for now)
+signature_samples: 5           # clean observed crops averaged at each end of a tracklet (tail of A, head of B)
+min_similarity: 0.70           # = appearance.min_similarity: below this B is not A's continuation
+strict_min_similarity: 0.85    # policy: needed to link across an uncertain episode or to an identity rival ...
+# ... and only when this is on. OFF (Nathan, 2026-11-20): on DEV the clearance linked FRESH_02 player 8 to player 10
+# (torso colour 0.896, same-kit teammates). Off until an embedder can separate same-kit teammates.
+allow_uncertain_clearance: false
+
+# --- cost: weighted sum of terms in [0, 1]; lower is better
+weight_gap: 1.0                # gap_s / max_gap_s
+weight_motion: 1.0             # distance from A's camera-carried prediction / the gate radius
+weight_appearance: 1.0         # 1 - similarity
+weight_team: 1.0               # 0 same team, 1 different (only when both team labels are given; a conflict refuses)
+margin: 0.10                   # = tracking.contest_margin: abstain unless best beats second best by this, both sides

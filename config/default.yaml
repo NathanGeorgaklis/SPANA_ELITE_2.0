@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.8.0"
+schema_version: "2.15.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -98,6 +98,35 @@ tracking:
   # Low-score short-gap recovery in S4: a confirmed track unobserved <= rematch_max_s may recover on a low-score
   # detection with IoU >= low_score_min_iou with its prediction (all other S4 rules apply). Unconfirmed tracks never.
   low_score_recovery: false
+  # Claimants must be eligible (Nathan's FRESH_08 review, player 10; records/rival_eligible_2026-11-19): in S3c's
+  # exclusivity check and S4's RIVAL_TRACK refusal, a track that can no longer take any detection (not observed on
+  # the previous frame and past its recovery window: "not_eligible") is not counted as another claimant. On DEV
+  # such a stale track (the player's own old track, lost 1.8 s earlier) blocked an extent link and a recovery and
+  # split one player three times. ON: DEV fragments 110 -> 105, ID switches 112 -> 107, the same 7 transfers (all
+  # flagged, none on a newly linked track), 0 silent, 0 wrong recoveries; reviewer 0.778 / 2 / 5.64 -> 0.783 / 2 / 5.50.
+  rival_eligible_only: true
+  # Silent-transfer fix (records/silent_transfer_fix_2026-11-20). Two ways a track carried another player's box
+  # while CERTAIN on DEV:
+  # - Ambiguous spawn: a track spawned naming >= 2 possible_predecessors could be any of them, yet started CERTAIN
+  #   (FRESH_02 T000045; the synthetic h1 same-look case at 60 fps). It now starts IDENTITY_UNCERTAIN with its
+  #   predecessors as rivals. That episode clears once clean crops are clearly unlike every predecessor but at most one
+  #   (<= appearance.min_similarity - min_margin) for identity_resolve_s. Same-look predecessors never clear (fail closed).
+  ambiguous_spawn_uncertain: true
+  # - Crossing without a contest: two crossing tracks with established velocities each gate only their own box,
+  #   so no contest is raised. One of them took a merged box holding the other's body (FRESH_07 T000018 / T000015,
+  #   79-95 % of the other player's own nested box inside it; swapped-assignment cost margin 0.37, so not an
+  #   assignment swap). A confirmed track whose detection holds >= crossing_min_ioa of another confirmed track's
+  #   detection on the same frame marks both IDENTITY_UNCERTAIN, unless appearance separates them: the crop by
+  #   appearance.min_margin, or without a crop, stored appearances below appearance.min_similarity.
+  #   0.60 = confirm_nested_ioa ("mostly inside another player's box"); a prior, not fitted.
+  #   DEV cost (records/silent_transfer_fix_2026-11-20): silent 3 -> 0 and wrong frames 1 / 2 -> 0 / 0, but reviewer
+  #   correct 0.783 -> 0.680 (same-look episodes rarely resolve and a tap cannot answer an uncertain track).
+  crossing_uncertain: true
+  crossing_min_ioa: 0.60
+  # Also count an UNOBSERVED rival (live or recoverable, its predicted box). The same transfers were caught, but
+  # reviewer correct fell to 0.594: most of those marks are a teammate hidden behind the track, which the OCCLUDED /
+  # recovery / hidden-rival rules already guard. Off.
+  crossing_hidden_rivals: false
 
 appearance:
   enabled: true
@@ -146,7 +175,7 @@ target:
   # 16, wrong 1, undecided 2; reviewer correct 0.776 vs 0.778 without offers. Fitted on DEV, small sample.
   reentry_offer: true
   reentry_max_gap_s: 10.0
-  reentry_min_similarity: 0.75
+  reentry_min_similarity: 0.65     # set scale (option 2, records/reid_signatures_v2_2026-11-19); 0.75 on the mean scale
   reentry_min_margin: 0.0       # with reentry_mutual, the two-way best match replaces the margin
   # Safety rules for the offer (records/reentry_position_mutual_2026-11-18): position = the candidate must be
   # reachable from the lost player's last position carried through the camera motion, within tracking.gate_base_h +
@@ -169,6 +198,30 @@ target:
   reentry_position_time_scale_s: 1.0
   reentry_position_max_gap_s: 3.0
   reentry_position_max_pan_frac: 0.25
+  # Option 2, better signatures (records/reid_signatures_v2_2026-11-19): "set" matches each crop to its best partner
+  # across the two crop sets (quality weighted) instead of one averaged signature per end; wait_samples > 0 judges
+  # a candidate only from its crops seen so far and only once it has that many; withdraw drops an offer the evidence
+  # so far no longer supports. mean / 0 / false = the behaviour before option 2 (then reentry_min_similarity 0.75).
+  # DEV: set at 0.65 = 18 right / 0 wrong offers (mean at 0.75: 15 / 0), reviewer unchanged; wait + withdraw
+  # withdrew right offers and cost reviewer correct time (0.777 -> 0.762), so both stay off.
+  reentry_signature: set
+  reentry_wait_samples: 0
+  reentry_withdraw: false
+  # Exit side (Nathan's FRESH_08 review: an offer of another player while ours was off screen;
+  # records/reentry_exit_side_2026-11-19). When the followed player left the picture, only tracks born within
+  # reentry_exit_edge_max_frac of the side they left by are candidates. DEV: all 17 labelled off-screen returns were
+  # born <= 0.011 from that side; the 3 wrong offers 0.62-0.98. 0.05 = margin over 0.011, not fitted further.
+  reentry_exit_edge: true
+  reentry_exit_edge_max_frac: 0.05
+  # Offer hold (Nathan's FRESH_08 review, player 10: a right offer vanished when its track was hidden for one frame;
+  # records/offer_hold_2026-11-19). Keep an offer through a brief hide of its track; 0 = drop at once. First
+  # measured OFF (old tracks: no gain). On merged main's tracks (tracking.rival_eligible_only on) 0.2 s: right
+  # CANDIDATE frames 442 -> 450, wrong unchanged (1), same offers / verdicts / reviewer; player 10's offer now lasts
+  # frames 48-147. 0.5 / 1.0 s: 448 / 446 (a held offer blocks a new search). ON at 0.2 s.
+  offer_hold_s: 0.2
+  # After an IDENTITY_UNCERTAIN episode cleared by the calibrated re-ID margin for every rival (reid_resolve
+  # section), answer again. Episodes cleared by colour keep resume_after_uncertain. Off by default (with reid_resolve).
+  resume_after_reid: false
 
 reid:
   # Which observations are embedded into a track's first / last re-ID signature (spana.identity.reid).
@@ -176,6 +229,33 @@ reid:
   sample_min_gap_s: 0.20
   min_crop_height_px: 40     # = the training crops' minimum height (config/reid_train.yaml crops.min_height_px)
   clean_max_iou: 0.05        # = appearance.clean_max_iou: a crop that mixes players is not evidence
+  # Crop sets (spana.track_embeddings 1.1.0), looser, each crop with a quality weight in (0, 1]:
+  # quality = min(1, height / min_crop_height_px) * (1 if overlap <= clean_max_iou else falling linearly to 0.1 at
+  # set_max_iou). Priors, not fitted.
+  set_samples: 10
+  set_min_gap_s: 0.20
+  set_min_height_px: 24
+  set_max_iou: 0.30
+
+reid_resolve:
+  # Re-ID evidence for clearing IDENTITY_UNCERTAIN (spana.tracking.tracker; records/reid_calibration_dev_2026-11-18,
+  # records/reid_margin_floor_dev_2026-11-19). Off by default.
+  enabled: false
+  # Hashed model registry: the record (models/<name>.json) names the ONNX file and its sha256; the pipeline refuses a
+  # record or an ONNX file whose sha256 is not model_sha256 (spana.identity.reid.load_pinned).
+  model_record: models/spana_reid_v2.json
+  model_sha256: c269450e871cb28b4020b715618edc9dcda328faf951503a9e09f8e7a3032f84
+  # Calibrated on DEV for <= 0.5 % wrong resolutions (exact one-sided 95 % bound, leave-one-clip-out): 0.481 all
+  # clips, 0.517 the most conservative held-out value (chosen, fail closed; Nathan 2026-11-18). Only valid for
+  # model_sha256 above. Re-ID v3 (models/spana_reid_v3.json) failed the floored held-out check: not used.
+  margin: 0.517
+  ref_update_s: 0.5            # reference refresh on clean, uncontested, CERTAIN observations
+  # Re-ID resolves an episode on its own run (records/reid_episode_resolution_2026-11-20): on every evidence frame
+  # (clean, uncontested crop) re-ID must clear every rival by `margin` (an ambiguous spawn: the same predecessor
+  # beats every other predecessor by `margin`); frames where it does not are held, any re-ID or clear colour
+  # evidence against resets. The run must span tracking.identity_resolve_s AND hold this many clearing frames.
+  # A prior (never resolve on a single frame), not fitted.
+  min_evidence_frames: 3
 
 ball:
   # Ball view (spana/detection/ball_view.py) and ball tracker (spana/ball/tracker.py). Lengths in ball diameters
