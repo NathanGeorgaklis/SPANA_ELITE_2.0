@@ -46,6 +46,10 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
   of the teammate-triplet design (`identity/reid-v4` 066650f, Mac-trained, not in `models/`) now on main
   (`records/reid_v4_2026-11-21`): floored clean DEV check held out 274 resolved / 0 wrong, bound 1.09 % -> FAIL
   (FRESH_07 no floor). That branch's training code / config / DECISIONS rows were not brought over.
+- Cue eval deterministic (2026-11-22, branch `evaluation/cue-eval-deterministic`): `tools/dev/appearance_cue_eval.py`
+  orders rival tests by sorted player pair, not set iteration; DEV reruns under two hash seeds give byte-identical
+  tables / report / calibration, and calibration equals the v5 record (v2 exact, v5 within 2.2e-16)
+  (`records/cue_eval_deterministic_2026-11-22`). Table hashes from now on differ from earlier records (new order).
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
