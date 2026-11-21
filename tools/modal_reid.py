@@ -3,8 +3,9 @@
 Data lives on the Modal volume `volume_name`; upload it once from the repo root on the Mac:
     python3 -m modal volume put spana-reid CROPS_DIR crops/<name>
     python3 -m modal volume put spana-reid HF_DINOV2_SMALL_DIR backbones/dinov2_small
-Train (resumable: rerun the same command to continue after a stop), then export the finished run:
-    python3 -m modal run -m tools.modal_reid --crops crops/<a>,crops/<b> --backbone backbones/dinov2_small --run runs/<name>
+Train with --detach (without it, closing Terminal or losing Wi-Fi cancels the run; it is resumable: rerun the
+same command to continue after a stop), then export the finished run:
+    python3 -m modal run --detach -m tools.modal_reid --crops crops/<a>,crops/<b> --backbone backbones/dinov2_small --run runs/<name>
     python3 -m modal run -m tools.modal_reid --run runs/<name> --backbone backbones/dinov2_small --export-to models/<name>.onnx
     python3 -m modal volume get spana-reid models/<name>.onnx .
 All paths are relative to the volume. tools/reid_train.py keeps its own guards (TRAIN crops only, pinned backbone).
