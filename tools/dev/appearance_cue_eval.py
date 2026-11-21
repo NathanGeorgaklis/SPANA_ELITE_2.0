@@ -163,6 +163,21 @@ def uncertain_rival_pairs(gt, trk_path, dec_path):
     return pairs
 
 
+def rival_triplets(hard, by_player, crops):
+    """Rival test triplets (query of A, latest reference of A, latest reference of B, pair) for every hard pair, in
+    sorted pair order: `hard` is a set of player-id pairs, and set iteration order depends on the hash seed, so
+    iterating it directly made the test order (and every --dump-tables file) differ between reruns."""
+    triplets = []
+    for p, q in sorted(hard):
+        for A, B in ((p, q), (q, p)):
+            for qk in by_player.get(A, []):
+                ra = [k for k in by_player[A] if crops[qk]["t"] - crops[k]["t"] >= MIN_GAP_S]
+                rb = [k for k in by_player.get(B, []) if crops[qk]["t"] - crops[k]["t"] >= MIN_GAP_S]
+                if ra and rb:
+                    triplets.append((qk, ra[-1], rb[-1], (p, q)))
+    return triplets
+
+
 def auc(pos, neg):
     if not pos or not neg:
         return None
@@ -244,15 +259,7 @@ def main(out_json, model_dir, *specs):
         pick = lambda xs, n: [xs[k] for k in rng.choice(len(xs), min(n, len(xs)), replace=False)] if xs else []  # noqa
         same, diff_all, diff_hard, same_hard = pick(same, 6000), pick(diff_all, 6000), pick(diff_hard, 6000), \
             pick(same_hard, 6000)
-        # rival test triplets for every hard pair
-        triplets = []
-        for p, q in hard:
-            for A, B in ((p, q), (q, p)):
-                for qk in by_player.get(A, []):
-                    ra = [k for k in by_player[A] if crops[qk]["t"] - crops[k]["t"] >= MIN_GAP_S]
-                    rb = [k for k in by_player.get(B, []) if crops[qk]["t"] - crops[k]["t"] >= MIN_GAP_S]
-                    if ra and rb:
-                        triplets.append((qk, ra[-1], rb[-1], (p, q)))
+        triplets = rival_triplets(hard, by_player, crops)
         if fusion_cfg or dump_path:
             def sim_or_nan(cue, a, b):
                 if cue == "hist" and (crops[a]["hist"] is None or crops[b]["hist"] is None):
