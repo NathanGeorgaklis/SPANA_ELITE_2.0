@@ -19,6 +19,11 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
   0 transfers on linked tracks, unaided 0.508 -> 0.513, reviewer 0.680 -> 0.680 (follower guard). 112 of 126 episodes
   refused: NO_REFERENCE 49 (39 ambiguous spawns whose predecessors were never CERTAIN), NO_CLEAN_CROP 29, NOT_OBSERVED
   24, BELOW_MARGIN 7 (`records/reid_episode_resolution_2026-11-20`). Full suite 596 passed, 6 skipped.
+- Re-ID v5 = v4 design, teammate-only triplet (2026-11-21, branch `identity/reid-v5-dev-eval`; code identity/reid-v4
+  on main 8343082 which now has the Modal app; nothing adopted, config unchanged): FAILS the all-tests held-out rule
+  (1,725 resolved, 6 wrong, bound 0.69 % vs v2 0.36 %), PASSES the clean floored check better than v2 (794 / 0 /
+  0.38 % vs 644 / 0 / 0.46 %); same-kit clean same-look tests right at 0.517 53 / 427 vs v2 62 / 427. v2 stays
+  (`records/reid_v5_dev_eval_2026-11-21`). Re-ID training now runs on Modal from main (`tools/modal_reid.py`).
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |

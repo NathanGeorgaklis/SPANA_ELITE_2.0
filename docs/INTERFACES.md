@@ -214,7 +214,9 @@ Follow the user's chosen player through a clip, and say so when unsure.
   record named by `reid_resolve.model_record` and refuses it unless the record pins exactly
   `reid_resolve.model_sha256` and the ONNX file has that hash (`spana.identity.reid.load_pinned`). Model registry:
   `models/spana_reid_v2.json` (`c269450e…`, the calibrated one), `models/spana_reid_v3.json` (`56a1b4c8…`, candidate,
-  not referenced by config); weights are not in git (`*.onnx` ignored). The tracks provenance records `reid_model`.
+  not referenced by config), `models/spana_reid_v5.json` (`1332759f…`, teammate triplet, fails the all-tests held-out
+  rule 2026-11-21, not referenced by config); weights are not in git (`*.onnx` ignored). The tracks provenance records
+  `reid_model`.
   (`--confirm` kept as an alias).
 - DEV scorer: `tools/target_score.py`. Per labelled player: selected on the first labelled frame with an
   unambiguous NESTED_V2 track match.
