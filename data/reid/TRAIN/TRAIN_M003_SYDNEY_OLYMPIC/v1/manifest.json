@@ -1,0 +1,22 @@
+{
+ "agreement_reference": "Sydney Olympic written permission, 4 November 2026",
+ "consent_basis": "Authorised football match participation and written permission covering use of the footage and player imagery/data for SPANA's AI/ML development. No minors in this match (Nathan, 2026-11-12).",
+ "footage_licence": "Written permission dated 4 November 2026: SPANA Sports Pty Ltd may use this match footage and associated player imagery/data for commercial AI and machine-learning development, including player detection, tracking, re-identification, model training, validation and testing.",
+ "match_id": "TRAIN_M003_SYDNEY_OLYMPIC",
+ "notes": "Source: Downloads/videoplayback.mp4 (broadcast, scoreboard SOL v MAR, 1280x720, 30 fps, 142 min), sha256 09aecc9b1ca2f64203864f25705618b03f35fa85cafd9610c51bdeecd585bfec. Window: 3000-3600 s of the source, stream copy (AV1, sha256 17cc3e7a6924b02b5dea8a3c59a9cafe3f96505b53576b48e16af6ea307971ea), live play throughout (checked frames). Processed video: H.264 transcode (ffmpeg -c:v libdav1d -i CLIP -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -fps_mode passthrough -an), all 18149 frames at 30 fps. Rights as stated by Nathan on 2026-11-12 from the written permission; minors: none; retention of derived data and continued model use after footage removal: covered.",
+ "permissions": {
+  "commercial_use": true,
+  "copy_and_process": true,
+  "minors_covered": true,
+  "ml_development": true,
+  "model_survives_footage_removal": true,
+  "player_consent": true,
+  "retain_derived_data": true
+ },
+ "rights_holder": "Sydney Olympic",
+ "schema": "spana.reid_match",
+ "schema_version": "1.1.0",
+ "split": "TRAIN",
+ "training_permitted": true,
+ "video_sha256": "3db10eb14e87a206f3968cb9530a86ae621d394bb97ba80ee95a530862a5da50"
+}

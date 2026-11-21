@@ -1,7 +1,7 @@
 # SPANA re-ID training (pilot). Read by tools/reid_crops.py and tools/reid_train.py only; the product never
 # reads this file. Design: records/design/REID_MODEL_DESIGN.md.
 schema: spana.reid_train_config
-schema_version: 1.0.0
+schema_version: 1.1.0          # 1.1.0: train.teammate_triplet_weight (v4), heldout section
 crops:
   min_gap_s: 0.25          # two crops of one player at least this far apart
   min_height_px: 40        # smaller labelled boxes are not cut
@@ -26,6 +26,9 @@ train:
   arcface_m: 0.30
   triplet_margin: 0.30
   triplet_weight: 1.0
+  teammate_triplet_weight: 1.0   # 1.1.0 (v4): batch-hard triplet whose negatives are same-kit teammates only (side from
+                                 # the TRAIN labels), margin triplet_margin; a prior equal to triplet_weight, not tuned.
+                                 # Absent / 0 = the v2 / v3 loss
   seed: 0
   check_min_gap_s: 1.0     # holdout check: reference crops at least this far from the query
 augment:
@@ -40,3 +43,8 @@ augment:
   brightness: 0.2
   contrast: 0.2
   hue_deg: 4.0             # small only: kit colour carries identity
+heldout:                   # 1.1.0: leave-one-TRAIN-match-out evaluation (tools/reid_heldout.py); splits by match only
+  min_gap_s: 1.0           # query and gallery / reference crops at least this far apart (as the DEV rival test)
+  max_pairs: 200000        # same-player / teammate pairs sampled (seed 0) for the AUC
+  clean_max_iou_from: config/default.yaml   # appearance.clean_max_iou: all three crops of a clean rival test
+  calibration_from: config/reid_calibration.yaml   # target_false_rate, confidence, clean_subset.margin_floor

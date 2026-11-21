@@ -11,6 +11,7 @@
 # reference crop of A and a reference crop of B, both >= MIN_GAP_S earlier; correct if it is nearer A's.
 #   python -m tools.dev.appearance_cue_eval OUT_JSON MODEL_DIR CLIP_SPEC [CLIP_SPEC ...]
 #   CLIP_SPEC = label_dir:video:tracks.json:decisions.jsonl   (tracks/decisions: the run whose uncertain cases count)
+#             or label_dir:video:pairs@REPORT.json:-          (replay the uncertain pairs an earlier OUT_JSON recorded)
 import collections
 import itertools
 import json
@@ -116,8 +117,20 @@ def load_clip(spec, cfg):
         for a, b in itertools.combinations(range(len(ids)), 2):
             if m[a, b] >= CONTACT_IOU:
                 contact.add(tuple(sorted((ids[a], ids[b]))))
-    rivals = uncertain_rival_pairs(gt, trk_path, dec_path)
+    if trk_path.startswith("pairs@"):
+        rivals = replayed_rival_pairs(trk_path[len("pairs@"):], fz["clip"]["name"])
+    else:
+        rivals = uncertain_rival_pairs(gt, trk_path, dec_path)
     return fz["clip"]["name"], crops, contact, rivals
+
+
+def replayed_rival_pairs(report_path, clip_name):
+    """The uncertain rival pairs an earlier OUT_JSON recorded for this clip (its tracker run is not kept), so another
+    model is scored on exactly the same tests. A clip missing from the report is refused (fail closed)."""
+    clips = json.load(open(report_path))["clips"]
+    if clip_name not in clips:
+        raise SystemExit(f"{report_path}: no recorded pairs for {clip_name}")
+    return {tuple(sorted(map(str, p))) for p in clips[clip_name]["uncertain_rival_pairs"]}
 
 
 def uncertain_rival_pairs(gt, trk_path, dec_path):

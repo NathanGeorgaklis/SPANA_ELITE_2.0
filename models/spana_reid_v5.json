@@ -1,0 +1,15 @@
+{
+  "name": "SPANA re-ID model v5 (DINOv2 ViT-S/14 backbone, fine-tuned on TRAIN_M001 + TRAIN_M002 + TRAIN_M003 identities with the teammate-only triplet)",
+  "source": "tools/reid_train.py on Modal (A10G) from identity/reid-v4 e713f35, run runs/reid_v5 on volume spana-reid, 12 epochs, 2026-11-21; config/reid_train.yaml 1.1.0 (sha256 3ea10aec...), teammate_triplet_weight 1.0 (the v4 design); exported to ONNX with tools/reid_train.py export",
+  "version": "spana-reid-v5-m001-m003-teammate-triplet",
+  "licence": "backbone DINOv2-small Apache-2.0 (models/dinov2_small.json); fine-tuned by SPANA on SPANA-licensed TRAIN matches",
+  "onnx_path": "spana_reid_v5/spana_reid.onnx",
+  "onnx_sha256": "1332759f155181cd74b0dc383e1c4f2e981cd91a44e77e432d1e8895cd511b4b",
+  "input_size_hw": [224, 112],
+  "crop_pad": 0.05,
+  "color_order": "rgb",
+  "mean": [0.485, 0.456, 0.406],
+  "std": [0.229, 0.224, 0.225],
+  "embedding_dim": 256,
+  "validation": "ONNX vs PyTorch max abs diff 8.0e-7 (export log); TRAIN holdout rival check 0.979 at epoch 12 (closed set, not a DEV result). DEV: records/reid_v5_dev_eval_2026-11-21. Not referenced by any config."
+}
