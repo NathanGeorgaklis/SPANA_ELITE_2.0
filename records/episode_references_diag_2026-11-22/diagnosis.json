@@ -1,0 +1,4079 @@
+{
+ "clean_max_iou": 0.05,
+ "NO_REFERENCE": [
+  {
+   "clip": "FRESH_02",
+   "track": "T000027",
+   "start": 173,
+   "end": 292,
+   "frames": 120,
+   "observed": 60,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000015",
+    "T000024",
+    "T000042"
+   ],
+   "player": null,
+   "evidence": {
+    "EVALUATED": 59
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000024",
+     "why": "CERTAIN_NEVER_CONFIRMED",
+     "player": null,
+     "born_frame": 170,
+     "frames_before": 3,
+     "certain_frames_before": 3,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000015"
+     ],
+     "born_uncertain": false,
+     "first_uncertain_rule": null,
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000036",
+   "start": 189,
+   "end": 324,
+   "frames": 136,
+   "observed": 76,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000010",
+    "T000012",
+    "T000014",
+    "T000033",
+    "T000034",
+    "T000035",
+    "T000048"
+   ],
+   "player": "8",
+   "evidence": {
+    "NOT_CLEAN": 61,
+    "EVALUATED": 14
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000034",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 182,
+     "frames_before": 7,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000010",
+      "T000012"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000035",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "8",
+     "born_frame": 186,
+     "frames_before": 3,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000010",
+      "T000012",
+      "T000034"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000038",
+   "start": 213,
+   "end": 220,
+   "frames": 8,
+   "observed": 2,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000009",
+    "T000037"
+   ],
+   "player": null,
+   "evidence": {
+    "EVALUATED": 1
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000037",
+     "why": "CERTAIN_NEVER_CONFIRMED",
+     "player": null,
+     "born_frame": 212,
+     "frames_before": 1,
+     "certain_frames_before": 1,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009"
+     ],
+     "born_uncertain": false,
+     "first_uncertain_rule": null,
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000039",
+   "start": 215,
+   "end": 291,
+   "frames": 77,
+   "observed": 17,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000009",
+    "T000037",
+    "T000038",
+    "T000042"
+   ],
+   "player": "17",
+   "evidence": {
+    "EVALUATED": 16
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000037",
+     "why": "CERTAIN_NEVER_CONFIRMED",
+     "player": null,
+     "born_frame": 212,
+     "frames_before": 3,
+     "certain_frames_before": 3,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009"
+     ],
+     "born_uncertain": false,
+     "first_uncertain_rule": null,
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000038",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 213,
+     "frames_before": 2,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009",
+      "T000037"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000040",
+   "start": 232,
+   "end": 302,
+   "frames": 71,
+   "observed": 11,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000009",
+    "T000039",
+    "T000042"
+   ],
+   "player": "17",
+   "evidence": {
+    "EVALUATED": 10
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000039",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "17",
+     "born_frame": 215,
+     "frames_before": 17,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009",
+      "T000037",
+      "T000038"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000042",
+   "start": 241,
+   "end": 390,
+   "frames": 150,
+   "observed": 150,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000013",
+    "T000027",
+    "T000028",
+    "T000032",
+    "T000039",
+    "T000040",
+    "T000041"
+   ],
+   "player": "16",
+   "evidence": {
+    "NOT_CLEAN": 98,
+    "CONTESTED": 12,
+    "NO_OWN_REFERENCE": 39
+   },
+   "missing": [
+    {
+     "role": "own",
+     "track": "T000042",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "16",
+     "born_frame": 241,
+     "frames_before": 81,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000032",
+      "T000039",
+      "T000041"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000043",
+   "start": 243,
+   "end": 315,
+   "frames": 73,
+   "observed": 13,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000039",
+    "T000040"
+   ],
+   "player": "17",
+   "evidence": {
+    "EVALUATED": 12
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000039",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "17",
+     "born_frame": 215,
+     "frames_before": 28,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009",
+      "T000037",
+      "T000038"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000040",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "17",
+     "born_frame": 232,
+     "frames_before": 11,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009",
+      "T000039"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000045",
+   "start": 251,
+   "end": 390,
+   "frames": 140,
+   "observed": 140,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000013",
+    "T000044"
+   ],
+   "player": "12",
+   "evidence": {
+    "NOT_CLEAN": 90,
+    "EVALUATED": 49
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000044",
+     "why": "CERTAIN_NEVER_CONFIRMED",
+     "player": null,
+     "born_frame": 246,
+     "frames_before": 5,
+     "certain_frames_before": 5,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000013"
+     ],
+     "born_uncertain": false,
+     "first_uncertain_rule": null,
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000047",
+   "start": 256,
+   "end": 390,
+   "frames": 135,
+   "observed": 135,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000027",
+    "T000032",
+    "T000039",
+    "T000040",
+    "T000043"
+   ],
+   "player": "17",
+   "evidence": {
+    "EVALUATED": 134
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000027",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 173,
+     "frames_before": 83,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000015",
+      "T000024"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000039",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "17",
+     "born_frame": 215,
+     "frames_before": 41,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009",
+      "T000037",
+      "T000038"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000040",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "17",
+     "born_frame": 232,
+     "frames_before": 24,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009",
+      "T000039"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000043",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "17",
+     "born_frame": 243,
+     "frames_before": 13,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000039",
+      "T000040"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000048",
+   "start": 265,
+   "end": 390,
+   "frames": 126,
+   "observed": 126,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000014",
+    "T000030",
+    "T000036"
+   ],
+   "player": "10",
+   "evidence": {
+    "NOT_CLEAN": 54,
+    "EVALUATED": 11,
+    "CONTESTED": 5,
+    "NO_OWN_REFERENCE": 55
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000036",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "8",
+     "born_frame": 189,
+     "frames_before": 76,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000010",
+      "T000012",
+      "T000034",
+      "T000035"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "own",
+     "track": "T000048",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "10",
+     "born_frame": 265,
+     "frames_before": 54,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000036"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000049",
+   "start": 279,
+   "end": 390,
+   "frames": 112,
+   "observed": 112,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000014",
+    "T000033",
+    "T000036"
+   ],
+   "player": "8",
+   "evidence": {
+    "NOT_CLEAN": 2,
+    "EVALUATED": 109
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000033",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "10",
+     "born_frame": 178,
+     "frames_before": 101,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000010",
+      "T000012"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000036",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "8",
+     "born_frame": 189,
+     "frames_before": 90,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000010",
+      "T000012",
+      "T000034",
+      "T000035"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000051",
+   "start": 291,
+   "end": 390,
+   "frames": 100,
+   "observed": 100,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000014",
+    "T000033",
+    "T000036"
+   ],
+   "player": "9",
+   "evidence": {
+    "NOT_CLEAN": 27,
+    "EVALUATED": 72
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000033",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "10",
+     "born_frame": 178,
+     "frames_before": 113,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000010",
+      "T000012"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000036",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "8",
+     "born_frame": 189,
+     "frames_before": 102,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000010",
+      "T000012",
+      "T000034",
+      "T000035"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000034",
+   "start": 238,
+   "end": 390,
+   "frames": 153,
+   "observed": 153,
+   "outcome": "CLIP_END",
+   "at_spawn": false,
+   "rivals": [
+    "T000033",
+    "T000054"
+   ],
+   "player": "18",
+   "evidence": {
+    "CONTESTED": 36,
+    "NOT_CLEAN": 112,
+    "NO_OWN_REFERENCE": 5
+   },
+   "missing": [
+    {
+     "role": "own",
+     "track": "T000034",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "18",
+     "born_frame": 226,
+     "frames_before": 99,
+     "certain_frames_before": 12,
+     "certain_confirmed_observed_frames_before": 9,
+     "min_iou_when_certain": 0.079,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": "CONTESTED_MATCH",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000018",
+   "start": 239,
+   "end": 303,
+   "frames": 65,
+   "observed": 5,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000024"
+   ],
+   "player": "14",
+   "evidence": {
+    "CONTESTED": 2,
+    "NOT_CLEAN": 2,
+    "EVALUATED": 1
+   },
+   "missing": [
+    {
+     "role": "rival",
+     "track": "T000024",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "9",
+     "born_frame": 76,
+     "frames_before": 163,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000005",
+      "T000013",
+      "T000016"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000038",
+   "start": 248,
+   "end": 390,
+   "frames": 143,
+   "observed": 143,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000018",
+    "T000024"
+   ],
+   "player": "14",
+   "evidence": {
+    "NOT_CLEAN": 23,
+    "EVALUATED": 119
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000024",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "9",
+     "born_frame": 76,
+     "frames_before": 172,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000005",
+      "T000013",
+      "T000016"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000040",
+   "start": 259,
+   "end": 329,
+   "frames": 71,
+   "observed": 11,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000014",
+    "T000022",
+    "T000035",
+    "T000039"
+   ],
+   "player": "15",
+   "evidence": {
+    "EVALUATED": 10
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000039",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 255,
+     "frames_before": 4,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000022",
+      "T000035"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000041",
+   "start": 277,
+   "end": 357,
+   "frames": 81,
+   "observed": 20,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000022",
+    "T000035",
+    "T000040"
+   ],
+   "player": "15",
+   "evidence": {
+    "EVALUATED": 19
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000040",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "15",
+     "born_frame": 259,
+     "frames_before": 18,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000022",
+      "T000035",
+      "T000039"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000048",
+   "start": 294,
+   "end": 390,
+   "frames": 97,
+   "observed": 97,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000014",
+    "T000018",
+    "T000022",
+    "T000024",
+    "T000036",
+    "T000040"
+   ],
+   "player": "13",
+   "evidence": {
+    "EVALUATED": 96
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000024",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "9",
+     "born_frame": 76,
+     "frames_before": 218,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000005",
+      "T000013",
+      "T000016"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000040",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "15",
+     "born_frame": 259,
+     "frames_before": 35,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000022",
+      "T000035",
+      "T000039"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000049",
+   "start": 298,
+   "end": 390,
+   "frames": 93,
+   "observed": 93,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000018",
+    "T000022",
+    "T000024",
+    "T000035",
+    "T000040",
+    "T000041"
+   ],
+   "player": "15",
+   "evidence": {
+    "EVALUATED": 92
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000024",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "9",
+     "born_frame": 76,
+     "frames_before": 222,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000005",
+      "T000013",
+      "T000016"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000040",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "15",
+     "born_frame": 259,
+     "frames_before": 39,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000022",
+      "T000035",
+      "T000039"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000041",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "15",
+     "born_frame": 277,
+     "frames_before": 21,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000022",
+      "T000035",
+      "T000040"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000051",
+   "start": 307,
+   "end": 390,
+   "frames": 84,
+   "observed": 82,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000009",
+    "T000011",
+    "T000021",
+    "T000042",
+    "T000046",
+    "T000053"
+   ],
+   "player": "5",
+   "evidence": {
+    "NOT_CLEAN": 43,
+    "EVALUATED": 11,
+    "CONTESTED": 20,
+    "NO_OWN_REFERENCE": 7
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000042",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "7",
+     "born_frame": 282,
+     "frames_before": 25,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009",
+      "T000021"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000046",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "5",
+     "born_frame": 287,
+     "frames_before": 20,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009",
+      "T000021"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "own",
+     "track": "T000051",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "5",
+     "born_frame": 307,
+     "frames_before": 33,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009",
+      "T000021",
+      "T000042",
+      "T000046"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000053",
+   "start": 321,
+   "end": 390,
+   "frames": 70,
+   "observed": 19,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000009",
+    "T000021",
+    "T000042",
+    "T000046",
+    "T000051"
+   ],
+   "player": "4",
+   "evidence": {
+    "NOT_CLEAN": 14,
+    "EVALUATED": 3,
+    "CONTESTED": 1
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000042",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "7",
+     "born_frame": 282,
+     "frames_before": 39,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009",
+      "T000021"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000046",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "5",
+     "born_frame": 287,
+     "frames_before": 34,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009",
+      "T000021"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000061",
+   "start": 346,
+   "end": 390,
+   "frames": 45,
+   "observed": 45,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000004",
+    "T000046",
+    "T000053"
+   ],
+   "player": "4",
+   "evidence": {
+    "NOT_CLEAN": 39,
+    "EVALUATED": 5
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000046",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "5",
+     "born_frame": 287,
+     "frames_before": 59,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009",
+      "T000021"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000053",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "4",
+     "born_frame": 321,
+     "frames_before": 25,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000009",
+      "T000021",
+      "T000042",
+      "T000046"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000010",
+   "start": 6,
+   "end": 61,
+   "frames": 56,
+   "observed": 3,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000015"
+   ],
+   "player": "25",
+   "evidence": {
+    "NOT_CLEAN": 1,
+    "NO_OWN_REFERENCE": 2
+   },
+   "missing": [
+    {
+     "role": "own",
+     "track": "T000010",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "25",
+     "born_frame": 0,
+     "frames_before": 7,
+     "certain_frames_before": 6,
+     "certain_confirmed_observed_frames_before": 1,
+     "min_iou_when_certain": 0.448,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": "CROSSING",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000022",
+   "start": 9,
+   "end": 78,
+   "frames": 70,
+   "observed": 68,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000010",
+    "T000015"
+   ],
+   "player": "25",
+   "evidence": {
+    "EVALUATED": 34,
+    "CONTESTED": 1,
+    "NOT_CLEAN": 32
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000010",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "25",
+     "born_frame": 0,
+     "frames_before": 9,
+     "certain_frames_before": 6,
+     "certain_confirmed_observed_frames_before": 1,
+     "min_iou_when_certain": 0.448,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": "CROSSING",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000014",
+   "start": 10,
+   "end": 367,
+   "frames": 358,
+   "observed": 298,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000017",
+    "T000080"
+   ],
+   "player": "16",
+   "evidence": {
+    "CONTESTED": 2,
+    "NOT_CLEAN": 23,
+    "NO_OWN_REFERENCE": 273
+   },
+   "missing": [
+    {
+     "role": "own",
+     "track": "T000014",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "16",
+     "born_frame": 0,
+     "frames_before": 29,
+     "certain_frames_before": 10,
+     "certain_confirmed_observed_frames_before": 7,
+     "min_iou_when_certain": 0.277,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": "CROSSING",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000017",
+   "start": 10,
+   "end": 365,
+   "frames": 356,
+   "observed": 296,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000014",
+    "T000080"
+   ],
+   "player": "17",
+   "evidence": {
+    "NOT_CLEAN": 25,
+    "NO_OWN_REFERENCE": 271
+   },
+   "missing": [
+    {
+     "role": "own",
+     "track": "T000017",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "17",
+     "born_frame": 0,
+     "frames_before": 29,
+     "certain_frames_before": 10,
+     "certain_confirmed_observed_frames_before": 1,
+     "min_iou_when_certain": 0.277,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": null,
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000024",
+   "start": 11,
+   "end": 81,
+   "frames": 71,
+   "observed": 71,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000010",
+    "T000015"
+   ],
+   "player": "8",
+   "evidence": {
+    "NOT_CLEAN": 4,
+    "EVALUATED": 66
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000010",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "25",
+     "born_frame": 0,
+     "frames_before": 11,
+     "certain_frames_before": 6,
+     "certain_confirmed_observed_frames_before": 1,
+     "min_iou_when_certain": 0.448,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": "CROSSING",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000027",
+   "start": 27,
+   "end": 34,
+   "frames": 8,
+   "observed": 2,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000010",
+    "T000015",
+    "T000016",
+    "T000025",
+    "T000026"
+   ],
+   "player": null,
+   "evidence": {
+    "EVALUATED": 1
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000010",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "25",
+     "born_frame": 0,
+     "frames_before": 27,
+     "certain_frames_before": 6,
+     "certain_confirmed_observed_frames_before": 1,
+     "min_iou_when_certain": 0.448,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": "CROSSING",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000025",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "15",
+     "born_frame": 20,
+     "frames_before": 7,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000015",
+      "T000016"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000026",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 25,
+     "frames_before": 2,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000015",
+      "T000016",
+      "T000025"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000028",
+   "start": 30,
+   "end": 72,
+   "frames": 43,
+   "observed": 13,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000010",
+    "T000015",
+    "T000016",
+    "T000025",
+    "T000026",
+    "T000027"
+   ],
+   "player": "15",
+   "evidence": {
+    "EVALUATED": 12
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000010",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "25",
+     "born_frame": 0,
+     "frames_before": 30,
+     "certain_frames_before": 6,
+     "certain_confirmed_observed_frames_before": 1,
+     "min_iou_when_certain": 0.448,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": "CROSSING",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000025",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "15",
+     "born_frame": 20,
+     "frames_before": 10,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000015",
+      "T000016"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000026",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 25,
+     "frames_before": 5,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000015",
+      "T000016",
+      "T000025"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000027",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 27,
+     "frames_before": 3,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000010",
+      "T000015",
+      "T000016",
+      "T000025",
+      "T000026"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000033",
+   "start": 47,
+   "end": 69,
+   "frames": 23,
+   "observed": 16,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000015",
+    "T000016",
+    "T000025",
+    "T000028"
+   ],
+   "player": "15",
+   "evidence": {
+    "EVALUATED": 15
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000025",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "15",
+     "born_frame": 20,
+     "frames_before": 27,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000015",
+      "T000016"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000028",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "15",
+     "born_frame": 30,
+     "frames_before": 17,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000010",
+      "T000015",
+      "T000016",
+      "T000025",
+      "T000026",
+      "T000027"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000040",
+   "start": 54,
+   "end": 85,
+   "frames": 32,
+   "observed": 32,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000012",
+    "T000035",
+    "T000036"
+   ],
+   "player": "9",
+   "evidence": {
+    "NOT_CLEAN": 4,
+    "EVALUATED": 27
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000035",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 49,
+     "frames_before": 5,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000012",
+      "T000031"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000036",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 51,
+     "frames_before": 3,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000012",
+      "T000031",
+      "T000035"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000043",
+   "start": 63,
+   "end": 71,
+   "frames": 9,
+   "observed": 3,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000016",
+    "T000025",
+    "T000028",
+    "T000033"
+   ],
+   "player": null,
+   "evidence": {
+    "EVALUATED": 2
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000025",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "15",
+     "born_frame": 20,
+     "frames_before": 43,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000015",
+      "T000016"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000028",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "15",
+     "born_frame": 30,
+     "frames_before": 33,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000010",
+      "T000015",
+      "T000016",
+      "T000025",
+      "T000026",
+      "T000027"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000033",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "15",
+     "born_frame": 47,
+     "frames_before": 16,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000015",
+      "T000016",
+      "T000025",
+      "T000028"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000046",
+   "start": 69,
+   "end": 71,
+   "frames": 3,
+   "observed": 2,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000028",
+    "T000033",
+    "T000043",
+    "T000045"
+   ],
+   "player": null,
+   "evidence": {
+    "EVALUATED": 1
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000028",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "15",
+     "born_frame": 30,
+     "frames_before": 39,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000010",
+      "T000015",
+      "T000016",
+      "T000025",
+      "T000026",
+      "T000027"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000033",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "15",
+     "born_frame": 47,
+     "frames_before": 22,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000015",
+      "T000016",
+      "T000025",
+      "T000028"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000043",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 63,
+     "frames_before": 6,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000016",
+      "T000025",
+      "T000028",
+      "T000033"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000045",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "15",
+     "born_frame": 66,
+     "frames_before": 3,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000015",
+      "T000016",
+      "T000025",
+      "T000028",
+      "T000033",
+      "T000043"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "LEFT_FRAME"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000064",
+   "start": 258,
+   "end": 390,
+   "frames": 133,
+   "observed": 100,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000039",
+    "T000049",
+    "T000059",
+    "T000061",
+    "T000072",
+    "T000078"
+   ],
+   "player": "18",
+   "evidence": {
+    "EVALUATED": 6,
+    "CONTESTED": 5,
+    "NO_OWN_REFERENCE": 13,
+    "NOT_CLEAN": 75
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000059",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 252,
+     "frames_before": 6,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000039",
+      "T000049"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000061",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 255,
+     "frames_before": 3,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000039",
+      "T000049",
+      "T000059"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    },
+    {
+     "role": "own",
+     "track": "T000064",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "18",
+     "born_frame": 258,
+     "frames_before": 8,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000039",
+      "T000049",
+      "T000059",
+      "T000061"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000069",
+   "start": 265,
+   "end": 390,
+   "frames": 126,
+   "observed": 109,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000051",
+    "T000054",
+    "T000056",
+    "T000058",
+    "T000076"
+   ],
+   "player": "25",
+   "evidence": {
+    "CONTESTED": 27,
+    "NOT_CLEAN": 72,
+    "NO_OWN_REFERENCE": 9
+   },
+   "missing": [
+    {
+     "role": "own",
+     "track": "T000069",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "25",
+     "born_frame": 265,
+     "frames_before": 13,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000054",
+      "T000056",
+      "T000058"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000076",
+   "start": 281,
+   "end": 390,
+   "frames": 110,
+   "observed": 87,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000051",
+    "T000054",
+    "T000056",
+    "T000058",
+    "T000069"
+   ],
+   "player": "8",
+   "evidence": {
+    "NOT_CLEAN": 82,
+    "CONTESTED": 3,
+    "NO_OWN_REFERENCE": 1
+   },
+   "missing": [
+    {
+     "role": "own",
+     "track": "T000076",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "8",
+     "born_frame": 281,
+     "frames_before": 56,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000054",
+      "T000056",
+      "T000058"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000078",
+   "start": 285,
+   "end": 390,
+   "frames": 106,
+   "observed": 106,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000039",
+    "T000049",
+    "T000055",
+    "T000064",
+    "T000072",
+    "T000077"
+   ],
+   "player": "19",
+   "evidence": {
+    "NOT_CLEAN": 78,
+    "CONTESTED": 17,
+    "NO_OWN_REFERENCE": 10
+   },
+   "missing": [
+    {
+     "role": "own",
+     "track": "T000078",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "19",
+     "born_frame": 285,
+     "frames_before": 72,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000039",
+      "T000049",
+      "T000072",
+      "T000077"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000080",
+   "start": 308,
+   "end": 390,
+   "frames": 83,
+   "observed": 39,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000014",
+    "T000017",
+    "T000067",
+    "T000087"
+   ],
+   "player": "16",
+   "evidence": {
+    "EVALUATED": 23,
+    "CONTESTED": 2,
+    "NOT_CLEAN": 13
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000014",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "16",
+     "born_frame": 0,
+     "frames_before": 308,
+     "certain_frames_before": 10,
+     "certain_confirmed_observed_frames_before": 7,
+     "min_iou_when_certain": 0.277,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": "CROSSING",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000017",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "17",
+     "born_frame": 0,
+     "frames_before": 308,
+     "certain_frames_before": 10,
+     "certain_confirmed_observed_frames_before": 1,
+     "min_iou_when_certain": 0.277,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": null,
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000082",
+   "start": 333,
+   "end": 390,
+   "frames": 58,
+   "observed": 40,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000014",
+    "T000017",
+    "T000087"
+   ],
+   "player": "17",
+   "evidence": {
+    "NOT_CLEAN": 22,
+    "EVALUATED": 17
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000014",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "16",
+     "born_frame": 0,
+     "frames_before": 333,
+     "certain_frames_before": 10,
+     "certain_confirmed_observed_frames_before": 7,
+     "min_iou_when_certain": 0.277,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": "CROSSING",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000017",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "17",
+     "born_frame": 0,
+     "frames_before": 333,
+     "certain_frames_before": 10,
+     "certain_confirmed_observed_frames_before": 1,
+     "min_iou_when_certain": 0.277,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": null,
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000085",
+   "start": 338,
+   "end": 390,
+   "frames": 53,
+   "observed": 53,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000014",
+    "T000051",
+    "T000083"
+   ],
+   "player": "8",
+   "evidence": {
+    "NOT_CLEAN": 11,
+    "EVALUATED": 41
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000014",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "16",
+     "born_frame": 0,
+     "frames_before": 338,
+     "certain_frames_before": 10,
+     "certain_confirmed_observed_frames_before": 7,
+     "min_iou_when_certain": 0.277,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": "CROSSING",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000083",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 335,
+     "frames_before": 3,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000051"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000067",
+   "start": 343,
+   "end": 390,
+   "frames": 48,
+   "observed": 9,
+   "outcome": "CLIP_END",
+   "at_spawn": false,
+   "rivals": [
+    "T000080",
+    "T000087"
+   ],
+   "player": "13",
+   "evidence": {
+    "CONTESTED": 1,
+    "NOT_CLEAN": 3,
+    "EVALUATED": 5
+   },
+   "missing": [
+    {
+     "role": "rival",
+     "track": "T000080",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "16",
+     "born_frame": 308,
+     "frames_before": 35,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000017"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000087",
+   "start": 352,
+   "end": 390,
+   "frames": 39,
+   "observed": 24,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000014",
+    "T000017",
+    "T000067",
+    "T000080",
+    "T000082"
+   ],
+   "player": "13",
+   "evidence": {
+    "NOT_CLEAN": 16,
+    "EVALUATED": 3,
+    "CONTESTED": 2,
+    "NO_OWN_REFERENCE": 2
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000014",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "16",
+     "born_frame": 0,
+     "frames_before": 352,
+     "certain_frames_before": 10,
+     "certain_confirmed_observed_frames_before": 7,
+     "min_iou_when_certain": 0.277,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": "CROSSING",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000017",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "17",
+     "born_frame": 0,
+     "frames_before": 352,
+     "certain_frames_before": 10,
+     "certain_confirmed_observed_frames_before": 1,
+     "min_iou_when_certain": 0.277,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": null,
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000080",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "16",
+     "born_frame": 308,
+     "frames_before": 44,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000017"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    },
+    {
+     "role": "own",
+     "track": "T000087",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "13",
+     "born_frame": 352,
+     "frames_before": 22,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000017",
+      "T000067",
+      "T000080"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000088",
+   "start": 352,
+   "end": 390,
+   "frames": 39,
+   "observed": 39,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000014",
+    "T000017",
+    "T000067",
+    "T000080"
+   ],
+   "player": "16",
+   "evidence": {
+    "NOT_CLEAN": 5,
+    "EVALUATED": 33
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000014",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "16",
+     "born_frame": 0,
+     "frames_before": 352,
+     "certain_frames_before": 10,
+     "certain_confirmed_observed_frames_before": 7,
+     "min_iou_when_certain": 0.277,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": "CROSSING",
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000017",
+     "why": "CERTAIN_NEVER_CLEAN",
+     "player": "17",
+     "born_frame": 0,
+     "frames_before": 352,
+     "certain_frames_before": 10,
+     "certain_confirmed_observed_frames_before": 1,
+     "min_iou_when_certain": 0.277,
+     "spawn_predecessors": [],
+     "born_uncertain": false,
+     "first_uncertain_rule": null,
+     "ref_later_frame": null,
+     "end_reason": "LOST_EXPIRED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000080",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "16",
+     "born_frame": 308,
+     "frames_before": 44,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000017"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000092",
+   "start": 374,
+   "end": 381,
+   "frames": 8,
+   "observed": 2,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000051",
+    "T000067",
+    "T000069",
+    "T000076",
+    "T000080"
+   ],
+   "player": null,
+   "evidence": {
+    "EVALUATED": 1
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000069",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "25",
+     "born_frame": 265,
+     "frames_before": 109,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000054",
+      "T000056",
+      "T000058"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    },
+    {
+     "role": "predecessor",
+     "track": "T000076",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "8",
+     "born_frame": 281,
+     "frames_before": 93,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000054",
+      "T000056",
+      "T000058"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    },
+    {
+     "role": "predecessor",
+     "track": "T000080",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "16",
+     "born_frame": 308,
+     "frames_before": 66,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000017"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000093",
+   "start": 375,
+   "end": 383,
+   "frames": 9,
+   "observed": 3,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000051",
+    "T000067",
+    "T000069",
+    "T000076",
+    "T000080"
+   ],
+   "player": null,
+   "evidence": {
+    "EVALUATED": 2
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000069",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "25",
+     "born_frame": 265,
+     "frames_before": 110,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000054",
+      "T000056",
+      "T000058"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    },
+    {
+     "role": "predecessor",
+     "track": "T000076",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "8",
+     "born_frame": 281,
+     "frames_before": 94,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000054",
+      "T000056",
+      "T000058"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    },
+    {
+     "role": "predecessor",
+     "track": "T000080",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "16",
+     "born_frame": 308,
+     "frames_before": 67,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000017"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000094",
+   "start": 376,
+   "end": 390,
+   "frames": 15,
+   "observed": 15,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000067",
+    "T000080",
+    "T000082",
+    "T000087"
+   ],
+   "player": null,
+   "evidence": {
+    "EVALUATED": 14
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000080",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "16",
+     "born_frame": 308,
+     "frames_before": 68,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000017"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    },
+    {
+     "role": "predecessor",
+     "track": "T000082",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "17",
+     "born_frame": 333,
+     "frames_before": 43,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000017"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    },
+    {
+     "role": "predecessor",
+     "track": "T000087",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "13",
+     "born_frame": 352,
+     "frames_before": 24,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000017",
+      "T000067",
+      "T000080"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000095",
+   "start": 377,
+   "end": 390,
+   "frames": 14,
+   "observed": 14,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000067",
+    "T000069",
+    "T000076",
+    "T000080",
+    "T000092"
+   ],
+   "player": "10",
+   "evidence": {
+    "EVALUATED": 5,
+    "NOT_CLEAN": 8
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000069",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "25",
+     "born_frame": 265,
+     "frames_before": 112,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000054",
+      "T000056",
+      "T000058"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    },
+    {
+     "role": "predecessor",
+     "track": "T000076",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "8",
+     "born_frame": 281,
+     "frames_before": 96,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000054",
+      "T000056",
+      "T000058"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    },
+    {
+     "role": "predecessor",
+     "track": "T000080",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "16",
+     "born_frame": 308,
+     "frames_before": 69,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000017"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    },
+    {
+     "role": "predecessor",
+     "track": "T000092",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 374,
+     "frames_before": 3,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000051",
+      "T000067",
+      "T000069",
+      "T000076",
+      "T000080"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000096",
+   "start": 380,
+   "end": 390,
+   "frames": 11,
+   "observed": 11,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000055",
+    "T000064"
+   ],
+   "player": "20",
+   "evidence": {
+    "NOT_CLEAN": 6,
+    "EVALUATED": 4
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000064",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "18",
+     "born_frame": 258,
+     "frames_before": 122,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000039",
+      "T000049",
+      "T000059",
+      "T000061"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    }
+   ]
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000097",
+   "start": 380,
+   "end": 390,
+   "frames": 11,
+   "observed": 11,
+   "outcome": "CLIP_END",
+   "at_spawn": true,
+   "rivals": [
+    "T000067",
+    "T000069",
+    "T000076",
+    "T000080",
+    "T000092",
+    "T000093"
+   ],
+   "player": "25",
+   "evidence": {
+    "NOT_CLEAN": 8,
+    "EVALUATED": 2
+   },
+   "missing": [
+    {
+     "role": "predecessor",
+     "track": "T000069",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "25",
+     "born_frame": 265,
+     "frames_before": 115,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000054",
+      "T000056",
+      "T000058"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    },
+    {
+     "role": "predecessor",
+     "track": "T000076",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "8",
+     "born_frame": 281,
+     "frames_before": 99,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000054",
+      "T000056",
+      "T000058"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    },
+    {
+     "role": "predecessor",
+     "track": "T000080",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": "16",
+     "born_frame": 308,
+     "frames_before": 72,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000014",
+      "T000017"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": null
+    },
+    {
+     "role": "predecessor",
+     "track": "T000092",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 374,
+     "frames_before": 6,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000051",
+      "T000067",
+      "T000069",
+      "T000076",
+      "T000080"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    },
+    {
+     "role": "predecessor",
+     "track": "T000093",
+     "why": "BORN_UNCERTAIN_NEVER_CERTAIN",
+     "player": null,
+     "born_frame": 375,
+     "frames_before": 5,
+     "certain_frames_before": 0,
+     "certain_confirmed_observed_frames_before": 0,
+     "min_iou_when_certain": null,
+     "spawn_predecessors": [
+      "T000051",
+      "T000067",
+      "T000069",
+      "T000076",
+      "T000080"
+     ],
+     "born_uncertain": true,
+     "first_uncertain_rule": "AMBIGUOUS_SPAWN",
+     "ref_later_frame": null,
+     "end_reason": "UNCONFIRMED_MISSED"
+    }
+   ]
+  }
+ ],
+ "NO_CLEAN_CROP": [
+  {
+   "clip": "FRESH_02",
+   "track": "T000012",
+   "start": 171,
+   "end": 234,
+   "frames": 64,
+   "observed": 4,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000010",
+    "T000033"
+   ],
+   "player": "10",
+   "evidence": {
+    "CONTESTED": 1,
+    "NOT_CLEAN": 3
+   },
+   "statuses": {
+    "CONTESTED": 1,
+    "NOT_CLEAN": 3
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 2,
+    "other_labelled_player": 1
+   },
+   "not_clean_iou_median": 0.387,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 60,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000010": true,
+    "T000033": false
+   }
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000034",
+   "start": 182,
+   "end": 189,
+   "frames": 8,
+   "observed": 2,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000010",
+    "T000012"
+   ],
+   "player": null,
+   "evidence": {
+    "NOT_CLEAN": 1
+   },
+   "statuses": {
+    "NOT_CLEAN": 1
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 1
+   },
+   "not_clean_iou_median": 0.435,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 6,
+   "own_reference_before": false,
+   "rival_references": {
+    "T000010": true,
+    "T000012": true
+   }
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000035",
+   "start": 186,
+   "end": 193,
+   "frames": 8,
+   "observed": 2,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000010",
+    "T000012",
+    "T000034"
+   ],
+   "player": "8",
+   "evidence": {
+    "CONTESTED": 1
+   },
+   "statuses": {
+    "CONTESTED": 1
+   },
+   "not_clean_overlap": {},
+   "not_clean_iou_median": null,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 6,
+   "own_reference_before": false,
+   "rival_references": {
+    "T000010": true,
+    "T000012": true,
+    "T000034": false
+   }
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000028",
+   "start": 246,
+   "end": 381,
+   "frames": 136,
+   "observed": 76,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000042"
+   ],
+   "player": "16",
+   "evidence": {
+    "NOT_CLEAN": 76
+   },
+   "statuses": {
+    "NOT_CLEAN": 76
+   },
+   "not_clean_overlap": {
+    "other_labelled_player": 9,
+    "unlabelled_frame_or_unmatched": 67
+   },
+   "not_clean_iou_median": 0.284,
+   "not_clean_iou_le_0_15": 8,
+   "not_observed_frames": 60,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000042": false
+   }
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000014",
+   "start": 257,
+   "end": 319,
+   "frames": 63,
+   "observed": 3,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000033",
+    "T000036"
+   ],
+   "player": "9",
+   "evidence": {
+    "NOT_CLEAN": 3
+   },
+   "statuses": {
+    "NOT_CLEAN": 3
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 2,
+    "other_labelled_player": 1
+   },
+   "not_clean_iou_median": 0.361,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 60,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000033": false,
+    "T000036": false
+   }
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000008",
+   "start": 305,
+   "end": 366,
+   "frames": 62,
+   "observed": 2,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000007"
+   ],
+   "player": "1",
+   "evidence": {
+    "NOT_CLEAN": 2
+   },
+   "statuses": {
+    "NOT_CLEAN": 2
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 2
+   },
+   "not_clean_iou_median": 0.482,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 60,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000007": true
+   }
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000006",
+   "start": 376,
+   "end": 390,
+   "frames": 15,
+   "observed": 15,
+   "outcome": "CLIP_END",
+   "at_spawn": false,
+   "rivals": [
+    "T000058"
+   ],
+   "player": "3",
+   "evidence": {
+    "NOT_CLEAN": 15
+   },
+   "statuses": {
+    "NOT_CLEAN": 15
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 12,
+    "other_labelled_player": 3
+   },
+   "not_clean_iou_median": 0.343,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 0,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000058": false
+   }
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000058",
+   "start": 376,
+   "end": 390,
+   "frames": 15,
+   "observed": 15,
+   "outcome": "CLIP_END",
+   "at_spawn": false,
+   "rivals": [
+    "T000006",
+    "T000029"
+   ],
+   "player": "5",
+   "evidence": {
+    "NOT_CLEAN": 14,
+    "CONTESTED": 1
+   },
+   "statuses": {
+    "NOT_CLEAN": 14,
+    "CONTESTED": 1
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 11,
+    "other_box_not_a_labelled_player": 1,
+    "other_labelled_player": 2
+   },
+   "not_clean_iou_median": 0.336,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 0,
+   "own_reference_before": false,
+   "rival_references": {
+    "T000006": true,
+    "T000029": true
+   }
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000029",
+   "start": 377,
+   "end": 390,
+   "frames": 14,
+   "observed": 2,
+   "outcome": "CLIP_END",
+   "at_spawn": false,
+   "rivals": [
+    "T000058"
+   ],
+   "player": "5",
+   "evidence": {
+    "NOT_CLEAN": 2
+   },
+   "statuses": {
+    "NOT_CLEAN": 2
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 1,
+    "other_labelled_player": 1
+   },
+   "not_clean_iou_median": 0.491,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 12,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000058": false
+   }
+  },
+  {
+   "clip": "FRESH_02",
+   "track": "T000030",
+   "start": 384,
+   "end": 390,
+   "frames": 7,
+   "observed": 7,
+   "outcome": "CLIP_END",
+   "at_spawn": false,
+   "rivals": [
+    "T000048"
+   ],
+   "player": "14",
+   "evidence": {
+    "NOT_CLEAN": 7
+   },
+   "statuses": {
+    "NOT_CLEAN": 7
+   },
+   "not_clean_overlap": {
+    "other_labelled_player": 2,
+    "unlabelled_frame_or_unmatched": 5
+   },
+   "not_clean_iou_median": 0.146,
+   "not_clean_iou_le_0_15": 5,
+   "not_observed_frames": 0,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000048": false
+   }
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000015",
+   "start": 63,
+   "end": 126,
+   "frames": 64,
+   "observed": 4,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000018"
+   ],
+   "player": "15",
+   "evidence": {
+    "NOT_CLEAN": 4
+   },
+   "statuses": {
+    "NOT_CLEAN": 4
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 3,
+    "other_labelled_player": 1
+   },
+   "not_clean_iou_median": 0.384,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 60,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000018": true
+   }
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000033",
+   "start": 238,
+   "end": 384,
+   "frames": 147,
+   "observed": 87,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000034"
+   ],
+   "player": "17",
+   "evidence": {
+    "NOT_CLEAN": 85,
+    "CONTESTED": 2
+   },
+   "statuses": {
+    "NOT_CLEAN": 85,
+    "CONTESTED": 2
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 78,
+    "other_box_not_a_labelled_player": 2,
+    "other_labelled_player": 5
+   },
+   "not_clean_iou_median": 0.258,
+   "not_clean_iou_le_0_15": 3,
+   "not_observed_frames": 60,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000034": false
+   }
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000009",
+   "start": 281,
+   "end": 341,
+   "frames": 61,
+   "observed": 1,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000021",
+    "T000042",
+    "T000046"
+   ],
+   "player": "5",
+   "evidence": {
+    "CONTESTED": 1
+   },
+   "statuses": {
+    "CONTESTED": 1
+   },
+   "not_clean_overlap": {},
+   "not_clean_iou_median": null,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 60,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000021": true,
+    "T000042": false,
+    "T000046": false
+   }
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000021",
+   "start": 281,
+   "end": 341,
+   "frames": 61,
+   "observed": 1,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000009",
+    "T000042"
+   ],
+   "player": "7",
+   "evidence": {
+    "CONTESTED": 1
+   },
+   "statuses": {
+    "CONTESTED": 1
+   },
+   "not_clean_overlap": {},
+   "not_clean_iou_median": null,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 60,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000009": true,
+    "T000042": false
+   }
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000046",
+   "start": 287,
+   "end": 365,
+   "frames": 79,
+   "observed": 19,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000009",
+    "T000021",
+    "T000042",
+    "T000051"
+   ],
+   "player": "5",
+   "evidence": {
+    "NOT_CLEAN": 17,
+    "CONTESTED": 1
+   },
+   "statuses": {
+    "NOT_CLEAN": 17,
+    "CONTESTED": 1
+   },
+   "not_clean_overlap": {
+    "other_labelled_player": 3,
+    "unlabelled_frame_or_unmatched": 14
+   },
+   "not_clean_iou_median": 0.211,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 60,
+   "own_reference_before": false,
+   "rival_references": {
+    "T000009": true,
+    "T000021": true,
+    "T000042": false,
+    "T000051": false
+   }
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000054",
+   "start": 332,
+   "end": 390,
+   "frames": 59,
+   "observed": 21,
+   "outcome": "CLIP_END",
+   "at_spawn": false,
+   "rivals": [
+    "T000034"
+   ],
+   "player": "17",
+   "evidence": {
+    "NOT_CLEAN": 20,
+    "CONTESTED": 1
+   },
+   "statuses": {
+    "NOT_CLEAN": 20,
+    "CONTESTED": 1
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 18,
+    "other_labelled_player": 2
+   },
+   "not_clean_iou_median": 0.175,
+   "not_clean_iou_le_0_15": 5,
+   "not_observed_frames": 38,
+   "own_reference_before": false,
+   "rival_references": {
+    "T000034": false
+   }
+  },
+  {
+   "clip": "FRESH_07",
+   "track": "T000011",
+   "start": 383,
+   "end": 390,
+   "frames": 8,
+   "observed": 8,
+   "outcome": "CLIP_END",
+   "at_spawn": false,
+   "rivals": [
+    "T000051"
+   ],
+   "player": "6",
+   "evidence": {
+    "NOT_CLEAN": 7,
+    "CONTESTED": 1
+   },
+   "statuses": {
+    "NOT_CLEAN": 7,
+    "CONTESTED": 1
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 5,
+    "other_labelled_player": 1,
+    "other_box_not_a_labelled_player": 1
+   },
+   "not_clean_iou_median": 0.255,
+   "not_clean_iou_le_0_15": 2,
+   "not_observed_frames": 0,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000051": false
+   }
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000015",
+   "start": 6,
+   "end": 66,
+   "frames": 61,
+   "observed": 1,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000010"
+   ],
+   "player": "8",
+   "evidence": {
+    "NOT_CLEAN": 1
+   },
+   "statuses": {
+    "NOT_CLEAN": 1
+   },
+   "not_clean_overlap": {
+    "other_box_not_a_labelled_player": 1
+   },
+   "not_clean_iou_median": 0.45,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 60,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000010": false
+   }
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000049",
+   "start": 211,
+   "end": 289,
+   "frames": 79,
+   "observed": 19,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000039"
+   ],
+   "player": "18",
+   "evidence": {
+    "NOT_CLEAN": 19
+   },
+   "statuses": {
+    "NOT_CLEAN": 19
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 16,
+    "other_labelled_player": 1,
+    "other_box_not_a_labelled_player": 2
+   },
+   "not_clean_iou_median": 0.381,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 60,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000039": true
+   }
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000056",
+   "start": 258,
+   "end": 322,
+   "frames": 65,
+   "observed": 5,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000058",
+    "T000069"
+   ],
+   "player": "25",
+   "evidence": {
+    "CONTESTED": 2,
+    "NOT_CLEAN": 3
+   },
+   "statuses": {
+    "CONTESTED": 2,
+    "NOT_CLEAN": 3
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 3
+   },
+   "not_clean_iou_median": 0.378,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 60,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000058": true,
+    "T000069": false
+   }
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000072",
+   "start": 267,
+   "end": 331,
+   "frames": 65,
+   "observed": 5,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000039",
+    "T000049",
+    "T000064",
+    "T000068",
+    "T000078"
+   ],
+   "player": "18",
+   "evidence": {
+    "NOT_CLEAN": 4
+   },
+   "statuses": {
+    "NOT_CLEAN": 4
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 3,
+    "other_box_not_a_labelled_player": 1
+   },
+   "not_clean_iou_median": 0.462,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 60,
+   "own_reference_before": false,
+   "rival_references": {
+    "T000039": true,
+    "T000049": true,
+    "T000064": false,
+    "T000068": false,
+    "T000078": false
+   }
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000074",
+   "start": 270,
+   "end": 277,
+   "frames": 8,
+   "observed": 2,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000054",
+    "T000056",
+    "T000058",
+    "T000073"
+   ],
+   "player": "8",
+   "evidence": {
+    "NOT_CLEAN": 1
+   },
+   "statuses": {
+    "NOT_CLEAN": 1
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 1
+   },
+   "not_clean_iou_median": 0.422,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 6,
+   "own_reference_before": false,
+   "rival_references": {
+    "T000054": true,
+    "T000056": true,
+    "T000058": true,
+    "T000073": false
+   }
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000075",
+   "start": 273,
+   "end": 282,
+   "frames": 10,
+   "observed": 4,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000039",
+    "T000049",
+    "T000072"
+   ],
+   "player": "18",
+   "evidence": {
+    "NOT_CLEAN": 3
+   },
+   "statuses": {
+    "NOT_CLEAN": 3
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 2,
+    "other_box_not_a_labelled_player": 1
+   },
+   "not_clean_iou_median": 0.56,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 6,
+   "own_reference_before": false,
+   "rival_references": {
+    "T000039": true,
+    "T000049": true,
+    "T000072": false
+   }
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000051",
+   "start": 302,
+   "end": 375,
+   "frames": 74,
+   "observed": 14,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": false,
+   "rivals": [
+    "T000069",
+    "T000076"
+   ],
+   "player": "10",
+   "evidence": {
+    "NOT_CLEAN": 12,
+    "CONTESTED": 2
+   },
+   "statuses": {
+    "NOT_CLEAN": 12,
+    "CONTESTED": 2
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 10,
+    "other_box_not_a_labelled_player": 2
+   },
+   "not_clean_iou_median": 0.329,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 60,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000069": false,
+    "T000076": false
+   }
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000083",
+   "start": 335,
+   "end": 342,
+   "frames": 8,
+   "observed": 2,
+   "outcome": "TRACK_ENDED",
+   "at_spawn": true,
+   "rivals": [
+    "T000014",
+    "T000051"
+   ],
+   "player": null,
+   "evidence": {
+    "NOT_CLEAN": 1
+   },
+   "statuses": {
+    "NOT_CLEAN": 1
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 1
+   },
+   "not_clean_iou_median": 0.46,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 6,
+   "own_reference_before": false,
+   "rival_references": {
+    "T000014": false,
+    "T000051": true
+   }
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000055",
+   "start": 344,
+   "end": 390,
+   "frames": 47,
+   "observed": 11,
+   "outcome": "CLIP_END",
+   "at_spawn": false,
+   "rivals": [
+    "T000078"
+   ],
+   "player": "20",
+   "evidence": {
+    "NOT_CLEAN": 11
+   },
+   "statuses": {
+    "NOT_CLEAN": 11
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 10,
+    "other_labelled_player": 1
+   },
+   "not_clean_iou_median": 0.537,
+   "not_clean_iou_le_0_15": 0,
+   "not_observed_frames": 36,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000078": false
+   }
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000070",
+   "start": 363,
+   "end": 390,
+   "frames": 28,
+   "observed": 20,
+   "outcome": "CLIP_END",
+   "at_spawn": false,
+   "rivals": [
+    "T000066"
+   ],
+   "player": "6",
+   "evidence": {
+    "NOT_CLEAN": 20
+   },
+   "statuses": {
+    "NOT_CLEAN": 20
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 18,
+    "other_box_not_a_labelled_player": 1,
+    "other_labelled_player": 1
+   },
+   "not_clean_iou_median": 0.273,
+   "not_clean_iou_le_0_15": 6,
+   "not_observed_frames": 8,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000066": true
+   }
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000086",
+   "start": 377,
+   "end": 390,
+   "frames": 14,
+   "observed": 14,
+   "outcome": "CLIP_END",
+   "at_spawn": false,
+   "rivals": [
+    "T000091"
+   ],
+   "player": "9",
+   "evidence": {
+    "CONTESTED": 4,
+    "NOT_CLEAN": 10
+   },
+   "statuses": {
+    "CONTESTED": 4,
+    "NOT_CLEAN": 10
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 9,
+    "other_labelled_player": 1
+   },
+   "not_clean_iou_median": 0.126,
+   "not_clean_iou_le_0_15": 7,
+   "not_observed_frames": 0,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000091": true
+   }
+  },
+  {
+   "clip": "FRESH_08",
+   "track": "T000091",
+   "start": 377,
+   "end": 390,
+   "frames": 14,
+   "observed": 8,
+   "outcome": "CLIP_END",
+   "at_spawn": false,
+   "rivals": [
+    "T000086"
+   ],
+   "player": "5",
+   "evidence": {
+    "NOT_CLEAN": 8
+   },
+   "statuses": {
+    "NOT_CLEAN": 8
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 6,
+    "other_labelled_player": 2
+   },
+   "not_clean_iou_median": 0.136,
+   "not_clean_iou_le_0_15": 4,
+   "not_observed_frames": 6,
+   "own_reference_before": true,
+   "rival_references": {
+    "T000086": true
+   }
+  }
+ ],
+ "check": {
+  "own_present_agree": 112,
+  "own_missing_agree": 695
+ },
+ "summary": {
+  "NO_REFERENCE": {
+   "episodes": 49,
+   "at_spawn": 43,
+   "missing_refs": 100,
+   "missing_by_role": {
+    "predecessor": 86,
+    "own": 12,
+    "rival": 2
+   },
+   "why": {
+    "CERTAIN_NEVER_CONFIRMED": 4,
+    "BORN_UNCERTAIN_NEVER_CERTAIN": 79,
+    "CERTAIN_NEVER_CLEAN": 17
+   },
+   "why_by_role": {
+    "own": {
+     "BORN_UNCERTAIN_NEVER_CERTAIN": 8,
+     "CERTAIN_NEVER_CLEAN": 4
+    },
+    "rival": {
+     "BORN_UNCERTAIN_NEVER_CERTAIN": 2
+    },
+    "predecessor": {
+     "CERTAIN_NEVER_CONFIRMED": 4,
+     "BORN_UNCERTAIN_NEVER_CERTAIN": 69,
+     "CERTAIN_NEVER_CLEAN": 13
+    }
+   },
+   "first_uncertain_rule_of_missing": {
+    "null": 9,
+    "AMBIGUOUS_SPAWN": 79,
+    "CONTESTED_MATCH": 1,
+    "CROSSING": 11
+   },
+   "missing_gets_reference_later": 0,
+   "missing_unlabelled": 20,
+   "outcome": {
+    "TRACK_ENDED": 22,
+    "CLIP_END": 27
+   },
+   "episode_frames_median": 71.0
+  },
+  "NO_CLEAN_CROP": {
+   "episodes": 29,
+   "statuses": {
+    "CONTESTED": 18,
+    "NOT_CLEAN": 349
+   },
+   "not_clean_overlap": {
+    "unlabelled_frame_or_unmatched": 300,
+    "other_labelled_player": 37,
+    "other_box_not_a_labelled_player": 12
+   },
+   "observed_frames_median": 5.0,
+   "frames_median": 59.0,
+   "evidence_frames_median": 5.0,
+   "own_reference_before": 20,
+   "all_rival_references_before": 8,
+   "outcome": {
+    "TRACK_ENDED": 19,
+    "CLIP_END": 10
+   }
+  }
+ }
+}
