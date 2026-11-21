@@ -3,8 +3,9 @@
 Data lives on the Modal volume `volume_name`; upload it once from the repo root on the Mac:
     python3 -m modal volume put spana-reid CROPS_DIR crops/<name>
     python3 -m modal volume put spana-reid HF_DINOV2_SMALL_DIR backbones/dinov2_small
-Train (resumable: rerun the same command to continue after a stop), then export the finished run:
-    python3 -m modal run -m tools.modal_reid --crops crops/<a>,crops/<b> --backbone backbones/dinov2_small --run runs/<name>
+Train with --detach (without it, closing Terminal or losing Wi-Fi cancels the run; it is resumable: rerun the
+same command to continue after a stop), then export the finished run:
+    python3 -m modal run --detach -m tools.modal_reid --crops crops/<a>,crops/<b> --backbone backbones/dinov2_small --run runs/<name>
     python3 -m modal run -m tools.modal_reid --run runs/<name> --backbone backbones/dinov2_small --export-to models/<name>.onnx
     python3 -m modal volume get spana-reid models/<name>.onnx .
 All paths are relative to the volume. tools/reid_train.py keeps its own guards (TRAIN crops only, pinned backbone).
@@ -16,7 +17,7 @@ from pathlib import Path
 
 import modal
 
-from tools.modal_reid_plan import export_argv, load_modal_config, train_argv, train_budget_minutes
+from tools.modal_reid_plan import export_argv, load_modal_config, train_argv, train_budget_minutes, volume_path
 
 ROOT = Path(__file__).resolve().parents[1]
 REMOTE = "/root"  # tools/, spana/, config/, models/ sit here so tools.reid_train finds models/dinov2_small.json
@@ -50,6 +51,7 @@ def train(crops: list[str], backbone: str, run: str) -> None:
 @app.function(gpu=CFG["gpu"], timeout=int(CFG["timeout_minutes"]) * 60, volumes={MOUNT: volume})
 def export(run: str, backbone: str, out: str) -> None:
     volume.reload()
+    Path(volume_path(MOUNT, out)).parent.mkdir(parents=True, exist_ok=True)  # the CLI cannot make folders
     _run(export_argv(MOUNT, run, backbone, out))
 
 
