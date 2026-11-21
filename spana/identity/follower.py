@@ -72,6 +72,23 @@ CANDIDATE is shown (the answer is the followed track's own state, no box) and no
 when the track is usable again the same offer is shown again. Uncertain, unconfirmed, ended or held too long: dropped
 (CANDIDATE_NOT_USABLE) as before. offer_hold_s 0 = the behaviour before.
 
+Player confirmations (spana.target 2.10.0; spana.identity.confirmation has the records and rules). A
+player_confirmation names a track, a frame range and a verdict, and covers that track's uncertainty episode only:
+  IS_ME, applied     the track becomes the answered track from `frame` (like a tap) and its episode is resolved for
+                     the target only: TARGET PLAYER_CONFIRMED while the track is IDENTITY_UNCERTAIN in that episode,
+                     TRACK_OBSERVED once CERTAIN again; that episode never taints the track. A later episode is
+                     uncertain again unless re-ID against the human-confirmed gallery clears it (GALLERY_REID,
+                     target.gallery_reid_resolve with reid_resolve.enabled): on clean crops of the answered track the
+                     latest gallery crop from before the episode must beat every rival's reference (its latest clean
+                     CERTAIN crop before the episode; the target's own earlier tracks are not rivals) by
+                     reid_resolve.margin, over a run spanning tracking.identity_resolve_s with
+                     reid_resolve.min_evidence_frames clearing frames; a frame against resets the run.
+  NOT_ME, applied    the track is no target candidate in that episode: ABSTAIN PLAYER_REJECTED while answered, never
+                     offered, never a gallery source.
+  CONFLICT           not applied (see the module): logged with its evidence and listed for re-confirmation; a NOT_ME
+                     in conflict holds the target's answer on that track uncertain (ABSTAIN CONFIRMATION_CONFLICT).
+  revoked            ignored entirely: every output is as if the confirmation had never been made.
+
 Resume after a doubt (spana.target 2.3.0, target.resume_after_doubt_resolved). An uncertainty episode seen ONLY as a
 doubt with no rival (every uncertain frame of it doubt-only) does not taint the track: ABSTAIN IDENTITY_UNCERTAIN
 while it lasts, TARGET again once the tracker resolves it. Any frame of the episode with a rival taints as before
@@ -85,6 +102,8 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from ..artifacts import TARGET_SCHEMA, gaps_of, sha256_doc, validate_target
 from ..config import SpanaConfig
+from .confirmation import (PLAYER_CONFIRMATION, REVOKE_CONFIRMATION, CropFeatures, appearance_conflicts,
+                           gallery_frame_verdict, is_record_ok)
 from ..provenance import build_provenance
 from ..records import CameraStatus, IdentityState, TargetReason, TargetState, TrackState
 
@@ -171,7 +190,10 @@ def _parse_actions(actions: Iterable[dict]) -> List[dict]:
     out, seen = [], set()
     for a in actions:
         key = (a.get("kind"), a.get("version")) if isinstance(a, dict) else None
-        if key not in ACTION_KEYS or set(a) != set(ACTION_KEYS[key]) or not isinstance(a["frame"], int) or \
+        if key in (PLAYER_CONFIRMATION, REVOKE_CONFIRMATION):
+            if not is_record_ok(a):
+                raise UserActionError(f"not a valid player confirmation / revocation record: {a!r}")
+        elif key not in ACTION_KEYS or set(a) != set(ACTION_KEYS[key]) or not isinstance(a["frame"], int) or \
                 isinstance(a["frame"], bool) or any(not isinstance(a[k], str) for k in ("track_id", "from_track",
                                                                                          "to_track") if k in a):
             raise UserActionError(f"not a supported user action record: {a!r}")
@@ -180,6 +202,12 @@ def _parse_actions(actions: Iterable[dict]) -> List[dict]:
             raise UserActionError(f"duplicate user action {a!r}")
         seen.add(canon)
         out.append(dict(a))
+    ids = [a["confirmation_id"] for a in out if (a["kind"], a["version"]) == PLAYER_CONFIRMATION]
+    if len(ids) != len(set(ids)):
+        raise UserActionError("two player confirmations share a confirmation_id")
+    revoked = [a["confirmation_id"] for a in out if (a["kind"], a["version"]) == REVOKE_CONFIRMATION]
+    if len(revoked) != len(set(revoked)) or not set(revoked) <= set(ids):
+        raise UserActionError("a revocation names no confirmation, or one confirmation is revoked twice")
     per_frame: Dict[int, int] = {}
     for a in out:
         if (a["kind"], a["version"]) in (CONFIRM_RELINK, TRACK_AT_FRAME):
@@ -196,13 +224,14 @@ def _doubt_only(tr: dict) -> bool:
 
 
 def _reentry_offer(cur: str, last_obs: int, n: int, ctx, sig: Dict[str, dict], done: set, live: Dict[str, dict],
-                   cfg: SpanaConfig) -> Tuple[Optional[dict], dict]:
+                   cfg: SpanaConfig, excluded=()) -> Tuple[Optional[dict], dict]:
     """Re-entry offer by re-ID (spana.target 2.5.0): the shared rule spana.identity.reid.reentry_choice, restricted
     to tracks usable now and not yet offered for this loss. Returns (relink entry or None, the rule's decision)."""
     from .reid import reentry_choice
     frames = ctx.frames
     ch = reentry_choice(cur, last_obs, n, ctx, sig, cfg.target, cfg.tracking,
-                        allowed=lambda c: c not in done and _usable(live.get(c)), causal=True)
+                        allowed=lambda c: c not in done and _usable(live.get(c)) and
+                        (c, live[c]["uncertain_episodes"]) not in excluded, causal=True)
     if not ch["offer"]:
         return None, ch
     best = ch["track"]
@@ -237,26 +266,52 @@ def _holdable(tr: Optional[dict]) -> bool:
 
 
 def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable[dict] = (),
-           embeddings: Optional[dict] = None) -> Tuple[List[dict], dict]:
-    """(per-frame answers, {"track_ends": [...], "relinks": [...]}). tracks_doc must be a validated spana.tracks doc;
-    embeddings, if given, a validated spana.track_embeddings doc of it (re-entry offers, target.reentry_offer).
+           embeddings: Optional[dict] = None, crops: Optional[CropFeatures] = None,
+           claims: Optional[Dict[str, Dict[int, str]]] = None) -> Tuple[List[dict], dict]:
+    """(per-frame answers, {"track_ends", "relinks", "reentry_log", "confirmation_log", "gallery",
+    "gallery_reid_log"}). tracks_doc must be a validated spana.tracks doc; embeddings, if given, a validated
+    spana.track_embeddings doc of it (re-entry offers, target.reentry_offer); crops, the clean crop features of the
+    same tracks (confirmation gallery, appearance conflicts, gallery re-ID); claims, other followed identities' CERTAIN
+    answers {identity: {frame: track id}} (spana.identity.confirmation.claims_from_targets).
     Raises SelectionError / UserActionError on an invalid selection / user action."""
     start = check_selection(tracks_doc, sel)
     tc = cfg.target
     acts = _parse_actions(actions)
     confs = {(a["frame"], a["track_id"]): a for a in acts if (a["kind"], a["version"]) == CONFIRM_CANDIDATE}
+    revocations = {a["confirmation_id"]: a for a in acts if (a["kind"], a["version"]) == REVOKE_CONFIRMATION}
     by_frame: Dict[int, List[dict]] = {}
+    pc_by_frame: Dict[int, List[dict]] = {}     # player confirmations in force (not revoked), by first frame
     for a in acts:
-        if (a["kind"], a["version"]) != CONFIRM_CANDIDATE:
+        kind = (a["kind"], a["version"])
+        if kind == PLAYER_CONFIRMATION:
+            if a["confirmation_id"] not in revocations:
+                pc_by_frame.setdefault(a["frame"], []).append(a)
+        elif kind not in (CONFIRM_CANDIDATE, REVOKE_CONFIRMATION):
             by_frame.setdefault(a["frame"], []).append(a)
-    used: set = set()                      # ids of applied actions
+    used: set = {id(a) for a in acts if (a["kind"], a["version"]) == REVOKE_CONFIRMATION or
+                 ((a["kind"], a["version"]) == PLAYER_CONFIRMATION and a["confirmation_id"] in revocations)}
+    claims = claims or {}
     frames = tracks_doc["frames"]
+    idx_of = {fr["frame"]: n for n, fr in enumerate(frames)}
     birth: Dict[str, int] = {}
     preds: Dict[str, Tuple[str, ...]] = {}
+    ep_start: Dict[Tuple[str, int], int] = {}  # (track, uncertain_episodes) -> first frame index with that count
     for n, fr in enumerate(frames):
         for t in fr["tracks"]:
             if t["track_id"] not in birth:
                 birth[t["track_id"]], preds[t["track_id"]] = n, tuple(t["possible_predecessors"])
+            ep_start.setdefault((t["track_id"], t["uncertain_episodes"]), n)
+    clog: Dict[str, dict] = {}             # confirmation id -> log entry
+    human: Dict[Tuple[str, int], List[dict]] = {}  # episode -> covered ranges of applied IS_ME confirmations
+    rejected: Dict[Tuple[str, int], str] = {}    # episodes removed by an applied NOT_ME -> confirmation id
+    held_eps: Dict[Tuple[str, int], str] = {}    # episodes held uncertain by a NOT_ME in conflict -> confirmation id
+    gallery: List[dict] = []                     # human-confirmed partition of the target gallery
+    episode_scope = tc.confirmation_scope == "episode"   # measurement only: cover the rest of the episode
+    gal_runs: Dict[Tuple[str, int], dict] = {}   # gallery re-ID run state + summary per episode
+    own_tracks: set = {sel.track_id}             # tracks the target was answered TARGET on (never its own rivals)
+    tref = {"reid": None, "colour": None}        # the target's latest clean crop while answered TARGET
+    gallery_on = tc.gallery_reid_resolve and cfg.reid_resolve.enabled and crops is not None
+    rival_refs: Dict[Tuple[str, int], Optional[object]] = {}
 
     out: List[dict] = []
     track_ends: List[dict] = []
@@ -277,12 +332,16 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
     cand_ok_t = None                       # time the pending offer's track was last usable (offer hold)
     held = False
 
+    def usable_cand(tr_c: Optional[dict]) -> bool:
+        """An offer candidate: usable, and not removed by the player's NOT_ME for its current episode."""
+        return _usable(tr_c) and (tr_c["track_id"], tr_c["uncertain_episodes"]) not in rejected
+
     def keep(p: dict, t_now: float) -> bool:
         """Keep the pending offer p this frame: its track is usable, or briefly hidden within target.offer_hold_s
         of its last usable frame (held: no CANDIDATE shown)."""
         nonlocal cand_ok_t, held
         tr_c = live.get(p["to_track"])
-        if _usable(tr_c):
+        if usable_cand(tr_c):
             cand_ok_t = t_now
             return True
         if tc.offer_hold_s > 0 and _holdable(tr_c) and cand_ok_t is not None and \
@@ -323,6 +382,148 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
             raise UserActionError(f"{a['kind']} names no offer made by its frame: {a!r}")
         return r
 
+    def certain_target_now(live_now: Dict[str, dict]) -> bool:
+        """The target is answered on machine-CERTAIN evidence (TRACK_OBSERVED) on this frame, before any
+        confirmation of this frame is applied."""
+        if cur_ended or tainted:
+            return False
+        tr_c = live_now.get(cur)
+        if not _usable(tr_c):
+            return False
+        e = tr_c["uncertain_episodes"]
+        return (episodes0 is None or e == episodes0) and (cur, e) not in rejected and (cur, e) not in held_eps
+
+    def reference_of(ident_claims: Dict[int, str], f0: int) -> Optional[dict]:
+        """Another identity's appearance reference: its clean crop on the claimed frame nearest to f0."""
+        for fq in sorted(ident_claims, key=lambda x: (abs(x - f0), x)):
+            c = crops.get(fq, ident_claims[fq])
+            if c is not None:
+                return {"reid": c.reid, "colour": c.colour, "frame": fq, "track": ident_claims[fq]}
+        return None
+
+    def apply_confirmation(a: dict, n: int, live_now: Dict[str, dict]) -> None:
+        """A player_confirmation in force, on its first frame (index n): check it, decide APPLIED / CONFLICT, log it,
+        apply its effect. Refused (UserActionError) when it does not name one live episode of an observed track."""
+        nonlocal pending
+        tid, cid, verdict = a["track_id"], a["confirmation_id"], a["verdict"]
+        i1 = idx_of.get(a["frame_end"])
+        if i1 is None:
+            raise UserActionError(f"player confirmation ends on a frame that is not in the tracks: {a!r}")
+        rng = frames[n:i1 + 1]
+        trs = [next((t for t in g["tracks"] if t["track_id"] == tid), None) for g in rng]
+        if any(t is None for t in trs) or trs[0]["state"] != TrackState.ACTIVE.value:
+            raise UserActionError(f"player confirmation must name a track observed on its first frame and live "
+                                  f"throughout: {a!r}")
+        eps = trs[0]["uncertain_episodes"]
+        if any(t["uncertain_episodes"] != eps for t in trs):
+            raise UserActionError(f"player confirmation spans two uncertainty episodes of {tid}: {a!r}")
+        ep = (tid, eps)
+        conflicts: List[dict] = []
+        evidence: dict = {}
+        certain_here = certain_target_now(live_now)
+        if verdict == "IS_ME":
+            for q in sorted(claims):
+                fs = [g["frame"] for g in rng if claims[q].get(g["frame"]) == tid]
+                if fs:
+                    conflicts.append({"reason": "OTHER_IDENTITY_CERTAIN", "identity": q, "frames": fs})
+            if certain_here and cur != tid:
+                conflicts.append({"reason": "TARGET_CERTAIN_ELSEWHERE", "track": cur})
+            if ep in rejected:
+                conflicts.append({"reason": "PLAYER_CONTRADICTION", "confirmation_id": rejected[ep]})
+            if crops is not None:
+                cs = [c for c in (crops.get(g["frame"], tid) for g in rng) if c is not None]
+                others = {q: r for q in sorted(claims) for r in [reference_of(claims[q], a["frame"])] if r is not None}
+                evidence["clean_crops"] = len(cs)
+                if cs and others:
+                    ac, ev = appearance_conflicts(cs, tref, others, cfg)
+                    ev["references"] = {q: [r["frame"], r["track"]] for q, r in others.items()}
+                    evidence["appearance"] = ev
+                    conflicts += ac
+        else:
+            if certain_here and cur == tid:
+                conflicts.append({"reason": "TARGET_CERTAIN", "track": tid})
+            if ep in human:
+                conflicts.append({"reason": "PLAYER_CONTRADICTION", "confirmation_id": human[ep][0]["cid"]})
+        status = "CONFLICT" if conflicts else "APPLIED"
+        entry = {"confirmation_id": cid, "record": dict(a), "status": status, "episode": eps,
+                 "track_identity": trs[0]["identity"], "track_rivals": list(trs[0]["identity_rivals"]),
+                 "target_track": None if cur_ended else cur, "conflicts": conflicts, "evidence": evidence,
+                 "gallery_crops": 0, "revocation": None}
+        clog[cid] = entry
+        if status == "APPLIED" and verdict == "IS_ME":
+            answer_on(tid, "PLAYER_CONFIRMED")
+            human.setdefault(ep, []).append(
+                {"from": a["frame"], "to": None if episode_scope else a["frame_end"], "cid": cid,
+                 "uncertain_at_end": trs[-1]["identity"] != IdentityState.CERTAIN.value})
+            for g, t in zip(rng, trs):
+                c = None if crops is None else crops.get(g["frame"], tid)
+                if c is not None:                          # clean crops only (CropFeatures keeps nothing else)
+                    gallery.append({"confirmation_id": cid, "track_id": tid, "frame": g["frame"], "box": list(t["box"])})
+                    gallery_crops.append((g["frame"], c))
+                    entry["gallery_crops"] += 1
+        elif status == "APPLIED":
+            rejected[ep] = cid
+            if pending is not None and pending["to_track"] == tid:
+                drop("PLAYER_REJECTED")
+        elif verdict == "NOT_ME":
+            held_eps[ep] = cid
+
+    def rival_ref(rid: str, s0: int):
+        """A rival's re-ID reference for an episode starting at frame index s0: its latest clean crop while ACTIVE,
+        CERTAIN and uncontested before s0 (as the tracker's reference), or None."""
+        key = (rid, s0)
+        if key not in rival_refs:
+            ref = None
+            for k in range(s0 - 1, birth.get(rid, s0) - 1, -1):
+                t_r = next((x for x in frames[k]["tracks"] if x["track_id"] == rid), None)
+                if t_r is not None and t_r["state"] == TrackState.ACTIVE.value and not t_r["contested"] and \
+                        t_r["identity"] == IdentityState.CERTAIN.value:
+                    c = crops.get(frames[k]["frame"], rid)
+                    if c is not None and c.reid is not None:
+                        ref = c.reid
+                        break
+            rival_refs[key] = ref
+        return rival_refs[key]
+
+    def gallery_step(n: int, tr: dict, ep: Tuple[str, int]) -> bool:
+        """One frame of the gallery re-ID run for the answered track's current episode (target.gallery_reid_resolve).
+        True when this frame may be answered: the run has qualified (spans identity_resolve_s with
+        min_evidence_frames clearing frames, no frame against since) AND this very frame clears. The track stays
+        uncertain, so every answer needs its own evidence; nothing carries past it."""
+        run = gal_runs.setdefault(ep, {"track_id": ep[0], "episode": ep[1], "evaluated": 0, "clear": 0, "against": 0,
+                                       "hold": {}, "resolved_frame": None, "margins": None, "answered": 0,
+                                       "_t0": None, "_k": 0, "_ok": False})
+        if tr["state"] != TrackState.ACTIVE.value or tr["contested"]:
+            return False
+        f, t = frames[n]["frame"], frames[n]["t"]
+        s0 = ep_start[ep]
+        own = next((c.reid for fg, c in reversed(gallery_crops) if fg < frames[s0]["frame"] and c.reid is not None),
+                   None)
+        mine = own_tracks | {g["track_id"] for g in gallery}
+        rivals = {rid: rival_ref(rid, s0) for rid in tr["identity_rivals"] if rid not in mine}
+        status, det = gallery_frame_verdict(crops.get(f, ep[0]), own, rivals, cfg.reid_resolve.margin)
+        run["evaluated"] += 1
+        if status == "CLEAR":
+            run["clear"] += 1
+            if run["_t0"] is None:
+                run["_t0"], run["_k"] = t, 0
+            run["_k"] += 1
+            if t - run["_t0"] >= cfg.tracking.identity_resolve_s - _EPS and \
+                    run["_k"] >= cfg.reid_resolve.min_evidence_frames:
+                run["_ok"] = True
+                if run["resolved_frame"] is None:
+                    run["resolved_frame"], run["margins"] = f, det["margins"]
+            if run["_ok"]:
+                run["answered"] += 1
+            return run["_ok"]
+        if status == "AGAINST":
+            run["against"] += 1
+            run["_t0"], run["_ok"] = None, False
+        else:
+            run["hold"][det["reason"]] = run["hold"].get(det["reason"], 0) + 1
+        return False
+
+    gallery_crops: List[Tuple[int, object]] = []    # (frame, Crop) of the gallery entries, in order
     vouch = vouch_for(next(t for t in frames[start]["tracks"] if t["track_id"] == sel.track_id))
     for n in range(start, len(frames)):
         fr = frames[n]
@@ -363,6 +564,9 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                     raise UserActionError(f"re-selection must tap an observed box on its frame: {a!r}")
                 answer_on(a["track_id"], "RESELECTED", tapped=tr_sel)
             used.add(id(a))
+        for a in pc_by_frame.get(f, []):             # the player's confirmations, after the other actions
+            used.add(id(a))
+            apply_confirmation(a, n, live)
 
         # ---------------------------------------------------------------- v1 state of the answered track
         if not cur_ended and cur in ended:
@@ -375,13 +579,29 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
         else:
             vouched = vouch is not None and vouch[0] == cur and _doubt_only(tr) and \
                 tr["uncertain_episodes"] == vouch[1]
-            uncertain = tr["identity"] != IdentityState.CERTAIN.value and not vouched
+            eps_now = tr["uncertain_episodes"]
+            ep_now = (cur, eps_now)
+            raw_unc = tr["identity"] != IdentityState.CERTAIN.value
+            ranges = human.get(ep_now, [])
+            in_range = any(r["from"] <= f and (r["to"] is None or f <= r["to"]) for r in ranges)
+            gal_frame = False
+            if gallery_on and raw_unc and not vouched and not in_range and gallery_crops and \
+                    eps_now == (eps_now - 1 if episodes0 is None else episodes0) + 1:
+                gal_frame = gallery_step(n, tr, ep_now)        # only an episode that alone taints the track
+            resolved = in_range or gal_frame                   # answered for the target on THIS frame only
+            uncertain = raw_unc and not vouched and not resolved
             if vouch is not None and (vouch[0] != cur or tr["identity_rivals"] or tr["uncertain_episodes"] != vouch[1]):
                 vouch = None                                   # a rival or a new episode: the tap no longer covers it
             if episodes0 is None:
                 episodes0 = tr["uncertain_episodes"] - int(uncertain)
             if anchored is None:
                 anchored = tr["identity"] == IdentityState.CERTAIN.value
+            if ranges and not in_range:
+                # after the confirmed frames: if the track was still uncertain at their end, the rest of the episode
+                # is not covered (the tracker's later resolution re-confirms the PRE-episode identity) and taints
+                done = [r for r in ranges if r["to"] is not None and r["to"] < f]
+                if done and max(done, key=lambda r: r["to"])["uncertain_at_end"] and episodes0 >= eps_now:
+                    episodes0 = eps_now - 1
             if uncertain and tc.resume_after_doubt_resolved and _doubt_only(tr):
                 episodes0 = tr["uncertain_episodes"]           # a doubt with no rival: abstain now, no taint
             elif uncertain or tr["uncertain_episodes"] > episodes0:
@@ -389,9 +609,14 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
             if tainted and not uncertain and tc.resume_after_reid and tr.get("resolved_by") == "REID" and anchored:
                 tainted, episodes0 = False, tr["uncertain_episodes"]   # cleared by the calibrated re-ID margin
             box = None
-            if uncertain:
+            blocked = ep_now in rejected or ep_now in held_eps
+            if ep_now in rejected:
+                state, reason = TargetState.ABSTAIN, TargetReason.PLAYER_REJECTED
+            elif ep_now in held_eps:
+                state, reason = TargetState.ABSTAIN, TargetReason.CONFIRMATION_CONFLICT
+            elif uncertain:
                 state, reason = TargetState.ABSTAIN, TargetReason.IDENTITY_UNCERTAIN
-            elif tainted:
+            elif tainted and not resolved:
                 state, reason = TargetState.ABSTAIN, TargetReason.AFTER_UNCERTAIN
             elif tr["state"] == TrackState.OCCLUDED.value:
                 state, reason = TargetState.ABSTAIN, TargetReason.TRACK_OCCLUDED
@@ -401,12 +626,20 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                 state, reason = TargetState.ABSTAIN, TargetReason.NOT_CONFIRMED
             else:
                 state, box = TargetState.TARGET, list(tr["box"])
-                reason = TargetReason.USER_VOUCHED if vouched else TargetReason.TRACK_OBSERVED
+                reason = TargetReason.TRACK_OBSERVED
+                if raw_unc:
+                    reason = TargetReason.PLAYER_CONFIRMED if in_range else \
+                        TargetReason.GALLERY_REID if gal_frame else TargetReason.USER_VOUCHED
+                own_tracks.add(cur)
+                c = None if crops is None else crops.get(f, cur)
+                if c is not None:                              # the target's own latest clean appearance
+                    tref["reid"] = c.reid if c.reid is not None else tref["reid"]
+                    tref["colour"] = c.colour if c.colour is not None else tref["colour"]
             if observed:
                 if pending is not None:
                     drop("ORIGINAL_OBSERVED")
                 last_obs = n
-                relinkable = tr["confirmed"] and not uncertain and not tainted
+                relinkable = tr["confirmed"] and not uncertain and not (tainted and not resolved) and not blocked
                 search_done = False
                 reid_done.clear()
         answer = {"frame": f, "t": t, "state": state.value, "reason": reason.value, "track_id": cur, "box": box}
@@ -427,7 +660,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                     drop("SEVERAL_CANDIDATES")
                 elif pending is not None and not keep(pending, t):
                     drop("CANDIDATE_NOT_USABLE")
-                elif pending is None and len(listers) == 1 and _usable(live.get(listers[0])):
+                elif pending is None and len(listers) == 1 and usable_cand(live.get(listers[0])):
                     b = listers[0]
                     pending = {"from_track": cur, "to_track": b, "lost_frame": frames[last_obs]["frame"],
                                "proposed_frame": f, "gap_s": round(frames[birth[b]]["t"] - t0, 6),
@@ -445,7 +678,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                 from .reid import reentry_choice
                 b = pending["to_track"]
                 again = reentry_choice(cur, last_obs, n, rctx, sig, tc, cfg.tracking,
-                                       allowed=lambda c: (c == b or c not in reid_done) and _usable(live.get(c)),
+                                       allowed=lambda c: (c == b or c not in reid_done) and usable_cand(live.get(c)),
                                        causal=True)
                 if not (again["offer"] and again["track"] == b):
                     reentry_log.append(_log_row(f, cur, again))
@@ -456,7 +689,7 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
                 if rctx is None:
                     from .reid import ReentryContext
                     rctx = ReentryContext.of(tracks_doc)
-                pending, decision = _reentry_offer(cur, last_obs, n, rctx, sig, reid_done, live, cfg)
+                pending, decision = _reentry_offer(cur, last_obs, n, rctx, sig, reid_done, live, cfg, rejected)
                 key = (cur, last_obs, decision["offer"], decision["reason"], decision["track"])
                 if key != log_key:
                     reentry_log.append(_log_row(f, cur, decision))
@@ -503,7 +736,18 @@ def follow(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, actions: Iterable
     if unused:
         raise UserActionError(f"user actions that do not apply (no candidate / offer / box on their frame, or "
                               f"before the selection): {unused}")
-    return out, {"track_ends": track_ends, "relinks": relinks, "reentry_log": reentry_log}
+    log = []
+    for a in acts:
+        if (a["kind"], a["version"]) != PLAYER_CONFIRMATION:
+            continue
+        r = revocations.get(a["confirmation_id"])
+        log.append(clog[a["confirmation_id"]] if r is None else
+                   {"confirmation_id": a["confirmation_id"], "record": dict(a), "status": "REVOKED", "episode": None,
+                    "track_identity": None, "track_rivals": [], "target_track": None, "conflicts": [], "evidence": {},
+                    "gallery_crops": 0, "revocation": dict(r)})
+    greid = [{k: v for k, v in r.items() if not k.startswith("_")} for _, r in sorted(gal_runs.items())]
+    return out, {"track_ends": track_ends, "relinks": relinks, "reentry_log": reentry_log, "confirmation_log": log,
+                 "gallery": {"human_confirmed": gallery}, "gallery_reid_log": greid}
 
 
 def gap_duration_s(gap: dict) -> float:
@@ -518,12 +762,24 @@ def review_list(gaps: Sequence[dict], cfg: SpanaConfig) -> List[dict]:
     return [g for g in gaps if gap_duration_s(g) >= cfg.target.review_min_gap_s - _EPS]
 
 
+def reconfirmation_list(doc_or_log) -> List[dict]:
+    """Confirmations the app must show again (spana.target 2.10.0): every one in CONFLICT, with why. Accepts a
+    spana.target document or its confirmation_log."""
+    log = doc_or_log["confirmation_log"] if isinstance(doc_or_log, dict) else doc_or_log
+    return [{"confirmation_id": e["confirmation_id"], "track_id": e["record"]["track_id"],
+             "frame": e["record"]["frame"], "verdict": e["record"]["verdict"],
+             "reasons": [c["reason"] for c in e["conflicts"]]} for e in log if e["status"] == "CONFLICT"]
+
+
 def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Sequence[str] = (),
-                    actions: Iterable[dict] = (), embeddings: Optional[dict] = None) -> dict:
-    """Validated spana.target 2.8.0 document for one selection (and the user's actions) on one validated
-    spana.tracks document (and, for re-entry offers, its validated spana.track_embeddings document)."""
+                    actions: Iterable[dict] = (), embeddings: Optional[dict] = None,
+                    crops: Optional[CropFeatures] = None, claims: Optional[Dict[str, Dict[int, str]]] = None) -> dict:
+    """Validated spana.target 2.10.0 document for one selection (and the user's actions, player confirmations
+    included) on one validated spana.tracks document (and, for re-entry offers, its validated spana.track_embeddings
+    document; for the confirmation gallery / conflicts / gallery re-ID, its clean crop features and other identities'
+    certain answers)."""
     actions = [dict(a) for a in actions]
-    frames, info = follow(tracks_doc, sel, cfg, actions, embeddings)
+    frames, info = follow(tracks_doc, sel, cfg, actions, embeddings, crops, claims)
     tsha = sha256_doc(tracks_doc)
     esha = None if embeddings is None else sha256_doc(embeddings)
     doc = {
@@ -550,9 +806,19 @@ def target_document(tracks_doc: dict, sel: Selection, cfg: SpanaConfig, argv: Se
                           "reentry_exit_edge": cfg.target.reentry_exit_edge,
                           "reentry_exit_edge_max_frac": cfg.target.reentry_exit_edge_max_frac,
                           "offer_hold_s": cfg.target.offer_hold_s,
-                          "resume_after_reid": cfg.target.resume_after_reid},
+                          "resume_after_reid": cfg.target.resume_after_reid,
+                          "confirm_contradict_reid_margin": cfg.target.confirm_contradict_reid_margin,
+                          "confirm_contradict_colour_margin": cfg.target.confirm_contradict_colour_margin,
+                          "gallery_reid_resolve": cfg.target.gallery_reid_resolve,
+                          "confirmation_scope": cfg.target.confirmation_scope,
+                          "reid_resolve_enabled": cfg.reid_resolve.enabled,
+                          "reid_margin": cfg.reid_resolve.margin},
         "track_ends": info["track_ends"], "relinks": info["relinks"], "frames": frames,
         "gaps": gaps_of(frames, info["relinks"]), "reentry_log": info["reentry_log"],
+        "crop_features": None if crops is None else dict(crops.meta),
+        "claims_identities": sorted(claims or {}),
+        "confirmation_log": info["confirmation_log"], "gallery": info["gallery"],
+        "gallery_reid_log": info["gallery_reid_log"],
     }
     validate_target(doc, tracks_doc, embeddings)
     return doc

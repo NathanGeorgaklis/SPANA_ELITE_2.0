@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.14.0"
+schema_version: "2.15.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -222,6 +222,26 @@ target:
   # After an IDENTITY_UNCERTAIN episode cleared by the calibrated re-ID margin for every rival (reid_resolve
   # section), answer again. Episodes cleared by colour keep resume_after_uncertain. Off by default (with reid_resolve).
   resume_after_reid: false
+  # Player confirmations (CODE TASK identity/player-confirmation; spana.identity.confirmation, spana.target 2.10.0).
+  # A player's IS_ME is NOT applied (CONFLICT, logged, surfaced for re-confirmation) when the evidence strongly says
+  # otherwise: the track is CERTAIN as another followed identity, the target is CERTAIN on another track, or every
+  # clean crop of the confirmed track is nearer another identity's reference than the target's by these margins.
+  # Re-ID: the calibrated reid_resolve.margin (<= 0.5 % wrong decisions held out, records/reid_calibration_dev_*), so
+  # "strongly" means what the tracker already treats as evidence against. Colour: a prior, not fitted (same-kit
+  # players are not separable by colour; only a clear kit difference reaches it).
+  confirm_contradict_reid_margin: 0.517
+  confirm_contradict_colour_margin: 0.30
+  # Later uncertainty episodes of the answered track may be cleared for the target by re-ID against the crops of
+  # the player's IS_ME confirmations (the human-confirmed gallery), with the reid_resolve margin / run rules. Needs
+  # reid_resolve.enabled and the crop features. Off by default (as reid_resolve).
+  gallery_reid_resolve: false
+  # What an applied IS_ME answers. "range" (fail closed): only the frames the player confirmed (frame..frame_end);
+  # afterwards the track is uncertain for the target again, and the episode taints it if the track was still
+  # uncertain at the range's end. "episode": the rest of that uncertainty episode too, as first specified; measured
+  # on DEV (records/player_confirmation_2026-11-20): wrong-player frames, because a track can change player inside
+  # one uncertain episode without any new event, and the tracker's later resolution re-confirms the pre-episode
+  # player. Measurement only.
+  confirmation_scope: range
 
 reid:
   # Which observations are embedded into a track's first / last re-ID signature (spana.identity.reid).

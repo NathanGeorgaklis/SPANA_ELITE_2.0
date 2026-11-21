@@ -41,7 +41,7 @@ class Predecessor(unittest.TestCase):
         (r,) = info["relinks"]
         self.assertEqual((r["outcome"], r["dropped_reason"]), ("PENDING", None))
         d = target_document(doc, SEL, hold(0.5), ["test"])
-        self.assertEqual(d["schema_version"], "2.9.0")
+        self.assertEqual(d["schema_version"], "2.10.0")
         validate_target(d, doc)
         self.assertEqual([g["offers"] for g in d["gaps"]], [[["t1", "t3", 3]]])     # one offer, shown twice
         no_hold = follow(doc, SEL, hold(0.0))

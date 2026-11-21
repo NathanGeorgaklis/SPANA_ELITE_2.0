@@ -65,6 +65,13 @@ class TargetReason(str, Enum):
     REENTRY_REID = "REENTRY_REID"            # CANDIDATE (2.4.0): returning track offered by its re-ID signature
     USER_VOUCHED = "USER_VOUCHED"            # TARGET (2.2.0): track uncertain only by an appearance doubt (no rival),
                                              #   and the user tapped it during that same doubt episode
+    PLAYER_CONFIRMED = "PLAYER_CONFIRMED"    # TARGET (2.10.0): track IDENTITY_UNCERTAIN, but the player confirmed IS_ME
+                                             #   in this very uncertainty episode (player_confirmation, not in conflict)
+    GALLERY_REID = "GALLERY_REID"            # TARGET (2.10.0): track IDENTITY_UNCERTAIN, episode cleared for the target
+                                             #   by re-ID against the human-confirmed gallery (calibrated margin)
+    PLAYER_REJECTED = "PLAYER_REJECTED"      # ABSTAIN (2.10.0): the player said NOT_ME for this track in this episode
+    CONFIRMATION_CONFLICT = "CONFIRMATION_CONFLICT"  # ABSTAIN (2.10.0): a NOT_ME contradicts the target's own CERTAIN
+                                             #   answer on this track: not applied, held uncertain, re-confirmation
 
 
 @dataclass(frozen=True)

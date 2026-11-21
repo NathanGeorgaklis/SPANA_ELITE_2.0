@@ -28,7 +28,7 @@ from typing import List, Optional
 
 from .artifacts import (DETECTIONS_SCHEMA, TRACKS_SCHEMA, ArtifactError, detection_frame, detections_from_frame,
                         read_json, refuse_existing, sha256_doc, tracklet_rows, tracks_frame, validate_detections,
-                        validate_tracks,
+                        validate_target, validate_tracks,
                         write_json_atomic, write_jsonl_atomic)
 from .appearance import describe
 from .config import load_config
@@ -178,7 +178,19 @@ def cmd_target(a: argparse.Namespace) -> int:
         from .artifacts import validate_track_embeddings
         emb = read_json(a.embeddings)
         validate_track_embeddings(emb, tdoc)
-    doc = target_document(tdoc, Selection.track_at_frame(a.select_track, a.select_frame), cfg, sys.argv, confs, emb)
+    crops = None
+    if a.crops:
+        from .identity.confirmation import CropFeatures
+        crops = CropFeatures.load(a.crops, sha256_doc(tdoc))
+    claims = None
+    if a.claims:
+        from .identity.confirmation import claims_from_targets
+        others = [read_json(c) for c in a.claims]
+        for o in others:
+            validate_target(o, tdoc)
+        claims = claims_from_targets((f"{o['selection']['track_id']}@{o['selection']['frame']}", o) for o in others)
+    doc = target_document(tdoc, Selection.track_at_frame(a.select_track, a.select_frame), cfg, sys.argv, confs, emb,
+                          crops, claims)
     print(write_json_atomic(a.out, doc))
     return 0
 
@@ -194,6 +206,29 @@ def cmd_embed(a: argparse.Namespace) -> int:
     video = VideoSource(a.video, expected_sha256=a.video_sha256)
     doc = embeddings_document(video, tdoc, ReidEmbedder(ReidModelRecord.load(a.model_record)), cfg, sys.argv)
     print(write_json_atomic(a.out, doc))
+    return 0
+
+
+def cmd_crops(a: argparse.Namespace) -> int:
+    """Clean crop features of a tracks artifact (spana.identity.confirmation.CropFeatures, .npz): torso colour for
+    every clean observed box and, with --reid, the pinned re-ID model's embedding (reid_resolve.model_record /
+    model_sha256). Used by player confirmations (gallery, conflicts, gallery re-ID)."""
+    from .identity.confirmation import CropFeatures
+    cfg = load_config(a.config)
+    refuse_existing(a.out)
+    tdoc = read_json(a.tracks)
+    validate_tracks(tdoc)
+    ddoc = read_json(a.detections)
+    if ddoc.get("video", {}).get("sha256") != tdoc["video"]["sha256"]:
+        raise ArtifactError("detections and tracks come from different videos")
+    video = VideoSource(a.video, expected_sha256=tdoc["video"]["sha256"])
+    embedder = None
+    if a.reid:
+        from .identity.reid import ReidEmbedder, load_pinned
+        embedder = ReidEmbedder(load_pinned(cfg.reid_resolve.model_record, cfg.reid_resolve.model_sha256))
+    feats = CropFeatures.build(video, tdoc, ddoc, cfg, embedder, sha256_doc(tdoc))
+    feats.save(a.out)
+    print(a.out, len(feats.crops), "clean crops")
     return 0
 
 
@@ -274,7 +309,18 @@ def main(argv: Optional[List[str]] = None) -> int:
                         "track_at_frame (re-selection) 1.0.0 records (spana.identity.follower)")
     g.add_argument("--embeddings", default=None,
                    help="spana.track_embeddings of these tracks (spana.cli embed): enables re-entry offers")
+    g.add_argument("--crops", default=None,
+                   help="clean crop features of these tracks (spana.cli crops): confirmation gallery, conflicts")
+    g.add_argument("--claims", nargs="*", default=None,
+                   help="other followed identities' spana.target documents (their CERTAIN answers: conflict rule)")
     g.add_argument("--out", required=True)
+    c = sub.add_parser("crops", help="clean crop features of a tracks artifact (.npz) for player confirmations")
+    c.add_argument("--video", required=True)
+    c.add_argument("--tracks", required=True)
+    c.add_argument("--detections", required=True)
+    c.add_argument("--config", required=True)
+    c.add_argument("--reid", action="store_true", help="also embed with the pinned re-ID model (reid_resolve)")
+    c.add_argument("--out", required=True)
     e = sub.add_parser("embed", help="re-ID signatures per track (spana.track_embeddings)")
     e.add_argument("--video", required=True)
     e.add_argument("--video-sha256", default=None, help="refuse to run if the video hash differs")
@@ -292,7 +338,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     k.add_argument("--out", required=True)
     a = p.parse_args(argv)
     return {"detect": cmd_detect, "track": cmd_track, "target": cmd_target, "embed": cmd_embed,
-            "link": cmd_link}[a.cmd](a)
+            "link": cmd_link, "crops": cmd_crops}[a.cmd](a)
 
 
 if __name__ == "__main__":
