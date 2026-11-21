@@ -1,0 +1,5 @@
+# sha256. Synthetic demo only (tools/target_demo.py; no footage). Videos not committed (*.mp4 ignored); regenerate with
+# python -m tools.target_demo --out X.mp4 on main (before) / this branch (after).
+e7a69d2136bb7a27cf0faf70140a58862d005e293976ac05a243951182259e12  demo_before.mp4
+3687642b98c35de20409e54e89d14dca07d8b3cfa61a6cf91df216838a4c8e95  demo_after.mp4
+5f28d0ab3cf38c7ef8f021ae6e4ae921831effc4ee3e19dee12ae1e5e4c391ad  before_after_grid.png
