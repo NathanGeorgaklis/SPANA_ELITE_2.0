@@ -41,6 +41,11 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
   ABSTAIN 735 -> 295, actions 4.11 -> 7.52 / min. 5 % wrong taps: 1 drawn, through (1 wrong frame, no evidence
   existed); 30 %: 8 / 22 blocked, 14 through (27 wrong frames), all contained to the tapping player. Gallery re-ID
   (off) cleared 0 episodes. Undo exact (30 / 30). `records/player_confirmation_2026-11-20`. Full suite on Nathan's Mac after the merge: 663 passed, 12 skipped.
+- Re-ID adoption rule KEPT (2026-11-22, Nathan): all DEV rival tests, held out (2026-11-18); not changed to the clean
+  check after v5. v2 stays, `config/default.yaml` unchanged. Evidence-only record of the leave-one-TRAIN-match-out run
+  of the teammate-triplet design (`identity/reid-v4` 066650f, Mac-trained, not in `models/`) now on main
+  (`records/reid_v4_2026-11-21`): floored clean DEV check held out 274 resolved / 0 wrong, bound 1.09 % -> FAIL
+  (FRESH_07 no floor). That branch's training code / config / DECISIONS rows were not brought over.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |

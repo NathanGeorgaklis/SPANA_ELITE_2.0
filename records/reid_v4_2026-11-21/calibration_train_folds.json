@@ -1,0 +1,92 @@
+{
+ "schema": "spana.reid_heldout_calibration",
+ "schema_version": "1.0.0",
+ "settings": {
+  "min_gap_s": 1.0,
+  "max_pairs": 200000,
+  "clean_max_iou": 0.05,
+  "target_false_rate": 0.005,
+  "confidence": 0.95,
+  "margin_floor": "all_tests"
+ },
+ "folds": [
+  {
+   "match_id": "TRAIN_M001_MORETON_CITY",
+   "model_sha256": "7929fb89493671bc1198398000a6a384c2cd3a5cf473e153f405e791e8e3201e"
+  },
+  {
+   "match_id": "TRAIN_M002_EASTERN_SUBURBS",
+   "model_sha256": "0e13cfbf39b4a84f871cf1272754b9e3f320bee3b3f03e66c6d24dcf2d4f21f0"
+  },
+  {
+   "match_id": "TRAIN_M003_SYDNEY_OLYMPIC",
+   "model_sha256": "7465738f69b91403832bcf824b0a8fc0cb2e5b7a081efa10fc41977c70c6791a"
+  }
+ ],
+ "final": {
+  "all_tests_margin": 0.8531241416931152,
+  "clean_margin": 0.81257563829422,
+  "margin": 0.8531241416931152,
+  "label": "borrowed",
+  "in_sample_clean": {
+   "tests": 87986,
+   "resolved": 720,
+   "wrong": 0,
+   "coverage": 0.0082,
+   "wrong_rate": 0.0,
+   "upper_bound": 0.004152095385663651
+  },
+  "in_sample_all": {
+   "tests": 118002,
+   "resolved": 945,
+   "wrong": 0,
+   "coverage": 0.008,
+   "wrong_rate": 0.0,
+   "upper_bound": 0.0031650676413726574
+  }
+ },
+ "held_out": {
+  "per_fold": {
+   "TRAIN_M001_MORETON_CITY": {
+    "all_tests_margin": 0.30259019136428833,
+    "clean_margin": 0.3028827905654907,
+    "margin": 0.3028827905654907,
+    "tests": 43882,
+    "resolved": 20833,
+    "wrong": 392,
+    "coverage": 0.4748,
+    "wrong_rate": 0.01882,
+    "upper_bound": 0.02043947574071172
+   },
+   "TRAIN_M002_EASTERN_SUBURBS": {
+    "all_tests_margin": 0.8531241416931152,
+    "clean_margin": 0.8173967599868774,
+    "margin": 0.8531241416931152,
+    "tests": 28521,
+    "resolved": 172,
+    "wrong": 0,
+    "coverage": 0.006,
+    "wrong_rate": 0.0,
+    "upper_bound": 0.01726624808604452
+   },
+   "TRAIN_M003_SYDNEY_OLYMPIC": {
+    "all_tests_margin": 0.8531241416931152,
+    "clean_margin": 0.81257563829422,
+    "margin": 0.8531241416931152,
+    "tests": 15583,
+    "resolved": 0,
+    "wrong": 0,
+    "coverage": 0.0,
+    "wrong_rate": null,
+    "upper_bound": null
+   }
+  },
+  "pooled": {
+   "tests": 87986,
+   "resolved": 21005,
+   "wrong": 392,
+   "upper_bound": 0.02027224390282763,
+   "passes": false
+  }
+ }
+}

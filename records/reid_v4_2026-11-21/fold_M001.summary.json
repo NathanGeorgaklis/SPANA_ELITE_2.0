@@ -1,0 +1,56 @@
+{
+ "schema": "spana.reid_heldout_fold",
+ "schema_version": "1.0.0",
+ "match_id": "TRAIN_M001_MORETON_CITY",
+ "model": "/Users/nathangeorgaklis/spana-reid-v4/runs/fold_M001/spana_reid.onnx",
+ "model_sha256": "7929fb89493671bc1198398000a6a384c2cd3a5cf473e153f405e791e8e3201e",
+ "crops_index_sha256": "2fdab08ccfe75d5c3e56b655da170d86cc96ca6a07448c061e04a4779dd9d89b",
+ "config_sha256": "3ea10aec5603d30ea7721104d12ee7740a6fece16a22acdcd69af6de1d65b3f1",
+ "settings": {
+  "min_gap_s": 1.0,
+  "max_pairs": 200000,
+  "clean_max_iou": 0.05,
+  "target_false_rate": 0.005,
+  "confidence": 0.95,
+  "margin_floor": "all_tests"
+ },
+ "crops": 10139,
+ "identities": 25,
+ "retrieval": {
+  "queries": 10139,
+  "rank1": 0.7703,
+  "mAP": 0.4018
+ },
+ "auc_same_vs_teammate": 0.6998,
+ "auc_same_vs_other_side": 0.9066,
+ "same_player": {
+  "n": 200000,
+  "p05": 0.167,
+  "p25": 0.402,
+  "p50": 0.538,
+  "p75": 0.65,
+  "p95": 0.774
+ },
+ "teammate": {
+  "n": 200000,
+  "p05": 0.032,
+  "p25": 0.26,
+  "p50": 0.4,
+  "p75": 0.519,
+  "p95": 0.656
+ },
+ "other_side": {
+  "n": 200000,
+  "p05": -0.153,
+  "p25": 0.018,
+  "p50": 0.146,
+  "p75": 0.279,
+  "p95": 0.475
+ },
+ "rival": {
+  "tests": 72248,
+  "clean_tests": 43882,
+  "accuracy": 0.8809,
+  "clean_accuracy": 0.8956
+ }
+}

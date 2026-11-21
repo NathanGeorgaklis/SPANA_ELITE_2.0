@@ -1,0 +1,27 @@
+# sha256, files on Nathan's Mac under ~/ (code = this commit's tools/reid_train.py, tools/reid_heldout.py, config/reid_train.yaml 1.1.0; weights not in git)
+dde7433317a8a50f946ca3fd3bc98d8e0e5f9158e5b41ec54a70b124e0277369  spana-reid-v4/runs/final/spana_reid.onnx
+7929fb89493671bc1198398000a6a384c2cd3a5cf473e153f405e791e8e3201e  spana-reid-v4/runs/fold_M001/spana_reid.onnx
+0e13cfbf39b4a84f871cf1272754b9e3f320bee3b3f03e66c6d24dcf2d4f21f0  spana-reid-v4/runs/fold_M002/spana_reid.onnx
+7465738f69b91403832bcf824b0a8fc0cb2e5b7a081efa10fc41977c70c6791a  spana-reid-v4/runs/fold_M003/spana_reid.onnx
+385938ad7899a8df6b2f1e9decce413e1c637f1665d7734d09b04868222dd02a  spana-reid-v4/runs/final/run.json
+8bb738608890f05ff521b867d4d0c1ee76baddf45605d5d08e4d06f5be99c0ae  spana-reid-v4/runs/fold_M001/run.json
+981176b41029281e834bfd3083f7b1ba2e4001cd320edb3f4984b4aac07ecb64  spana-reid-v4/runs/fold_M002/run.json
+01b523ac13f13dd0e6d0e1a5b3d08e4d0ef7d688ef3b632fd8e9ea60bb0a4eb4  spana-reid-v4/runs/fold_M003/run.json
+3d7a509709e3d9ac18b80eb0330b6cc3968912d2e54a77d54456a8ae53d233be  spana-reid-v4/out/fold_M001.json
+701f18bd3447014fcd475ba059b5572595a8364bbaae126619bbae1cc293c82b  spana-reid-v4/out/fold_M002.json
+0bc20f27f9f56930ffbaf7c87f02bea95827b996624bdb0d3f17a14159a58337  spana-reid-v4/out/fold_M003.json
+58aa8fc1681011792272bc6f2f2a9eaa64033cb3c3d6750511ec63fa5da2db36  spana-reid-v4/out/v2_on_M003.json
+63062721d932480edaab89c6a212835131f42f5a31c81443ea7197f6cd4d2b4d  spana-reid-v4/out/calibration_train_folds.json
+34b68f7021ff32e6d0a5e64851f4d47793bccaab85bdd238995bebb5a8d75f77  spana-reid-v4/out/tables_v4.json
+ee41a0c57606b53a40b2896ceab97317322d46c07909bd0befec605a0acba186  spana-reid-v4/out/tables_v2check.json
+177dcd3aca3b09dab995ff17c1c0fa1ef59193690d89a497d491a485872d52ee  spana-reid-v4/out/calibration_dev_v4.json
+2fdab08ccfe75d5c3e56b655da170d86cc96ca6a07448c061e04a4779dd9d89b  spana-reid-run/crops_M001/crops.jsonl
+4af8b1cd83aaa94749bc8f7208742a0c3454c983d3669180d3b910132e4d1e35  spana-confirmed-labels/crops_M002/crops.jsonl
+bb09c000a632e3b023fe3eb6804e834ab74f4f813f9cf813af91b9ff714b7d36  spana-retrain-v3/crops_M003/crops.jsonl
+3893be942183b0546af682feee6be52012ca380c46752a4dad0ba9431c71432f  spana-clean-calib/out/cue_eval_p2.json
+c269450e871cb28b4020b715618edc9dcda328faf951503a9e09f8e7a3032f84  spana-clean-calib/models_p2/spana_reid.onnx
+5113b1cf9afec656542c1a6591cbde2e293ac9037b2a1c64b02e2beafcd12d02  spana-clean-calib/out/tables_p2.json
+3ea10aec5603d30ea7721104d12ee7740a6fece16a22acdcd69af6de1d65b3f1  config/reid_train.yaml
+fb7a4071b79b2cd4570d7b8a840491797fe9ab4a7e845b0533c687af33700424  config/reid_calibration.yaml
+6cc55f1c68f306e0ab9b4653af2ba8f3ef970daae8312f27e3bc4c2a9af8939d  data/reid/TRAIN/TRAIN_M003_SYDNEY_OLYMPIC/v1/FROZEN.json
+# tables_v2check.json != tables_p2.json bytewise: FRESH_07 rival tests in another order (set iteration); as multisets identical, re-ID-alone and colour calibrations identical
