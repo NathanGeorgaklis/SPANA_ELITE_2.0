@@ -16,7 +16,7 @@ from pathlib import Path
 
 import modal
 
-from tools.modal_reid_plan import export_argv, load_modal_config, train_argv, train_budget_minutes
+from tools.modal_reid_plan import export_argv, load_modal_config, train_argv, train_budget_minutes, volume_path
 
 ROOT = Path(__file__).resolve().parents[1]
 REMOTE = "/root"  # tools/, spana/, config/, models/ sit here so tools.reid_train finds models/dinov2_small.json
@@ -50,6 +50,7 @@ def train(crops: list[str], backbone: str, run: str) -> None:
 @app.function(gpu=CFG["gpu"], timeout=int(CFG["timeout_minutes"]) * 60, volumes={MOUNT: volume})
 def export(run: str, backbone: str, out: str) -> None:
     volume.reload()
+    Path(volume_path(MOUNT, out)).parent.mkdir(parents=True, exist_ok=True)  # the CLI cannot make folders
     _run(export_argv(MOUNT, run, backbone, out))
 
 
