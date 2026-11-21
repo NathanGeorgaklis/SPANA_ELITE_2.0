@@ -19,6 +19,11 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
   0 transfers on linked tracks, unaided 0.508 -> 0.513, reviewer 0.680 -> 0.680 (follower guard). 112 of 126 episodes
   refused: NO_REFERENCE 49 (39 ambiguous spawns whose predecessors were never CERTAIN), NO_CLEAN_CROP 29, NOT_OBSERVED
   24, BELOW_MARGIN 7 (`records/reid_episode_resolution_2026-11-20`). Full suite 596 passed, 6 skipped.
+- Re-ID v4 DEV evaluation (2026-11-21, branch `identity/reid-v4-dev-eval`; nothing adopted, config unchanged): v4
+  (Modal, M001-M003, v2 / v3 loss without the teammate triplet) pinned in `models/spana_reid_v4.json`. FAILS held out:
+  re-ID alone 384 resolved, bound 1.23 % (v2 1,323 / 0.36 % on the same tables); clean floored 164 / 1.81 % (v2 644 /
+  0.46 %); FRESH_07 held out no margin. Rival accuracy 0.924 vs 0.915. Same-kit: clean same-look rival tests right at
+  0.517 30 / 427 vs v2 62 / 427 (0 wrong). v2 stays (`records/reid_v4_dev_eval_2026-11-21`).
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
