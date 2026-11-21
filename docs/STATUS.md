@@ -50,6 +50,13 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
   orders rival tests by sorted player pair, not set iteration; DEV reruns under two hash seeds give byte-identical
   tables / report / calibration, and calibration equals the v5 record (v2 exact, v5 within 2.2e-16)
   (`records/cue_eval_deterministic_2026-11-22`). Table hashes from now on differ from earlier records (new order).
+- Episode references diagnosis (2026-11-22, branch `identity/episode-references-diag`, analysis only, no code):
+  NO_REFERENCE 49: 79 of 100 missing references belong to predecessors that were themselves ambiguous spawns, never
+  CERTAIN (circular chain); 17 CERTAIN but never clean, 4 never confirmed. Following chains to their roots would make
+  17 / 43 spawn episodes evaluable (true player among candidates 16 / 17). NO_CLEAN_CROP 29: real contact (IoU
+  mostly > 0.2); the uncertain track is observed a median 5 of 59 frames while its player continues on the rival or
+  a new spawn: first failing layer player tracking. Proposed (awaiting Nathan): transitive predecessors for
+  ambiguous spawns, off by default (`records/episode_references_diag_2026-11-22`).
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
