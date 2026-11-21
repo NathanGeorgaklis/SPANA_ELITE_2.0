@@ -1,0 +1,5494 @@
+{
+ "summary": {
+  "track_changes": 100,
+  "what_happened_to_A": {
+   "A_UNMATCHED": 88,
+   "A_OBSERVED_ON_ANOTHER_BOX": 12
+  },
+  "relation_A_B": {
+   "B_NAMES_A_PREDECESSOR+B_IS_A_RIVAL": 49,
+   "NONE": 34,
+   "B_NAMES_A_PREDECESSOR_UNIQUE": 6,
+   "B_IS_A_RIVAL": 6,
+   "B_TOOK_A_DETECTION": 5
+  },
+  "unmatched_first_reason": {
+   "GATE_FAILED": 58,
+   "TAKEN_BY_OTHER": 14,
+   "REFUSED": 12,
+   "NO_DETECTION_NEARBY": 3,
+   "PASSING_CANDIDATE_UNUSED": 1
+  },
+  "unmatched_stage_prior_state": {
+   "continuing/ACTIVE": 88
+  },
+  "unmatched_first_failed_gate_of_nearest": {
+   "None": 29,
+   "appearance_veto": 28,
+   "low_score_iou_ok": 9,
+   "mahalanobis_ok": 8,
+   "height_ok": 7,
+   "centre_ok": 7
+  },
+  "unmatched_by_reason_and_gate": {
+   "GATE_FAILED|appearance_veto": 28,
+   "TAKEN_BY_OTHER|None": 13,
+   "REFUSED|None": 12,
+   "GATE_FAILED|low_score_iou_ok": 9,
+   "GATE_FAILED|mahalanobis_ok": 8,
+   "GATE_FAILED|centre_ok": 7,
+   "GATE_FAILED|height_ok": 6,
+   "NO_DETECTION_NEARBY|None": 3,
+   "TAKEN_BY_OTHER|height_ok": 1,
+   "PASSING_CANDIDATE_UNUSED|None": 1
+  },
+  "taken_by_rival": 9,
+  "taken_by_b": 2,
+  "a_identity_at_miss": {
+   "IDENTITY_UNCERTAIN": 55,
+   "CERTAIN": 28,
+   "None": 5
+  },
+  "b_identity_at_f2": {
+   "IDENTITY_UNCERTAIN": 68,
+   "CERTAIN": 32
+  }
+ },
+ "changes": [
+  {
+   "clip": "F02",
+   "player": "1",
+   "from": "T000008",
+   "to": "T000052",
+   "f1": 294,
+   "f2": 324,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 307,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 13,
+    "dist_h": 0.0829,
+    "gate_radius_h": 0.5167,
+    "iou": 0.5707,
+    "height_ratio": 1.07,
+    "mahalanobis2": 1.315,
+    "appearance_similarity": 0.2942,
+    "score": 0.8877,
+    "taken_by": "T000007",
+    "taken_contested": false,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": true,
+   "nearest_taken_by_b": false,
+   "n_candidates": 1,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto"
+   ],
+   "recovery_refused": [
+    "AMBIGUOUS_DETECTIONS",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 320,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000008"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR_UNIQUE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "2",
+   "from": "T000004",
+   "to": "T000020",
+   "f1": 0,
+   "f2": 84,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 2,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": false,
+   "nearest": {
+    "detection": 14,
+    "dist_h": 0.1615,
+    "gate_radius_h": 0.5167,
+    "iou": 0.1225,
+    "height_ratio": 0.385,
+    "mahalanobis2": 1.916,
+    "appearance_similarity": 0.8681,
+    "score": 0.6597,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "height_ok"
+    ]
+   },
+   "first_failed_gate": "height_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:height_ok",
+    "GATE_FAILED:centre_ok+mahalanobis_ok",
+    "GATE_FAILED:centre_ok+mahalanobis_ok"
+   ],
+   "recovery_refused": [],
+   "b_born": 83,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000017"
+   ],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "4",
+   "from": "T000005",
+   "to": "T000022",
+   "f1": 102,
+   "f2": 114,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "CERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 111,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 13,
+    "dist_h": 0.2792,
+    "gate_radius_h": 0.5167,
+    "iou": 0.5547,
+    "height_ratio": 1.265,
+    "mahalanobis2": 15.564,
+    "appearance_similarity": 0.8558,
+    "score": 0.8425,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "mahalanobis_ok"
+    ]
+   },
+   "first_failed_gate": "mahalanobis_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:mahalanobis_ok",
+    "GATE_FAILED:mahalanobis_ok",
+    "GATE_FAILED:mahalanobis_ok",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [],
+   "b_born": 111,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "4",
+   "from": "T000022",
+   "to": "T000055",
+   "f1": 276,
+   "f2": 354,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 281,
+   "reason": "NO_DETECTION_NEARBY",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "n_candidates": 0,
+   "first_reasons": [
+    "NO_DETECTION_NEARBY",
+    "NO_DETECTION_NEARBY",
+    "NO_RECOVERY_ATTEMPT",
+    "NO_RECOVERY_ATTEMPT"
+   ],
+   "recovery_refused": [],
+   "b_born": 353,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "5",
+   "from": "T000025",
+   "to": "T000056",
+   "f1": 366,
+   "f2": 372,
+   "a_at_f2": {
+    "state": "ACTIVE",
+    "source": "OBSERVED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_OBSERVED_ON_ANOTHER_BOX",
+   "a_player_at_f2": null,
+   "a_ambiguous_at_f2": false,
+   "b_born": 372,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "6",
+   "from": "T000001",
+   "to": "T000017",
+   "f1": 36,
+   "f2": 60,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 38,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 14,
+    "dist_h": 0.179,
+    "gate_radius_h": 0.5167,
+    "iou": 0.1286,
+    "height_ratio": 0.506,
+    "mahalanobis2": 6.494,
+    "appearance_similarity": 0.8022,
+    "score": 0.1035,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "low_score_iou_ok"
+    ]
+   },
+   "first_failed_gate": "low_score_iou_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 1,
+   "first_reasons": [
+    "GATE_FAILED:low_score_iou_ok",
+    "NO_DETECTION_NEARBY",
+    "NO_DETECTION_NEARBY"
+   ],
+   "recovery_refused": [],
+   "b_born": 56,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "6",
+   "from": "T000017",
+   "to": "T000018",
+   "f1": 60,
+   "f2": 66,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 64,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 3,
+    "dist_h": 0.05,
+    "gate_radius_h": 0.5167,
+    "iou": 0.3873,
+    "height_ratio": 1.353,
+    "mahalanobis2": 0.409,
+    "appearance_similarity": 0.6271,
+    "score": 0.9576,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 1,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto"
+   ],
+   "recovery_refused": [],
+   "b_born": 64,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000017"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR_UNIQUE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "8",
+   "from": "T000010",
+   "to": "T000034",
+   "f1": 174,
+   "f2": 186,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 178,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 8,
+    "dist_h": 0.0427,
+    "gate_radius_h": 0.5167,
+    "iou": 0.7916,
+    "height_ratio": 1.023,
+    "mahalanobis2": 0.349,
+    "appearance_similarity": 0.6163,
+    "score": 0.9269,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto",
+    "TAKEN_BY_OTHER",
+    "NO_RECOVERY_ATTEMPT"
+   ],
+   "recovery_refused": [
+    "CONTESTED_NEIGHBOUR",
+    "RIVAL_TRACK",
+    "RIVAL_TRACK"
+   ],
+   "b_born": 186,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000010",
+    "T000012",
+    "T000032"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "8",
+   "from": "T000034",
+   "to": "T000035",
+   "f1": 186,
+   "f2": 192,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 188,
+   "reason": "TAKEN_BY_OTHER",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": false,
+   "nearest": {
+    "detection": 13,
+    "dist_h": 0.0075,
+    "gate_radius_h": 0.5167,
+    "iou": 0.9354,
+    "height_ratio": 0.994,
+    "mahalanobis2": 0.005,
+    "appearance_similarity": null,
+    "score": 0.8127,
+    "taken_by": "T000031",
+    "taken_contested": false,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "TAKEN_BY_OTHER",
+    "REFUSED",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "RIVAL_TRACK"
+   ],
+   "b_born": 189,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000010",
+    "T000012",
+    "T000032",
+    "T000034"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "8",
+   "from": "T000035",
+   "to": "T000031",
+   "f1": 264,
+   "f2": 276,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 265,
+   "reason": "REFUSED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 13,
+    "dist_h": 0.0488,
+    "gate_radius_h": 0.5167,
+    "iou": 0.7344,
+    "height_ratio": 1.019,
+    "mahalanobis2": 0.452,
+    "appearance_similarity": null,
+    "score": 0.7886,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "REFUSED",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [],
+   "b_born": 178,
+   "b_spawned_after_f1": false,
+   "b_preds": [
+    "T000010",
+    "T000012"
+   ],
+   "relation": [
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "8",
+   "from": "T000031",
+   "to": "T000047",
+   "f1": 276,
+   "f2": 282,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 279,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 8,
+    "dist_h": 0.0058,
+    "gate_radius_h": 0.5167,
+    "iou": 0.9659,
+    "height_ratio": 0.992,
+    "mahalanobis2": 0.006,
+    "appearance_similarity": 0.5161,
+    "score": 0.9205,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "REFUSED",
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto"
+   ],
+   "recovery_refused": [
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 279,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000014",
+    "T000031",
+    "T000035"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "9",
+   "from": "T000014",
+   "to": "T000046",
+   "f1": 258,
+   "f2": 270,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 260,
+   "reason": "TAKEN_BY_OTHER",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 13,
+    "dist_h": 0.1407,
+    "gate_radius_h": 0.5167,
+    "iou": 0.4609,
+    "height_ratio": 1.169,
+    "mahalanobis2": 3.836,
+    "appearance_similarity": null,
+    "score": 0.8332,
+    "taken_by": "T000031",
+    "taken_contested": false,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": true,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "NO_RECOVERY_ATTEMPT"
+   ],
+   "recovery_refused": [
+    "RIVAL_TRACK"
+   ],
+   "b_born": 265,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000014",
+    "T000035"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "9",
+   "from": "T000046",
+   "to": "T000049",
+   "f1": 270,
+   "f2": 294,
+   "a_at_f2": {
+    "state": "ACTIVE",
+    "source": "OBSERVED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": "10"
+   },
+   "what": "A_OBSERVED_ON_ANOTHER_BOX",
+   "a_player_at_f2": "10",
+   "a_ambiguous_at_f2": true,
+   "b_born": 291,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000014",
+    "T000031",
+    "T000035"
+   ],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "10",
+   "from": "T000012",
+   "to": "T000031",
+   "f1": 168,
+   "f2": 186,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 175,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 13,
+    "dist_h": 0.074,
+    "gate_radius_h": 0.5167,
+    "iou": 0.6987,
+    "height_ratio": 1.0,
+    "mahalanobis2": 1.048,
+    "appearance_similarity": 0.6776,
+    "score": 0.6754,
+    "taken_by": "T000010",
+    "taken_contested": false,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": true,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "REFUSED",
+    "TAKEN_BY_OTHER",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "LOW_SCORE",
+    "RIVAL_TRACK",
+    "CONTESTED_NEIGHBOUR",
+    "RIVAL_TRACK",
+    "RIVAL_TRACK"
+   ],
+   "b_born": 178,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000010",
+    "T000012"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "10",
+   "from": "T000031",
+   "to": "T000046",
+   "f1": 264,
+   "f2": 276,
+   "a_at_f2": {
+    "state": "ACTIVE",
+    "source": "OBSERVED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": "8"
+   },
+   "what": "A_OBSERVED_ON_ANOTHER_BOX",
+   "a_player_at_f2": "8",
+   "a_ambiguous_at_f2": false,
+   "b_born": 265,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000014",
+    "T000035"
+   ],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "12",
+   "from": "T000013",
+   "to": "T000043",
+   "f1": 222,
+   "f2": 288,
+   "a_at_f2": {
+    "state": "LOST",
+    "source": "HELD",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 235,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 9,
+    "dist_h": 0.2409,
+    "gate_radius_h": 0.5167,
+    "iou": 0.4517,
+    "height_ratio": 1.124,
+    "mahalanobis2": 11.347,
+    "appearance_similarity": null,
+    "score": 0.9122,
+    "taken_by": "T000003",
+    "taken_contested": false,
+    "failed": [
+     "mahalanobis_ok"
+    ]
+   },
+   "first_failed_gate": "mahalanobis_ok",
+   "nearest_taken_by_rival": true,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:mahalanobis_ok",
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "NO_UNEXPLAINED_DETECTION",
+    "LOW_SCORE",
+    "LOW_SCORE",
+    "APPEARANCE_UNKNOWN",
+    "AMBIGUOUS_DETECTIONS",
+    "RIVAL_TRACK",
+    "LOW_SCORE"
+   ],
+   "b_born": 251,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000013",
+    "T000042"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "14",
+   "from": "T000011",
+   "to": "T000028",
+   "f1": 168,
+   "f2": 180,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "CERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 176,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 11,
+    "dist_h": 0.3391,
+    "gate_radius_h": 0.5167,
+    "iou": 0.4932,
+    "height_ratio": 1.46,
+    "mahalanobis2": 22.864,
+    "appearance_similarity": null,
+    "score": 0.8725,
+    "taken_by": "T000028",
+    "taken_contested": false,
+    "failed": [
+     "mahalanobis_ok"
+    ]
+   },
+   "first_failed_gate": "mahalanobis_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": true,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:mahalanobis_ok",
+    "GATE_FAILED:mahalanobis_ok",
+    "GATE_FAILED:mahalanobis_ok",
+    "GATE_FAILED:mahalanobis_ok"
+   ],
+   "recovery_refused": [],
+   "b_born": 175,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "B_TOOK_A_DETECTION"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "15",
+   "from": "T000009",
+   "to": "T000030",
+   "f1": 174,
+   "f2": 180,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "CERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 175,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 15,
+    "dist_h": 0.208,
+    "gate_radius_h": 0.5167,
+    "iou": 0.4411,
+    "height_ratio": 0.603,
+    "mahalanobis2": 8.367,
+    "appearance_similarity": 0.9195,
+    "score": 0.5351,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "height_ok"
+    ]
+   },
+   "first_failed_gate": "height_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:height_ok",
+    "REFUSED",
+    "NO_RECOVERY_ATTEMPT",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "RIVAL_TRACK",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 176,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000009",
+    "T000015",
+    "T000024"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "15",
+   "from": "T000030",
+   "to": "T000033",
+   "f1": 222,
+   "f2": 282,
+   "a_at_f2": {
+    "state": "LOST",
+    "source": "HELD",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 234,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 10,
+    "dist_h": 0.3063,
+    "gate_radius_h": 0.5167,
+    "iou": 0.4645,
+    "height_ratio": 1.459,
+    "mahalanobis2": 18.716,
+    "appearance_similarity": 0.6544,
+    "score": 0.882,
+    "taken_by": "T000033",
+    "taken_contested": false,
+    "failed": [
+     "mahalanobis_ok",
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "mahalanobis_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": true,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:mahalanobis_ok+appearance_veto",
+    "NO_RECOVERY_ATTEMPT",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "NO_UNEXPLAINED_DETECTION",
+    "RIVAL_TRACK",
+    "LOW_SCORE",
+    "LOW_SCORE",
+    "LOW_SCORE",
+    "RIVAL_TRACK",
+    "AMBIGUOUS_DETECTIONS"
+   ],
+   "b_born": 186,
+   "b_spawned_after_f1": false,
+   "b_preds": [
+    "T000009",
+    "T000026"
+   ],
+   "relation": [
+    "B_TOOK_A_DETECTION"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "15",
+   "from": "T000033",
+   "to": "T000053",
+   "f1": 318,
+   "f2": 324,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 322,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 9,
+    "dist_h": 0.0019,
+    "gate_radius_h": 0.5167,
+    "iou": 0.9894,
+    "height_ratio": 0.998,
+    "mahalanobis2": 0.001,
+    "appearance_similarity": 0.5675,
+    "score": 0.935,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [],
+   "b_born": 322,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000033",
+    "T000048"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "16",
+   "from": "T000026",
+   "to": "T000033",
+   "f1": 180,
+   "f2": 186,
+   "a_at_f2": {
+    "state": "LOST",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 186,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 9,
+    "dist_h": 0.0122,
+    "gate_radius_h": 0.5167,
+    "iou": 0.7956,
+    "height_ratio": 1.002,
+    "mahalanobis2": 0.029,
+    "appearance_similarity": 0.5903,
+    "score": 0.9263,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto"
+   ],
+   "recovery_refused": [],
+   "b_born": 186,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000009",
+    "T000026"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "16",
+   "from": "T000033",
+   "to": "T000040",
+   "f1": 222,
+   "f2": 246,
+   "a_at_f2": {
+    "state": "ACTIVE",
+    "source": "OBSERVED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": "15"
+   },
+   "what": "A_OBSERVED_ON_ANOTHER_BOX",
+   "a_player_at_f2": "15",
+   "a_ambiguous_at_f2": true,
+   "b_born": 241,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000030",
+    "T000037",
+    "T000039"
+   ],
+   "relation": [
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "17",
+   "from": "T000037",
+   "to": "T000038",
+   "f1": 228,
+   "f2": 234,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 232,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 9,
+    "dist_h": 0.0162,
+    "gate_radius_h": 0.5167,
+    "iou": 0.9028,
+    "height_ratio": 0.994,
+    "mahalanobis2": 0.05,
+    "appearance_similarity": 0.6439,
+    "score": 0.9195,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "NO_RECOVERY_ATTEMPT",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [],
+   "b_born": 232,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000009",
+    "T000037"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "17",
+   "from": "T000038",
+   "to": "T000041",
+   "f1": 240,
+   "f2": 246,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 243,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 6,
+    "dist_h": 0.0028,
+    "gate_radius_h": 0.5167,
+    "iou": 0.7775,
+    "height_ratio": 1.003,
+    "mahalanobis2": 0.002,
+    "appearance_similarity": 0.6939,
+    "score": 0.9445,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 243,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000037",
+    "T000038"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F02",
+   "player": "17",
+   "from": "T000041",
+   "to": "T000045",
+   "f1": 252,
+   "f2": 258,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 256,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 7,
+    "dist_h": 0.0026,
+    "gate_radius_h": 0.5167,
+    "iou": 0.8803,
+    "height_ratio": 0.998,
+    "mahalanobis2": 0.001,
+    "appearance_similarity": 0.6926,
+    "score": 0.9442,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "TAKEN_BY_OTHER",
+    "GATE_FAILED:appearance_veto"
+   ],
+   "recovery_refused": [],
+   "b_born": 256,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000027",
+    "T000030",
+    "T000037",
+    "T000038",
+    "T000041"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F05",
+   "player": "4",
+   "from": "T000007",
+   "to": "T000028",
+   "f1": 348,
+   "f2": 732,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 349,
+   "reason": "NO_DETECTION_NEARBY",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.016667,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "n_candidates": 0,
+   "first_reasons": [
+    "NO_DETECTION_NEARBY",
+    "GATE_FAILED:low_score_iou_ok",
+    "NO_DETECTION_NEARBY",
+    "NO_DETECTION_NEARBY"
+   ],
+   "recovery_refused": [],
+   "b_born": 725,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F05",
+   "player": "5",
+   "from": "T000010",
+   "to": "T000023",
+   "f1": 372,
+   "f2": 612,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 378,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.016667,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 3,
+    "dist_h": 1.4289,
+    "gate_radius_h": 0.4333,
+    "iou": 0.0,
+    "height_ratio": 1.392,
+    "mahalanobis2": 278.529,
+    "appearance_similarity": 0.9839,
+    "score": 0.948,
+    "taken_by": "T000008",
+    "taken_contested": false,
+    "failed": [
+     "centre_ok",
+     "mahalanobis_ok"
+    ]
+   },
+   "first_failed_gate": "centre_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 1,
+   "first_reasons": [
+    "GATE_FAILED:centre_ok+mahalanobis_ok",
+    "GATE_FAILED:centre_ok+mahalanobis_ok"
+   ],
+   "recovery_refused": [],
+   "b_born": 606,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000021"
+   ],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F05",
+   "player": "6",
+   "from": "T000001",
+   "to": "T000017",
+   "f1": 420,
+   "f2": 492,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 431,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.016667,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 4,
+    "dist_h": 0.0885,
+    "gate_radius_h": 0.4333,
+    "iou": 0.3285,
+    "height_ratio": 0.563,
+    "mahalanobis2": 2.079,
+    "appearance_similarity": 0.6554,
+    "score": 0.9006,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "height_ok",
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "height_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 1,
+   "first_reasons": [
+    "GATE_FAILED:height_ok+appearance_veto",
+    "GATE_FAILED:height_ok+appearance_veto",
+    "GATE_FAILED:height_ok+appearance_veto",
+    "GATE_FAILED:height_ok+appearance_veto"
+   ],
+   "recovery_refused": [],
+   "b_born": 481,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F05",
+   "player": "7",
+   "from": "T000008",
+   "to": "T000018",
+   "f1": 384,
+   "f2": 516,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 396,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.016667,
+   "a_identity": null,
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 5,
+    "dist_h": 0.2185,
+    "gate_radius_h": 0.4333,
+    "iou": 0.0859,
+    "height_ratio": 0.487,
+    "mahalanobis2": 10.299,
+    "appearance_similarity": 0.9059,
+    "score": 0.1751,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "low_score_iou_ok"
+    ]
+   },
+   "first_failed_gate": "low_score_iou_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:low_score_iou_ok"
+   ],
+   "recovery_refused": [],
+   "b_born": 512,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F05",
+   "player": "8",
+   "from": "T000004",
+   "to": "T000022",
+   "f1": 468,
+   "f2": 600,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 471,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.016667,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 3,
+    "dist_h": 0.0347,
+    "gate_radius_h": 0.4333,
+    "iou": 0.3035,
+    "height_ratio": 0.85,
+    "mahalanobis2": 0.309,
+    "appearance_similarity": null,
+    "score": 0.4858,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "low_score_iou_ok"
+    ]
+   },
+   "first_failed_gate": "low_score_iou_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:low_score_iou_ok",
+    "GATE_FAILED:low_score_iou_ok",
+    "REFUSED",
+    "GATE_FAILED:centre_ok+mahalanobis_ok"
+   ],
+   "recovery_refused": [
+    "LOW_SCORE"
+   ],
+   "b_born": 597,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F05",
+   "player": "9",
+   "from": "T000002",
+   "to": "T000024",
+   "f1": 336,
+   "f2": 624,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 348,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.016667,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 5,
+    "dist_h": 0.0716,
+    "gate_radius_h": 0.4333,
+    "iou": 0.0887,
+    "height_ratio": 0.188,
+    "mahalanobis2": 1.128,
+    "appearance_similarity": null,
+    "score": 0.3494,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "low_score_iou_ok"
+    ]
+   },
+   "first_failed_gate": "low_score_iou_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:low_score_iou_ok",
+    "NO_DETECTION_NEARBY",
+    "GATE_FAILED:low_score_iou_ok+appearance_veto",
+    "NO_DETECTION_NEARBY"
+   ],
+   "recovery_refused": [],
+   "b_born": 614,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F05",
+   "player": "10",
+   "from": "T000005",
+   "to": "T000019",
+   "f1": 468,
+   "f2": 576,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 481,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.016667,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 3,
+    "dist_h": 0.0085,
+    "gate_radius_h": 0.4333,
+    "iou": 0.4197,
+    "height_ratio": 0.925,
+    "mahalanobis2": 0.019,
+    "appearance_similarity": 0.6703,
+    "score": 0.2563,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 1,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:low_score_iou_ok+appearance_veto",
+    "NO_DETECTION_NEARBY",
+    "NO_DETECTION_NEARBY"
+   ],
+   "recovery_refused": [],
+   "b_born": 571,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "4",
+   "from": "T000004",
+   "to": "T000048",
+   "f1": 318,
+   "f2": 324,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "CERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 321,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 16,
+    "dist_h": 0.2481,
+    "gate_radius_h": 0.5167,
+    "iou": 0.586,
+    "height_ratio": 1.353,
+    "mahalanobis2": 11.784,
+    "appearance_similarity": null,
+    "score": 0.9137,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "mahalanobis_ok"
+    ]
+   },
+   "first_failed_gate": "mahalanobis_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:mahalanobis_ok",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [],
+   "b_born": 321,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000009",
+    "T000021",
+    "T000038",
+    "T000042"
+   ],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "4",
+   "from": "T000048",
+   "to": "T000056",
+   "f1": 336,
+   "f2": 348,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 340,
+   "reason": "TAKEN_BY_OTHER",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 16,
+    "dist_h": 0.2119,
+    "gate_radius_h": 0.5167,
+    "iou": 0.4947,
+    "height_ratio": 1.191,
+    "mahalanobis2": 7.893,
+    "appearance_similarity": null,
+    "score": 0.8518,
+    "taken_by": "T000046",
+    "taken_contested": false,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": true,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "TAKEN_BY_OTHER",
+    "REFUSED",
+    "REFUSED",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "LOW_SCORE",
+    "LOW_SCORE",
+    "LOW_SCORE",
+    "NO_UNEXPLAINED_DETECTION",
+    "RIVAL_TRACK"
+   ],
+   "b_born": 346,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000004",
+    "T000042",
+    "T000048"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "5",
+   "from": "T000009",
+   "to": "T000042",
+   "f1": 276,
+   "f2": 288,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 282,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 13,
+    "dist_h": 0.0601,
+    "gate_radius_h": 0.5167,
+    "iou": 0.6974,
+    "height_ratio": 1.036,
+    "mahalanobis2": 0.689,
+    "appearance_similarity": 0.6679,
+    "score": 0.9001,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "REFUSED",
+    "NO_RECOVERY_ATTEMPT",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "LOW_SCORE",
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION",
+    "CONTESTED_NEIGHBOUR",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 287,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000009",
+    "T000021"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "5",
+   "from": "T000042",
+   "to": "T000046",
+   "f1": 300,
+   "f2": 312,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 306,
+   "reason": "REFUSED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 17,
+    "dist_h": 0.0444,
+    "gate_radius_h": 0.5167,
+    "iou": 0.8374,
+    "height_ratio": 0.966,
+    "mahalanobis2": 0.383,
+    "appearance_similarity": null,
+    "score": 0.8688,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "REFUSED",
+    "REFUSED",
+    "REFUSED",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "AMBIGUOUS_DETECTIONS",
+    "RIVAL_TRACK"
+   ],
+   "b_born": 307,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000009",
+    "T000021",
+    "T000038",
+    "T000042"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "7",
+   "from": "T000005",
+   "to": "T000021",
+   "f1": 60,
+   "f2": 66,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 63,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 13,
+    "dist_h": 0.1955,
+    "gate_radius_h": 0.5167,
+    "iou": 0.5568,
+    "height_ratio": 1.045,
+    "mahalanobis2": 6.746,
+    "appearance_similarity": 0.2256,
+    "score": 0.887,
+    "taken_by": "T000016",
+    "taken_contested": false,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": true,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto",
+    "REFUSED",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "CONTESTED_NEIGHBOUR"
+   ],
+   "b_born": 65,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000005"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR_UNIQUE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "7",
+   "from": "T000021",
+   "to": "T000038",
+   "f1": 276,
+   "f2": 288,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 282,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 13,
+    "dist_h": 0.0204,
+    "gate_radius_h": 0.5167,
+    "iou": 0.7742,
+    "height_ratio": 1.052,
+    "mahalanobis2": 0.079,
+    "appearance_similarity": 0.2793,
+    "score": 0.9001,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "REFUSED",
+    "NO_RECOVERY_ATTEMPT",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "LOW_SCORE",
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION",
+    "CONTESTED_NEIGHBOUR",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 282,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000009",
+    "T000021"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "7",
+   "from": "T000038",
+   "to": "T000047",
+   "f1": 300,
+   "f2": 312,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 305,
+   "reason": "TAKEN_BY_OTHER",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 18,
+    "dist_h": 0.0761,
+    "gate_radius_h": 0.5167,
+    "iou": 0.7529,
+    "height_ratio": 1.101,
+    "mahalanobis2": 1.038,
+    "appearance_similarity": null,
+    "score": 0.7804,
+    "taken_by": "T000042",
+    "taken_contested": true,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": true,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "TAKEN_BY_OTHER",
+    "REFUSED",
+    "REFUSED",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "AMBIGUOUS_DETECTIONS",
+    "AMBIGUOUS_DETECTIONS",
+    "RIVAL_TRACK"
+   ],
+   "b_born": 308,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000009",
+    "T000038",
+    "T000042"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "8",
+   "from": "T000016",
+   "to": "T000023",
+   "f1": 72,
+   "f2": 78,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 75,
+   "reason": "REFUSED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 13,
+    "dist_h": 0.0372,
+    "gate_radius_h": 0.5167,
+    "iou": 0.6902,
+    "height_ratio": 1.259,
+    "mahalanobis2": 0.234,
+    "appearance_similarity": null,
+    "score": 0.8505,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "REFUSED",
+    "REFUSED",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "RIVAL_TRACK"
+   ],
+   "b_born": 75,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000005",
+    "T000013",
+    "T000016"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "9",
+   "from": "T000013",
+   "to": "T000024",
+   "f1": 72,
+   "f2": 78,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "CERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 74,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 15,
+    "dist_h": 0.0988,
+    "gate_radius_h": 0.5167,
+    "iou": 0.6882,
+    "height_ratio": 1.145,
+    "mahalanobis2": 1.782,
+    "appearance_similarity": 0.3554,
+    "score": 0.7756,
+    "taken_by": "T000016",
+    "taken_contested": false,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "REFUSED",
+    "REFUSED",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "AMBIGUOUS_DETECTIONS",
+    "RIVAL_TRACK"
+   ],
+   "b_born": 76,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000005",
+    "T000013",
+    "T000016"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "9",
+   "from": "T000024",
+   "to": "T000033",
+   "f1": 240,
+   "f2": 246,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 243,
+   "reason": "TAKEN_BY_OTHER",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 17,
+    "dist_h": 0.094,
+    "gate_radius_h": 0.5167,
+    "iou": 0.6119,
+    "height_ratio": 1.043,
+    "mahalanobis2": 1.714,
+    "appearance_similarity": null,
+    "score": 0.8422,
+    "taken_by": "T000018",
+    "taken_contested": false,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": true,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "TAKEN_BY_OTHER",
+    "REFUSED",
+    "REFUSED",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "AMBIGUOUS_DETECTIONS",
+    "RIVAL_TRACK",
+    "RIVAL_TRACK"
+   ],
+   "b_born": 244,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000018",
+    "T000024"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "14",
+   "from": "T000018",
+   "to": "T000034",
+   "f1": 240,
+   "f2": 252,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 244,
+   "reason": "REFUSED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 14,
+    "dist_h": 0.0568,
+    "gate_radius_h": 0.5167,
+    "iou": 0.7761,
+    "height_ratio": 0.962,
+    "mahalanobis2": 0.615,
+    "appearance_similarity": null,
+    "score": 0.861,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "REFUSED",
+    "REFUSED",
+    "REFUSED",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "RIVAL_TRACK",
+    "RIVAL_TRACK",
+    "RIVAL_TRACK",
+    "RIVAL_TRACK"
+   ],
+   "b_born": 248,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000018",
+    "T000024"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "15",
+   "from": "T000015",
+   "to": "T000018",
+   "f1": 60,
+   "f2": 66,
+   "a_at_f2": {
+    "state": "ACTIVE",
+    "source": "OBSERVED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_OBSERVED_ON_ANOTHER_BOX",
+   "a_player_at_f2": null,
+   "a_ambiguous_at_f2": false,
+   "b_born": 0,
+   "b_spawned_after_f1": false,
+   "b_preds": [],
+   "relation": [
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "15",
+   "from": "T000018",
+   "to": "T000022",
+   "f1": 66,
+   "f2": 78,
+   "a_at_f2": {
+    "state": "ACTIVE",
+    "source": "OBSERVED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": "14"
+   },
+   "what": "A_OBSERVED_ON_ANOTHER_BOX",
+   "a_player_at_f2": "14",
+   "a_ambiguous_at_f2": false,
+   "b_born": 73,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000015"
+   ],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "15",
+   "from": "T000022",
+   "to": "T000036",
+   "f1": 246,
+   "f2": 264,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 248,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 10,
+    "dist_h": 1.2683,
+    "gate_radius_h": 0.5167,
+    "iou": 0.0017,
+    "height_ratio": 1.375,
+    "mahalanobis2": 312.73,
+    "appearance_similarity": 0.3582,
+    "score": 0.9232,
+    "taken_by": "T000023",
+    "taken_contested": false,
+    "failed": [
+     "centre_ok",
+     "mahalanobis_ok",
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "centre_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:centre_ok+mahalanobis_ok+appearance_veto",
+    "GATE_FAILED:centre_ok+mahalanobis_ok+appearance_veto",
+    "GATE_FAILED:appearance_veto",
+    "NO_RECOVERY_ATTEMPT"
+   ],
+   "recovery_refused": [],
+   "b_born": 259,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000022",
+    "T000035"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "15",
+   "from": "T000036",
+   "to": "T000037",
+   "f1": 264,
+   "f2": 282,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 270,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 6,
+    "dist_h": 1.1638,
+    "gate_radius_h": 0.5167,
+    "iou": 0.0056,
+    "height_ratio": 1.343,
+    "mahalanobis2": 271.965,
+    "appearance_similarity": null,
+    "score": 0.9395,
+    "taken_by": "T000014",
+    "taken_contested": false,
+    "failed": [
+     "centre_ok",
+     "mahalanobis_ok"
+    ]
+   },
+   "first_failed_gate": "centre_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:centre_ok+mahalanobis_ok",
+    "NO_RECOVERY_ATTEMPT",
+    "NO_RECOVERY_ATTEMPT",
+    "GATE_FAILED:centre_ok+mahalanobis_ok"
+   ],
+   "recovery_refused": [
+    "LOW_SCORE"
+   ],
+   "b_born": 277,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000022",
+    "T000036"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "15",
+   "from": "T000037",
+   "to": "T000044",
+   "f1": 294,
+   "f2": 300,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 298,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 19,
+    "dist_h": 0.016,
+    "gate_radius_h": 0.5167,
+    "iou": 0.9098,
+    "height_ratio": 1.027,
+    "mahalanobis2": 0.048,
+    "appearance_similarity": 0.6373,
+    "score": 0.6355,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto"
+   ],
+   "recovery_refused": [],
+   "b_born": 298,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000018",
+    "T000022",
+    "T000024",
+    "T000036",
+    "T000037"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "17",
+   "from": "T000002",
+   "to": "T000031",
+   "f1": 48,
+   "f2": 270,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 100,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 17,
+    "dist_h": 0.1675,
+    "gate_radius_h": 0.5167,
+    "iou": 0.1408,
+    "height_ratio": 0.398,
+    "mahalanobis2": 5.548,
+    "appearance_similarity": 0.3188,
+    "score": 0.2206,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "low_score_iou_ok",
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "low_score_iou_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:low_score_iou_ok+appearance_veto",
+    "GATE_FAILED:centre_ok+mahalanobis_ok+appearance_veto",
+    "GATE_FAILED:centre_ok+mahalanobis_ok+appearance_veto",
+    "GATE_FAILED:centre_ok+mahalanobis_ok+appearance_veto"
+   ],
+   "recovery_refused": [],
+   "b_born": 191,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "17",
+   "from": "T000031",
+   "to": "T000043",
+   "f1": 270,
+   "f2": 288,
+   "a_at_f2": {
+    "state": "ACTIVE",
+    "source": "OBSERVED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_OBSERVED_ON_ANOTHER_BOX",
+   "a_player_at_f2": null,
+   "a_ambiguous_at_f2": false,
+   "b_born": 288,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "17",
+   "from": "T000043",
+   "to": "T000031",
+   "f1": 288,
+   "f2": 300,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 289,
+   "reason": "TAKEN_BY_OTHER",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": false,
+   "nearest": {
+    "detection": 19,
+    "dist_h": 0.2144,
+    "gate_radius_h": 0.5167,
+    "iou": 0.5296,
+    "height_ratio": 0.583,
+    "mahalanobis2": 3.036,
+    "appearance_similarity": null,
+    "score": 0.7517,
+    "taken_by": "T000031",
+    "taken_contested": false,
+    "failed": [
+     "height_ok"
+    ]
+   },
+   "first_failed_gate": "height_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": true,
+   "n_candidates": 3,
+   "first_reasons": [
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [],
+   "b_born": 191,
+   "b_spawned_after_f1": false,
+   "b_preds": [],
+   "relation": [
+    "B_TOOK_A_DETECTION"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "17",
+   "from": "T000031",
+   "to": "T000049",
+   "f1": 324,
+   "f2": 330,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 325,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 17,
+    "dist_h": 0.2175,
+    "gate_radius_h": 0.5167,
+    "iou": 0.6412,
+    "height_ratio": 1.13,
+    "mahalanobis2": 9.495,
+    "appearance_similarity": null,
+    "score": 0.8705,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "mahalanobis_ok"
+    ]
+   },
+   "first_failed_gate": "mahalanobis_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:mahalanobis_ok",
+    "GATE_FAILED:mahalanobis_ok",
+    "GATE_FAILED:mahalanobis_ok",
+    "GATE_FAILED:mahalanobis_ok"
+   ],
+   "recovery_refused": [],
+   "b_born": 325,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "17",
+   "from": "T000049",
+   "to": "T000032",
+   "f1": 342,
+   "f2": 366,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 354,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 15,
+    "dist_h": 0.5391,
+    "gate_radius_h": 0.5167,
+    "iou": 0.348,
+    "height_ratio": 2.012,
+    "mahalanobis2": 56.193,
+    "appearance_similarity": null,
+    "score": 0.8785,
+    "taken_by": "T000058",
+    "taken_contested": false,
+    "failed": [
+     "centre_ok",
+     "mahalanobis_ok",
+     "height_ok"
+    ]
+   },
+   "first_failed_gate": "centre_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:centre_ok+mahalanobis_ok+height_ok",
+    "REFUSED",
+    "NO_RECOVERY_ATTEMPT",
+    "NO_RECOVERY_ATTEMPT"
+   ],
+   "recovery_refused": [
+    "LOW_SCORE",
+    "LOW_SCORE"
+   ],
+   "b_born": 226,
+   "b_spawned_after_f1": false,
+   "b_preds": [],
+   "relation": [
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "18",
+   "from": "T000032",
+   "to": "T000062",
+   "f1": 342,
+   "f2": 366,
+   "a_at_f2": {
+    "state": "ACTIVE",
+    "source": "OBSERVED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": "17"
+   },
+   "what": "A_OBSERVED_ON_ANOTHER_BOX",
+   "a_player_at_f2": "17",
+   "a_ambiguous_at_f2": false,
+   "b_born": 364,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000058"
+   ],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "24",
+   "from": "T000017",
+   "to": "T000027",
+   "f1": 84,
+   "f2": 144,
+   "a_at_f2": {
+    "state": "LOST",
+    "source": "HELD",
+    "identity": "CERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 85,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 13,
+    "dist_h": 0.4394,
+    "gate_radius_h": 0.5167,
+    "iou": 0.2358,
+    "height_ratio": 1.233,
+    "mahalanobis2": 36.744,
+    "appearance_similarity": 0.5189,
+    "score": 0.9004,
+    "taken_by": "T000006",
+    "taken_contested": false,
+    "failed": [
+     "mahalanobis_ok",
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "mahalanobis_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 1,
+   "first_reasons": [
+    "GATE_FAILED:mahalanobis_ok+appearance_veto",
+    "GATE_FAILED:mahalanobis_ok+appearance_veto",
+    "GATE_FAILED:mahalanobis_ok+appearance_veto",
+    "GATE_FAILED:mahalanobis_ok+appearance_veto"
+   ],
+   "recovery_refused": [
+    "APPEARANCE_UNKNOWN"
+   ],
+   "b_born": 135,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000017"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR_UNIQUE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F07",
+   "player": "24",
+   "from": "T000027",
+   "to": "T000052",
+   "f1": 330,
+   "f2": 348,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "CERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 333,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 10,
+    "dist_h": 0.9085,
+    "gate_radius_h": 0.5167,
+    "iou": 0.0026,
+    "height_ratio": 1.195,
+    "mahalanobis2": 157.903,
+    "appearance_similarity": 0.2364,
+    "score": 0.9285,
+    "taken_by": "T000006",
+    "taken_contested": false,
+    "failed": [
+     "centre_ok",
+     "mahalanobis_ok",
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "centre_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 1,
+   "first_reasons": [
+    "GATE_FAILED:centre_ok+mahalanobis_ok+appearance_veto",
+    "REFUSED",
+    "REFUSED",
+    "NO_RECOVERY_ATTEMPT"
+   ],
+   "recovery_refused": [
+    "LOW_SCORE",
+    "LOW_SCORE",
+    "LOW_SCORE",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 340,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000027"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR_UNIQUE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "5",
+   "from": "T000002",
+   "to": "T000085",
+   "f1": 54,
+   "f2": 372,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 60,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 15,
+    "dist_h": 0.1773,
+    "gate_radius_h": 0.5167,
+    "iou": 0.1559,
+    "height_ratio": 0.693,
+    "mahalanobis2": 3.602,
+    "appearance_similarity": 0.3153,
+    "score": 0.6694,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:centre_ok+mahalanobis_ok+appearance_veto"
+   ],
+   "recovery_refused": [],
+   "b_born": 365,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "5",
+   "from": "T000085",
+   "to": "T000093",
+   "f1": 378,
+   "f2": 384,
+   "a_at_f2": {
+    "state": "ACTIVE",
+    "source": "OBSERVED",
+    "identity": "CERTAIN",
+    "player": null
+   },
+   "what": "A_OBSERVED_ON_ANOTHER_BOX",
+   "a_player_at_f2": null,
+   "a_ambiguous_at_f2": false,
+   "b_born": 384,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "6",
+   "from": "T000009",
+   "to": "T000061",
+   "f1": 60,
+   "f2": 270,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 65,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": null,
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 14,
+    "dist_h": 0.1342,
+    "gate_radius_h": 0.5167,
+    "iou": 0.2228,
+    "height_ratio": 0.928,
+    "mahalanobis2": 1.286,
+    "appearance_similarity": 0.6185,
+    "score": 0.8097,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto"
+   ],
+   "recovery_refused": [],
+   "b_born": 266,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "6",
+   "from": "T000061",
+   "to": "T000092",
+   "f1": 378,
+   "f2": 384,
+   "a_at_f2": {
+    "state": "LOST",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 384,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 1,
+    "dist_h": 0.02,
+    "gate_radius_h": 0.5167,
+    "iou": 0.8928,
+    "height_ratio": 1.072,
+    "mahalanobis2": 0.075,
+    "appearance_similarity": 0.5415,
+    "score": 0.9399,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto"
+   ],
+   "recovery_refused": [],
+   "b_born": 384,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000061",
+    "T000069"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "8",
+   "from": "T000015",
+   "to": "T000023",
+   "f1": 6,
+   "f2": 12,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 7,
+   "reason": "TAKEN_BY_OTHER",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 14,
+    "dist_h": 0.0999,
+    "gate_radius_h": 0.5167,
+    "iou": 0.5976,
+    "height_ratio": 1.195,
+    "mahalanobis2": 1.048,
+    "appearance_similarity": null,
+    "score": 0.8254,
+    "taken_by": "T000010",
+    "taken_contested": false,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": true,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "REFUSED",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "AMBIGUOUS_DETECTIONS",
+    "LOW_SCORE",
+    "CONTESTED_NEIGHBOUR"
+   ],
+   "b_born": 11,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000010",
+    "T000015"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "8",
+   "from": "T000023",
+   "to": "T000050",
+   "f1": 78,
+   "f2": 228,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 82,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": null,
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 11,
+    "dist_h": 0.1086,
+    "gate_radius_h": 0.5167,
+    "iou": 0.0878,
+    "height_ratio": 0.525,
+    "mahalanobis2": 1.312,
+    "appearance_similarity": null,
+    "score": 0.1269,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "low_score_iou_ok"
+    ]
+   },
+   "first_failed_gate": "low_score_iou_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:low_score_iou_ok"
+   ],
+   "recovery_refused": [],
+   "b_born": 227,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "8",
+   "from": "T000050",
+   "to": "T000065",
+   "f1": 258,
+   "f2": 270,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 263,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 9,
+    "dist_h": 0.214,
+    "gate_radius_h": 0.5167,
+    "iou": 0.4527,
+    "height_ratio": 1.295,
+    "mahalanobis2": 9.022,
+    "appearance_similarity": 0.5751,
+    "score": 0.5538,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "NO_RECOVERY_ATTEMPT",
+    "REFUSED",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "AMBIGUOUS_DETECTIONS",
+    "RIVAL_TRACK",
+    "LOW_SCORE",
+    "RIVAL_TRACK",
+    "RIVAL_TRACK"
+   ],
+   "b_born": 270,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000049",
+    "T000050",
+    "T000064"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "8",
+   "from": "T000065",
+   "to": "T000069",
+   "f1": 270,
+   "f2": 288,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 272,
+   "reason": "TAKEN_BY_OTHER",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": false,
+   "nearest": {
+    "detection": 7,
+    "dist_h": 0.2272,
+    "gate_radius_h": 0.5167,
+    "iou": 0.4494,
+    "height_ratio": 1.09,
+    "mahalanobis2": 4.471,
+    "appearance_similarity": null,
+    "score": 0.8989,
+    "taken_by": "T000060",
+    "taken_contested": false,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "TAKEN_BY_OTHER",
+    "REFUSED",
+    "REFUSED",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "NO_UNEXPLAINED_DETECTION",
+    "LOW_SCORE"
+   ],
+   "b_born": 281,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000033",
+    "T000047",
+    "T000049",
+    "T000050"
+   ],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "8",
+   "from": "T000069",
+   "to": "T000080",
+   "f1": 312,
+   "f2": 342,
+   "a_at_f2": {
+    "state": "ACTIVE",
+    "source": "OBSERVED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": "10"
+   },
+   "what": "A_OBSERVED_ON_ANOTHER_BOX",
+   "a_player_at_f2": "10",
+   "a_ambiguous_at_f2": false,
+   "b_born": 338,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000014",
+    "T000060",
+    "T000068",
+    "T000078"
+   ],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "9",
+   "from": "T000004",
+   "to": "T000029",
+   "f1": 42,
+   "f2": 54,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "CERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 46,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 13,
+    "dist_h": 0.3233,
+    "gate_radius_h": 0.5167,
+    "iou": 0.5317,
+    "height_ratio": 1.598,
+    "mahalanobis2": 2.431,
+    "appearance_similarity": null,
+    "score": 0.7558,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "height_ok"
+    ]
+   },
+   "first_failed_gate": "height_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:height_ok",
+    "GATE_FAILED:height_ok",
+    "REFUSED",
+    "GATE_FAILED:height_ok"
+   ],
+   "recovery_refused": [
+    "LOW_SCORE",
+    "RIVAL_TRACK",
+    "APPEARANCE_UNKNOWN",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 46,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "9",
+   "from": "T000029",
+   "to": "T000079",
+   "f1": 84,
+   "f2": 342,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 85,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 10,
+    "dist_h": 0.2282,
+    "gate_radius_h": 0.5167,
+    "iou": 0.1672,
+    "height_ratio": 0.587,
+    "mahalanobis2": 7.072,
+    "appearance_similarity": 0.2972,
+    "score": 0.7061,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "height_ok",
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "height_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:height_ok+appearance_veto",
+    "GATE_FAILED:centre_ok+mahalanobis_ok"
+   ],
+   "recovery_refused": [],
+   "b_born": 336,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "10",
+   "from": "T000012",
+   "to": "T000033",
+   "f1": 48,
+   "f2": 54,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 51,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 5,
+    "dist_h": 0.0091,
+    "gate_radius_h": 0.5167,
+    "iou": 0.9186,
+    "height_ratio": 1.0,
+    "mahalanobis2": 0.007,
+    "appearance_similarity": 0.6403,
+    "score": 0.9211,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "REFUSED",
+    "REFUSED",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 51,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000004",
+    "T000012"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "10",
+   "from": "T000033",
+   "to": "T000068",
+   "f1": 270,
+   "f2": 276,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 274,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 2,
+    "dist_h": 0.0303,
+    "gate_radius_h": 0.5167,
+    "iou": 0.85,
+    "height_ratio": 0.981,
+    "mahalanobis2": 0.178,
+    "appearance_similarity": 0.6433,
+    "score": 0.9262,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto"
+   ],
+   "recovery_refused": [],
+   "b_born": 274,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000033",
+    "T000049",
+    "T000050",
+    "T000064"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "10",
+   "from": "T000068",
+   "to": "T000069",
+   "f1": 306,
+   "f2": 342,
+   "a_at_f2": {
+    "state": "LOST",
+    "source": "HELD",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 307,
+   "reason": "REFUSED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 12,
+    "dist_h": 0.2277,
+    "gate_radius_h": 0.5167,
+    "iou": 0.6521,
+    "height_ratio": 1.181,
+    "mahalanobis2": 10.426,
+    "appearance_similarity": null,
+    "score": 0.4342,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "REFUSED",
+    "REFUSED",
+    "NO_RECOVERY_ATTEMPT",
+    "NO_RECOVERY_ATTEMPT"
+   ],
+   "recovery_refused": [
+    "LOW_SCORE",
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION",
+    "RIVAL_TRACK",
+    "CONTESTED_NEIGHBOUR",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 281,
+   "b_spawned_after_f1": false,
+   "b_preds": [
+    "T000033",
+    "T000047",
+    "T000049",
+    "T000050"
+   ],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "10",
+   "from": "T000069",
+   "to": "T000089",
+   "f1": 366,
+   "f2": 378,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 368,
+   "reason": "TAKEN_BY_OTHER",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 10,
+    "dist_h": 0.1968,
+    "gate_radius_h": 0.5167,
+    "iou": 0.5578,
+    "height_ratio": 1.385,
+    "mahalanobis2": 7.357,
+    "appearance_similarity": null,
+    "score": 0.6988,
+    "taken_by": "T000072",
+    "taken_contested": true,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": true,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "NO_RECOVERY_ATTEMPT"
+   ],
+   "recovery_refused": [
+    "AMBIGUOUS_DETECTIONS",
+    "LOW_SCORE",
+    "RIVAL_TRACK"
+   ],
+   "b_born": 377,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000057",
+    "T000069",
+    "T000072",
+    "T000074",
+    "T000086"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "11",
+   "from": "T000018",
+   "to": "T000019",
+   "f1": 0,
+   "f2": 6,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "CERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 1,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": false,
+   "nearest": {
+    "detection": 15,
+    "dist_h": 0.3049,
+    "gate_radius_h": 0.5167,
+    "iou": 0.4439,
+    "height_ratio": 1.52,
+    "mahalanobis2": 5.144,
+    "appearance_similarity": null,
+    "score": 0.873,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "height_ok"
+    ]
+   },
+   "first_failed_gate": "height_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:height_ok",
+    "TAKEN_BY_OTHER",
+    "GATE_FAILED:height_ok",
+    "GATE_FAILED:height_ok"
+   ],
+   "recovery_refused": [
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 1,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "11",
+   "from": "T000019",
+   "to": "T000056",
+   "f1": 96,
+   "f2": 270,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 98,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": null,
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 9,
+    "dist_h": 0.0765,
+    "gate_radius_h": 0.5167,
+    "iou": 0.0561,
+    "height_ratio": 0.286,
+    "mahalanobis2": 0.892,
+    "appearance_similarity": 0.6601,
+    "score": 0.3232,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "low_score_iou_ok",
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "low_score_iou_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:low_score_iou_ok+appearance_veto"
+   ],
+   "recovery_refused": [],
+   "b_born": 263,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "12",
+   "from": "T000008",
+   "to": "T000046",
+   "f1": 120,
+   "f2": 150,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 121,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 7,
+    "dist_h": 0.0607,
+    "gate_radius_h": 0.5167,
+    "iou": 0.2119,
+    "height_ratio": 0.535,
+    "mahalanobis2": 0.705,
+    "appearance_similarity": 0.5628,
+    "score": 0.2557,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "low_score_iou_ok",
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "low_score_iou_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:low_score_iou_ok+appearance_veto",
+    "GATE_FAILED:mahalanobis_ok",
+    "GATE_FAILED:mahalanobis_ok"
+   ],
+   "recovery_refused": [],
+   "b_born": 144,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "12",
+   "from": "T000046",
+   "to": "T000075",
+   "f1": 318,
+   "f2": 324,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 320,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 1,
+    "dist_h": 0.009,
+    "gate_radius_h": 0.5167,
+    "iou": 0.9182,
+    "height_ratio": 1.029,
+    "mahalanobis2": 0.016,
+    "appearance_similarity": 0.573,
+    "score": 0.9559,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto"
+   ],
+   "recovery_refused": [],
+   "b_born": 320,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000017",
+    "T000046"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "13",
+   "from": "T000005",
+   "to": "T000047",
+   "f1": 96,
+   "f2": 192,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 97,
+   "reason": "NO_DETECTION_NEARBY",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": null,
+   "a_confirmed": true,
+   "n_candidates": 0,
+   "first_reasons": [
+    "NO_DETECTION_NEARBY"
+   ],
+   "recovery_refused": [],
+   "b_born": 187,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "13",
+   "from": "T000047",
+   "to": "T000057",
+   "f1": 246,
+   "f2": 264,
+   "a_at_f2": {
+    "state": "ACTIVE",
+    "source": "OBSERVED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": "14"
+   },
+   "what": "A_OBSERVED_ON_ANOTHER_BOX",
+   "a_player_at_f2": "14",
+   "a_ambiguous_at_f2": false,
+   "b_born": 263,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000011"
+   ],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "13",
+   "from": "T000057",
+   "to": "T000081",
+   "f1": 342,
+   "f2": 354,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 352,
+   "reason": "REFUSED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 9,
+    "dist_h": 0.0595,
+    "gate_radius_h": 0.5167,
+    "iou": 0.7588,
+    "height_ratio": 0.959,
+    "mahalanobis2": 0.678,
+    "appearance_similarity": null,
+    "score": 0.8745,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "REFUSED",
+    "TAKEN_BY_OTHER",
+    "NO_RECOVERY_ATTEMPT"
+   ],
+   "recovery_refused": [],
+   "b_born": 352,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000014",
+    "T000017",
+    "T000057",
+    "T000060",
+    "T000074"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "14",
+   "from": "T000011",
+   "to": "T000047",
+   "f1": 240,
+   "f2": 258,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "CERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 248,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 7,
+    "dist_h": 0.2427,
+    "gate_radius_h": 0.5167,
+    "iou": 0.4055,
+    "height_ratio": 1.35,
+    "mahalanobis2": 9.561,
+    "appearance_similarity": null,
+    "score": 0.7897,
+    "taken_by": "T000047",
+    "taken_contested": false,
+    "failed": [
+     "mahalanobis_ok"
+    ]
+   },
+   "first_failed_gate": "mahalanobis_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": true,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:mahalanobis_ok",
+    "TAKEN_BY_OTHER",
+    "GATE_FAILED:height_ok",
+    "GATE_FAILED:height_ok"
+   ],
+   "recovery_refused": [
+    "APPEARANCE_UNKNOWN",
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 187,
+   "b_spawned_after_f1": false,
+   "b_preds": [],
+   "relation": [
+    "B_TOOK_A_DETECTION"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "14",
+   "from": "T000047",
+   "to": "T000066",
+   "f1": 270,
+   "f2": 276,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 272,
+   "reason": "REFUSED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 10,
+    "dist_h": 0.1332,
+    "gate_radius_h": 0.5167,
+    "iou": 0.5451,
+    "height_ratio": 1.048,
+    "mahalanobis2": 3.578,
+    "appearance_similarity": null,
+    "score": 0.7913,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "REFUSED",
+    "REFUSED",
+    "REFUSED",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 272,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000047",
+    "T000049",
+    "T000050",
+    "T000064"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "15",
+   "from": "T000016",
+   "to": "T000024",
+   "f1": 18,
+   "f2": 24,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "CERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 20,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 13,
+    "dist_h": 0.0507,
+    "gate_radius_h": 0.5167,
+    "iou": 0.7812,
+    "height_ratio": 0.899,
+    "mahalanobis2": 0.155,
+    "appearance_similarity": 0.6989,
+    "score": 0.8649,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [],
+   "b_born": 20,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000015",
+    "T000016"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "15",
+   "from": "T000024",
+   "to": "T000027",
+   "f1": 24,
+   "f2": 30,
+   "a_at_f2": {
+    "state": "LOST",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 25,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 13,
+    "dist_h": 0.0719,
+    "gate_radius_h": 0.5167,
+    "iou": 0.745,
+    "height_ratio": 1.117,
+    "mahalanobis2": 0.11,
+    "appearance_similarity": 0.6169,
+    "score": 0.8501,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto",
+    "REFUSED",
+    "GATE_FAILED:appearance_veto"
+   ],
+   "recovery_refused": [
+    "RIVAL_TRACK",
+    "RIVAL_TRACK"
+   ],
+   "b_born": 30,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000010",
+    "T000015",
+    "T000016",
+    "T000024",
+    "T000025",
+    "T000026"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "15",
+   "from": "T000027",
+   "to": "T000031",
+   "f1": 42,
+   "f2": 48,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 43,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 4,
+    "dist_h": 1.2705,
+    "gate_radius_h": 0.5167,
+    "iou": 0.0016,
+    "height_ratio": 1.425,
+    "mahalanobis2": 48.494,
+    "appearance_similarity": 0.1257,
+    "score": 0.9418,
+    "taken_by": "T000023",
+    "taken_contested": false,
+    "failed": [
+     "centre_ok",
+     "mahalanobis_ok",
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "centre_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:centre_ok+mahalanobis_ok+appearance_veto",
+    "GATE_FAILED:appearance_veto",
+    "GATE_FAILED:appearance_veto",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "LOW_SCORE",
+    "APPEARANCE_MISMATCH",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 47,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000015",
+    "T000016",
+    "T000024",
+    "T000027"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "15",
+   "from": "T000031",
+   "to": "T000041",
+   "f1": 60,
+   "f2": 66,
+   "a_at_f2": {
+    "state": "LOST",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 63,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 15,
+    "dist_h": 0.0786,
+    "gate_radius_h": 0.5167,
+    "iou": 0.7275,
+    "height_ratio": 0.998,
+    "mahalanobis2": 0.37,
+    "appearance_similarity": 0.6799,
+    "score": 0.5007,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "TAKEN_BY_OTHER",
+    "REFUSED",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "NO_UNEXPLAINED_DETECTION",
+    "RIVAL_TRACK"
+   ],
+   "b_born": 66,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000015",
+    "T000016",
+    "T000024",
+    "T000027",
+    "T000031",
+    "T000039"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "16",
+   "from": "T000014",
+   "to": "T000074",
+   "f1": 306,
+   "f2": 336,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 308,
+   "reason": "REFUSED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 7,
+    "dist_h": 0.0061,
+    "gate_radius_h": 0.5167,
+    "iou": 0.8416,
+    "height_ratio": 1.05,
+    "mahalanobis2": 0.007,
+    "appearance_similarity": null,
+    "score": 0.8278,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "REFUSED",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION",
+    "RIVAL_TRACK",
+    "RIVAL_TRACK",
+    "RIVAL_TRACK",
+    "CONTESTED_NEIGHBOUR",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 308,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000014",
+    "T000017"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "16",
+   "from": "T000074",
+   "to": "T000082",
+   "f1": 342,
+   "f2": 354,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 347,
+   "reason": "TAKEN_BY_OTHER",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 10,
+    "dist_h": 0.1195,
+    "gate_radius_h": 0.5167,
+    "iou": 0.5352,
+    "height_ratio": 1.053,
+    "mahalanobis2": 2.808,
+    "appearance_similarity": 0.899,
+    "score": 0.8914,
+    "taken_by": "T000057",
+    "taken_contested": false,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": true,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "AMBIGUOUS_DETECTIONS"
+   ],
+   "b_born": 352,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000014",
+    "T000017",
+    "T000057",
+    "T000060",
+    "T000068",
+    "T000074"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "17",
+   "from": "T000017",
+   "to": "T000077",
+   "f1": 300,
+   "f2": 336,
+   "a_at_f2": {
+    "state": "LOST",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 306,
+   "reason": "TAKEN_BY_OTHER",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 9,
+    "dist_h": 0.123,
+    "gate_radius_h": 0.5167,
+    "iou": 0.5249,
+    "height_ratio": 1.06,
+    "mahalanobis2": 2.874,
+    "appearance_similarity": null,
+    "score": 0.7389,
+    "taken_by": "T000014",
+    "taken_contested": false,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": true,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "REFUSED",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "RIVAL_TRACK",
+    "RIVAL_TRACK",
+    "NO_UNEXPLAINED_DETECTION",
+    "RIVAL_TRACK",
+    "RIVAL_TRACK",
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 333,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000014",
+    "T000017",
+    "T000060"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "18",
+   "from": "T000030",
+   "to": "T000055",
+   "f1": 228,
+   "f2": 258,
+   "a_at_f2": {
+    "state": "LOST",
+    "source": "HELD",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 230,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 8,
+    "dist_h": 0.1497,
+    "gate_radius_h": 0.5167,
+    "iou": 0.4649,
+    "height_ratio": 1.09,
+    "mahalanobis2": 4.364,
+    "appearance_similarity": 0.3393,
+    "score": 0.7291,
+    "taken_by": "T000036",
+    "taken_contested": false,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": true,
+   "nearest_taken_by_b": false,
+   "n_candidates": 1,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "NO_RECOVERY_ATTEMPT",
+    "NO_RECOVERY_ATTEMPT",
+    "NO_RECOVERY_ATTEMPT"
+   ],
+   "recovery_refused": [
+    "AMBIGUOUS_DETECTIONS"
+   ],
+   "b_born": 258,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000030",
+    "T000036",
+    "T000051",
+    "T000053"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "18",
+   "from": "T000055",
+   "to": "T000063",
+   "f1": 258,
+   "f2": 270,
+   "a_at_f2": {
+    "state": "ACTIVE",
+    "source": "OBSERVED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": "19"
+   },
+   "what": "A_OBSERVED_ON_ANOTHER_BOX",
+   "a_player_at_f2": "19",
+   "a_ambiguous_at_f2": true,
+   "b_born": 267,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000030",
+    "T000036",
+    "T000059"
+   ],
+   "relation": [
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "18",
+   "from": "T000063",
+   "to": "T000067",
+   "f1": 270,
+   "f2": 276,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 272,
+   "reason": "TAKEN_BY_OTHER",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 9,
+    "dist_h": 0.173,
+    "gate_radius_h": 0.5167,
+    "iou": 0.4353,
+    "height_ratio": 1.043,
+    "mahalanobis2": 5.08,
+    "appearance_similarity": null,
+    "score": 0.8125,
+    "taken_by": "T000055",
+    "taken_contested": false,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": true,
+   "nearest_taken_by_b": false,
+   "n_candidates": 1,
+   "first_reasons": [
+    "TAKEN_BY_OTHER",
+    "REFUSED",
+    "REFUSED",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "RIVAL_TRACK",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 273,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000030",
+    "T000036",
+    "T000063"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "18",
+   "from": "T000067",
+   "to": "T000055",
+   "f1": 276,
+   "f2": 282,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 277,
+   "reason": "TAKEN_BY_OTHER",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": false,
+   "nearest": {
+    "detection": 10,
+    "dist_h": 0.0537,
+    "gate_radius_h": 0.5167,
+    "iou": 0.7625,
+    "height_ratio": 0.995,
+    "mahalanobis2": 0.436,
+    "appearance_similarity": null,
+    "score": 0.6537,
+    "taken_by": "T000055",
+    "taken_contested": false,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": true,
+   "n_candidates": 1,
+   "first_reasons": [
+    "TAKEN_BY_OTHER",
+    "NO_RECOVERY_ATTEMPT",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "LOW_SCORE"
+   ],
+   "b_born": 258,
+   "b_spawned_after_f1": false,
+   "b_preds": [
+    "T000030",
+    "T000036",
+    "T000051",
+    "T000053"
+   ],
+   "relation": [
+    "B_TOOK_A_DETECTION"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "18",
+   "from": "T000055",
+   "to": "T000083",
+   "f1": 348,
+   "f2": 366,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 358,
+   "reason": "REFUSED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 11,
+    "dist_h": 0.0127,
+    "gate_radius_h": 0.5167,
+    "iou": 0.8871,
+    "height_ratio": 1.022,
+    "mahalanobis2": 0.031,
+    "appearance_similarity": null,
+    "score": 0.851,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "REFUSED",
+    "TAKEN_BY_OTHER",
+    "REFUSED",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "RIVAL_TRACK",
+    "LOW_SCORE"
+   ],
+   "b_born": 358,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000048",
+    "T000055"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "19",
+   "from": "T000036",
+   "to": "T000071",
+   "f1": 216,
+   "f2": 288,
+   "a_at_f2": {
+    "state": "LOST",
+    "source": "HELD",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 252,
+   "reason": "REFUSED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 9,
+    "dist_h": 0.044,
+    "gate_radius_h": 0.5167,
+    "iou": 0.7763,
+    "height_ratio": 0.953,
+    "mahalanobis2": 0.377,
+    "appearance_similarity": null,
+    "score": 0.4577,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "REFUSED",
+    "NO_RECOVERY_ATTEMPT",
+    "NO_RECOVERY_ATTEMPT",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "AMBIGUOUS_DETECTIONS",
+    "AMBIGUOUS_DETECTIONS",
+    "LOW_SCORE",
+    "CONTESTED_NEIGHBOUR",
+    "NO_UNEXPLAINED_DETECTION",
+    "CONTESTED_NEIGHBOUR",
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION",
+    "RIVAL_TRACK",
+    "NO_UNEXPLAINED_DETECTION",
+    "LOW_SCORE"
+   ],
+   "b_born": 285,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000030",
+    "T000036",
+    "T000063",
+    "T000070"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "20",
+   "from": "T000037",
+   "to": "T000048",
+   "f1": 174,
+   "f2": 192,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "CERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 180,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 3,
+    "dist_h": 0.8248,
+    "gate_radius_h": 0.5167,
+    "iou": 0.0,
+    "height_ratio": 1.152,
+    "mahalanobis2": 130.685,
+    "appearance_similarity": 0.0402,
+    "score": 0.7272,
+    "taken_by": "T000014",
+    "taken_contested": false,
+    "failed": [
+     "centre_ok",
+     "mahalanobis_ok",
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "centre_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 1,
+   "first_reasons": [
+    "GATE_FAILED:centre_ok+mahalanobis_ok+appearance_veto",
+    "GATE_FAILED:centre_ok+mahalanobis_ok+appearance_veto",
+    "NO_RECOVERY_ATTEMPT",
+    "NO_RECOVERY_ATTEMPT"
+   ],
+   "recovery_refused": [],
+   "b_born": 189,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000037"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR_UNIQUE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "20",
+   "from": "T000048",
+   "to": "T000090",
+   "f1": 342,
+   "f2": 384,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 355,
+   "reason": "TAKEN_BY_OTHER",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 11,
+    "dist_h": 0.1442,
+    "gate_radius_h": 0.5167,
+    "iou": 0.4569,
+    "height_ratio": 1.111,
+    "mahalanobis2": 3.889,
+    "appearance_similarity": null,
+    "score": 0.8901,
+    "taken_by": "T000055",
+    "taken_contested": false,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 2,
+   "first_reasons": [
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER",
+    "GATE_FAILED:appearance_veto",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "AMBIGUOUS_DETECTIONS",
+    "AMBIGUOUS_DETECTIONS",
+    "LOW_SCORE",
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION",
+    "RIVAL_TRACK",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 380,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000048",
+    "T000055"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "25",
+   "from": "T000010",
+   "to": "T000021",
+   "f1": 0,
+   "f2": 12,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 3,
+   "reason": "PASSING_CANDIDATE_UNUSED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "CERTAIN",
+   "a_confirmed": false,
+   "nearest": {
+    "detection": 16,
+    "dist_h": 0.0076,
+    "gate_radius_h": 0.5167,
+    "iou": 0.9405,
+    "height_ratio": 1.014,
+    "mahalanobis2": 0.006,
+    "appearance_similarity": null,
+    "score": 0.4623,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "PASSING_CANDIDATE_UNUSED",
+    "NO_RECOVERY_ATTEMPT",
+    "REFUSED",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "LOW_SCORE",
+    "CONTESTED_NEIGHBOUR"
+   ],
+   "b_born": 9,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000010",
+    "T000015"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "25",
+   "from": "T000021",
+   "to": "T000049",
+   "f1": 72,
+   "f2": 210,
+   "a_at_f2": null,
+   "what": "A_UNMATCHED",
+   "miss_frame": 76,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 12,
+    "dist_h": 0.0715,
+    "gate_radius_h": 0.5167,
+    "iou": 0.3411,
+    "height_ratio": 0.844,
+    "mahalanobis2": 0.481,
+    "appearance_similarity": null,
+    "score": 0.4561,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "low_score_iou_ok"
+    ]
+   },
+   "first_failed_gate": "low_score_iou_ok",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:low_score_iou_ok",
+    "GATE_FAILED:low_score_iou_ok",
+    "GATE_FAILED:mahalanobis_ok"
+   ],
+   "recovery_refused": [],
+   "b_born": 205,
+   "b_spawned_after_f1": true,
+   "b_preds": [],
+   "relation": [
+    "NONE"
+   ],
+   "b_identity_at_f2": "CERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "25",
+   "from": "T000049",
+   "to": "T000060",
+   "f1": 258,
+   "f2": 270,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 263,
+   "reason": "GATE_FAILED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 9,
+    "dist_h": 0.0439,
+    "gate_radius_h": 0.5167,
+    "iou": 0.7084,
+    "height_ratio": 1.059,
+    "mahalanobis2": 0.365,
+    "appearance_similarity": 0.49,
+    "score": 0.5538,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": [
+     "appearance_veto"
+    ]
+   },
+   "first_failed_gate": "appearance_veto",
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "GATE_FAILED:appearance_veto",
+    "NO_RECOVERY_ATTEMPT",
+    "REFUSED",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "AMBIGUOUS_DETECTIONS",
+    "NO_UNEXPLAINED_DETECTION",
+    "NO_UNEXPLAINED_DETECTION",
+    "RIVAL_TRACK",
+    "RIVAL_TRACK"
+   ],
+   "b_born": 265,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000049",
+    "T000050",
+    "T000058"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "25",
+   "from": "T000060",
+   "to": "T000072",
+   "f1": 294,
+   "f2": 300,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 295,
+   "reason": "REFUSED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 12,
+    "dist_h": 0.0262,
+    "gate_radius_h": 0.5167,
+    "iou": 0.7809,
+    "height_ratio": 1.022,
+    "mahalanobis2": 0.133,
+    "appearance_similarity": null,
+    "score": 0.5165,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "REFUSED",
+    "REFUSED",
+    "TAKEN_BY_OTHER",
+    "TAKEN_BY_OTHER"
+   ],
+   "recovery_refused": [
+    "RIVAL_TRACK"
+   ],
+   "b_born": 296,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000033",
+    "T000047",
+    "T000049",
+    "T000050",
+    "T000060"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  },
+  {
+   "clip": "F08",
+   "player": "25",
+   "from": "T000072",
+   "to": "T000091",
+   "f1": 366,
+   "f2": 384,
+   "a_at_f2": {
+    "state": "OCCLUDED",
+    "source": "PREDICTED",
+    "identity": "IDENTITY_UNCERTAIN",
+    "player": null
+   },
+   "what": "A_UNMATCHED",
+   "miss_frame": 374,
+   "reason": "REFUSED",
+   "stage": "continuing",
+   "prior_state": "ACTIVE",
+   "gap_s": 0.033333,
+   "a_identity": "IDENTITY_UNCERTAIN",
+   "a_confirmed": true,
+   "nearest": {
+    "detection": 11,
+    "dist_h": 0.0654,
+    "gate_radius_h": 0.5167,
+    "iou": 0.773,
+    "height_ratio": 0.939,
+    "mahalanobis2": 0.807,
+    "appearance_similarity": null,
+    "score": 0.1567,
+    "taken_by": null,
+    "taken_contested": null,
+    "failed": []
+   },
+   "first_failed_gate": null,
+   "nearest_taken_by_rival": false,
+   "nearest_taken_by_b": false,
+   "n_candidates": 3,
+   "first_reasons": [
+    "REFUSED",
+    "REFUSED",
+    "REFUSED",
+    "REFUSED"
+   ],
+   "recovery_refused": [
+    "RIVAL_TRACK",
+    "LOW_SCORE",
+    "RIVAL_TRACK",
+    "RIVAL_TRACK",
+    "NO_UNEXPLAINED_DETECTION"
+   ],
+   "b_born": 380,
+   "b_spawned_after_f1": true,
+   "b_preds": [
+    "T000057",
+    "T000069",
+    "T000072",
+    "T000074",
+    "T000086",
+    "T000087"
+   ],
+   "relation": [
+    "B_NAMES_A_PREDECESSOR",
+    "B_IS_A_RIVAL"
+   ],
+   "b_identity_at_f2": "IDENTITY_UNCERTAIN"
+  }
+ ]
+}

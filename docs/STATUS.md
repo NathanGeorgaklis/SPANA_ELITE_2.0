@@ -62,6 +62,12 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
   (`config/reviewer_policy.yaml`). New DEV baseline 0.879 correct, 0 wrong, 6.48 actions / min (was 0.870 / 0 / 7.52;
   5 % wrong taps: 2 wrong frames, own taps). 4.1 / min not reachable: the effort is 56 track changes (player tracking).
   `records/stretch_confirm_2026-11-22`.
+- Contact-continuity diagnosis (2026-11-22, branch `tracking/contact-continuity-diag`, analysis only): 103 labelled
+  track changes on DEV. First failing gate: appearance veto 36 (motion passed, clean box, stale colour model of the
+  old track), TAKEN_BY_OTHER 15, hidden-track refusal 10, motion / extent gates 19, low-score box 7, detector miss 4,
+  old track on another player's box 11. The existing `tracking.appearance_doubt_link` (off) measured: changes 103 ->
+  100, 0 silent, 0 wrong, +1 flagged transfer, reviewer 0.879 -> 0.885 at 6.55 / min. Recommendation: no tracking
+  task now (`records/contact_continuity_diag_2026-11-22`).
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
