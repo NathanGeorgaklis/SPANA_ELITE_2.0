@@ -1,0 +1,83 @@
+{
+ "earlier_correct": {
+  "reviewer_policy": {
+   "min_stretch_labelled_frames": 1,
+   "schema_version": "1.0.0",
+   "stretch_over_unobserved": false
+  },
+  "correct": 0.87,
+  "wrong": 0,
+  "unverified": 32,
+  "abstain": 295,
+  "actions": {
+   "confirm_relink": 10,
+   "player_confirmation": 70,
+   "reject_candidate": 1,
+   "track_at_frame": 27
+  },
+  "actions_per_min": 7.52,
+  "confirmations": {
+   "applied": 70,
+   "conflict": 0,
+   "correct_blocked": 0,
+   "issued": 70,
+   "wrong": 0,
+   "wrong_blocked": 0,
+   "wrong_through": 0
+  }
+ },
+ "policy_correct": {
+  "reviewer_policy": {
+   "min_stretch_labelled_frames": 2,
+   "schema_version": "1.0.0",
+   "stretch_over_unobserved": true
+  },
+  "correct": 0.879,
+  "wrong": 0,
+  "unverified": 34,
+  "abstain": 287,
+  "actions": {
+   "confirm_relink": 10,
+   "player_confirmation": 55,
+   "reject_candidate": 1,
+   "track_at_frame": 27
+  },
+  "actions_per_min": 6.48,
+  "confirmations": {
+   "applied": 55,
+   "conflict": 0,
+   "correct_blocked": 0,
+   "issued": 55,
+   "wrong": 0,
+   "wrong_blocked": 0,
+   "wrong_through": 0
+  }
+ },
+ "policy_err5": {
+  "reviewer_policy": {
+   "min_stretch_labelled_frames": 2,
+   "schema_version": "1.0.0",
+   "stretch_over_unobserved": true
+  },
+  "correct": 0.879,
+  "wrong": 2,
+  "unverified": 34,
+  "abstain": 287,
+  "actions": {
+   "confirm_relink": 10,
+   "player_confirmation": 58,
+   "reject_candidate": 1,
+   "track_at_frame": 27
+  },
+  "actions_per_min": 6.69,
+  "confirmations": {
+   "applied": 57,
+   "conflict": 1,
+   "correct_blocked": 0,
+   "issued": 58,
+   "wrong": 3,
+   "wrong_blocked": 1,
+   "wrong_through": 2
+  }
+ }
+}

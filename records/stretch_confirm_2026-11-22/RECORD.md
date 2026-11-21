@@ -2,8 +2,8 @@
 
 CODE TASK (Nathan), target identity. Branch `identity/stretch-confirm`, base main `ae01a89`. DEV FRESH_02 / 05 / 07 / 08,
 the same tracks and crops as `records/player_confirmation_2026-11-20` (`~/spana-player-confirmation-run/base`,
-HASHES.txt). Range scope kept. No EVAL. **Stopped before any product change: the target is not reachable with
-stretch confirmations on DEV (section 3). Awaiting Nathan.**
+HASHES.txt). Range scope kept. No EVAL. **The target is not reachable with stretch confirmations on DEV (section 3).** Nathan chose option 1
+(section 5): no product change; the simulated reviewer's policy is the new baseline.
 
 ## 1. What a stretch already is
 - `player_confirmation` 1.0.0 already carries `frame..frame_end`. A range must be one track, live throughout and in
@@ -60,3 +60,22 @@ stretch confirmations on DEV (section 3). Awaiting Nathan.**
 3. **Relax the target.** About 5.3 / min keeps today's correctness (0.872); below about 4.7 is not reachable on DEV.
 4. **The lever below 4.1 is fewer track changes.** In contact the player's track is lost and they continue on the
    rival or a new spawn (`records/episode_references_diag_2026-11-22` section 2). That is a player-tracking task.
+
+## 5. Decision and new baseline (2026-11-22, Nathan: option 1)
+- **Adopted as the simulated reviewer's policy** (`config/reviewer_policy.yaml`, `tools/target_score.py
+  --reviewer-policy`, default on):
+  - a confirmation stretches over labelled frames where its track is not observed;
+  - it never stretches over a two-player box (option 2 rejected: it breaks fail-closed);
+  - stretches under 2 labelled frames get no action.
+- **`--reviewer-policy earlier`** reproduces the reviewer of `records/player_confirmation_2026-11-20`.
+- **DEV with the real tool** (`run_baseline.sh`, `baseline.json`, HASHES_baseline.txt):
+
+| run | correct | wrong | unverified | ABSTAIN | actions / min | confirmations issued / applied / conflict |
+|---|---|---|---|---|---|---|
+| earlier policy, always-correct taps | 0.870 | 0 | 32 | 295 | 7.52 | 70 / 70 / 0 |
+| **new policy, always-correct taps (baseline)** | **0.879** | **0** | 34 | 287 | **6.48** | 55 / 55 / 0 |
+| new policy, 5 % wrong taps (`config/review_sim.yaml`) | 0.879 | 2 | 34 | 287 | 6.69 | 58 / 57 / 1 (3 wrong: 1 blocked, 2 through) |
+
+- **Wrong taps:** the seeded draws fall on a different action sequence than in the 2026-11-20 run, which drew 1
+  wrong tap (1 wrong frame). Here 3 are drawn, 2 go through, 2 wrong frames. Each wrong frame is the tapping
+  player's own wrong tap.
