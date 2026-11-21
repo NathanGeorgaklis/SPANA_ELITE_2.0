@@ -57,6 +57,11 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
   mostly > 0.2); the uncertain track is observed a median 5 of 59 frames while its player continues on the rival or
   a new spawn: first failing layer player tracking. Proposed (awaiting Nathan): transitive predecessors for
   ambiguous spawns, off by default (`records/episode_references_diag_2026-11-22`).
+- Stretch confirmation (2026-11-22, branch `identity/stretch-confirm`, measurement only, STOPPED before product
+  change): the 4.1 actions / min target is not reachable on DEV. A confirmation is already a range; stretches on one
+  track save 7 of 108 actions (7.52 -> 7.04, 0 wrong); the effort is 56 track changes per player, mostly not
+  proposable by the system. Skipping stretches < 2 labelled frames: 0.879-0.881 correct, 0 wrong, 6.3-6.5 / min; floor
+  about 4.7 / min (correctness 0.85). Options for Nathan in `records/stretch_confirm_2026-11-22`.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
