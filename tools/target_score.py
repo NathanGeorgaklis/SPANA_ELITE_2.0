@@ -29,7 +29,9 @@ every candidate judged right, and nothing else. --simulate-reviewer works throug
 labelled frame where they have an unambiguous track; it reports the actions taken (effort) next to the times. Run with relink_auto_confirm true (config) to see automatic promotion.
 --confirmations (with --simulate-reviewer; spana.target 2.10.0): a reviewer tap on a track that is IDENTITY_UNCERTAIN
 on that frame issues a player_confirmation IS_ME instead of a re-selection, covering the following labelled frames of
-the same gap where the track is still this player's, in the same episode. --review-sim-config sets a share of wrong
+the same gap where the track is still this player's, in the same episode. --reviewer-policy (default
+config/reviewer_policy.yaml, decision 2026-11-22): the stretch passes over labelled frames where the track is not
+observed, never over a two-player box, and stretches under min_stretch_labelled_frames get no action. --review-sim-config sets a share of wrong
 taps (config/review_sim.yaml: another labelled player's track, the tapped track's rivals first). The other players'
 CERTAIN answers (their reviewer run without confirmations) are the other identities' claims for the conflict rule; a
 confirmation in CONFLICT is retried once on a later labelled frame of the same gap (re-confirmation). --crops loads
@@ -67,6 +69,24 @@ class ReviewSimConfig:
     schema_version: str
     wrong_is_me_rate: float      # share of confirmation taps that land on another player's track
     seed: int
+
+
+@dataclasses.dataclass(frozen=True)
+class ReviewerPolicy:
+    schema_version: str
+    stretch_over_unobserved: bool    # a stretch continues over labelled frames where its track is not observed
+    min_stretch_labelled_frames: int  # no action on a stretch covering fewer labelled frames
+
+
+EARLIER_POLICY = ReviewerPolicy("1.0.0", False, 1)    # the reviewer of records/player_confirmation_2026-11-20
+
+
+def load_reviewer_policy(path) -> ReviewerPolicy:
+    import yaml
+    c = typed_from_dict(ReviewerPolicy, yaml.safe_load(Path(path).read_text()), "reviewer_policy")
+    if c.schema_version != "1.0.0" or c.min_stretch_labelled_frames < 1:
+        raise SystemExit("reviewer_policy config: schema_version 1.0.0 and min_stretch_labelled_frames >= 1")
+    return c
 
 
 def load_review_sim(path) -> ReviewSimConfig:
@@ -180,9 +200,13 @@ def offer_verdict(r: dict, gt, attr, pid: str) -> str:
     return "undecided"
 
 
-def confirmation_end(tracks_doc: dict, gt, attr, pid: str, tid: str, f: int, g: dict) -> int:
-    """Last labelled frame of gap g, from f on, up to which the reviewer can vouch for tid: every labelled frame in
-    between attributes tid to this player unambiguously, and tid stays live in the same uncertainty episode."""
+def confirmation_end(tracks_doc: dict, gt, attr, pid: str, tid: str, f: int, g: dict,
+                     over_unobserved: bool = False) -> int:
+    """Last labelled frame of gap g, from f on, up to which the reviewer can vouch for tid, while tid stays live in
+    the same uncertainty episode: every labelled frame in between attributes tid to this player unambiguously. With
+    over_unobserved (reviewer policy, decision 2026-11-22), a labelled frame where tid is nobody's observed box is
+    passed over; the stretch still ends at a two-player box, another player on tid, or this player unambiguously on
+    another track. The end is always a frame attributing tid to the player."""
     trk = {fr["frame"]: {t["track_id"]: t for t in fr["tracks"]} for fr in tracks_doc["frames"]}
     eps = trk[f][tid]["uncertain_episodes"]
     end = f
@@ -194,20 +218,25 @@ def confirmation_end(tracks_doc: dict, gt, attr, pid: str, tid: str, f: int, g: 
             break
         if x in attr:
             p, amb = attr[x].get(tid, (None, False))
-            if p != pid or amb:
+            if p == pid and not amb:
+                end = x
+                continue
+            if not over_unobserved or p is not None or amb:
                 break
-            end = x
+            if any(q == pid and not a for t2, (q, a) in attr[x].items() if t2 != tid):
+                break                                   # the player is on another track
     return end
 
 
 def simulated_review(tracks_doc: dict, sel: Selection, cfg, gt, attr, pid: str, max_steps: int = 1000,
                      emb: Optional[dict] = None, confirm: bool = False, sim: Optional[ReviewSimConfig] = None,
                      clip: str = "", crops: Optional[CropFeatures] = None, claims: Optional[dict] = None,
-                     stats: Optional[dict] = None) -> List[dict]:
+                     stats: Optional[dict] = None, policy: ReviewerPolicy = EARLIER_POLICY) -> List[dict]:
     """An after-match reviewer working through the gap list (decision 2026-11-16), knowing the truth: for each gap in
     turn, it confirms an offer judged right or rejects one judged wrong (on the offer's first frame); otherwise it taps
     the player on the gap's first labelled frame where they have an unambiguous track. Best case of the review UI.
-    Only the gaps the review list shows (target.review_min_gap_s) are worked through."""
+    Only the gaps the review list shows (target.review_min_gap_s) are worked through. `policy` (config/reviewer_policy.yaml)
+    sets how far a confirmation stretches and which stretches are too short to be worth an action."""
     actions: List[dict] = []
     handled: set = set()
     retried: set = set()
@@ -254,7 +283,10 @@ def simulated_review(tracks_doc: dict, sel: Selection, cfg, gt, attr, pid: str, 
                     tr = next(t for t in trk[f]["tracks"] if t["track_id"] == hit[0])
                     if confirm and tr["identity"] != "CERTAIN":
                         cid = f"{pid}@{f}#{len(actions)}"
-                        tid, f_end = hit[0], confirmation_end(tracks_doc, gt, attr, pid, hit[0], f, g)
+                        tid, f_end = hit[0], confirmation_end(tracks_doc, gt, attr, pid, hit[0], f, g,
+                                                              policy.stretch_over_unobserved)
+                        if sum(1 for x in attr if f <= x <= f_end) < policy.min_stretch_labelled_frames:
+                            continue                    # too short a stretch: try a later labelled frame of the gap
                         if sim is not None and draw(sim, clip, pid, f, len(actions)) < sim.wrong_is_me_rate:
                             w = wrong_track(trk[f], attr[f], hit[0], pid)
                             if w is not None:
@@ -296,7 +328,7 @@ def undo_check(tracks_doc: dict, sel: Selection, cfg, actions: List[dict], emb, 
 def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Path], clip: str,
                  simulate_user: bool = False, simulate_reviewer: bool = False, emb: Optional[dict] = None,
                  confirm: bool = False, sim: Optional[ReviewSimConfig] = None, crops: Optional[CropFeatures] = None,
-                 claims: Optional[dict] = None) -> dict:
+                 claims: Optional[dict] = None, policy: ReviewerPolicy = EARLIER_POLICY) -> dict:
     visible = [f for f in gt.frames if pid in gt.players.get(f, {})]
     sel = first_selection(pid, gt, attr)
     row = {"player": pid, "labelled_frames": len(visible), "first_labelled_frame": visible[0] if visible else None}
@@ -307,7 +339,7 @@ def score_player(pid: str, gt, attr, tracks_doc: dict, cfg, art_dir: Optional[Pa
     stats: dict = {}
     confs = simulated_confirmations(tracks_doc, selection, cfg, gt, attr, pid, emb) if simulate_user else \
         simulated_review(tracks_doc, selection, cfg, gt, attr, pid, emb=emb, confirm=confirm, sim=sim, clip=clip,
-                         crops=crops, claims=claims, stats=stats) if simulate_reviewer else []
+                         crops=crops, claims=claims, stats=stats, policy=policy) if simulate_reviewer else []
     doc = target_document(tracks_doc, selection, cfg, ["tools.target_score", clip, pid], confs, emb, crops, claims)
     if art_dir is not None:
         write_json_atomic(art_dir / f"{clip}.player{pid}.target.json", doc)
@@ -415,7 +447,8 @@ def relink_totals(players: List[dict], kind: Optional[str] = None) -> dict:
 
 def score_clip(label_dir: Path, tracks_path: Path, cfg, art_dir: Optional[Path], simulate_user: bool = False,
                simulate_reviewer: bool = False, embeddings_path: Optional[Path] = None, confirm: bool = False,
-               sim: Optional[ReviewSimConfig] = None, use_crops: bool = False) -> dict:
+               sim: Optional[ReviewSimConfig] = None, use_crops: bool = False,
+               policy: ReviewerPolicy = EARLIER_POLICY) -> dict:
     frozen, gt = load_frozen(label_dir)
     tdoc = read_json(tracks_path)
     validate_tracks(tdoc)
@@ -446,7 +479,7 @@ def score_clip(label_dir: Path, tracks_path: Path, cfg, art_dir: Optional[Path],
         allc = claims_from_targets(base.items())
         claims_of = {p: {q: c for q, c in allc.items() if q != p} for p in ids}
     players = [score_player(p, gt, attr, tdoc, cfg, art_dir, clip, simulate_user, simulate_reviewer, emb, confirm,
-                            sim, crops, claims_of.get(p)) for p in ids]
+                            sim, crops, claims_of.get(p), policy) for p in ids]
     sel = [p for p in players if p["selected"]]
     pooled = {k: sum(p[k] for p in sel) for k in COUNTS}
     return {"clip": clip, "labels": {"dir": str(label_dir), "gt_sha256": frozen["gt_sha256"],
@@ -496,6 +529,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                    help="with --simulate-reviewer: taps on IDENTITY_UNCERTAIN tracks issue player_confirmation IS_ME")
     p.add_argument("--review-sim-config", default=None,
                    help="config/review_sim.yaml: share of wrong IS_ME taps (seeded); omit for always-correct taps")
+    p.add_argument("--reviewer-policy", default="config/reviewer_policy.yaml",
+                   help="with --confirmations: how far a confirmation stretches / the shortest stretch worth an action "
+                        "(decision 2026-11-22); 'earlier' = the reviewer of records/player_confirmation_2026-11-20")
     p.add_argument("--crops", action="store_true",
                    help="load each clip's clean crop features <tracks>.crops.npz (spana.cli crops)")
     p.add_argument("--simulate-reviewer", action="store_true",
@@ -511,12 +547,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     if a.confirmations and not a.simulate_reviewer:
         raise SystemExit("--confirmations needs --simulate-reviewer")
     sim = load_review_sim(a.review_sim_config) if a.review_sim_config else None
+    policy = EARLIER_POLICY if a.reviewer_policy == "earlier" else load_reviewer_policy(a.reviewer_policy)
     clips = [score_clip(Path(c[0]), Path(c[1]), cfg, art, a.simulate_user, a.simulate_reviewer,
-                        Path(c[2]) if len(c) == 3 else None, a.confirmations, sim, a.crops) for c in a.clip]
+                        Path(c[2]) if len(c) == 3 else None, a.confirmations, sim, a.crops, policy) for c in a.clip]
     report = {"tool": "tools.target_score", "match_rule": RULE.name, "config_sha256": cfg.sha256(),
               "target_config": dataclasses.asdict(cfg.target), "simulate_user": a.simulate_user,
               "simulate_reviewer": a.simulate_reviewer, "confirmations": a.confirmations,
-              "review_sim": None if sim is None else dataclasses.asdict(sim), "crops": a.crops, "clips": clips}
+              "review_sim": None if sim is None else dataclasses.asdict(sim),
+              "reviewer_policy": dataclasses.asdict(policy) if a.confirmations else None, "crops": a.crops,
+              "clips": clips}
     write_json_atomic(a.out, report)
     for c in clips:
         print(c["clip"], {k: c["pooled"][k] for k in ("correct_time", "wrong_time", "unverified_time",

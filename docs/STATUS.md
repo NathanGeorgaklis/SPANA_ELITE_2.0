@@ -57,6 +57,11 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
   mostly > 0.2); the uncertain track is observed a median 5 of 59 frames while its player continues on the rival or
   a new spawn: first failing layer player tracking. Proposed (awaiting Nathan): transitive predecessors for
   ambiguous spawns, off by default (`records/episode_references_diag_2026-11-22`).
+- Stretch confirmation / reviewer policy (2026-11-22, Nathan: option 1; no product change): the simulated reviewer
+  stretches a confirmation over unobserved frames, never over a two-player box, and skips stretches < 2 labelled frames
+  (`config/reviewer_policy.yaml`). New DEV baseline 0.879 correct, 0 wrong, 6.48 actions / min (was 0.870 / 0 / 7.52;
+  5 % wrong taps: 2 wrong frames, own taps). 4.1 / min not reachable: the effort is 56 track changes (player tracking).
+  `records/stretch_confirm_2026-11-22`.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |

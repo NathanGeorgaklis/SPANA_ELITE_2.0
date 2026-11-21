@@ -1,0 +1,12 @@
+# Simulated after-match reviewer policy for player confirmations (tools/target_score.py --confirmations), DEV
+# measurement only; never read by the product. Decision 2026-11-22 (Nathan, option 1, records/stretch_confirm_2026-11-22).
+# stretch_over_unobserved: a confirmed stretch on one track continues over labelled frames where that track is not
+#   the observed box of anyone (occluded / predicted: the follower answers nothing there anyway, fail closed); it
+#   still ends at a labelled frame where the track holds two players (never answer on a two-player box), shows another
+#   player, or the player is unambiguously on another track; and at the track's end, a new uncertainty episode or the
+#   gap's end. false = the earlier reviewer (end at the first labelled frame not attributed to the player).
+# min_stretch_labelled_frames: the reviewer does not spend an action on a stretch covering fewer labelled frames
+#   (it moves on to a later labelled frame of the same gap). 1 = confirm every stretch (the earlier reviewer).
+schema_version: "1.0.0"
+stretch_over_unobserved: true
+min_stretch_labelled_frames: 2

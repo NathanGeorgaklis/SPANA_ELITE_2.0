@@ -1,0 +1,152 @@
+{
+ "stretch-orig": {
+  "correct": 0.87,
+  "wrong": 0,
+  "unverified": 32,
+  "abstain": 295,
+  "actions": {
+   "confirm_relink": 10,
+   "player_confirmation": 70,
+   "reject_candidate": 1,
+   "track_at_frame": 27
+  },
+  "actions_total": 108,
+  "actions_per_min": 7.52,
+  "followed_min": 14.36
+ },
+ "stretch-v1": {
+  "correct": 0.87,
+  "wrong": 0,
+  "unverified": 34,
+  "abstain": 292,
+  "actions": {
+   "confirm_relink": 10,
+   "player_confirmation": 70,
+   "reject_candidate": 1,
+   "track_at_frame": 27
+  },
+  "actions_total": 108,
+  "actions_per_min": 7.52,
+  "followed_min": 14.36
+ },
+ "stretch-v2": {
+  "correct": 0.871,
+  "wrong": 0,
+  "unverified": 51,
+  "abstain": 272,
+  "actions": {
+   "confirm_relink": 10,
+   "player_confirmation": 63,
+   "reject_candidate": 1,
+   "track_at_frame": 27
+  },
+  "actions_total": 101,
+  "actions_per_min": 7.04,
+  "followed_min": 14.36
+ },
+ "frontier-2": {
+  "correct": 0.881,
+  "wrong": 0,
+  "unverified": 51,
+  "abstain": 263,
+  "actions": {
+   "confirm_relink": 10,
+   "player_confirmation": 52,
+   "reject_candidate": 1,
+   "track_at_frame": 27
+  },
+  "actions_total": 90,
+  "actions_per_min": 6.27,
+  "followed_min": 14.36
+ },
+ "frontier-4": {
+  "correct": 0.872,
+  "wrong": 0,
+  "unverified": 51,
+  "abstain": 287,
+  "actions": {
+   "confirm_relink": 10,
+   "player_confirmation": 38,
+   "reject_candidate": 1,
+   "track_at_frame": 27
+  },
+  "actions_total": 76,
+  "actions_per_min": 5.29,
+  "followed_min": 14.36
+ },
+ "frontier-8": {
+  "correct": 0.859,
+  "wrong": 0,
+  "unverified": 51,
+  "abstain": 307,
+  "actions": {
+   "confirm_relink": 10,
+   "player_confirmation": 30,
+   "reject_candidate": 1,
+   "track_at_frame": 28
+  },
+  "actions_total": 69,
+  "actions_per_min": 4.81,
+  "followed_min": 14.36
+ },
+ "frontier-11": {
+  "correct": 0.856,
+  "wrong": 0,
+  "unverified": 51,
+  "abstain": 311,
+  "actions": {
+   "confirm_relink": 10,
+   "player_confirmation": 27,
+   "reject_candidate": 1,
+   "track_at_frame": 31
+  },
+  "actions_total": 69,
+  "actions_per_min": 4.81,
+  "followed_min": 14.36
+ },
+ "frontier-2v1": {
+  "correct": 0.879,
+  "wrong": 0,
+  "unverified": 34,
+  "abstain": 287,
+  "actions": {
+   "confirm_relink": 10,
+   "player_confirmation": 55,
+   "reject_candidate": 1,
+   "track_at_frame": 27
+  },
+  "actions_total": 93,
+  "actions_per_min": 6.48,
+  "followed_min": 14.36
+ },
+ "frontier-4v1": {
+  "correct": 0.868,
+  "wrong": 0,
+  "unverified": 34,
+  "abstain": 317,
+  "actions": {
+   "confirm_relink": 10,
+   "player_confirmation": 39,
+   "reject_candidate": 1,
+   "track_at_frame": 27
+  },
+  "actions_total": 77,
+  "actions_per_min": 5.36,
+  "followed_min": 14.36
+ },
+ "frontier-8v1": {
+  "correct": 0.852,
+  "wrong": 0,
+  "unverified": 34,
+  "abstain": 339,
+  "actions": {
+   "confirm_relink": 10,
+   "player_confirmation": 29,
+   "reject_candidate": 1,
+   "track_at_frame": 28
+  },
+  "actions_total": 68,
+  "actions_per_min": 4.74,
+  "followed_min": 14.36
+ }
+}
