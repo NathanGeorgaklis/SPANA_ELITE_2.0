@@ -200,13 +200,20 @@ def encode(frames: Iterable[np.ndarray], out_path: str, fps: float, width: int, 
         raise SystemExit("ffmpeg failed")
 
 
+def playback_fps(frames, fps: float) -> float:
+    """Real-time playback rate when only every N-th frame was analysed: fps x analysed frames / frames spanned."""
+    if len(frames) < 2:
+        return fps
+    return fps * (len(frames) - 1) / (frames[-1] - frames[0])
+
+
 def render(video_frames: Iterable[Tuple[int, np.ndarray]], tracks_doc: dict, target_doc: dict, out_path: str,
            fps: float, width: int, height: int, caption: Optional[Callable[[int], Optional[str]]] = None,
            ball_doc: Optional[dict] = None) -> None:
     r = Renderer(tracks_doc, target_doc, width, height, ball_doc)
     wanted = set(r.frames)
     encode((r.draw(img, i, caption(i) if caption else None) for i, img in video_frames if i in wanted),
-           out_path, fps, width, height)
+           out_path, playback_fps(r.frames, fps), width, height)
 
 
 def main(argv=None) -> int:

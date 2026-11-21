@@ -10,7 +10,7 @@ from pathlib import Path
 from spana.config import load_config
 from spana.identity.follower import target_document
 from tools.target_demo import ACTIONS, H, N_FRAMES, SELECTION, W, scene, tracks_artifact
-from tools.target_render import Renderer, encode
+from tools.target_render import Renderer, encode, playback_fps
 
 ROOT = Path(__file__).resolve().parents[1]
 CFG = load_config(ROOT / "config" / "default.yaml")
@@ -78,6 +78,14 @@ class BallOverlayTest(unittest.TestCase):
         a = Renderer(self.tracks, self.doc, W, H).draw(scene(70), 70)
         b = Renderer(self.tracks, self.doc, W, H, None).draw(scene(70), 70)
         self.assertTrue((a == b).all())
+
+
+
+class PlaybackFpsTest(unittest.TestCase):
+    def test_strided_frames_play_in_real_time(self):
+        self.assertAlmostEqual(playback_fps([0, 3, 6, 9], 60.0), 20.0)
+        self.assertAlmostEqual(playback_fps(list(range(10)), 25.0), 25.0)
+        self.assertAlmostEqual(playback_fps([5], 30.0), 30.0)
 
 
 if __name__ == "__main__":
