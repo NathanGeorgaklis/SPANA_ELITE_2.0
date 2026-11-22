@@ -37,7 +37,7 @@ class CameraMotionEstimator:
         small = cv2.resize(frame_bgr, self.size, interpolation=cv2.INTER_AREA)
         gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
         hsv = cv2.cvtColor(small, cv2.COLOR_BGR2HSV)
-        hist = cv2.calcHist([hsv], [0, 1], None, [32, 32], [0, 180, 0, 256])
+        hist = cv2.calcHist([hsv], [0, 1], None, [self.cfg.cut_hist_hue_bins, self.cfg.cut_hist_sat_bins], [0, 180, 0, 256])
         cv2.normalize(hist, hist, 1.0, 0.0, cv2.NORM_L1)
         mask = self._mask(player_boxes)
 

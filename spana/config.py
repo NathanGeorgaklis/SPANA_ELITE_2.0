@@ -20,7 +20,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.16.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.17.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
@@ -32,6 +32,8 @@ CONFIG_SCHEMA_VERSION = "2.16.0"   # 2.1.0: + target section; 2.2.0: + target re
 #   2.15.0: + ball section (ball view + ball tracker)
 #   2.16.0: + target.confirm_contradict_reid_margin / confirm_contradict_colour_margin / gallery_reid_resolve
 #   / confirmation_scope (player confirmations of target identity episodes, spana.identity.confirmation)
+#   2.17.0: + camera.cut_hist_hue_bins / cut_hist_sat_bins, tracking.confirm_min_observed_frames (were hard-coded
+#   32 / 32 / 2; same values)
 
 
 class ConfigError(ValueError):
@@ -83,6 +85,8 @@ class CameraConfig:
     min_inliers: int
     ransac_reproj_frac: float     # RANSAC threshold as a fraction of the analysis-frame diagonal
     cut_hist_distance: float      # Bhattacharyya distance on HSV histograms above which a frame is a cut
+    cut_hist_hue_bins: int        # ... histogram bins over hue (cut_hist_distance is calibrated for these bins)
+    cut_hist_sat_bins: int        # ... and over saturation
     max_log_scale_rate_per_s: float  # plausible zoom speed, |log(scale)| per second
     scale_noise_log: float           # per-estimate |log(scale)| noise allowance on top of the rate
     disagreement_noise_scale: float  # camera motion std = this x per-axis RMS disagreement of tracked features
@@ -95,6 +99,8 @@ class CameraConfig:
         _pos_int("camera.min_inliers", self.min_inliers)
         _pos("camera.ransac_reproj_frac", self.ransac_reproj_frac)
         _unit("camera.cut_hist_distance", self.cut_hist_distance)
+        _pos_int("camera.cut_hist_hue_bins", self.cut_hist_hue_bins)
+        _pos_int("camera.cut_hist_sat_bins", self.cut_hist_sat_bins)
         _pos("camera.max_log_scale_rate_per_s", self.max_log_scale_rate_per_s)
         _pos("camera.scale_noise_log", self.scale_noise_log)
         if not self.disagreement_noise_scale >= 0:
@@ -124,6 +130,7 @@ class TrackingConfig:
     iou_weight: float              # cost = iou_weight*(1-IoU) + (1-iou_weight)*dist_h/gate_max_h
     contest_margin: float          # a rival within this cost margin marks the match CONTESTED
     confirm_s: float               # observed span required to confirm a new (uncertain) track
+    confirm_min_observed_frames: int  # ... and at least this many observed frames (whatever the frame rate)
     confirm_nested_ioa: float      # ... and its box must not lie inside another observed box by this share
     unconfirmed_max_s: float       # an unconfirmed track older than this is terminated
     rematch_max_s: float           # LOST track: longest gap bridged by motion (exclusive pairs only)
@@ -172,6 +179,7 @@ class TrackingConfig:
             _pos(f"tracking.{n}", getattr(self, n))
         if self.max_height_ratio < 1.0:
             raise ConfigError("tracking.max_height_ratio must be >= 1")
+        _pos_int("tracking.confirm_min_observed_frames", self.confirm_min_observed_frames)
         _pos("tracking.extent_edge_max_h", self.extent_edge_max_h)
         if self.extent_max_ratio < self.max_height_ratio:
             raise ConfigError("tracking.extent_max_ratio must be >= tracking.max_height_ratio")
