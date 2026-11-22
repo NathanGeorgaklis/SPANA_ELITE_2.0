@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.16.0"
+schema_version: "2.17.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -28,6 +28,8 @@ camera:
   min_inliers: 25
   ransac_reproj_frac: 0.006   # ~3.6 px on a 480x270 analysis frame
   cut_hist_distance: 0.55
+  cut_hist_hue_bins: 32            # HSV histogram of the cut test; cut_hist_distance is calibrated for 32 x 32
+  cut_hist_sat_bins: 32
   max_log_scale_rate_per_s: 1.0   # zoom faster than ~e (2.7x) per second is implausible -> UNKNOWN
   scale_noise_log: 0.02           # estimate noise allowance per frame pair
   # Camera-motion uncertainty: feature disagreement with the fitted transform is added to every track's predicted
@@ -49,6 +51,7 @@ tracking:
   iou_weight: 0.5
   contest_margin: 0.10
   confirm_s: 0.10
+  confirm_min_observed_frames: 2   # a single detection never confirms a track, even when confirm_s < one frame
   confirm_nested_ioa: 0.60     # a box mostly inside another player's box is not confirmed (partial duplicate)
   unconfirmed_max_s: 1.00
   rematch_max_s: 0.20          # longest gap bridged by motion alone (exclusive pairs only)

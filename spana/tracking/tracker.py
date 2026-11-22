@@ -1080,7 +1080,7 @@ class MultiPlayerTracker:
         for k in matched:
             t = self._tracks[k]
             if not t.confirmed:
-                if t.observed_frames >= 2 and t.last_observed_t - t.first_observed_t >= self.tc.confirm_s - _EPS \
+                if t.observed_frames >= self.tc.confirm_min_observed_frames and t.last_observed_t - t.first_observed_t >= self.tc.confirm_s - _EPS \
                         and not self._nested(dets[matched[k][0]].as_array(), k, matched, dets):
                     t.confirmed = True
                 elif time_s - t.first_observed_t > self.tc.unconfirmed_max_s + _EPS:

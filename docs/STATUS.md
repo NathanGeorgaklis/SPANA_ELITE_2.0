@@ -221,8 +221,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   `identity/target-render-v1` and by Nathan's local inference / profiling keys: reconcile when merging.
 
 ## Hardcoded values / magic numbers found
-- `spana/tracking/camera.py:40` cut-detection HSV histogram bins `[32, 32]` (`camera.cut_hist_distance` depends on it).
-- `spana/tracking/tracker.py:626` confirmation needs `observed_frames >= 2` in addition to `tracking.confirm_s`.
+- Moved to config 2026-11-22 (`tracking/thresholds-to-config`, config 2.17.0, same values; synthetic tracker / camera
+  outputs byte-identical): `camera.cut_hist_hue_bins` / `cut_hist_sat_bins` (were `[32, 32]` in
+  `spana/tracking/camera.py`), `tracking.confirm_min_observed_frames` (was `observed_frames >= 2` in
+  `spana/tracking/tracker.py`). Not yet re-run on DEV footage (expected identical tracks).
 - `spana/evaluation.py:216` `dup_ioa=0.6` default; `spana/evaluation.py:41` `HEIGHT_BINS_PX` (reporting only).
 - `tools/benchmark.py:23` `IGNORE_IOA = 0.5` (scoring convention); `tools/roboflow_ball_sheet.py:22` `CROP_FRAC = 0.09`.
 - Numerical guards only (`_EPS = 1e-9`, `_INVALID = 1e6`): not thresholds.
