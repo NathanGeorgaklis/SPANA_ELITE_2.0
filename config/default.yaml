@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.17.0"
+schema_version: "2.18.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -304,12 +304,15 @@ team:
   min_segment_s: 1.0
   min_cluster_segments: 3
   min_cluster_separation: 0.30 # Hellinger distance between the two team centres
+  min_separation_radius_ratio: 1.0  # STATED PRIOR (decision 2026-11-22), not fitted: the other team's centre must lie
+                               # outside each cluster's radius (max member distance); else CLUSTERS_OVERLAP, match abstains
   outlier_distance: 0.45       # from both centres -> colour outlier (role candidate)
   trim_rounds: 2
   max_kmeans_iter: 100
   vote_margin: 0.05
   min_votes: 5
   min_vote_share: 0.80
+  roles_enabled: false        # decision 2026-11-22: TEAM_A / TEAM_B / UNKNOWN only until pitch context exists
   role_min_share: 0.60         # the detector role hint alone is unreliable (DEV: 31 % referee boxes on FRESH_05)
   role_min_frames: 5
   role_conflict_share: 0.30

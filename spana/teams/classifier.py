@@ -11,10 +11,12 @@ known in advance:
    segment never inherits another's label.
 3. Match model: a weighted, trimmed 2-means of the segments' median torso histograms (Hellinger distance, computed as
    the Euclidean distance of square-root histograms / sqrt 2). Deterministic: density seeds (outliers cannot seed a team), ties by
-   (clip, frame, track). It abstains when the centres are too close or a cluster is too small.
+   (clip, frame, track). It abstains when the centres are too close, when the clusters overlap (separation not
+   above `team.min_separation_radius_ratio` x the larger cluster radius), or when a cluster is too small.
 4. Team label: every evidence frame votes; a segment is TEAM_X only with enough votes and vote share for its nearest
    cluster X, and only when it is not a colour outlier.
-5. Roles: only a colour outlier (far from both centres) can be REFEREE / GOALKEEPER, and only with a detector
+5. Roles (`team.roles_enabled`, OFF in v1, decision 2026-11-22): a colour outlier is UNKNOWN (COLOUR_OUTLIER),
+   never the nearest team. With roles on, only a colour outlier (far from both centres) can be REFEREE / GOALKEEPER, and only with a detector
    role-hint majority. The detector hint alone never decides (it confuses kits with roles on DEV).
 
 Fail closed: anything else is UNKNOWN with a reason.
@@ -160,6 +162,18 @@ def _fit(us: List[np.ndarray], ws: List[float], radius: float, max_iter: int
     return ca, cb, assign
 
 
+def model_verdict(separation: float, radii: Sequence[float], sizes: Sequence[int], tcfg: TeamConfig
+                  ) -> Optional[str]:
+    """None when the two-team model may answer, else why the whole match abstains."""
+    if separation < tcfg.min_cluster_separation:
+        return "CLUSTERS_NOT_SEPARATED"
+    if separation <= tcfg.min_separation_radius_ratio * max(radii):
+        return "CLUSTERS_OVERLAP"          # a member is as far from its own centre as the two centres are apart
+    if min(sizes) < tcfg.min_cluster_segments:
+        return "CLUSTER_TOO_SMALL"
+    return None
+
+
 def classify(segments: Sequence[Segment], tcfg: TeamConfig, decimals: int) -> Tuple[dict, List[dict]]:
     """(model, tracks) parts of a spana.teams document for all segments of one match."""
     r = lambda v: None if v is None else round(float(v), decimals)   # noqa: E731
@@ -192,16 +206,14 @@ def classify(segments: Sequence[Segment], tcfg: TeamConfig, decimals: int) -> Tu
         if first is not None and first in members[1]:      # TEAM_A holds the earliest-starting segment
             ca, cb, members = cb, ca, {0: members[1], 1: members[0]}
         sep = hellinger(ca, cb)
+        radii = [max((hellinger(desc[id(s)], cen) for s in members[c]), default=0.0)
+                 for c, cen in ((0, ca), (1, cb))]
         model["separation"] = r(sep)
         model["clusters"] = [{"label": lab, "segments": len(members[c]),
-                              "evidence_frames": sum(len(s.evidence) for s in members[c]),
-                              "radius": r(max((hellinger(desc[id(s)], cen) for s in members[c]), default=0.0))}
-                             for c, lab, cen in ((0, TeamLabel.TEAM_A.value, ca), (1, TeamLabel.TEAM_B.value, cb))]
-        if sep < tcfg.min_cluster_separation:
-            model["reason"] = "CLUSTERS_NOT_SEPARATED"
-        elif min(len(members[0]), len(members[1])) < tcfg.min_cluster_segments:
-            model["reason"] = "CLUSTER_TOO_SMALL"
-        else:
+                              "evidence_frames": sum(len(s.evidence) for s in members[c]), "radius": r(radii[c])}
+                             for c, lab in ((0, TeamLabel.TEAM_A.value), (1, TeamLabel.TEAM_B.value))]
+        model["reason"] = model_verdict(sep, radii, (len(members[0]), len(members[1])), tcfg)
+        if model["reason"] is None:
             model["status"] = "FITTED"
             centres = (ca, cb)
     tracks: Dict[Tuple[str, str], List[dict]] = {}
@@ -249,6 +261,9 @@ def _segment_row(s: Segment, eligible: bool, d: Optional[np.ndarray], centres, t
             row["reasons"] = [TeamReason.LOW_VOTE_SHARE.value]
         return row
     row["_outlier"] = True
+    if not tcfg.roles_enabled:          # v1 (decision 2026-11-22): a colour outlier is never put in the nearest team
+        row["reasons"] = [TeamReason.COLOUR_OUTLIER.value]
+        return row
     obs = s.observed_rows
     ref, gk = s.role_rows.get(tcfg.referee_class, 0), s.role_rows.get(tcfg.goalkeeper_class, 0)
     def strong(c: int) -> bool:

@@ -1185,20 +1185,25 @@ def validate_ball(doc: Any, detections: Optional[dict] = None) -> None:
 
 
 # ----------------------------------------------------------------------------- teams
-TEAMS_SCHEMA = ("spana.teams", "1.0.0")
+TEAMS_SCHEMA = ("spana.teams", "1.1.0")   # 1.1.0: + reason COLOUR_OUTLIER, model reason CLUSTERS_OVERLAP,
+TEAMS_VERSIONS = ("1.0.0", "1.1.0")       #   team_config roles_enabled (no role answer when false); 1.0.0 still validates
 _TEAMS_INPUT_KEYS = ("clip", "video_sha256", "tracks_sha256", "detections_sha256")
 _TEAMS_MODEL_KEYS = ("status", "reason", "clusters", "separation", "trimmed_segments", "outlier_segments")
-_TEAMS_MODEL_REASONS = {"FITTED": (None,), "ABSTAIN": ("TOO_FEW_SEGMENTS", "CLUSTERS_NOT_SEPARATED",
+_TEAMS_MODEL_REASONS = {"FITTED": (None,), "ABSTAIN": ("TOO_FEW_SEGMENTS", "CLUSTERS_NOT_SEPARATED", "CLUSTERS_OVERLAP",
                                                        "CLUSTER_TOO_SMALL")}
 _TEAMS_SEG_KEYS = ("frame", "frame_end", "label", "reasons", "evidence_frames", "votes", "dist", "role_hint_share")
 
 
 def validate_teams(doc: Any, tracks_by_clip: Optional[Dict[str, dict]] = None) -> None:
-    """spana.teams 1.0.0. With the clips' tracks documents: same hashes, and every segment is a run of rows of its
-    track that are all confirmed and identity CERTAIN."""
+    """spana.teams 1.1.0 (1.0.0 still validates). With the clips' tracks documents: same hashes, and every segment is a
+    run of rows of its track that are all confirmed and identity CERTAIN."""
     from .records import TeamLabel, TeamReason
-    _header(doc, TEAMS_SCHEMA, ("schema", "schema_version", "provenance", "match_id", "inputs", "team_config",
-                                "appearance_config", "feature", "model", "tracks"))
+    if not isinstance(doc, dict) or doc.get("schema_version") not in TEAMS_VERSIONS:
+        raise ArtifactError(f"teams: schema_version {doc.get('schema_version') if isinstance(doc, dict) else None!r} "
+                            f"not in {TEAMS_VERSIONS}")
+    version = doc["schema_version"]
+    _header(doc, (TEAMS_SCHEMA[0], version), ("schema", "schema_version", "provenance", "match_id", "inputs",
+                                              "team_config", "appearance_config", "feature", "model", "tracks"))
     if not (isinstance(doc["match_id"], str) and doc["match_id"]):
         raise ArtifactError("teams: match_id missing")
     clips = []
@@ -1209,12 +1214,16 @@ def validate_teams(doc: Any, tracks_by_clip: Optional[Dict[str, dict]] = None) -
         raise ArtifactError("teams: inputs need distinct clips")
     m = doc["model"]
     _keys(m, _TEAMS_MODEL_KEYS, "teams model")
-    if m["status"] not in _TEAMS_MODEL_REASONS or m["reason"] not in _TEAMS_MODEL_REASONS[m["status"]]:
+    if m["status"] not in _TEAMS_MODEL_REASONS or m["reason"] not in _TEAMS_MODEL_REASONS[m["status"]] or \
+            (version == "1.0.0" and m["reason"] == "CLUSTERS_OVERLAP"):
         raise ArtifactError(f"teams model: bad status / reason {m['status']!r} {m['reason']!r}")
     if m["status"] == "FITTED" and [c.get("label") for c in m["clusters"]] != ["TEAM_A", "TEAM_B"]:
         raise ArtifactError("teams model: a fitted model has clusters TEAM_A, TEAM_B")
     labels = {v.value for v in TeamLabel}
     reasons = {v.value for v in TeamReason} - {TeamReason.OUTSIDE_SEGMENT.value}
+    if version == "1.0.0":
+        reasons -= {TeamReason.COLOUR_OUTLIER.value}
+    roles_off = version != "1.0.0" and not doc["team_config"].get("roles_enabled", False)
     seen = set()
     for t in doc["tracks"]:
         _keys(t, ("clip", "track_id", "segments", "flags"), "teams track")
@@ -1236,6 +1245,8 @@ def validate_teams(doc: Any, tracks_by_clip: Optional[Dict[str, dict]] = None) -
             if sg["label"] != TeamLabel.UNKNOWN.value:
                 if m["status"] != "FITTED":
                     raise ArtifactError(f"{t['track_id']}: decided label without a fitted match model")
+                if roles_off and sg["label"] in (TeamLabel.GOALKEEPER.value, TeamLabel.REFEREE.value):
+                    raise ArtifactError(f"{t['track_id']}: role answer {sg['label']} with roles_enabled false")
                 decided.add(sg["label"])
             if set(sg["votes"]) != {"TEAM_A", "TEAM_B", "abstain"} or \
                     sum(sg["votes"].values()) not in (0, sg["evidence_frames"]):

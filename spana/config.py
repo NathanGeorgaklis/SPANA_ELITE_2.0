@@ -20,7 +20,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.17.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.18.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
@@ -33,6 +33,7 @@ CONFIG_SCHEMA_VERSION = "2.17.0"   # 2.1.0: + target section; 2.2.0: + target re
 #   2.16.0: + target.confirm_contradict_reid_margin / confirm_contradict_colour_margin / gallery_reid_resolve
 #   / confirmation_scope (player confirmations of target identity episodes, spana.identity.confirmation)
 #   2.17.0: + team section (team classification v1, spana.teams)
+#   2.18.0: + team.roles_enabled, team.min_separation_radius_ratio (spana.teams 1.1.0)
 
 
 class ConfigError(ValueError):
@@ -375,12 +376,15 @@ class TeamConfig:
     min_segment_s: float           # ... spanning at least this long
     min_cluster_segments: int      # each team cluster needs this many segments, else the match model abstains
     min_cluster_separation: float  # distance between the two team centres, else the match model abstains
+    min_separation_radius_ratio: float  # the centres must be farther apart than this x the larger cluster radius,
+                                   #   else the match model abstains (CLUSTERS_OVERLAP)
     outlier_distance: float        # a segment farther than this from both centres is a colour outlier
     trim_rounds: int               # outliers removed and the two clusters refitted this many times
     max_kmeans_iter: int           # safety cap on the 2-means iterations (it converges well before)
     vote_margin: float             # a frame votes for X when d_X + margin < d_other
     min_votes: int                 # a team label needs this many votes ...
     min_vote_share: float          # ... and this share of the segment's evidence frames (> 0.5)
+    roles_enabled: bool            # REFEREE / GOALKEEPER answers at all (off in v1: colour outliers stay UNKNOWN)
     role_min_share: float          # an outlier is REFEREE / GOALKEEPER when this share of its observed rows ...
     role_min_frames: int           # ... (at least this many) carries that detector class ...
     role_conflict_share: float     # ... and the other role class stays below this share
@@ -395,6 +399,7 @@ class TeamConfig:
         for n in ("min_segment_frames", "min_cluster_segments", "max_kmeans_iter", "min_votes", "role_min_frames"):
             _pos_int(f"team.{n}", getattr(self, n))
         _pos_int("team.trim_rounds", self.trim_rounds, allow_zero=True)
+        _pos("team.min_separation_radius_ratio", self.min_separation_radius_ratio)
         for n in ("min_cluster_separation", "outlier_distance", "vote_margin", "role_min_share",
                   "role_conflict_share"):
             _unit(f"team.{n}", getattr(self, n))

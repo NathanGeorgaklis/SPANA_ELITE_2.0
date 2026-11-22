@@ -9,13 +9,14 @@ import pytest
 
 from spana.artifacts import ArtifactError, TEAMS_SCHEMA, sha256_doc, validate_teams
 from spana.config import ConfigError, TeamConfig, load_config
-from spana.teams.classifier import classify, label_at, segments_of_clip
+from spana.teams.classifier import classify, label_at, model_verdict, segments_of_clip
 
 ROOT = Path(__file__).resolve().parent.parent
 CFG = load_config(ROOT / "config" / "default.yaml")
 NAMES = ["player", "goalkeeper", "referee"]
 RED, BLUE, YELLOW, GREEN, PURPLE = (0, 0, 220), (220, 0, 0), (0, 220, 220), (0, 200, 0), (200, 0, 200)
 N = 100   # frames at 25 fps = 4 s
+ROLES_ON = dataclasses.replace(CFG.team, roles_enabled=True)   # the role rule itself (off in v1)
 
 
 def spec(tid, slot, colour, cls=0, identity=lambda f: "CERTAIN", start=0, box=None):
@@ -35,7 +36,11 @@ def clip(specs, n=N):
                 continue
             b = s["box"]
             col = s["colour"](f) if callable(s["colour"]) else s["colour"]
-            img[int(b[1]):int(b[3]), int(b[0]):int(b[2])] = col
+            x0 = int(b[0])
+            for frac, c in (col if isinstance(col, list) else [(1.0, col)]):   # vertical stripes, left to right
+                xe = x0 + int(round(frac * (int(b[2]) - int(b[0]))))
+                img[int(b[1]):int(b[3]), x0:max(x0, xe)] = c
+                x0 = xe
             rows.append({"track_id": s["tid"], "confirmed": True, "identity": s["identity"](f), "source": "OBSERVED",
                          "detection_index": len(dets), "box": b})
             dets.append([*b, 0.9, s["cls"], 0])
@@ -71,7 +76,8 @@ def labels(doc):
 
 
 def test_two_kits_and_roles():
-    doc, _ = run(two_kits([spec("Y", 8, YELLOW, cls=2), spec("G", 9, GREEN, cls=1), spec("P", 10, PURPLE, cls=0)]))
+    doc, _ = run(two_kits([spec("Y", 8, YELLOW, cls=2), spec("G", 9, GREEN, cls=1), spec("P", 10, PURPLE, cls=0)]),
+                 ROLES_ON)
     lab = labels(doc)
     assert doc["model"]["status"] == "FITTED" and doc["model"]["separation"] > 0.9
     assert all(lab[f"R{i}"] == ["TEAM_A"] for i in range(4))   # TEAM_A holds the earliest-starting segment
@@ -84,20 +90,21 @@ def test_two_kits_and_roles():
 
 
 def test_detector_role_never_overrides_a_team_kit():
-    doc, _ = run(two_kits([spec("Rref", 8, RED, cls=2)]))
+    doc, _ = run(two_kits([spec("Rref", 8, RED, cls=2)]), ROLES_ON)
     assert labels(doc)["Rref"] == ["TEAM_A"]
 
 
 def test_role_hint_conflict():
-    doc, _ = run(two_kits([spec("Y", 8, YELLOW, cls=2), spec("Y2", 9, YELLOW, cls=1, box=[830.0, 100, 890, 260])]))
+    doc, _ = run(two_kits([spec("Y", 8, YELLOW, cls=2), spec("Y2", 9, YELLOW, cls=1, box=[830.0, 100, 890, 260])]),
+                 ROLES_ON)
     assert labels(doc)["Y"] == ["REFEREE"] and labels(doc)["Y2"] == ["GOALKEEPER"]
     mixed = spec("M", 10, YELLOW, cls=0)
     tracks, det, imgs = clip(two_kits([mixed]))
     for k, fr in enumerate(det["frames"]):          # half referee, half goalkeeper hints
         fr["detections"][-1][5] = 2 if k % 2 else 1
     tracks["detections_sha256"] = sha256_doc(det)
-    segs = segments_of_clip("c1", tracks, det, imgs, CFG.appearance, CFG.team)
-    _, rows = classify(segs, CFG.team, 4)
+    segs = segments_of_clip("c1", tracks, det, imgs, CFG.appearance, ROLES_ON)
+    _, rows = classify(segs, ROLES_ON, 4)
     m = next(t for t in rows if t["track_id"] == "M")["segments"][0]
     assert m["label"] == "UNKNOWN" and m["reasons"] == ["ROLE_HINT_CONFLICT"]
 
@@ -174,3 +181,41 @@ def test_config_fails_closed():
         with pytest.raises(ConfigError):
             dataclasses.replace(CFG.team, **{k: v}).validate()
     assert isinstance(CFG.team, TeamConfig)
+
+
+ORANGE = [(0.3, RED), (1.0, YELLOW)]   # torso 30 % red: nearer red than blue, beyond outlier_distance from both
+
+
+def test_roles_off_outliers_stay_unknown_never_nearest_team():
+    """v1 default (decision 2026-11-22): referees / keepers / any colour outlier answer UNKNOWN, even with a strong
+    detector role hint and even when one team is clearly nearer."""
+    assert CFG.team.roles_enabled is False
+    doc, _ = run(two_kits([spec("Y", 8, YELLOW, cls=2), spec("G", 9, GREEN, cls=1), spec("O", 10, ORANGE, cls=0)]))
+    assert doc["model"]["status"] == "FITTED"
+    for tid in ("Y", "G", "O"):
+        seg = next(t for t in doc["tracks"] if t["track_id"] == tid)["segments"][0]
+        assert seg["label"] == "UNKNOWN" and seg["reasons"] == ["COLOUR_OUTLIER"], tid
+        assert min(seg["dist"].values()) > CFG.team.outlier_distance
+    o = next(t for t in doc["tracks"] if t["track_id"] == "O")["segments"][0]
+    assert o["dist"]["TEAM_A"] < o["dist"]["TEAM_B"]          # a nearest team exists; it is still not answered
+    assert labels(doc)["R0"] == ["TEAM_A"] and labels(doc)["B0"] == ["TEAM_B"]
+    bad = copy.deepcopy(doc)
+    seg = next(t for t in bad["tracks"] if t["track_id"] == "Y")["segments"][0]
+    seg.update(label="REFEREE", reasons=[])
+    with pytest.raises(ArtifactError, match="roles_enabled false"):
+        validate_teams(bad)
+
+
+def test_overlapping_clusters_abstain():
+    """Match-level rule (decision 2026-11-22): separation must exceed team.min_separation_radius_ratio x the larger
+    cluster radius. Numbers: TRAIN_M001 (0.4385 vs radius 0.4497) abstains; the DEV matches (0.80-0.98 vs <= 0.45)
+    do not."""
+    t = CFG.team
+    assert t.min_separation_radius_ratio == 1.0
+    assert model_verdict(0.4385, (0.4446, 0.4497), (207, 370), t) == "CLUSTERS_OVERLAP"
+    assert model_verdict(0.8015, (0.4384, 0.3431), (8, 11), t) is None
+    assert model_verdict(0.4497, (0.4497, 0.1), (5, 5), t) == "CLUSTERS_OVERLAP"     # equal is not enough
+    assert model_verdict(0.25, (0.1, 0.1), (5, 5), t) == "CLUSTERS_NOT_SEPARATED"
+    assert model_verdict(0.9, (0.3, 0.3), (5, 2), t) == "CLUSTER_TOO_SMALL"
+    assert model_verdict(0.4385, (0.4446, 0.4497), (207, 370),
+                         dataclasses.replace(t, min_separation_radius_ratio=0.9)) is None

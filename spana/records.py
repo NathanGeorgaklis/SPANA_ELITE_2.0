@@ -88,6 +88,7 @@ class TeamReason(str, Enum):
     """Why a segment is UNKNOWN (spana.teams 1.0.0). A decided label carries no reason."""
     TOO_FEW_CLEAN_FRAMES = "TOO_FEW_CLEAN_FRAMES"    # fewer than team.min_segment_frames / min_segment_s of evidence
     LOW_VOTE_SHARE = "LOW_VOTE_SHARE"                # inside a team cluster, but the per-frame votes are not decisive
+    COLOUR_OUTLIER = "COLOUR_OUTLIER"                # (1.1.0) far from both teams, roles off: never the nearest team
     COLOUR_OUTLIER_NO_ROLE = "COLOUR_OUTLIER_NO_ROLE"  # far from both teams, and no detector role-hint majority
     ROLE_HINT_CONFLICT = "ROLE_HINT_CONFLICT"        # far from both teams, both role hints present
     MATCH_MODEL_ABSTAIN = "MATCH_MODEL_ABSTAIN"      # the match's two-team colour model abstained
