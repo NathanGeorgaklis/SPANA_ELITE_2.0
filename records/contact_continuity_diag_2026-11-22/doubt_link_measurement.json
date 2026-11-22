@@ -1,0 +1,59 @@
+{
+ "tracks": {
+  "default": {
+   "identity_transfers": 7,
+   "unflagged_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "fragments_total": 101,
+   "id_switches": 103
+  },
+  "doubt_link": {
+   "identity_transfers": 8,
+   "unflagged_transfers": 0,
+   "transfers_on_linked_tracks": 0,
+   "fragments_total": 98,
+   "id_switches": 100
+  }
+ },
+ "unaided": {
+  "default": {
+   "correct": 0.508,
+   "wrong": 0,
+   "unverified": 25,
+   "abstain": 513,
+   "actions": 0,
+   "actions_per_min": 0.0
+  },
+  "doubt_link": {
+   "correct": 0.506,
+   "wrong": 0,
+   "unverified": 22,
+   "abstain": 584,
+   "actions": 0,
+   "actions_per_min": 0.0
+  }
+ },
+ "reviewer_policy_baseline": {
+  "default": {
+   "correct": 0.879,
+   "wrong": 0,
+   "unverified": 34,
+   "abstain": 287,
+   "actions": 93,
+   "actions_per_min": 6.48
+  },
+  "doubt_link": {
+   "correct": 0.885,
+   "wrong": 0,
+   "unverified": 33,
+   "abstain": 298,
+   "actions": 94,
+   "actions_per_min": 6.55
+  }
+ },
+ "track_changes": {
+  "default": 103,
+  "doubt_link": 100
+ },
+ "extra_flagged_transfer": "FRESH_08 T000047 player 13 -> 14 at frame 258, on a doubt-linked track (flagged, not on a linked track)"
+}

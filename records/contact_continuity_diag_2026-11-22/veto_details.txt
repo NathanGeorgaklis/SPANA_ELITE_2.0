@@ -1,0 +1,37 @@
+{
+ "vetoes": 36,
+ "counts": {
+  "motion_gated_detections=1": 32,
+  "only_appearance_failed": 36,
+  "vetoed_box_taken_by_other": 6,
+  "A_IDENTITY_UNCERTAIN": 17,
+  "B_elsewhere_or_later": 17,
+  "vetoed_box_free": 30,
+  "A_CERTAIN": 18,
+  "B_spawned_on_the_vetoed_box_same_frame": 19,
+  "motion_gated_detections=2": 4,
+  "A_None": 1
+ },
+ "iou_with_prediction_median": 0.75915,
+ "iou_ge_0.40": 34,
+ "similarity_median": 0.6362,
+ "similarity_range": [
+  0.085,
+  0.6989
+ ],
+ "vetoed_box_max_iou_with_other_tracked_box": {
+  "n": 35,
+  "le_0.05": 35,
+  "max": 0.04825764969286301
+ },
+ "doubt_link_run": {
+  "remaining_vetoes": 28,
+  "narrower_rule": {
+   "box_taken_by_other_track": 5,
+   "iou_below_0.40": 3,
+   "also_gated_by_another_unmatched_track": 11,
+   "not_single_motion_gated": 4,
+   "eligible_under_narrower_rule": 5
+  }
+ }
+}

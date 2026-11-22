@@ -1,0 +1,56 @@
+{
+ "track_changes": 103,
+ "what_happened_to_A": {
+  "A_UNMATCHED": 92,
+  "A_OBSERVED_ON_ANOTHER_BOX": 11
+ },
+ "relation_A_B": {
+  "B_NAMES_A_PREDECESSOR+B_IS_A_RIVAL": 44,
+  "NONE": 34,
+  "B_NAMES_A_PREDECESSOR_UNIQUE": 14,
+  "B_IS_A_RIVAL": 6,
+  "B_TOOK_A_DETECTION": 4,
+  "B_IS_A_RIVAL+B_TOOK_A_DETECTION": 1
+ },
+ "unmatched_first_reason": {
+  "GATE_FAILED": 62,
+  "TAKEN_BY_OTHER": 15,
+  "REFUSED": 10,
+  "NO_DETECTION_NEARBY": 4,
+  "PASSING_CANDIDATE_UNUSED": 1
+ },
+ "unmatched_stage_prior_state": {
+  "continuing/ACTIVE": 92
+ },
+ "unmatched_first_failed_gate_of_nearest": {
+  "appearance_veto": 36,
+  "None": 29,
+  "mahalanobis_ok": 8,
+  "low_score_iou_ok": 7,
+  "centre_ok": 7,
+  "height_ok": 5
+ },
+ "unmatched_by_reason_and_gate": {
+  "GATE_FAILED|appearance_veto": 36,
+  "TAKEN_BY_OTHER|None": 14,
+  "REFUSED|None": 10,
+  "GATE_FAILED|mahalanobis_ok": 8,
+  "GATE_FAILED|low_score_iou_ok": 7,
+  "GATE_FAILED|centre_ok": 7,
+  "GATE_FAILED|height_ok": 4,
+  "NO_DETECTION_NEARBY|None": 4,
+  "TAKEN_BY_OTHER|height_ok": 1,
+  "PASSING_CANDIDATE_UNUSED|None": 1
+ },
+ "taken_by_rival": 10,
+ "taken_by_b": 3,
+ "a_identity_at_miss": {
+  "IDENTITY_UNCERTAIN": 45,
+  "CERTAIN": 41,
+  "None": 6
+ },
+ "b_identity_at_f2": {
+  "IDENTITY_UNCERTAIN": 62,
+  "CERTAIN": 41
+ }
+}
