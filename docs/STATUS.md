@@ -33,6 +33,9 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
   `spana.cli ball`, `detect --ball-out`). Full suite in the container: 635 passed, 14 skipped, 2 failed (BoT-SORT bench
   only: `supervision` not installed, as on main). UNMEASURED on footage: every `ball` value is a prior; next = DEV
   ball-track labels, then score and fit on DEV only.
+- Demo render MERGED to main (2026-11-22, Nathan): `tools/target_render.py --ball` overlay + real-time playback for
+  strided runs. DEV FRESH_05 at stride 3 (local ONNX CPU): ball OBSERVED 244 / PREDICTED 15 / LOST 2 of 261 frames
+  (unscored: no DEV ball labels); player 6 with simulated review 60 / 62 labelled frames correct, 0 wrong. Visual only.
 - Player confirmation MERGED to main (2026-11-22, Nathan accepted range scope; config 2.16.0, spana.target 2.10.0):
   the player's IS_ME / NOT_ME on a track, with conflict rule, human-confirmed gallery, undo and logging
   (`spana/identity/confirmation.py`, `spana.cli crops`). An IS_ME answers only the confirmed frames

@@ -9,6 +9,8 @@ Overlay per frame (spana.target 2.x):
   CANDIDATE                       dashed amber box, "Is this them?  accept / decline"
   ABSTAIN / LOST                  no box and no label on any player; a banner saying why, in plain words
   status panel (top left)         state, reason, the track the answer refers to
+  ball (optional, --ball)         yellow ring OBSERVED, dashed ring PREDICTED; ball state + reason in the panel
+                                  (spana.ball 1.0.0; LOST / AMBIGUOUS draw no ring: no position is claimed)
   timeline (bottom)               one colour per frame (green TARGET, amber CANDIDATE, grey ABSTAIN, red LOST,
                                   dark = before the selection), the gaps of the review list, the user's actions
                                   (^ tap / selection, + accept, x decline) and the playhead
@@ -26,7 +28,7 @@ from typing import Callable, Dict, Iterable, Optional, Tuple
 import cv2
 import numpy as np
 
-from spana.artifacts import read_json, refuse_existing, validate_target, validate_tracks
+from spana.artifacts import read_json, refuse_existing, validate_ball, validate_target, validate_tracks
 
 GREEN, AMBER, GREY, RED, DARK = (60, 200, 60), (0, 170, 255), (160, 160, 160), (60, 60, 230), (60, 60, 60)
 STATE_COLOUR = {"TARGET": GREEN, "CANDIDATE": AMBER, "ABSTAIN": GREY, "LOST": RED}
@@ -43,6 +45,9 @@ REASON_TEXT = {
 }
 TARGET_LABEL = "YOU"                                              # the selected player's persistent label
 OFFER_LABEL = "Is this them?  accept / decline"
+YELLOW = (0, 230, 255)
+BALL_TEXT = {"OBSERVED": "ball seen", "PREDICTED": "ball hidden: predicted", "LOST": "ball: not known",
+             "AMBIGUOUS": "ball: several candidates, not sure"}
 ACTION_MARK = {"track_at_frame": "^", "confirm_candidate": "+", "confirm_relink": "+", "reject_candidate": "x"}
 
 
@@ -80,7 +85,8 @@ def answer_label(a: Optional[dict]) -> Optional[Tuple[str, Optional[str]]]:
 
 
 class Renderer:
-    def __init__(self, tracks_doc: dict, target_doc: dict, width: int, height: int):
+    def __init__(self, tracks_doc: dict, target_doc: dict, width: int, height: int, ball_doc: Optional[dict] = None):
+        self.ball = {fr["frame"]: fr for fr in ball_doc["frames"]} if ball_doc is not None else None
         self.tracks = {fr["frame"]: fr for fr in tracks_doc["frames"]}
         self.frames = [fr["frame"] for fr in tracks_doc["frames"]]
         self.answers = {fr["frame"]: fr for fr in target_doc["frames"]}
@@ -138,6 +144,8 @@ class Renderer:
         cv2.rectangle(out, (int(12 * s), int(12 * s)), (int(28 * s), int(84 * s)), colour, -1)
         _text(out, label, (int(40 * s), int(42 * s)), 0.8 * s, colour if colour != DARK else (230, 230, 230), 2)
         _text(out, reason, (int(40 * s), int(72 * s)), 0.5 * s, (235, 235, 235))
+        if self.ball is not None:
+            self._draw_ball(out, self.ball.get(frame))
         if caption:
             _text(out, caption, (int(500 * s), int(42 * s)), 0.6 * s, (255, 255, 255), 1, (25, 25, 25))
         # timeline with gaps, actions and playhead
@@ -163,6 +171,22 @@ class Renderer:
                    " | triangle = tap, + = accept, x = decline",
               (int(12 * s), y0 - int(12 * s)), 0.42 * s, (255, 255, 255), 1, (25, 25, 25))
         return out
+
+
+    def _draw_ball(self, out: np.ndarray, b: Optional[dict]) -> None:
+        s = self.s
+        state = "LOST" if b is None else b["state"]
+        if b is not None and b["center"] is not None:
+            c = (int(round(b["center"][0])), int(round(b["center"][1])))
+            r = max(int(8 * s), int(round(b["diameter"])))
+            if state == "OBSERVED":
+                cv2.circle(out, c, r, YELLOW, max(2, int(2 * s)), cv2.LINE_AA)
+            else:                                                 # PREDICTED: dashed ring, no claim it is seen
+                for k in range(0, 360, 40):
+                    cv2.ellipse(out, c, (r, r), 0, k, k + 20, YELLOW, max(1, int(2 * s)), cv2.LINE_AA)
+        colour = YELLOW if state in ("OBSERVED", "PREDICTED") else (180, 180, 180)
+        cv2.rectangle(out, (int(12 * s), int(90 * s)), (int(470 * s), int(116 * s)), (25, 25, 25), -1)
+        _text(out, BALL_TEXT.get(state, state), (int(24 * s), int(109 * s)), 0.5 * s, colour)
 
 
 def _encode_opencv(frames: Iterable[np.ndarray], out_path: str, fps: float, width: int, height: int) -> None:
@@ -198,12 +222,20 @@ def encode(frames: Iterable[np.ndarray], out_path: str, fps: float, width: int, 
         raise SystemExit("ffmpeg failed")
 
 
+def playback_fps(frames, fps: float) -> float:
+    """Real-time playback rate when only every N-th frame was analysed: fps x analysed frames / frames spanned."""
+    if len(frames) < 2:
+        return fps
+    return fps * (len(frames) - 1) / (frames[-1] - frames[0])
+
+
 def render(video_frames: Iterable[Tuple[int, np.ndarray]], tracks_doc: dict, target_doc: dict, out_path: str,
-           fps: float, width: int, height: int, caption: Optional[Callable[[int], Optional[str]]] = None) -> None:
-    r = Renderer(tracks_doc, target_doc, width, height)
+           fps: float, width: int, height: int, caption: Optional[Callable[[int], Optional[str]]] = None,
+           ball_doc: Optional[dict] = None) -> None:
+    r = Renderer(tracks_doc, target_doc, width, height, ball_doc)
     wanted = set(r.frames)
     encode((r.draw(img, i, caption(i) if caption else None) for i, img in video_frames if i in wanted),
-           out_path, fps, width, height)
+           out_path, playback_fps(r.frames, fps), width, height)
 
 
 def main(argv=None) -> int:
@@ -211,15 +243,22 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser()
     for k in ("video", "tracks", "target", "out"):
         p.add_argument(f"--{k}", required=True)
+    p.add_argument("--ball", default=None, help="optional spana.ball document of the same video")
     a = p.parse_args(argv)
     refuse_existing(a.out)
     tdoc, gdoc = read_json(a.tracks), read_json(a.target)
     validate_tracks(tdoc)
     validate_target(gdoc, tdoc)
+    bdoc = None
+    if a.ball is not None:
+        bdoc = read_json(a.ball)
+        validate_ball(bdoc)
+        if bdoc["video"]["sha256"] != tdoc["video"]["sha256"]:
+            raise SystemExit("--ball is from a different video than --tracks")
     video = VideoSource(a.video, expected_sha256=tdoc["video"]["sha256"])
     first, last = tdoc["frames"][0]["frame"], tdoc["frames"][-1]["frame"]
     render(((i, img) for i, _, img in video.frames(first, last + 1)), tdoc, gdoc, a.out, video.meta.fps,
-           video.meta.width, video.meta.height)
+           video.meta.width, video.meta.height, ball_doc=bdoc)
     print(a.out)
     return 0
 
