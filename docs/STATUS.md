@@ -67,7 +67,8 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
   old track), TAKEN_BY_OTHER 15, hidden-track refusal 10, motion / extent gates 19, low-score box 7, detector miss 4,
   old track on another player's box 11. The existing `tracking.appearance_doubt_link` (off) measured: changes 103 ->
   100, 0 silent, 0 wrong, +1 flagged transfer, reviewer 0.879 -> 0.885 at 6.55 / min. Recommendation: no tracking
-  task now (`records/contact_continuity_diag_2026-11-22`).
+  task now (`records/contact_continuity_diag_2026-11-22`). Decision (Nathan): the doubt link stays OFF; merged to
+  main as a record. Target identity parked at 0.879 / 0 wrong until re-ID separates same-kit teammates.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
