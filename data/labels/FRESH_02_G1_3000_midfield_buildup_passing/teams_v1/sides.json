@@ -1,0 +1,32 @@
+{
+  "schema": "spana.team_sides",
+  "schema_version": "1.0.0",
+  "split": "DEV",
+  "match_id": "DEV_G1",
+  "clip": {"name": "FRESH_02_G1_3000_midfield_buildup_passing", "sha256": "8ba8551fb1a0b5da6fb0649601238f7b02016ce8e8e0fdd3159560431a1bbeff"},
+  "label_version": 1,
+  "gt_sha256": "8335d2c9bd25dc182498f081db974d70285f4f01d664ba29945714c7d2a37077",
+  "annotator": "Nathan",
+  "sides_allowed": ["A", "B", "GK_A", "GK_B", "REF", "OTHER"],
+  "sides": {
+    "1": "A",
+    "2": "B",
+    "3": "B",
+    "4": "B",
+    "5": "A",
+    "6": "B",
+    "7": "A",
+    "8": "A",
+    "9": "A",
+    "10": "B",
+    "11": "B",
+    "12": "B",
+    "13": "A",
+    "14": "A",
+    "15": "A",
+    "16": "B",
+    "17": "A",
+    "26": "REF"
+  },
+  "notes": "shirt numbers as typed by the annotator (id: number): 1: 8, 2: 19, 3: 22, 4: 7, 5: 23, 6: 24, 7: 12, 8: 7, 9: 3, 10: 11, 12: 8, 13: 10, 14: 15, 15: 17, 16: 9, 17: 14"
+}

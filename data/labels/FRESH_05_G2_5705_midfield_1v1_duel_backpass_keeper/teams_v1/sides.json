@@ -1,0 +1,26 @@
+{
+  "schema": "spana.team_sides",
+  "schema_version": "1.0.0",
+  "split": "DEV",
+  "match_id": "DEV_G2",
+  "clip": {"name": "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper", "sha256": "b7d67bdab79adcf808a08f224c35ad36391e650228fb2bcd0dd6a05cf4b22813"},
+  "label_version": 1,
+  "gt_sha256": "89cd05037eb621ae004addad2da377d971cb955aa946e7da13dfce7a2ec4df02",
+  "annotator": "nathan",
+  "sides_allowed": ["A", "B", "GK_A", "GK_B", "REF", "OTHER"],
+  "sides": {
+    "1": "A",
+    "2": "B",
+    "3": "B",
+    "4": "A",
+    "5": "B",
+    "6": "A",
+    "7": "B",
+    "8": "A",
+    "9": "B",
+    "10": "A",
+    "11": "GK_A",
+    "12": "A"
+  },
+  "notes": "shirt numbers as typed by the annotator (id: number): 1: 9, 2: 6, 3: 10, 5: 14, 6: 5, 7: 21, 8: 6, 9: 17, 10: 8, 12: 12"
+}

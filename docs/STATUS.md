@@ -75,8 +75,9 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
   unscored until the DEV side labels exist. Next: `evaluation/team-labels-dev` (contact sheets, then Nathan labels).
 - DEV team side labels (2026-11-22, branch `evaluation/team-labels-dev`): contact sheets made for the 73 FRESH GT ids
   (`tools/team_label_sheet.py`, `config/team_labels.yaml`; sheets and `<clip>.sides.json` templates in
-  `~/SPANA_team_labels/`, not in the repo). WAITING for Nathan's labelling; then `tools/freeze_team_labels.py` freezes
-  each clip to `data/labels/<clip>/teams_v1/`.
+  `~/SPANA_team_labels/`, not in the repo). Labelled by Nathan and FROZEN 2026-11-22 to
+  `data/labels/<clip>/teams_v1/`: 73 ids. G1: A 9, B 8, REF 1. G2: A 6, B 5, GK_A 1. G3 (FRESH_07 + FRESH_08, one A / B):
+  A 19, B 19, GK_B 1, REF 4. In G3, A = light-blue kit and B = red. The existing GT v1 is untouched.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |
