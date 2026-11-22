@@ -1,0 +1,9 @@
+# Scoring conventions of tools/ball_score.py (QA tooling; not a ball-tracker setting). Set 2026-11-22 BEFORE any
+# ball output was scored against the frozen DEV ball labels.
+schema_version: "1.0.0"
+# A tracker centre within this share of the frame height of the labelled centre is the ball (0.01 = 10.8 px at
+# 1080p, about half to two thirds of a ball width on the DEV clips). Labelled box SIZE is not truth (FRESH_05 boxes
+# are ~1.5x the ball, DECISIONS 2026-11-22); only the labelled centre is used.
+hit_radius_frac_height: 0.01
+# Exact one-sided upper bound on the wrong-answer rate is reported at this confidence (report only, no pass bar).
+bound_confidence: 0.95

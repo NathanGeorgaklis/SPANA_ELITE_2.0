@@ -369,6 +369,11 @@ Follow the user's chosen player through a clip, and say so when unsure.
     analysis only).
 
 ## Evaluation (supporting) — `spana/evaluation.py`, `spana/labels.py`, `tools/benchmark.py`
+- Ball scorer (2026-11-22): `tools/ball_score.py --clip LABEL_DIR BALL_JSON [--clip ...] --out R.json
+  [--config config/ball_score.yaml]`. `spana.ball` vs frozen DEV `spana.ball_labels` by centre distance (radius =
+  `hit_radius_frac_height` x frame height); outcome table in the tool's docstring (VISIBLE hit / wrong position /
+  wrong spare ball / miss; HIDDEN: OBSERVED wrong, PREDICTED fine; OUT: any answer wrong; UNSURE not scored). Refuses
+  another video / frame size, uncovered labelled frames, the same video twice, non-DEV labels. Report only.
 - In: tracks + detections artifacts, frozen MOT labels (`data/labels/<clip>/v1`). Out: `Report` metrics JSON.
 - Match rules: IoU 0.5, NESTED_V1, NESTED_V2 (default).
 - Transfers (rule of 2026-11-20): flagged only if IDENTITY_UNCERTAIN within

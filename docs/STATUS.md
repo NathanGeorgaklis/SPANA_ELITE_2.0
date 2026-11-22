@@ -3,13 +3,20 @@
 As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passed, 13 skipped.
 
 ## Next tasks (2026-11-22)
-1. **Ball: scoring tool next (labels FROZEN 2026-11-22).**
+1. **Ball: scoring tool BUILT (branch `evaluation/ball-score-v1`, not merged); next: score DEV on the Mac.**
    - DEV ball labels v1 frozen in `data/ball_labels/<clip>/v1` (Nathan, 0.1 s, 131 frames each):
      FRESH_02 129 seen / 2 hidden; FRESH_05 130 / 1; FRESH_07 124 / 7; FRESH_08 54 seen / 3 hidden / 74 out.
      No UNSURE, no other balls.
    - Score by CENTRE distance, not box IoU: FRESH_05 boxes are drawn ~1.5x the ball (centres within 1-4 px of the
      ball view on a spot check), so label box size is not truth for diameter.
-   - Next: ball scoring tool (DEV only), then fit the `ball` priors on DEV.
+   - Scorer built 2026-11-22: `tools/ball_score.py` + `config/ball_score.yaml` (hit radius 0.01 x frame height,
+     set before any scoring; `records/ball_score_v1_2026-11-22`). Report only: coverage, wrong answers with the 95 %
+     bound (OBSERVED / PREDICTED / all), hit distances, wrong frames. Tested on synthetic outputs and on a perfect
+     tracker over the real frozen labels (coverage 1, 0 wrong on all 4 clips). NO real ball output scored yet.
+   - Next (Mac): `detect --backend local --ball-out` + `spana.cli ball` on each DEV clip, covering every labelled
+     frame (stride 1, or a stride dividing the label step), then
+     `python -m tools.ball_score --clip data/ball_labels/<clip>/v1 <clip>.ball.json ... --out ball_score_dev.json`.
+     Then set a pass bar and fit the `ball` priors on DEV (separate task).
 2. **Possession / touches v1: review and merge decision.**
    - The work is on `origin/possession/touches-v1` (160e1b0, not merged; another session). It has QA on scripted
      scenes only; no DEV touch labels exist.
