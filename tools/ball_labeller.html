@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SPANA DEV ball labeller</title>
+<style>
+  :root { --bg:#14171c; --panel:#1d222a; --line:#2c333d; --text:#e8ecf1; --muted:#9aa4b2; --accent:#4fb3ff; --warn:#ffb84f; --bad:#ff6b6b; --ok:#5fd28a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; height:100vh; display:flex; flex-direction:column; }
+  header { display:flex; gap:8px; align-items:center; padding:8px 12px; background:var(--panel); border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  header .title { font-weight:600; margin-right:8px; }
+  button { background:#2a313b; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:5px 10px; cursor:pointer; font:inherit; }
+  button:hover { border-color:var(--accent); }
+  button.primary { background:var(--accent); color:#071420; border-color:var(--accent); font-weight:600; }
+  button.on { border-color:var(--ok); color:var(--ok); }
+  button:disabled { opacity:.4; cursor:default; }
+  main { flex:1; display:flex; min-height:0; }
+  #stage { flex:1; position:relative; overflow:hidden; background:#000; }
+  canvas { position:absolute; inset:0; width:100%; height:100%; cursor:crosshair; }
+  aside { width:300px; background:var(--panel); border-left:1px solid var(--line); padding:10px; overflow:auto; display:flex; flex-direction:column; gap:12px; }
+  h3 { margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  input[type=text] { background:#11151a; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:4px 6px; font:inherit; width:100%; }
+  #status { padding:4px 12px; background:#101318; border-top:1px solid var(--line); color:var(--muted); min-height:24px; }
+  #status.warn { color:var(--warn); } #status.bad { color:var(--bad); } #status.ok { color:var(--ok); }
+  .pill { padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; background:#4a3a1c; color:var(--warn); }
+  #strip { height:12px; display:flex; cursor:pointer; background:#0d1014; }
+  #strip div { flex:1; border-right:1px solid #0d1014; }
+  kbd { background:#11151a; border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:11px; }
+  .help { color:var(--muted); font-size:12px; }
+  .help div { margin:3px 0; }
+  .sw { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle; }
+</style>
+</head>
+<body>
+<header>
+  <span class="title" id="clipname">SPANA DEV ball labeller</span>
+  <button id="prev" title="Previous frame (A or ←)">◀ Prev</button>
+  <span id="frameinfo"></span>
+  <button id="next" title="Next frame (D or →)">Next ▶</button>
+  <span id="statepill" class="pill">NO ANSWER</span>
+  <span style="flex:1"></span>
+  <button id="save" title="Download progress file">Save progress</button>
+  <button id="load" title="Load a progress file">Load progress</button>
+  <input type="file" id="loadfile" accept=".json" style="display:none">
+  <button id="export" class="primary" title="Export frozen ball labels">Export frozen labels</button>
+</header>
+<div id="strip" title="Green seen · blue hidden · grey out · purple unsure · dark = no answer yet. Click to jump."></div>
+<main>
+  <div id="stage"><canvas id="cv"></canvas></div>
+  <aside>
+    <section>
+      <h3>This frame: where is the match ball?</h3>
+      <div class="row">
+        <button id="b_hidden" title="In the picture but not seen (H)">Hidden (H)</button>
+        <button id="b_out" title="Not in the picture (O)">Out of picture (O)</button>
+        <button id="b_unsure" title="Can't tell (U)">Unsure (U)</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button id="b_copy" title="Same answer as the previous frame (C)">Copy previous (C)</button>
+        <button id="b_clear" title="Remove this frame's answer (Del with nothing selected)">Clear</button>
+      </div>
+    </section>
+    <section>
+      <h3>Annotator</h3>
+      <input type="text" id="annotator" placeholder="your name">
+    </section>
+    <section class="help">
+      <h3>How to</h3>
+      <div><span class="sw" style="background:#5fd28a"></span><b>Seen</b>: drag a tight box around the match ball. That answers the frame.</div>
+      <div><span class="sw" style="background:#4fb3ff"></span><b>Hidden</b> (<kbd>H</kbd>): in the picture but you can't see it (behind a player, under a foot). Then optionally click where you think it is.</div>
+      <div><span class="sw" style="background:#6b7380"></span><b>Out</b> (<kbd>O</kbd>): the match ball is not in the picture.</div>
+      <div><span class="sw" style="background:#b78cff"></span><b>Unsure</b> (<kbd>U</kbd>): you can't tell. That frame is not scored, so use it rather than guess.</div>
+      <div><b>Other ball</b>: Shift + drag boxes a ball that is <i>not</i> the match ball (spare / warm-up balls). Any state.</div>
+      <div><b>Edit</b>: click a box to select it, drag to move, drag a corner to resize, <kbd>Del</kbd> to delete.</div>
+      <div><b>Zoom</b>: mouse wheel (the zoom is kept between frames). <b>Pan</b>: right-drag or Space+drag. <kbd>F</kbd> fit.</div>
+      <div>Every frame needs one answer. After H / O / U the next frame opens.</div>
+      <div><kbd>A</kbd>/<kbd>D</kbd> frames · <kbd>C</kbd> copy previous · <kbd>Esc</kbd> deselect</div>
+      <div>Progress auto-saves in this browser; <b>Save progress</b> also downloads a backup file.</div>
+    </section>
+  </aside>
+</main>
+<div id="status">Loading…</div>
+<script src="manifest.js"></script>
+<script>
+"use strict";
+const PACK = window.SPANA_PACK;
+const $ = (id) => document.getElementById(id);
+const HANDLE_PX = 7, MIN_BOX_PX = 3;
+const PROGRESS_SCHEMA = "spana.ball_labels_progress", PROGRESS_VERSION = "1.0.0";
+const STATE_COLOUR = { VISIBLE: "#5fd28a", HIDDEN: "#4fb3ff", OUT: "#6b7380", UNSURE: "#b78cff" };
+const STATE_TEXT = { VISIBLE: "SEEN", HIDDEN: "HIDDEN", OUT: "OUT OF PICTURE", UNSURE: "UNSURE" };
+
+function status(msg, kind) { const s = $("status"); s.textContent = msg; s.className = kind || ""; }
+if (!PACK || !PACK.frames || !PACK.frames.length) { status("manifest.js missing: open index.html from inside a label pack folder.", "bad"); throw new Error("no pack"); }
+if (PACK.split !== "DEV") { status("This pack is not DEV. Labelling refused.", "bad"); throw new Error("not DEV"); }
+
+const KEY = "spana_ball_labels_" + PACK.clip.sha256;
+let S = load() || fresh();
+function fresh() {
+  return { schema: PROGRESS_SCHEMA, schema_version: PROGRESS_VERSION, clip: PACK.clip, frame_step: PACK.frame_step,
+           label_version: 1, version_notes: [], frozen: false, annotator: "", answers: {} };
+}
+function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); return s && s.clip && s.clip.sha256 === PACK.clip.sha256 && s.schema === PROGRESS_SCHEMA ? s : null; } catch (e) { return null; } }
+function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { status("Browser storage unavailable: use Save progress often.", "warn"); } }
+
+let k = 0, sel = null, imgs = {}, view = { s: 1, ox: 0, oy: 0 }, fitted = false;
+const cv = $("cv"), ctx = cv.getContext("2d");
+const fidx = () => PACK.frames[k].index;
+const ans = (f) => S.answers[f];
+// a frame's answer: {state, box|null, point|null, other_balls:[box]}; boxes are {x1,y1,x2,y2}
+function ensure(f) { return (S.answers[f] = S.answers[f] || { state: null, box: null, point: null, other_balls: [] }); }
+
+function image(i) {
+  if (!imgs[i]) { const im = new Image(); im.onload = () => { if (i === k) { if (!fitted) fit(); draw(); } }; im.src = PACK.frames[i].file; imgs[i] = im; }
+  return imgs[i];
+}
+function fit() {
+  const r = cv.getBoundingClientRect(); const W = PACK.clip.width, H = PACK.clip.height;
+  view.s = Math.min(r.width / W, r.height / H); view.ox = (r.width - W * view.s) / 2; view.oy = (r.height - H * view.s) / 2; fitted = true;
+}
+const toImg = (x, y) => [(x - view.ox) / view.s, (y - view.oy) / view.s];
+const toScr = (x, y) => [x * view.s + view.ox, y * view.s + view.oy];
+
+function boxesHere() {
+  const a = ans(fidx()); if (!a) return [];
+  const out = []; if (a.box) out.push(a.box); for (const b of a.other_balls) out.push(b); return out;
+}
+function drawBox(b, colour, label) {
+  const [x1, y1] = toScr(b.x1, b.y1), [x2, y2] = toScr(b.x2, b.y2);
+  ctx.lineWidth = b === sel ? 2.5 : 1.8; ctx.strokeStyle = colour; ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+  ctx.font = "bold 12px sans-serif"; const tw = ctx.measureText(label).width + 6;
+  ctx.fillStyle = "rgba(0,0,0,.7)"; ctx.fillRect(x1, y1 - 15, tw, 15); ctx.fillStyle = colour; ctx.fillText(label, x1 + 3, y1 - 3);
+  if (b === sel) for (const [hx, hy] of [[x1, y1], [x2, y1], [x1, y2], [x2, y2]]) { ctx.fillStyle = "#fff"; ctx.fillRect(hx - 3, hy - 3, 6, 6); }
+}
+function draw() {
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  if (cv.width !== Math.round(r.width * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, r.width, r.height);
+  const im = image(k);
+  if (im.complete && im.naturalWidth) ctx.drawImage(im, view.ox, view.oy, PACK.clip.width * view.s, PACK.clip.height * view.s);
+  const a = ans(fidx());
+  if (a) {
+    if (a.box) drawBox(a.box, STATE_COLOUR.VISIBLE, "ball");
+    for (const b of a.other_balls) drawBox(b, "#ff9f43", "other");
+    if (a.state === "HIDDEN" && a.point) {
+      const [px, py] = toScr(a.point[0], a.point[1]); ctx.strokeStyle = STATE_COLOUR.HIDDEN; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.arc(px, py, 10, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+  if (drag && drag.mode === "draw") { ctx.strokeStyle = drag.other ? "#ff9f43" : "#fff"; ctx.setLineDash([4, 3]); const [p, q] = toScr(drag.x0, drag.y0), [c, d] = toScr(drag.x1, drag.y1); ctx.strokeRect(p, q, c - p, d - q); ctx.setLineDash([]); }
+  ui();
+}
+function ui() {
+  const f = PACK.frames[k], a = ans(f.index), st = a && a.state;
+  $("clipname").textContent = PACK.clip.name + "  ·  ball  ·  v" + S.label_version;
+  $("frameinfo").textContent = `frame ${k + 1}/${PACK.frames.length}  (video #${f.index}, ${f.time_s.toFixed(2)} s)`;
+  const pill = $("statepill");
+  pill.textContent = S.frozen ? "FROZEN" : st ? STATE_TEXT[st] : "NO ANSWER";
+  pill.style.background = S.frozen ? "#4a1f1f" : st ? STATE_COLOUR[st] : "#4a3a1c"; pill.style.color = st && !S.frozen ? "#071420" : "";
+  for (const [id, s] of [["b_hidden", "HIDDEN"], ["b_out", "OUT"], ["b_unsure", "UNSURE"]]) { $(id).classList.toggle("on", st === s); $(id).disabled = S.frozen; }
+  $("b_copy").disabled = S.frozen; $("b_clear").disabled = S.frozen;
+  $("annotator").value = S.annotator || ""; $("annotator").disabled = S.frozen;
+  const strip = $("strip"); if (strip.children.length !== PACK.frames.length) { strip.innerHTML = ""; PACK.frames.forEach((_, i) => { const c = document.createElement("div"); c.onclick = () => go(i); strip.appendChild(c); }); }
+  PACK.frames.forEach((fr, i) => { const x = ans(fr.index), c = strip.children[i]; c.style.background = x && x.state ? STATE_COLOUR[x.state] : "#2a313b"; c.style.outline = i === k ? "1px solid #fff" : ""; });
+}
+
+function go(i) { if (i < 0 || i >= PACK.frames.length) return; k = i; sel = null; image(k); if (k + 1 < PACK.frames.length) image(k + 1); draw(); }
+function editable() { if (S.frozen) { status("Labels are frozen. Use Export → 'start a new version' to edit.", "warn"); return false; } return true; }
+function changed() { persist(); draw(); }
+function clampBox(b) {
+  const W = PACK.clip.width, H = PACK.clip.height;
+  const x1 = Math.max(0, Math.min(b.x1, b.x2)), x2 = Math.min(W, Math.max(b.x1, b.x2));
+  const y1 = Math.max(0, Math.min(b.y1, b.y2)), y2 = Math.min(H, Math.max(b.y1, b.y2));
+  return Object.assign(b, { x1: +x1.toFixed(1), y1: +y1.toFixed(1), x2: +x2.toFixed(1), y2: +y2.toFixed(1) });
+}
+function setBall(x1, y1, x2, y2) {
+  const a = ensure(fidx()); a.state = "VISIBLE"; a.point = null; a.box = clampBox({ x1, y1, x2, y2 }); sel = a.box;
+  status("Ball marked seen. Adjust the box if needed, then D for the next frame.", "ok"); changed();
+}
+function addOther(x1, y1, x2, y2) { const a = ensure(fidx()); const b = clampBox({ x1, y1, x2, y2 }); a.other_balls.push(b); sel = b; status(a.state ? "Other (not match) ball boxed." : "Other (not match) ball boxed. The frame still needs its match-ball answer.", "ok"); changed(); }
+function setState(state) {
+  if (!editable()) return;
+  const a = ensure(fidx()); a.state = state; a.box = null; if (state !== "HIDDEN") a.point = null; sel = null;
+  persist();
+  if (state === "HIDDEN") { status("Hidden. Click where you think the ball is (optional), or D for the next frame.", "ok"); draw(); }
+  else go(k + 1);
+}
+function copyPrevious() {
+  if (!editable()) return;
+  if (k === 0) return status("No previous frame.", "warn");
+  const p = ans(PACK.frames[k - 1].index); if (!p || !p.state) return status("The previous frame has no answer.", "warn");
+  const c = JSON.parse(JSON.stringify(p)); S.answers[fidx()] = c; sel = c.box;
+  status(c.state === "VISIBLE" ? "Copied: move the box to where the ball is now." : "Copied the previous answer.", "ok"); changed();
+}
+function clearFrame() { if (!editable()) return; delete S.answers[fidx()]; sel = null; changed(); }
+function del() {
+  if (!editable()) return; const a = ans(fidx()); if (!a) return;
+  if (!sel) return clearFrame();
+  if (sel === a.box) { a.box = null; a.state = null; } else a.other_balls.splice(a.other_balls.indexOf(sel), 1);
+  sel = null; changed();
+}
+
+// ---------------- mouse
+let drag = null, space = false;
+function hit(x, y) {
+  const tol = HANDLE_PX / view.s;
+  if (sel) for (const [cx, cy] of [["x1", "y1"], ["x2", "y1"], ["x1", "y2"], ["x2", "y2"]]) if (Math.abs(x - sel[cx]) <= tol && Math.abs(y - sel[cy]) <= tol) return { box: sel, corner: [cx, cy] };
+  let best = null;
+  for (const b of boxesHere()) if (x >= b.x1 - tol && x <= b.x2 + tol && y >= b.y1 - tol && y <= b.y2 + tol) { const ar = (b.x2 - b.x1) * (b.y2 - b.y1); if (!best || ar < best.a) best = { box: b, a: ar }; }
+  return best ? { box: best.box } : null;
+}
+cv.addEventListener("contextmenu", (e) => e.preventDefault());
+cv.addEventListener("mousedown", (e) => {
+  const r = cv.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top; const [x, y] = toImg(sx, sy);
+  if (e.button === 2 || space || e.button === 1) { drag = { mode: "pan", sx, sy, ox: view.ox, oy: view.oy }; return; }
+  const h = hit(x, y);
+  if (h && h.corner && !S.frozen) { drag = { mode: "resize", box: h.box, corner: h.corner }; return; }
+  if (h) { sel = h.box; drag = S.frozen ? null : { mode: "move", box: h.box, x, y, b0: Object.assign({}, h.box) }; draw(); return; }
+  if (!editable()) return;
+  sel = null; drag = { mode: "draw", x0: x, y0: y, x1: x, y1: y, other: e.shiftKey, sx, sy };
+});
+window.addEventListener("mousemove", (e) => {
+  if (!drag) return; const r = cv.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top; const [x, y] = toImg(sx, sy);
+  if (drag.mode === "pan") { view.ox = drag.ox + sx - drag.sx; view.oy = drag.oy + sy - drag.sy; }
+  else if (drag.mode === "draw") { drag.x1 = x; drag.y1 = y; }
+  else if (drag.mode === "move") { const dx = x - drag.x, dy = y - drag.y; Object.assign(drag.box, { x1: drag.b0.x1 + dx, x2: drag.b0.x2 + dx, y1: drag.b0.y1 + dy, y2: drag.b0.y2 + dy }); }
+  else if (drag.mode === "resize") { drag.box[drag.corner[0]] = x; drag.box[drag.corner[1]] = y; }
+  draw();
+});
+window.addEventListener("mouseup", () => {
+  if (!drag) return; const d = drag; drag = null;
+  if (d.mode === "draw") {
+    const big = Math.abs(d.x1 - d.x0) * view.s >= MIN_BOX_PX && Math.abs(d.y1 - d.y0) * view.s >= MIN_BOX_PX;
+    const a = ans(fidx());
+    if (big) { if (d.other) addOther(d.x0, d.y0, d.x1, d.y1); else setBall(d.x0, d.y0, d.x1, d.y1); }
+    else if (a && a.state === "HIDDEN") { a.point = [+d.x0.toFixed(1), +d.y0.toFixed(1)]; status("Best-guess point set.", "ok"); changed(); }
+    else draw();
+  } else if (d.mode === "move" || d.mode === "resize") { clampBox(d.box); changed(); }
+});
+cv.addEventListener("wheel", (e) => {
+  e.preventDefault(); const r = cv.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top; const [x, y] = toImg(sx, sy);
+  view.s = Math.max(0.05, Math.min(40, view.s * Math.exp(-e.deltaY * 0.0015))); view.ox = sx - x * view.s; view.oy = sy - y * view.s; draw();
+}, { passive: false });
+window.addEventListener("resize", () => { fit(); draw(); });
+
+// ---------------- buttons + keys
+$("b_hidden").onclick = () => setState("HIDDEN"); $("b_out").onclick = () => setState("OUT"); $("b_unsure").onclick = () => setState("UNSURE");
+$("b_copy").onclick = copyPrevious; $("b_clear").onclick = clearFrame;
+$("prev").onclick = () => go(k - 1); $("next").onclick = () => go(k + 1);
+$("annotator").addEventListener("change", () => { S.annotator = $("annotator").value.trim(); persist(); });
+window.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT") { if (e.key === "Enter") e.target.blur(); return; }
+  const key = e.key.toLowerCase();
+  if (key === " ") { space = true; e.preventDefault(); }
+  else if (key === "a" || key === "arrowleft") go(k - 1);
+  else if (key === "d" || key === "arrowright") go(k + 1);
+  else if (key === "h") setState("HIDDEN");
+  else if (key === "o") setState("OUT");
+  else if (key === "u") setState("UNSURE");
+  else if (key === "c") copyPrevious();
+  else if (key === "delete" || key === "backspace") { e.preventDefault(); del(); }
+  else if (key === "escape") { sel = null; draw(); }
+  else if (key === "f") { fit(); draw(); }
+});
+window.addEventListener("keyup", (e) => { if (e.key === " ") space = false; });
+
+// ---------------- save / load
+function download(name, text, type) { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+$("save").onclick = () => { download(`${PACK.clip.name}_ball_progress_v${S.label_version}.json`, JSON.stringify(S, null, 1), "application/json"); status("Progress file downloaded (it also auto-saves in this browser).", "ok"); };
+$("load").onclick = () => $("loadfile").click();
+$("loadfile").addEventListener("change", async () => {
+  const f = $("loadfile").files[0]; if (!f) return;
+  try { const s = JSON.parse(await f.text());
+    if (s.schema !== PROGRESS_SCHEMA || !s.clip || s.clip.sha256 !== PACK.clip.sha256) throw new Error("this progress file belongs to a different clip or is not a ball progress file");
+    S = s; persist(); go(0); status("Progress loaded.", "ok");
+  } catch (err) { status("Load failed: " + err.message, "bad"); }
+  $("loadfile").value = "";
+});
+
+// ---------------- export (spana.ball_labels 1.0.0)
+const asList = (b) => [b.x1, b.y1, b.x2, b.y2];
+function validate() {
+  const problems = [], frames = PACK.frames.map((f) => f.index).filter((f) => ans(f) && ans(f).state);
+  if (!frames.length) problems.push("no frame has an answer");
+  if (!(S.annotator || "").trim()) problems.push("annotator name is empty");
+  for (const f of frames) { const a = ans(f);
+    if (a.state === "VISIBLE" && !(a.box && a.box.x2 > a.box.x1 && a.box.y2 > a.box.y1)) problems.push(`frame ${f}: seen but no box`);
+    for (const b of a.other_balls) if (!(b.x2 > b.x1 && b.y2 > b.y1)) problems.push(`frame ${f}: empty other-ball box`); }
+  return { problems, frames };
+}
+function records(frames) {
+  return frames.map((f) => { const a = ans(f);
+    return { frame: f, state: a.state, box: a.state === "VISIBLE" ? asList(a.box) : null,
+             point: a.state === "HIDDEN" && a.point ? a.point : null, other_balls: a.other_balls.map(asList) }; });
+}
+$("export").onclick = () => {
+  if (S.frozen) {
+    const why = prompt("These ball labels are frozen (v" + S.label_version + "). To change them, start a new version and say why:");
+    if (why && why.trim()) { S.version_notes.push({ from_version: S.label_version, reason: why.trim(), at: new Date().toISOString() }); S.label_version += 1; S.frozen = false; changed(); status(`Version ${S.label_version} started. The old export stays as it was.`, "ok"); }
+    return;
+  }
+  const { problems, frames } = validate();
+  if (problems.length) return status("Cannot export: " + problems.slice(0, 3).join("; "), "bad");
+  const missing = PACK.frames.length - frames.length;
+  if (missing && !confirm(`${missing} frame(s) have no answer and will be left out. Freeze now?`)) return;
+  S.frozen = true; S.frozen_utc = new Date().toISOString();
+  const name = `${PACK.clip.name}_v${S.label_version}_ball_labels.json`;
+  const record = { schema: "spana.ball_labels", schema_version: "1.0.0", split: PACK.split, clip: PACK.clip, frame_step: PACK.frame_step,
+                   label_version: S.label_version, annotator: S.annotator, frozen_utc: S.frozen_utc, frames: records(frames),
+                   version_notes: S.version_notes };
+  download(name, JSON.stringify(record, null, 1), "application/json");
+  changed(); status(`Frozen v${S.label_version}: ${frames.length} frames exported to ${name}. Keep that file.`, "ok");
+};
+
+window.SPANA_BALL_LABELLER = { get state() { return S; }, validate, records, go, setBall, addOther, setState, copyPrevious };
+go(0); status(Object.keys(S.answers).length ? "Progress restored from this browser." : "Ready. Drag a box around the match ball, or press H / O / U.", "ok");
+</script>
+</body>
+</html>

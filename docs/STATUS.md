@@ -36,6 +36,10 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
 - Demo render MERGED to main (2026-11-22, Nathan): `tools/target_render.py --ball` overlay + real-time playback for
   strided runs. DEV FRESH_05 at stride 3 (local ONNX CPU): ball OBSERVED 244 / PREDICTED 15 / LOST 2 of 261 frames
   (unscored: no DEV ball labels); player 6 with simulated review 60 / 62 labelled frames correct, 0 wrong. Visual only.
+- DEV ball labelling tool (2026-11-22): `tools.label_pack --kind ball` + `tools/ball_labeller.html` +
+  `tools.freeze_ball_labels`, schema `spana.ball_labels` 1.0.0 (INTERFACES). `tests/test_ball_labels.py` incl. headless
+  Chrome session. NO ball labels exist yet: next = Nathan labels FRESH_02/05/07/08 at 0.1 s, freeze, then the ball
+  tracker scoring tool (DEV only).
 - Player confirmation MERGED to main (2026-11-22, Nathan accepted range scope; config 2.16.0, spana.target 2.10.0):
   the player's IS_ME / NOT_ME on a track, with conflict rule, human-confirmed gallery, undo and logging
   (`spana/identity/confirmation.py`, `spana.cli crops`). An IS_ME answers only the confirmed frames

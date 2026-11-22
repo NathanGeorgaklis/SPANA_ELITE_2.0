@@ -338,6 +338,14 @@ Follow the user's chosen player through a clip, and say so when unsure.
 - Schemas `spana.reid_match` 1.1.0, `spana.reid_identities` 1.0.0. Splits TRAIN / DEV / EVAL (EVAL needs approval).
 - Side labels: A, B, GK_A, GK_B, REF, OTHER (labels only; no classifier consumes them).
 
+## Ball labels (supporting) — `spana/ball_labels.py`, `tools/ball_labeller.html`, `tools/freeze_ball_labels.py` (2026-11-22)
+- `spana.ball_labels` 1.0.0, DEV only, one answer per labelled frame for the match ball: VISIBLE (`box` [x1,y1,x2,y2]),
+  HIDDEN (in the picture, not seen; optional best-guess `point` [x,y], never scored as a position), OUT (not in the
+  picture), UNSURE (not scored); `other_balls` boxes non-match balls on any frame.
+- Pack: `tools.label_pack --kind ball` (raw frames only, before inference). Frozen at
+  `data/ball_labels/<clip>/v<N>/{ball_labels_frozen.json, FROZEN.json}`; `load_frozen` refuses a record whose sha256
+  changed after freezing; versions are never overwritten.
+
 ## Detection dataset (supporting) — `spana/dataset/`
 - Roboflow splits train/valid/test; SPANA splits train/dev/eval (eval never uploaded).
 - Upload manifest frame statuses: uploaded, duplicate, failed, not_uploaded.
