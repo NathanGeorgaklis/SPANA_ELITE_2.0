@@ -3,11 +3,13 @@
 As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passed, 13 skipped.
 
 ## Next tasks (2026-11-22)
-1. **Ball: DEV labels, then scoring.**
-   - Nathan labels the ball on FRESH_02 / 05 / 07 / 08 at 0.1 s with `tools.label_pack --kind ball` and
-     `tools/ball_labeller.html`, then freezes them with `tools.freeze_ball_labels`.
-   - Then the ball scoring tool (DEV only) fits the `ball` priors.
-   - The ball tracker is merged but unmeasured; every `ball` value is still a prior.
+1. **Ball: scoring tool next (labels FROZEN 2026-11-22).**
+   - DEV ball labels v1 frozen in `data/ball_labels/<clip>/v1` (Nathan, 0.1 s, 131 frames each):
+     FRESH_02 129 seen / 2 hidden; FRESH_05 130 / 1; FRESH_07 124 / 7; FRESH_08 54 seen / 3 hidden / 74 out.
+     No UNSURE, no other balls.
+   - Score by CENTRE distance, not box IoU: FRESH_05 boxes are drawn ~1.5x the ball (centres within 1-4 px of the
+     ball view on a spot check), so label box size is not truth for diameter.
+   - Next: ball scoring tool (DEV only), then fit the `ball` priors on DEV.
 2. **Possession / touches v1: review and merge decision.**
    - The work is on `origin/possession/touches-v1` (160e1b0, not merged; another session). It has QA on scripted
      scenes only; no DEV touch labels exist.

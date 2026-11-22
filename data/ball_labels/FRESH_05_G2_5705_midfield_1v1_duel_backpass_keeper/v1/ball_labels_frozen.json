@@ -1,0 +1,1586 @@
+{
+ "schema": "spana.ball_labels",
+ "schema_version": "1.0.0",
+ "split": "DEV",
+ "clip": {
+  "name": "FRESH_05_G2_5705_midfield_1v1_duel_backpass_keeper",
+  "sha256": "b7d67bdab79adcf808a08f224c35ad36391e650228fb2bcd0dd6a05cf4b22813",
+  "fps": 60,
+  "width": 1920,
+  "height": 1080
+ },
+ "frame_step": 6,
+ "label_version": 1,
+ "annotator": "nathan",
+ "frozen_utc": "2026-11-22T01:53:51.298Z",
+ "frames": [
+  {
+   "frame": 0,
+   "state": "VISIBLE",
+   "box": [
+    799.6,
+    366.7,
+    822.2,
+    387.7
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 6,
+   "state": "VISIBLE",
+   "box": [
+    809.3,
+    366.7,
+    831.9,
+    387.7
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 12,
+   "state": "VISIBLE",
+   "box": [
+    815.7,
+    369.9,
+    838.3,
+    390.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 18,
+   "state": "VISIBLE",
+   "box": [
+    823.8,
+    368.3,
+    846.4,
+    389.3
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 24,
+   "state": "VISIBLE",
+   "box": [
+    828.6,
+    373.1,
+    851.2,
+    394.1
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 30,
+   "state": "VISIBLE",
+   "box": [
+    833.4,
+    371.5,
+    856,
+    392.5
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 36,
+   "state": "VISIBLE",
+   "box": [
+    836.6,
+    374.7,
+    859.2,
+    395.7
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 42,
+   "state": "VISIBLE",
+   "box": [
+    841.4,
+    376.3,
+    864,
+    397.3
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 48,
+   "state": "VISIBLE",
+   "box": [
+    849.5,
+    379.5,
+    872.1,
+    400.5
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 54,
+   "state": "VISIBLE",
+   "box": [
+    857.6,
+    376.3,
+    880.2,
+    397.3
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 60,
+   "state": "VISIBLE",
+   "box": [
+    878.6,
+    377.9,
+    901.2,
+    398.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 66,
+   "state": "VISIBLE",
+   "box": [
+    897.9,
+    379.5,
+    920.5,
+    400.5
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 72,
+   "state": "VISIBLE",
+   "box": [
+    918.9,
+    377.9,
+    941.5,
+    398.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 78,
+   "state": "VISIBLE",
+   "box": [
+    918.9,
+    377.9,
+    941.5,
+    398.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 84,
+   "state": "VISIBLE",
+   "box": [
+    918.9,
+    377.9,
+    941.5,
+    398.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 90,
+   "state": "VISIBLE",
+   "box": [
+    906,
+    373.1,
+    928.6,
+    394.1
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 96,
+   "state": "VISIBLE",
+   "box": [
+    894.7,
+    373.1,
+    917.3,
+    394.1
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 102,
+   "state": "VISIBLE",
+   "box": [
+    885,
+    373.1,
+    907.6,
+    394.1
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 108,
+   "state": "VISIBLE",
+   "box": [
+    875.3,
+    373.1,
+    897.9,
+    394.1
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 114,
+   "state": "VISIBLE",
+   "box": [
+    875.3,
+    371.5,
+    897.9,
+    394.1
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 120,
+   "state": "VISIBLE",
+   "box": [
+    867.2,
+    371.5,
+    889.8,
+    394.1
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 126,
+   "state": "HIDDEN",
+   "box": null,
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 132,
+   "state": "VISIBLE",
+   "box": [
+    1015.6,
+    381.2,
+    1038.2,
+    403.8
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 138,
+   "state": "VISIBLE",
+   "box": [
+    1083.3,
+    382.8,
+    1105.9,
+    407
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 144,
+   "state": "VISIBLE",
+   "box": [
+    1138.1,
+    389.3,
+    1163.9,
+    421.5
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 150,
+   "state": "VISIBLE",
+   "box": [
+    1176.8,
+    390.9,
+    1199.4,
+    416.7
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 156,
+   "state": "VISIBLE",
+   "box": [
+    1205.8,
+    394.1,
+    1225.2,
+    421.5
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 162,
+   "state": "VISIBLE",
+   "box": [
+    1226.8,
+    394.1,
+    1249.4,
+    421.5
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 168,
+   "state": "VISIBLE",
+   "box": [
+    1242.9,
+    397.3,
+    1268.7,
+    424.7
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 174,
+   "state": "VISIBLE",
+   "box": [
+    1259,
+    398.9,
+    1280,
+    426.3
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 180,
+   "state": "VISIBLE",
+   "box": [
+    1270.3,
+    400.6,
+    1292.9,
+    429.6
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 186,
+   "state": "VISIBLE",
+   "box": [
+    1280,
+    402.2,
+    1304.2,
+    429.6
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 192,
+   "state": "VISIBLE",
+   "box": [
+    1291.3,
+    405.4,
+    1317.1,
+    434.4
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 198,
+   "state": "VISIBLE",
+   "box": [
+    1299.3,
+    407,
+    1325.1,
+    436
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 204,
+   "state": "VISIBLE",
+   "box": [
+    1313.9,
+    410.2,
+    1336.4,
+    434.4
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 210,
+   "state": "VISIBLE",
+   "box": [
+    1323.5,
+    411.8,
+    1342.9,
+    440.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 216,
+   "state": "VISIBLE",
+   "box": [
+    1284.8,
+    411.8,
+    1310.6,
+    436
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 222,
+   "state": "VISIBLE",
+   "box": [
+    1246.1,
+    410.2,
+    1278.4,
+    436
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 228,
+   "state": "VISIBLE",
+   "box": [
+    1212.3,
+    416.7,
+    1236.5,
+    450.5
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 234,
+   "state": "VISIBLE",
+   "box": [
+    1178.4,
+    419.9,
+    1202.6,
+    445.7
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 240,
+   "state": "VISIBLE",
+   "box": [
+    1149.4,
+    419.9,
+    1172,
+    450.5
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 246,
+   "state": "VISIBLE",
+   "box": [
+    1123.6,
+    419.9,
+    1147.8,
+    447.3
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 252,
+   "state": "VISIBLE",
+   "box": [
+    1104.3,
+    424.7,
+    1130.1,
+    448.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 258,
+   "state": "VISIBLE",
+   "box": [
+    1088.2,
+    424.7,
+    1112.3,
+    448.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 264,
+   "state": "VISIBLE",
+   "box": [
+    1072,
+    421.5,
+    1096.2,
+    453.8
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 270,
+   "state": "VISIBLE",
+   "box": [
+    1063.9,
+    421.5,
+    1088.1,
+    453.8
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 276,
+   "state": "VISIBLE",
+   "box": [
+    1052.6,
+    426.3,
+    1076.8,
+    458.6
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 282,
+   "state": "VISIBLE",
+   "box": [
+    1041.4,
+    431.2,
+    1059.1,
+    455.4
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 288,
+   "state": "VISIBLE",
+   "box": [
+    1035,
+    431.2,
+    1057.5,
+    453.8
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 294,
+   "state": "VISIBLE",
+   "box": [
+    1039.8,
+    423.1,
+    1059.1,
+    457
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 300,
+   "state": "VISIBLE",
+   "box": [
+    1109.1,
+    434.4,
+    1134.9,
+    460.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 306,
+   "state": "VISIBLE",
+   "box": [
+    1183.3,
+    448.9,
+    1210.7,
+    481.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 312,
+   "state": "VISIBLE",
+   "box": [
+    1265.5,
+    473.1,
+    1297.7,
+    503.7
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 318,
+   "state": "VISIBLE",
+   "box": [
+    1347.7,
+    481.2,
+    1378.3,
+    510.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 324,
+   "state": "VISIBLE",
+   "box": [
+    1452.5,
+    503.7,
+    1479.9,
+    527.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 330,
+   "state": "VISIBLE",
+   "box": [
+    1529.9,
+    508.6,
+    1563.7,
+    540.8
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 336,
+   "state": "VISIBLE",
+   "box": [
+    1604,
+    515,
+    1645.9,
+    552.1
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 342,
+   "state": "VISIBLE",
+   "box": [
+    1662.1,
+    521.5,
+    1691.1,
+    550.5
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 348,
+   "state": "VISIBLE",
+   "box": [
+    1687.9,
+    532.7,
+    1715.3,
+    556.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 354,
+   "state": "VISIBLE",
+   "box": [
+    1697.5,
+    529.5,
+    1728.2,
+    566.6
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 360,
+   "state": "VISIBLE",
+   "box": [
+    1707.2,
+    545.6,
+    1739.4,
+    581.1
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 366,
+   "state": "VISIBLE",
+   "box": [
+    1715.3,
+    556.9,
+    1739.4,
+    585.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 372,
+   "state": "VISIBLE",
+   "box": [
+    1708.8,
+    563.4,
+    1745.9,
+    600.5
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 378,
+   "state": "VISIBLE",
+   "box": [
+    1713.7,
+    565,
+    1741.1,
+    597.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 384,
+   "state": "VISIBLE",
+   "box": [
+    1713.7,
+    568.2,
+    1739.4,
+    602.1
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 390,
+   "state": "VISIBLE",
+   "box": [
+    1641.1,
+    569.8,
+    1676.6,
+    600.5
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 396,
+   "state": "VISIBLE",
+   "box": [
+    1575,
+    560.2,
+    1608.9,
+    592.4
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 402,
+   "state": "VISIBLE",
+   "box": [
+    1518.6,
+    556.9,
+    1547.6,
+    597.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 408,
+   "state": "VISIBLE",
+   "box": [
+    1471.8,
+    568.2,
+    1502.5,
+    597.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 414,
+   "state": "VISIBLE",
+   "box": [
+    1433.1,
+    563.4,
+    1468.6,
+    602.1
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 420,
+   "state": "VISIBLE",
+   "box": [
+    1400.9,
+    568.2,
+    1423.5,
+    590.8
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 426,
+   "state": "VISIBLE",
+   "box": [
+    1355.8,
+    573,
+    1386.4,
+    605.3
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 432,
+   "state": "VISIBLE",
+   "box": [
+    1309,
+    571.4,
+    1338,
+    603.7
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 438,
+   "state": "VISIBLE",
+   "box": [
+    1254.2,
+    576.3,
+    1286.4,
+    605.3
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 444,
+   "state": "VISIBLE",
+   "box": [
+    1210.7,
+    576.3,
+    1241.3,
+    606.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 450,
+   "state": "VISIBLE",
+   "box": [
+    1170.4,
+    581.1,
+    1199.4,
+    606.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 456,
+   "state": "VISIBLE",
+   "box": [
+    1138.1,
+    576.3,
+    1167.2,
+    611.7
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 462,
+   "state": "VISIBLE",
+   "box": [
+    1099.4,
+    584.3,
+    1130.1,
+    610.1
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 468,
+   "state": "VISIBLE",
+   "box": [
+    1064,
+    577.9,
+    1091.4,
+    615
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 474,
+   "state": "VISIBLE",
+   "box": [
+    1025.3,
+    581.1,
+    1059.1,
+    615
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 480,
+   "state": "VISIBLE",
+   "box": [
+    994.7,
+    581.1,
+    1023.7,
+    613.4
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 486,
+   "state": "VISIBLE",
+   "box": [
+    962.4,
+    582.7,
+    994.7,
+    618.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 492,
+   "state": "VISIBLE",
+   "box": [
+    935,
+    582.7,
+    967.3,
+    618.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 498,
+   "state": "VISIBLE",
+   "box": [
+    904.4,
+    579.5,
+    936.7,
+    615
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 504,
+   "state": "VISIBLE",
+   "box": [
+    877,
+    579.5,
+    909.3,
+    615
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 510,
+   "state": "VISIBLE",
+   "box": [
+    851.2,
+    582.7,
+    883.5,
+    618.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 516,
+   "state": "VISIBLE",
+   "box": [
+    822.2,
+    582.7,
+    854.5,
+    618.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 522,
+   "state": "VISIBLE",
+   "box": [
+    796.4,
+    579.5,
+    828.7,
+    615
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 528,
+   "state": "VISIBLE",
+   "box": [
+    775.4,
+    581.1,
+    807.7,
+    616.6
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 534,
+   "state": "VISIBLE",
+   "box": [
+    762.5,
+    582.7,
+    794.8,
+    618.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 540,
+   "state": "VISIBLE",
+   "box": [
+    752.8,
+    582.7,
+    785.1,
+    618.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 546,
+   "state": "VISIBLE",
+   "box": [
+    741.5,
+    581.1,
+    773.8,
+    616.6
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 552,
+   "state": "VISIBLE",
+   "box": [
+    735.1,
+    576.3,
+    767.4,
+    611.8
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 558,
+   "state": "VISIBLE",
+   "box": [
+    735.1,
+    576.3,
+    767.4,
+    611.8
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 564,
+   "state": "VISIBLE",
+   "box": [
+    739.9,
+    566.6,
+    772.2,
+    602.1
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 570,
+   "state": "VISIBLE",
+   "box": [
+    677,
+    558.5,
+    709.3,
+    594
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 576,
+   "state": "VISIBLE",
+   "box": [
+    593.2,
+    553.7,
+    625.5,
+    589.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 582,
+   "state": "VISIBLE",
+   "box": [
+    519,
+    542.4,
+    551.3,
+    577.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 588,
+   "state": "VISIBLE",
+   "box": [
+    461,
+    531.1,
+    493.3,
+    566.6
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 594,
+   "state": "VISIBLE",
+   "box": [
+    430.4,
+    523,
+    462.7,
+    558.5
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 600,
+   "state": "VISIBLE",
+   "box": [
+    415.9,
+    516.6,
+    448.2,
+    552.1
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 606,
+   "state": "VISIBLE",
+   "box": [
+    412.7,
+    513.4,
+    445,
+    548.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 612,
+   "state": "VISIBLE",
+   "box": [
+    415.9,
+    500.5,
+    448.2,
+    536
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 618,
+   "state": "VISIBLE",
+   "box": [
+    433.6,
+    492.4,
+    465.9,
+    527.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 624,
+   "state": "VISIBLE",
+   "box": [
+    454.6,
+    489.2,
+    486.9,
+    524.7
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 630,
+   "state": "VISIBLE",
+   "box": [
+    482,
+    479.5,
+    514.3,
+    515
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 636,
+   "state": "VISIBLE",
+   "box": [
+    494.9,
+    479.5,
+    527.2,
+    515
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 642,
+   "state": "VISIBLE",
+   "box": [
+    533.6,
+    476.3,
+    565.9,
+    511.8
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 648,
+   "state": "VISIBLE",
+   "box": [
+    564.2,
+    471.5,
+    596.5,
+    507
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 654,
+   "state": "VISIBLE",
+   "box": [
+    586.8,
+    474.7,
+    619.1,
+    510.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 660,
+   "state": "VISIBLE",
+   "box": [
+    612.6,
+    473.1,
+    644.9,
+    508.6
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 666,
+   "state": "VISIBLE",
+   "box": [
+    640,
+    466.7,
+    672.3,
+    502.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 672,
+   "state": "VISIBLE",
+   "box": [
+    659.3,
+    449,
+    691.6,
+    484.5
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 678,
+   "state": "VISIBLE",
+   "box": [
+    688.3,
+    426.4,
+    720.6,
+    461.9
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 684,
+   "state": "VISIBLE",
+   "box": [
+    715.7,
+    413.5,
+    748,
+    449
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 690,
+   "state": "VISIBLE",
+   "box": [
+    743.1,
+    399,
+    775.4,
+    434.5
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 696,
+   "state": "VISIBLE",
+   "box": [
+    770.5,
+    386.1,
+    802.8,
+    421.6
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 702,
+   "state": "VISIBLE",
+   "box": [
+    793.1,
+    374.8,
+    825.4,
+    410.3
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 708,
+   "state": "VISIBLE",
+   "box": [
+    815.7,
+    366.7,
+    848,
+    402.2
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 714,
+   "state": "VISIBLE",
+   "box": [
+    836.7,
+    363.5,
+    869,
+    399
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 720,
+   "state": "VISIBLE",
+   "box": [
+    859.3,
+    357.1,
+    891.6,
+    392.6
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 726,
+   "state": "VISIBLE",
+   "box": [
+    883.5,
+    357.1,
+    915.8,
+    392.6
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 732,
+   "state": "VISIBLE",
+   "box": [
+    904.5,
+    353.9,
+    936.8,
+    389.4
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 738,
+   "state": "VISIBLE",
+   "box": [
+    927.1,
+    353.9,
+    959.4,
+    389.4
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 744,
+   "state": "VISIBLE",
+   "box": [
+    952.9,
+    349.1,
+    985.2,
+    384.6
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 750,
+   "state": "VISIBLE",
+   "box": [
+    973.9,
+    353.9,
+    1006.2,
+    389.4
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 756,
+   "state": "VISIBLE",
+   "box": [
+    994.9,
+    352.3,
+    1027.2,
+    387.8
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 762,
+   "state": "VISIBLE",
+   "box": [
+    1015.9,
+    352.3,
+    1048.2,
+    387.8
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 768,
+   "state": "VISIBLE",
+   "box": [
+    1040.1,
+    355.5,
+    1072.4,
+    391
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 774,
+   "state": "VISIBLE",
+   "box": [
+    1062.7,
+    355.5,
+    1095,
+    391
+   ],
+   "point": null,
+   "other_balls": []
+  },
+  {
+   "frame": 780,
+   "state": "VISIBLE",
+   "box": [
+    1075.6,
+    355.5,
+    1107.9,
+    391
+   ],
+   "point": null,
+   "other_balls": []
+  }
+ ],
+ "version_notes": []
+}
