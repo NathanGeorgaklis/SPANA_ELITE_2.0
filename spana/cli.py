@@ -12,6 +12,8 @@
       --out embeddings.json
   python -m spana.cli link   --video V --config C --linking-config config/tracking/linking.yaml --tracks tracks.json \
       --decisions tracks.decisions.jsonl --out linked.json   # offline tracklet linking (same tracks contract)
+  python -m spana.cli teams  --match-id M --config C --clip VIDEO TRACKS DETECTIONS [--clip ...] --out teams.json
+      # team classification v1 per match (spana.teams): every clip of the match in one model
   python -m spana.cli target --tracks tracks.json --config C --select-track T --select-frame F [--actions A.json] \
       --out target.json
 
@@ -370,6 +372,45 @@ def cmd_link(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_teams(a: argparse.Namespace) -> int:
+    """Team classification v1 over all clips of one match (records/design/TEAM_CLASSIFICATION_V1_DESIGN.md)."""
+    from .artifacts import TEAMS_SCHEMA, validate_teams
+    from .teams.classifier import classify, iter_frames, segments_of_clip
+    cfg = load_config(a.config)
+    refuse_existing(a.out)
+    segments, inputs, tracks_by_clip, inputs_sha = [], [], {}, {}
+    for video_path, tracks_path, det_path in a.clip:
+        video = VideoSource(video_path)
+        tdoc, ddoc = read_json(tracks_path), read_json(det_path)
+        validate_detections(ddoc)
+        validate_tracks(tdoc, ddoc)
+        if tdoc["video"]["sha256"] != video.meta.sha256:
+            raise ArtifactError(f"{tracks_path}: tracks were produced from a different video")
+        clip = Path(video_path).stem
+        if clip in tracks_by_clip:
+            raise ArtifactError(f"clip {clip} given twice")
+        first, last = tdoc["frames"][0]["frame"], tdoc["frames"][-1]["frame"]
+        segments += segments_of_clip(clip, tdoc, ddoc, iter_frames(video, first, last), cfg.appearance, cfg.team)
+        tracks_by_clip[clip] = tdoc
+        inputs.append({"clip": clip, "video_sha256": video.meta.sha256, "tracks_sha256": sha256_doc(tdoc),
+                       "detections_sha256": sha256_doc(ddoc)})
+        inputs_sha[f"{clip}.tracks"] = sha256_doc(tdoc)
+    model, tracks = classify(segments, cfg.team, cfg.output.score_decimals)
+    doc = {"schema": TEAMS_SCHEMA[0], "schema_version": TEAMS_SCHEMA[1],
+           "provenance": build_provenance(config_sha256=cfg.sha256(), argv=sys.argv, inputs=inputs_sha),
+           "match_id": a.match_id, "inputs": inputs, "team_config": dataclasses.asdict(cfg.team),
+           "appearance_config": dataclasses.asdict(cfg.appearance), "feature": "torso_colour_hs_hist_v1",
+           "model": model, "tracks": tracks}
+    validate_teams(doc, tracks_by_clip)
+    print(write_json_atomic(a.out, doc))
+    n = {}
+    for t in tracks:
+        for sg in t["segments"]:
+            n[sg["label"]] = n.get(sg["label"], 0) + 1
+    print(f"model {model['status']} {model['reason'] or ''} segments {dict(sorted(n.items()))}")
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     p = argparse.ArgumentParser(prog="spana")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -427,6 +468,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     e.add_argument("--config", required=True)
     e.add_argument("--model-record", required=True, help="re-ID model record, e.g. models/spana_reid_v2.json")
     e.add_argument("--out", required=True)
+    m = sub.add_parser("teams", help="team classification v1 per match (spana.teams)")
+    m.add_argument("--match-id", required=True)
+    m.add_argument("--config", required=True)
+    m.add_argument("--clip", nargs=3, action="append", required=True, metavar=("VIDEO", "TRACKS", "DETECTIONS"),
+                   help="one clip of the match: video, its tracks, the detections the tracks were made from")
+    m.add_argument("--out", required=True)
     k = sub.add_parser("link", help="offline global tracklet linking (same spana.tracks contract + link log)")
     k.add_argument("--video", required=True)
     k.add_argument("--video-sha256", default=None, help="refuse to run if the video hash differs")
@@ -437,7 +484,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     k.add_argument("--out", required=True)
     a = p.parse_args(argv)
     return {"detect": cmd_detect, "track": cmd_track, "ball": cmd_ball, "target": cmd_target, "embed": cmd_embed,
-            "link": cmd_link, "crops": cmd_crops}[a.cmd](a)
+            "link": cmd_link, "crops": cmd_crops, "teams": cmd_teams}[a.cmd](a)
 
 
 if __name__ == "__main__":

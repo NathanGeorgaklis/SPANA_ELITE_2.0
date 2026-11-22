@@ -92,6 +92,32 @@ What the tracking layer receives from any detector, the football detector includ
   `aggregate(vecs)`, `similarity(a, b) -> [0,1]|None`. CLI: `python -m spana.cli link --video --config
   --linking-config --tracks --decisions --out`.
 
+## Tracks -> team classification (defined 2026-11-22, `team/classification-v1`; unscored)
+- **Command:** `spana/teams/classifier.py`, CLI `python -m spana.cli teams --match-id M --config C --clip VIDEO TRACKS
+  DETECTIONS [--clip ...] --out teams.json`. Every clip of one match goes in together, so TEAM_A is one kit across
+  the match's clips. Design: `records/design/TEAM_CLASSIFICATION_V1_DESIGN.md`.
+- **In:** per clip the video, a `spana.tracks` document (2.1.0-2.3.0), and the `spana.detections` artifact it was
+  made from (`class_names` gives the role hint). Both are validated and hash-checked. The decision log is not read.
+- **Out: `spana.teams` 1.0.0:**
+  - `{schema, schema_version, provenance, match_id, inputs [{clip, video_sha256, tracks_sha256,
+    detections_sha256}], team_config, appearance_config, feature: torso_colour_hs_hist_v1, model {status FITTED |
+    ABSTAIN, reason None | TOO_FEW_SEGMENTS | CLUSTERS_NOT_SEPARATED | CLUSTER_TOO_SMALL, clusters [{label, segments,
+    evidence_frames, radius}], separation, trimmed_segments, outlier_segments}, tracks [{clip, track_id, segments
+    [{frame, frame_end, label, reasons, evidence_frames, votes {TEAM_A, TEAM_B, abstain}, dist {TEAM_A, TEAM_B},
+    role_hint_share {class: share}}], flags [TEAM_CHANGE]}]}`.
+  - A segment is a maximal run of the track's rows that are confirmed and identity CERTAIN. Frames outside every
+    segment read UNKNOWN / OUTSIDE_SEGMENT (`label_at`).
+  - A decided label has no reason; UNKNOWN has at least one.
+  - `TEAM_CHANGE` is a QA flag when one track has two different decided labels. Nothing downstream acts on it.
+- **Labels** (`spana/records.py` `TeamLabel`): `TEAM_A, TEAM_B, GOALKEEPER, REFEREE, UNKNOWN`. A / B are
+  per-match names: TEAM_A is the cluster of the earliest-starting segment, with no home / away meaning. GOALKEEPER
+  has no side in v1 (it waits for pitch context, decision 2026-11-22).
+- **Reasons** (`TeamReason`): `TOO_FEW_CLEAN_FRAMES, LOW_VOTE_SHARE, COLOUR_OUTLIER_NO_ROLE, ROLE_HINT_CONFLICT,
+  MATCH_MODEL_ABSTAIN`, plus `OUTSIDE_SEGMENT` (`label_at` only).
+- **Config:** `team` (schema 2.17.0) plus the `appearance` crop geometry.
+- **Validation:** `validate_teams(doc, tracks_by_clip)`.
+- **Consumers:** none yet. Linking's `teams` input stays unwired.
+
 ### State enums (`spana/records.py`)
 | enum | values |
 |---|---|
@@ -348,7 +374,6 @@ Follow the user's chosen player through a clip, and say so when unsure.
 | layer | inputs / outputs | state enum |
 |---|---|---|
 | ball tracking | NOT DEFINED | NOT DEFINED |
-| team classification | NOT DEFINED | NOT DEFINED |
 | pitch context | NOT DEFINED | NOT DEFINED |
 | possession/touches | NOT DEFINED | NOT DEFINED |
 | event segmentation | NOT DEFINED | NOT DEFINED |

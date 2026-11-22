@@ -74,6 +74,27 @@ class TargetReason(str, Enum):
                                              #   answer on this track: not applied, held uncertain, re-confirmation
 
 
+class TeamLabel(str, Enum):
+    """Per-segment answer of the team-classification layer (spana.teams 1.0.0). TEAM_A / TEAM_B are per-match names
+    of the two kit clusters: no home / away meaning, nothing carried across matches."""
+    TEAM_A = "TEAM_A"
+    TEAM_B = "TEAM_B"
+    GOALKEEPER = "GOALKEEPER"  # v1: no team side (needs pitch context)
+    REFEREE = "REFEREE"
+    UNKNOWN = "UNKNOWN"
+
+
+class TeamReason(str, Enum):
+    """Why a segment is UNKNOWN (spana.teams 1.0.0). A decided label carries no reason."""
+    TOO_FEW_CLEAN_FRAMES = "TOO_FEW_CLEAN_FRAMES"    # fewer than team.min_segment_frames / min_segment_s of evidence
+    LOW_VOTE_SHARE = "LOW_VOTE_SHARE"                # inside a team cluster, but the per-frame votes are not decisive
+    COLOUR_OUTLIER_NO_ROLE = "COLOUR_OUTLIER_NO_ROLE"  # far from both teams, and no detector role-hint majority
+    ROLE_HINT_CONFLICT = "ROLE_HINT_CONFLICT"        # far from both teams, both role hints present
+    MATCH_MODEL_ABSTAIN = "MATCH_MODEL_ABSTAIN"      # the match's two-team colour model abstained
+    OUTSIDE_SEGMENT = "OUTSIDE_SEGMENT"              # (label_at only) frame not in any segment: track not confirmed,
+                                                     #   inside an uncertainty episode, or not a track of the document
+
+
 class BallState(str, Enum):
     """Per-frame answer of the ball layer (spana.ball 1.0.0)."""
     OBSERVED = "OBSERVED"    # one confirmed ball hypothesis is observed on this frame
