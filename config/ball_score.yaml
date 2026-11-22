@@ -1,0 +1,12 @@
+# Scoring conventions of tools/ball_score.py (QA tooling; not a ball-tracker setting). Set 2026-11-22 BEFORE the first
+# DEV ball score, and not changed to suit a result.
+schema_version: "1.0.0"
+# A position claim (OBSERVED / PREDICTED) is ON the labelled ball when its centre lies within
+#   max(match_radius_d x label diameter, match_radius_min_px)
+# of the label box centre, label diameter = the label box's SHORT side. Centre distance, not IoU: labelled boxes can be
+# drawn loose around a correctly placed ball (decision 2026-11-22). The same rule decides "on another ball" and, for
+# the detector layer, whether any ball candidate is on the labelled ball.
+match_radius_d: 1.0
+match_radius_min_px: 6.0
+# One-sided exact (Clopper-Pearson) upper bound reported on every wrong-claim rate.
+bound_confidence: 0.95
