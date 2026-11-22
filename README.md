@@ -16,7 +16,7 @@ Fresh build started 2026-11-07. No code from earlier SPANA builds is used.
 | 5 | Ball tracking | — | |
 | 6 | Team classification | — | |
 | 7 | Pitch / context | — | |
-| 8 | Possession / touches | — | |
+| 8 | Possession / touches | `spana/possession/` | built v1: who is on the ball per frame (fail closed, image space), possessions; synthetic QA only, not run on DEV |
 | 9 | Event segmentation → classification → outcomes | — | |
 | 10 | Statistics (reducer over validated events only) | — | |
 | 11 | Clips (from validated events only) | — | |

@@ -55,6 +55,8 @@ Change log:
         meaning. A track_embeddings document validates with validate_track_embeddings.
   2.3.0 target: + target_config.resume_after_doubt_resolved (a no-rival doubt episode does not taint the followed
         track). Answers keep the 2.2.0 rules. 2.2.0 documents keep their meaning.
+  1.0.0 touches: who is on the ball per frame (CONTROL / CONTESTED / FREE / UNKNOWN + reason, candidates in reach)
+        + possessions (runs of CONTROL by one track); consumes a tracks and a ball artifact of the same frames.
   1.0.0 ball: per-frame ball answer (OBSERVED / PREDICTED / LOST / AMBIGUOUS + reason, selected hypothesis, centre,
         diameter, confidence, contested, candidate counts) + hypotheses summary; consumes a ball-view detections
         artifact (model.ball_view, detection_config = the ball config section).
@@ -1182,3 +1184,92 @@ def validate_ball(doc: Any, detections: Optional[dict] = None) -> None:
             raise ArtifactError("ball frames differ from the detection frames")
         if any(f["candidates"] != det[f["frame"]] for f in doc["frames"]):
             raise ArtifactError("candidate counts differ from the detections")
+
+
+# ----------------------------------------------------------------------------- touches
+_TOUCH_FRAME_KEYS = ("frame", "t", "state", "reason", "track_id", "ball_frame_state", "candidates")
+_TOUCH_CAND_KEYS = ("track_id", "distance_h", "usable")
+_POSSESSION_KEYS = ("track_id", "first_frame", "last_frame", "frames_control", "frames_gap")
+
+
+def validate_touches(doc: Any, tracks: Optional[dict] = None, ball: Optional[dict] = None) -> None:
+    """spana.touches 1.0.0. Alone: structure, the state rules on the stored distances, and possessions recomputed
+    from the frames. With the source tracks and ball: same hashes, and every frame and possession recomputed."""
+    import dataclasses as _dc
+    from .config import ConfigError, PossessionConfig
+    from .possession.touches import NO_MEASUREMENT, STATES_REASONS, TOUCHES_SCHEMA, possessions, touches
+    _header(doc, TOUCHES_SCHEMA, ("schema", "schema_version", "provenance", "video", "tracks_sha256", "ball_sha256",
+                                  "possession_config", "frames", "possessions"))
+    _keys(doc["possession_config"], [f.name for f in _dc.fields(PossessionConfig)], "possession_config")
+    try:
+        pc = PossessionConfig(**doc["possession_config"])
+        pc.validate()
+    except (ConfigError, TypeError) as e:
+        raise ArtifactError(f"possession_config: {e}") from e
+    if not doc["frames"]:
+        raise ArtifactError("touches artifact has no frames")
+    prev, prev_t = -1, -math.inf
+    eps = 1e-6
+    for fr in doc["frames"]:
+        _keys(fr, _TOUCH_FRAME_KEYS, "touches frame")
+        prev = _frame_order(fr, prev)
+        where = f"frame {fr['frame']}"
+        if not (_num(fr["t"]) and fr["t"] > prev_t):
+            raise ArtifactError(f"{where}: time not increasing")
+        prev_t = fr["t"]
+        st, why, tid, cands = fr["state"], fr["reason"], fr["track_id"], fr["candidates"]
+        if st not in STATES_REASONS or why not in STATES_REASONS[st]:
+            raise ArtifactError(f"{where}: bad state / reason {st!r} {why!r}")
+        if fr["ball_frame_state"] not in _BALL_REASONS:
+            raise ArtifactError(f"{where}: bad ball_frame_state")
+        seen_ball = fr["ball_frame_state"] == "OBSERVED"
+        if (why == "BALL_NOT_OBSERVED" and seen_ball) or \
+                (not seen_ball and why not in ("BALL_NOT_OBSERVED", "CAMERA_DISCONTINUITY")):
+            raise ArtifactError(f"{where}: only an OBSERVED ball is measured ({why} on {fr['ball_frame_state']})")
+        if not isinstance(cands, list):
+            raise ArtifactError(f"{where}: candidates must be a list")
+        dists = []
+        for c in cands:
+            _keys(c, _TOUCH_CAND_KEYS, f"{where} candidate")
+            if not (isinstance(c["track_id"], str) and _num(c["distance_h"]) and c["distance_h"] >= 0
+                    and isinstance(c["usable"], bool)):
+                raise ArtifactError(f"{where}: bad candidate {c!r}")
+            dists.append(c["distance_h"])
+        if dists != sorted(dists) or len({c["track_id"] for c in cands}) != len(cands) or \
+                any(d > pc.reach_h + pc.rival_margin_h + eps for d in dists):
+            raise ArtifactError(f"{where}: candidates unsorted, duplicated or out of the band")
+        if (tid is not None) != (st == "CONTROL"):
+            raise ArtifactError(f"{where}: track_id is set exactly for CONTROL")
+        if why in NO_MEASUREMENT and cands:
+            raise ArtifactError(f"{where}: {why} has no candidates")
+        in_reach = bool(dists) and dists[0] <= pc.reach_h + eps
+        rivals = [c for c in cands[1:] if dists and c["distance_h"] <= dists[0] + pc.rival_margin_h + eps]
+        if st == "FREE" and in_reach:
+            raise ArtifactError(f"{where}: FREE with a track in reach")
+        if st in ("CONTROL", "CONTESTED") or why in ("TRACK_NOT_CERTAIN", "BALL_AIRBORNE_SUSPECT",
+                                                     "BALL_SCALE_MISMATCH"):
+            if not in_reach:
+                raise ArtifactError(f"{where}: {st} / {why} without a track in reach")
+        all_usable = cands[0]["usable"] and all(c["usable"] for c in rivals) if in_reach else False
+        if st == "CONTROL" and (tid != cands[0]["track_id"] or not all_usable or rivals):
+            raise ArtifactError(f"{where}: CONTROL must be the nearest usable track with no rival in the margin")
+        if st == "CONTESTED" and (not rivals or not all_usable):
+            raise ArtifactError(f"{where}: CONTESTED needs usable rivals within the margin")
+        if why == "TRACK_NOT_CERTAIN" and all_usable:
+            raise ArtifactError(f"{where}: TRACK_NOT_CERTAIN with only usable tracks")
+    for e in doc["possessions"]:
+        _keys(e, _POSSESSION_KEYS, "possession")
+    if doc["possessions"] != possessions(doc["frames"], pc):
+        raise ArtifactError("possessions do not follow from the frames")
+    if tracks is not None or ball is not None:
+        if tracks is None or ball is None:
+            raise ArtifactError("recomputing touches needs both the tracks and the ball artifact")
+        if sha256_doc(tracks) != doc["tracks_sha256"] or sha256_doc(ball) != doc["ball_sha256"]:
+            raise ArtifactError("touches artifact was made from different tracks / ball artifacts")
+        try:
+            frames, eps_, _ = touches(tracks, ball, pc)
+        except ValueError as e:
+            raise ArtifactError(str(e)) from e
+        if frames != doc["frames"] or eps_ != doc["possessions"]:
+            raise ArtifactError("touches frames / possessions differ from a recomputation")
+

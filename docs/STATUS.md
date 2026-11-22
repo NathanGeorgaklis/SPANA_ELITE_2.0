@@ -154,6 +154,15 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   the silent-swap gap. ByteTrack 109, Deep-EIoU 152 (best IDF1 0.812, no licence). Ours has the lowest continuity
   (IDF1 0.674, coverage 0.626 vs 0.71-0.81). The BoT-SORT rejection is reproduced by this independent scorer (273 vs 272).
 
+## Possession / touches v1 (`spana/possession/`, `spana.touches` 1.0.0, config 2.18.0; 2026-11-22, synthetic only)
+- Built on `possession/touches-v1` (not merged): who is on the ball per frame (CONTROL / CONTESTED / FREE /
+  UNKNOWN + reason) from tracks + ball, and possessions. Fail closed: never CONTROL on an uncertain / hidden /
+  unconfirmed track, an unseen or contested ball, a ball that may be in the air or at another depth, or across a cut.
+- Scripted scenes (`python -m tools.touches_scenarios`, 9 scenes, 420 frames): 420 as scripted, 0 wrong CONTROL,
+  possessions 8 / 8 as scripted. `records/touches_v1_2026-11-22`.
+- NOT run on DEV: no touch labels, and ball v1 has not been run on DEV footage. The `possession` values are priors.
+  Next in the slice: DEV touch labels (Mac), ball + touches on DEV, then target identity at touch moments.
+
 ## Open failures
 - No failing tests. Skipped: YOLOX inference (weights not fetched), two Playwright labeller UI tests (no browser).
 - Detection -> tracking: wired and run 2026-11-16 (`PersonView`, `detect --backend roboflow`, detections 1.4.0).

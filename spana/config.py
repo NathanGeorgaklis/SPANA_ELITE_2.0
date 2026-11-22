@@ -20,7 +20,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.17.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.18.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
@@ -34,6 +34,7 @@ CONFIG_SCHEMA_VERSION = "2.17.0"   # 2.1.0: + target section; 2.2.0: + target re
 #   / confirmation_scope (player confirmations of target identity episodes, spana.identity.confirmation)
 #   2.17.0: + camera.cut_hist_hue_bins / cut_hist_sat_bins, tracking.confirm_min_observed_frames (were hard-coded
 #   32 / 32 / 2; same values)
+#   2.18.0: + possession section (who is on the ball, spana.possession; image space, body heights)
 
 
 class ConfigError(ValueError):
@@ -372,6 +373,27 @@ class BallConfig:
 
 
 @dataclass(frozen=True)
+class PossessionConfig:
+    """Who is on the ball (spana.possession.touches). Image space, lengths in the track's body heights (box height),
+    because there is no pitch layer yet. ALL VALUES ARE PRIORS until DEV touch labels exist."""
+    reach_h: float                 # a track is in reach when the ball centre is within this of its feet point
+    rival_margin_h: float          # a second usable track this close to the nearest one's distance: CONTESTED
+    max_ball_above_feet_h: float   # ball centre higher than this above the nearest feet: may be in the air (UNKNOWN)
+    diameter_to_height_min: float  # ball diameter / nearest track height outside [min, max]: the ball is not at
+    diameter_to_height_max: float  #   that player's depth (UNKNOWN)
+    bridge_s: float                # CONTROL frames of the same track at most this far apart form one possession
+
+    def validate(self) -> None:
+        for n in ("reach_h", "max_ball_above_feet_h", "diameter_to_height_min", "diameter_to_height_max"):
+            _pos(f"possession.{n}", getattr(self, n))
+        for n in ("rival_margin_h", "bridge_s"):
+            if not getattr(self, n) >= 0:
+                raise ConfigError(f"possession.{n} must be >= 0")
+        if self.diameter_to_height_min >= self.diameter_to_height_max:
+            raise ConfigError("possession.diameter_to_height_min must be < diameter_to_height_max")
+
+
+@dataclass(frozen=True)
 class OutputConfig:
     box_decimals: int
     score_decimals: int
@@ -393,6 +415,7 @@ class SpanaConfig:
     reid: ReidConfig
     reid_resolve: ReidResolveConfig
     ball: BallConfig
+    possession: PossessionConfig
     output: OutputConfig
 
     def validate(self) -> None:

@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.17.0"
+schema_version: "2.18.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -295,6 +295,16 @@ ball:
   lost_max_s: 1.00
   diameter_window: 5
   velocity_smoothing: 0.5
+
+possession:
+  # Who is on the ball (spana/possession/touches.py), per frame, fail closed. Image space; lengths in the nearest
+  # track's body heights (box height). ALL VALUES ARE PRIORS: no DEV touch labels exist yet (2026-11-22).
+  reach_h: 0.35                 # ~0.6 m for a 1.8 m player: ball centre to the feet point (bottom-centre of the box)
+  rival_margin_h: 0.15          # a second player this close to the nearest one's distance: CONTESTED
+  max_ball_above_feet_h: 0.20   # higher (in the image) than this above the feet: maybe in the air or behind -> UNKNOWN
+  diameter_to_height_min: 0.06  # a 0.22 m ball / 1.8 m player = 0.12; outside [min, max] the ball is not at that
+  diameter_to_height_max: 0.25  #   player's depth (behind / in front of them in the picture) -> UNKNOWN
+  bridge_s: 0.40                # the same player's CONTROL frames at most this far apart are one possession
 
 output:
   box_decimals: 1

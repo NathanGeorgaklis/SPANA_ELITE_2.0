@@ -354,13 +354,49 @@ Follow the user's chosen player through a clip, and say so when unsure.
   clip index, frame index, time, image sha256, blur, pHash, upload id, status, pre-label class counts, error.
   Benchmark frames live in `dev_bench.project` only and carry `match:<id>`, `split:dev`, `dev_bench.bench_tag`.
 
+## Possession / touches — `spana/possession/` (defined 2026-11-22)
+Who is on the ball, per frame, fail closed. Does not know who "YOU" is: joining touches to the selected player is a
+later evaluation task (target identity at touch moments).
+- In: a validated `spana.tracks` (2.1.0 - 2.3.0) and a validated `spana.ball` 1.0.0 of the same video (same
+  `video.sha256`) and the same frames (same frame list and times). Otherwise refused.
+- Out: **`spana.touches` 1.0.0** (`spana/artifacts.py` `validate_touches`; canonical, atomic, never overwritten) +
+  `<out>.decisions.jsonl` (one row per frame where the ball was measured: candidates, nearest, above_feet_h,
+  diameter_to_height, state, reason).
+  - Top level: `schema, schema_version, provenance, video, tracks_sha256, ball_sha256, possession_config, frames,
+    possessions`.
+  - Frame: `{frame, t, state, reason, track_id, ball_frame_state, candidates[{track_id, distance_h, usable}]}`.
+    `track_id` set exactly for CONTROL. `candidates`: every track whose feet point is within
+    `reach_h + rival_margin_h` of the ball centre, nearest first (`distance_h` in that track's box heights);
+    empty for CAMERA_DISCONTINUITY / BALL_NOT_OBSERVED / BALL_CONTESTED (nothing measured).
+  - `possessions[{track_id, first_frame, last_frame, frames_control, frames_gap}]`: runs of CONTROL by one track
+    whose CONTROL frames are at most `possession.bridge_s` apart; never across another track's CONTROL, a CONTESTED
+    frame or a CAMERA_DISCONTINUITY. `frames_gap` = non-CONTROL frames inside the run.
+  - Usable track = ACTIVE, OBSERVED, confirmed, identity CERTAIN.
+  - Validation alone checks the state rules on the stored distances and recomputes possessions from the frames; with
+    the source tracks and ball it recomputes every frame.
+- Geometry: image space only (no pitch layer yet), lengths in the track's body heights; config section `possession`
+  (config 2.18.0; all values PRIORS until DEV touch labels exist).
+- CLI: `python -m spana.cli touches --tracks T --ball B --config C --out X.touches.json`.
+- QA: `python -m tools.touches_scenarios` (scripted scenes, `tests/touches_synth.py`).
+
+| state | reason | when |
+|---|---|---|
+| UNKNOWN | CAMERA_DISCONTINUITY | the tracks' or the ball's camera status is CUT / UNKNOWN |
+| UNKNOWN | BALL_NOT_OBSERVED | ball PREDICTED / LOST / AMBIGUOUS (only a seen ball counts) |
+| UNKNOWN | BALL_CONTESTED | the ball answer has rival candidates (`contested`) |
+| UNKNOWN | TRACK_NOT_CERTAIN | the nearest track in reach, or a track within the rival margin, is not usable |
+| UNKNOWN | BALL_AIRBORNE_SUSPECT | ball centre more than `max_ball_above_feet_h` above the nearest feet line |
+| UNKNOWN | BALL_SCALE_MISMATCH | ball diameter / nearest height outside [`diameter_to_height_min`, `_max`] |
+| FREE | NO_TRACK_IN_REACH | ball seen, no feet within `reach_h` |
+| CONTESTED | RIVAL_WITHIN_MARGIN | a second usable track within `rival_margin_h` of the nearest one's distance |
+| CONTROL | NEAREST_FEET | the one usable nearest track, ball at its feet and depth |
+
 ## Not yet defined
 | layer | inputs / outputs | state enum |
 |---|---|---|
 | ball tracking | NOT DEFINED | NOT DEFINED |
 | team classification | NOT DEFINED | NOT DEFINED |
 | pitch context | NOT DEFINED | NOT DEFINED |
-| possession/touches | NOT DEFINED | NOT DEFINED |
 | event segmentation | NOT DEFINED | NOT DEFINED |
 | event classification | NOT DEFINED | NOT DEFINED |
 | outcomes | NOT DEFINED | NOT DEFINED |

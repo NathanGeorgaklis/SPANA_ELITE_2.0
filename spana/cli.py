@@ -370,6 +370,31 @@ def cmd_link(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_touches(a: argparse.Namespace) -> int:
+    """Who is on the ball per frame (spana.touches) from a tracks and a ball artifact of the same video."""
+    from .artifacts import validate_ball, validate_touches
+    from .possession.touches import touches_document
+    cfg = load_config(a.config)
+    decisions_path = Path(a.out).with_suffix(".decisions.jsonl")
+    refuse_existing(a.out, decisions_path)
+    tdoc, bdoc = read_json(a.tracks), read_json(a.ball)
+    validate_tracks(tdoc)
+    validate_ball(bdoc)
+    ts, bs = sha256_doc(tdoc), sha256_doc(bdoc)
+    prov = build_provenance(config_sha256=cfg.sha256(), argv=sys.argv,
+                            inputs={"video": tdoc["video"]["sha256"], "tracks": ts, "ball": bs})
+    try:
+        doc, log = touches_document(tdoc, bdoc, cfg.possession, prov, ts, bs)
+    except ValueError as e:
+        raise ArtifactError(str(e)) from e
+    validate_touches(doc, tdoc, bdoc)
+    print(write_jsonl_atomic(decisions_path, log))   # log first: a touches file never exists without its log
+    print(write_json_atomic(a.out, doc))
+    counts = {s: sum(f["state"] == s for f in doc["frames"]) for s in ("CONTROL", "CONTESTED", "FREE", "UNKNOWN")}
+    print(f"frames {counts}, possessions {len(doc['possessions'])}")
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     p = argparse.ArgumentParser(prog="spana")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -435,8 +460,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     k.add_argument("--config", required=True)
     k.add_argument("--linking-config", required=True, help="e.g. config/tracking/linking.yaml")
     k.add_argument("--out", required=True)
+    h = sub.add_parser("touches", help="who is on the ball per frame (spana.touches) from tracks + ball")
+    h.add_argument("--tracks", required=True)
+    h.add_argument("--ball", required=True, help="spana.ball of the same video and frames (spana.cli ball)")
+    h.add_argument("--config", required=True)
+    h.add_argument("--out", required=True)
     a = p.parse_args(argv)
-    return {"detect": cmd_detect, "track": cmd_track, "ball": cmd_ball, "target": cmd_target, "embed": cmd_embed,
+    return {"touches": cmd_touches, "detect": cmd_detect, "track": cmd_track, "ball": cmd_ball, "target": cmd_target, "embed": cmd_embed,
             "link": cmd_link, "crops": cmd_crops}[a.cmd](a)
 
 
