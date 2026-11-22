@@ -170,6 +170,10 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
   no-rival doubt no longer taints the track. With doubt link + (a): unaided 0.509 → 0.547 (1 wrong frame), reviewer
   0.783 / 6.27 actions with the vouch or 0.753 / 5.92 without; pass bar not met, off
   (`records/resume_after_doubt_2026-11-18`).
+- Review video label (2026-11-21, `identity/persistent-target-label`, `records/persistent_target_label_2026-11-21`):
+  `tools/target_render.py` labels the selected player `YOU` on every TARGET frame (track id as a small tag), so a
+  track change at a re-entry no longer looks like lost identity. Display only. DEV before / after videos and
+  re-entry verdicts NOT run (no footage in the cloud session); commands for Nathan's Mac are in the record.
 - Target identity, DEV: 30 tapped players followed with 0 wrong player-frames.
   - Time without an answer: F02 0.50, F05 0.28. Main causes: the track ends while the player is still in the
     picture (F02 340, F05 116 player-frames), then IDENTITY_UNCERTAIN (F02 100).

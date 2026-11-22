@@ -305,7 +305,9 @@ Follow the user's chosen player through a clip, and say so when unsure.
 
 - Review video (for people, not an input to any layer): `tools/target_render.py`.
   - Usage: `--video --tracks --target --out`, H.264 via ffmpeg.
-  - Draws every observed track, the answer (green TARGET, dashed amber offer), the reason in plain words, and a
+  - Draws every observed track, the answer (green TARGET labelled `YOU` on every TARGET frame across track changes,
+    the track id only as a small tag; dashed amber offer; no label on any player for ABSTAIN / LOST), the reason in
+    plain words, and a
     timeline with the review gaps and the user's actions.
   - `tools/target_demo.py` renders a synthetic demo (drawn players, scripted tracks, real follower; no footage).
 - Re-ID headroom (analysis tool, not product code): `tools/reid_headroom.py`.

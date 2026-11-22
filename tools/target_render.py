@@ -4,9 +4,10 @@
 
 Overlay per frame (spana.target 2.x):
   every observed track            thin grey box with its id
-  TARGET                          thick green box, "<track>  following"
+  TARGET                          thick green box, "YOU" on every TARGET frame (the selected player keeps one label
+                                  across track changes), the track id only as a small secondary tag
   CANDIDATE                       dashed amber box, "Is this them?  accept / decline"
-  ABSTAIN / LOST                  no box for the player; a banner saying why, in plain words
+  ABSTAIN / LOST                  no box and no label on any player; a banner saying why, in plain words
   status panel (top left)         state, reason, the track the answer refers to
   timeline (bottom)               one colour per frame (green TARGET, amber CANDIDATE, grey ABSTAIN, red LOST,
                                   dark = before the selection), the gaps of the review list, the user's actions
@@ -40,6 +41,8 @@ REASON_TEXT = {
     "RELINK_PREDECESSOR": "likely the same player: confirm?",
     "REENTRY_REID": "looks like your player coming back: confirm?",
 }
+TARGET_LABEL = "YOU"                                              # the selected player's persistent label
+OFFER_LABEL = "Is this them?  accept / decline"
 ACTION_MARK = {"track_at_frame": "^", "confirm_candidate": "+", "confirm_relink": "+", "reject_candidate": "x"}
 
 
@@ -59,6 +62,21 @@ def _dashed_rect(img, b, colour, thick: int, dash: int = 10) -> None:
             p = (int(xa + (xb - xa) * k / n), int(ya + (yb - ya) * k / n))
             q = (int(xa + (xb - xa) * min(k + 1, n) / n), int(ya + (yb - ya) * min(k + 1, n) / n))
             cv2.line(img, p, q, colour, thick, cv2.LINE_AA)
+
+
+def answer_label(a: Optional[dict]) -> Optional[Tuple[str, Optional[str]]]:
+    """(label, secondary tag) drawn on the answered player, or None: nothing is drawn on any player.
+
+    The label is the person, not the track: TARGET is always TARGET_LABEL whichever track carries it (track ids
+    change on every re-entry / relink / re-selection), with the track id as a small tag for debugging. Only TARGET
+    and CANDIDATE with a box are labelled; ABSTAIN / LOST never are (fail closed, even if a box were present)."""
+    if a is None or a.get("box") is None:
+        return None
+    if a["state"] == "TARGET":
+        return TARGET_LABEL, a["track_id"]
+    if a["state"] == "CANDIDATE":
+        return OFFER_LABEL, None
+    return None
 
 
 class Renderer:
@@ -100,17 +118,21 @@ class Renderer:
             label, colour, reason = "TAP YOUR PLAYER", DARK, "nothing selected yet"
         else:
             label, colour, reason = a["state"], STATE_COLOUR[a["state"]], REASON_TEXT.get(a["reason"], a["reason"])
-            if a["box"] is not None:
+            lab = answer_label(a)
+            if lab is not None:
                 b = a["box"]
                 p, q = (int(b[0]), int(b[1])), (int(b[2]), int(b[3]))
+                text, tag = lab
                 if a["state"] == "TARGET":
                     cv2.rectangle(out, p, q, GREEN, max(2, int(4 * s)), cv2.LINE_AA)
-                    _text(out, f"{a['track_id']}  following", (p[0], p[1] - int(8 * s)), 0.5 * s, (255, 255, 255),
-                          1, GREEN)
+                    org = (p[0], p[1] - int(8 * s))
+                    _text(out, text, org, 0.7 * s, (255, 255, 255), 2, GREEN)
+                    (tw, _), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.7 * s, 2)
+                    _text(out, tag.lstrip("T0") or "0", (org[0] + tw + int(12 * s), org[1]), 0.35 * s,
+                          (20, 20, 20), 1, (200, 235, 200))
                 else:
                     _dashed_rect(out, b, AMBER, max(2, int(3 * s)))
-                    _text(out, "Is this them?  accept / decline", (p[0], p[1] - int(8 * s)), 0.5 * s, (0, 0, 0), 1,
-                          AMBER)
+                    _text(out, text, (p[0], p[1] - int(8 * s)), 0.5 * s, (0, 0, 0), 1, AMBER)
         # status panel
         cv2.rectangle(out, (int(12 * s), int(12 * s)), (int(470 * s), int(84 * s)), (25, 25, 25), -1)
         cv2.rectangle(out, (int(12 * s), int(12 * s)), (int(28 * s), int(84 * s)), colour, -1)
