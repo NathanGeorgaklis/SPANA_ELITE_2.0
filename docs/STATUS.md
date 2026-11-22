@@ -1,6 +1,39 @@
 # STATUS
 
-As of 2026-11-20 (branch identity/reid-merge-v1 = main 74eb1a0 + the re-ID resolution work; PR #13; main also has
+As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passed, 13 skipped.
+
+## Next tasks (2026-11-22)
+1. **Ball: DEV labels, then scoring.**
+   - Nathan labels the ball on FRESH_02 / 05 / 07 / 08 at 0.1 s with `tools.label_pack --kind ball` and
+     `tools/ball_labeller.html`, then freezes them with `tools.freeze_ball_labels`.
+   - Then the ball scoring tool (DEV only) fits the `ball` priors.
+   - The ball tracker is merged but unmeasured; every `ball` value is still a prior.
+2. **Possession / touches v1: review and merge decision.**
+   - The work is on `origin/possession/touches-v1` (160e1b0, not merged; another session). It has QA on scripted
+     scenes only; no DEV touch labels exist.
+   - It claims config 2.18.0, which main now uses for the `team` section. On merge it must take the next free
+     version (2.19.0), the same rule as the ball and team merges.
+   - It needs scored ball tracks first (task 1) to mean anything on DEV.
+3. **Team classification v1.1: Nathan's coverage review.**
+   - On main, answers TEAM_A / TEAM_B / UNKNOWN only. DEV held out 0 wrong of 2,052, bound 0.146 %.
+   - Coverage: FRESH_02 0.67, FRESH_05 0.84, FRESH_07 0.69, FRESH_08 0.37.
+   - Nothing consumes `spana.teams` yet. Linking's team input stays unwired until decided.
+   - Roles stay off until pitch context exists (`records/team_score_v11_2026-11-22`).
+4. **Target identity: parked** at the reviewer baseline of 0.879 correct, 0 wrong, 6.48 actions / min, until re-ID
+   separates same-kit teammates.
+   - `tracking.appearance_doubt_link` stays off, and transitive predecessors are not built (DECISIONS 2026-11-22).
+   - The remaining effort is contact track changes, a player-tracking matter with no generic fix found
+     (`records/contact_continuity_diag_2026-11-22`).
+5. **Re-ID:** v2 stays, and the adoption rule is unchanged (all tests held out). The lever is more TRAIN identities
+   for same-kit separation.
+6. **Housekeeping:**
+   - `origin/infra/modal-reid-train` 7dd0286 (a docs note: run Modal with `--detach`) is not merged. Merge it or
+     drop it.
+   - `~/SPANA_ELITE_2.0` needs `git pull` (its local `main` is behind origin).
+
+## Log (entries since 2026-11-20; the 2026-11-20 snapshot first, newer entries below it)
+
+Snapshot as of 2026-11-20 (branch identity/reid-merge-v1 = main 74eb1a0 + the re-ID resolution work; PR #13; main also has
 the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh08_followup_2026-11-20).
 - Full suite: `python -m pytest tests -q` → 539 passed, 5 skipped (container, Python 3.13, with torch + transformers for the re-ID tests).
 - Full suite on Nathan's Mac, branch tracking/tracker-bench-v1-gtalink (2026-11-21, project venv): 604 passed, 12 skipped; bench venv: harness + summary tests 15 passed.
@@ -79,7 +112,7 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
 - Team classification v1 design (2026-11-22, branch `team/classification-v1-design`, no code): see the layer row;
   scoring on DEV needs a new frozen side label per FRESH GT id (`records/design/TEAM_CLASSIFICATION_V1_DESIGN.md`).
 - Team classification v1 built (2026-11-22, branch `team/classification-v1`): `spana.teams` 1.0.0, config 2.17.0;
-  unscored until the DEV side labels exist. Next: `evaluation/team-labels-dev` (contact sheets, then Nathan labels).
+  unscored until the DEV side labels exist (done: labels frozen, scored and merged; see below).
 - DEV team side labels (2026-11-22, branch `evaluation/team-labels-dev`): contact sheets made for the 73 FRESH GT ids
   (`tools/team_label_sheet.py`, `config/team_labels.yaml`; sheets and `<clip>.sides.json` templates in
   `~/SPANA_team_labels/`, not in the repo). Labelled by Nathan and FROZEN 2026-11-22 to
@@ -259,7 +292,7 @@ are rare on DEV (1 of 33). Details: `records/detector_v1/RECORD.md`.
 - No player/team/clip/frame-specific logic found in `spana/`. Match ids appear only in `config/roboflow.yaml`
   (licence allow-list) and DEV clip names only in config comments.
 
-## Next task (suggested)
+## Earlier next-task lists (2026-11-19 and before; superseded by "Next tasks" at the top)
 0. Ball v1 on DEV (2026-11-19): run it on the DEV clips, label ball centres on 1-2 DEV clips, then score and fit the
    `ball` priors on DEV only. Then team classification v1 (kit grouping per match from track history: A / B / GK /
    REF), which also gives re-ID a cue and works around the detector's kit-colour role confusion.
