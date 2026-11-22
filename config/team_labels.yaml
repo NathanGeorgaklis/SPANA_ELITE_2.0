@@ -1,0 +1,9 @@
+# Contact sheets for labelling a side per frozen DEV GT id (tools/team_label_sheet.py). Presentation only: nothing here
+# is read by the product or by scoring.
+schema_version: "1.0.0"
+crops_per_id: 6            # crops per GT id, spread evenly over the clip
+clean_max_iou: 0.05        # a crop overlapping another labelled player above this is shown last, orange-bordered
+thumb_height_px: 160
+cell_width_px: 110         # crops are fitted into cells of this width
+context_width_px: 300      # one downscaled full frame per id with its box drawn
+rows_per_page: 12

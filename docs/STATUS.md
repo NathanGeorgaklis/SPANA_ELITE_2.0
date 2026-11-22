@@ -73,6 +73,10 @@ the memoised re-entry rule, records/reentry_cache_2026-11-20, and records/fresh0
   scoring on DEV needs a new frozen side label per FRESH GT id (`records/design/TEAM_CLASSIFICATION_V1_DESIGN.md`).
 - Team classification v1 built (2026-11-22, branch `team/classification-v1`): `spana.teams` 1.0.0, config 2.17.0;
   unscored until the DEV side labels exist. Next: `evaluation/team-labels-dev` (contact sheets, then Nathan labels).
+- DEV team side labels (2026-11-22, branch `evaluation/team-labels-dev`): contact sheets made for the 73 FRESH GT ids
+  (`tools/team_label_sheet.py`, `config/team_labels.yaml`; sheets and `<clip>.sides.json` templates in
+  `~/SPANA_team_labels/`, not in the repo). WAITING for Nathan's labelling; then `tools/freeze_team_labels.py` freezes
+  each clip to `data/labels/<clip>/teams_v1/`.
 DEV numbers below come from `records/`; nothing here has been scored on EVAL.
 
 | Layer | State | Module path | Tests | Notes |

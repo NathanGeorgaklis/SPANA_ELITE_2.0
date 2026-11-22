@@ -118,6 +118,18 @@ What the tracking layer receives from any detector, the football detector includ
 - **Validation:** `validate_teams(doc, tracks_by_clip)`.
 - **Consumers:** none yet. Linking's `teams` input stays unwired.
 
+## DEV team side labels (defined 2026-11-22, `evaluation/team-labels-dev`)
+- **`spana.team_sides` 1.0.0** (`tools/team_label_sheet.py` writes the template; Nathan fills it in):
+  - `{schema, schema_version, split: DEV, match_id, clip {name, sha256}, label_version, gt_sha256, annotator,
+    sides_allowed, sides {gt id: A | B | GK_A | GK_B | REF | OTHER}, notes}`;
+  - one file per clip; the same letter means the same kit in every clip of the match.
+- **Frozen** by `tools/freeze_team_labels.py` to `data/labels/<clip>/teams_v<N>/{sides.json, FROZEN.json}`:
+  - DEV only;
+  - hashes of the frozen GT re-checked;
+  - exactly the GT ids, each with one side;
+  - never overwritten.
+  The GT version `v<N>` itself is not touched.
+
 ### State enums (`spana/records.py`)
 | enum | values |
 |---|---|
