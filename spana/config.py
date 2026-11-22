@@ -20,7 +20,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.17.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.18.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
@@ -34,6 +34,8 @@ CONFIG_SCHEMA_VERSION = "2.17.0"   # 2.1.0: + target section; 2.2.0: + target re
 #   / confirmation_scope (player confirmations of target identity episodes, spana.identity.confirmation)
 #   2.17.0: + camera.cut_hist_hue_bins / cut_hist_sat_bins, tracking.confirm_min_observed_frames (were hard-coded
 #   32 / 32 / 2; same values)
+#   2.18.0: + team section (team classification v1; roles_enabled, min_separation_radius_ratio; spana.teams 1.1.0).
+#   The team branches numbered it 2.17.0 / 2.18.0 before main took 2.17.0; only 2.18.0 reached main.
 
 
 class ConfigError(ValueError):
@@ -372,6 +374,52 @@ class BallConfig:
 
 
 @dataclass(frozen=True)
+class TeamConfig:
+    """Team classification v1 (spana.teams.classifier; design records/design/TEAM_CLASSIFICATION_V1_DESIGN.md).
+    Distances are Hellinger distances between torso hue-saturation histograms (crop geometry from `appearance`),
+    in [0, 1]. No kit colour is known in advance; the two team clusters are fitted per match."""
+    feature: str                   # torso_hs (the only v1 feature)
+    sample_every_s: float          # evidence is sampled at most this often per track
+    min_segment_frames: int        # clean evidence frames for a segment to be labelled ...
+    min_segment_s: float           # ... spanning at least this long
+    min_cluster_segments: int      # each team cluster needs this many segments, else the match model abstains
+    min_cluster_separation: float  # distance between the two team centres, else the match model abstains
+    min_separation_radius_ratio: float  # the centres must be farther apart than this x the larger cluster radius,
+                                   #   else the match model abstains (CLUSTERS_OVERLAP)
+    outlier_distance: float        # a segment farther than this from both centres is a colour outlier
+    trim_rounds: int               # outliers removed and the two clusters refitted this many times
+    max_kmeans_iter: int           # safety cap on the 2-means iterations (it converges well before)
+    vote_margin: float             # a frame votes for X when d_X + margin < d_other
+    min_votes: int                 # a team label needs this many votes ...
+    min_vote_share: float          # ... and this share of the segment's evidence frames (> 0.5)
+    roles_enabled: bool            # REFEREE / GOALKEEPER answers at all (off in v1: colour outliers stay UNKNOWN)
+    role_min_share: float          # an outlier is REFEREE / GOALKEEPER when this share of its observed rows ...
+    role_min_frames: int           # ... (at least this many) carries that detector class ...
+    role_conflict_share: float     # ... and the other role class stays below this share
+    referee_class: str             # detector class name of the referee role hint (detections class_names)
+    goalkeeper_class: str          # detector class name of the goalkeeper role hint
+
+    def validate(self) -> None:
+        if self.feature != "torso_hs":
+            raise ConfigError(f"team.feature must be torso_hs, got {self.feature!r}")
+        for n in ("sample_every_s", "min_segment_s"):
+            _pos(f"team.{n}", getattr(self, n))
+        for n in ("min_segment_frames", "min_cluster_segments", "max_kmeans_iter", "min_votes", "role_min_frames"):
+            _pos_int(f"team.{n}", getattr(self, n))
+        _pos_int("team.trim_rounds", self.trim_rounds, allow_zero=True)
+        _pos("team.min_separation_radius_ratio", self.min_separation_radius_ratio)
+        for n in ("min_cluster_separation", "outlier_distance", "vote_margin", "role_min_share",
+                  "role_conflict_share"):
+            _unit(f"team.{n}", getattr(self, n))
+        if not 0.5 < self.min_vote_share <= 1.0:
+            raise ConfigError(f"team.min_vote_share must be in (0.5, 1], got {self.min_vote_share}")
+        if not self.role_conflict_share < self.role_min_share:
+            raise ConfigError("team.role_conflict_share must be < team.role_min_share")
+        if not (self.referee_class and self.goalkeeper_class) or self.referee_class == self.goalkeeper_class:
+            raise ConfigError("team.referee_class / goalkeeper_class must be two different class names")
+
+
+@dataclass(frozen=True)
 class OutputConfig:
     box_decimals: int
     score_decimals: int
@@ -393,6 +441,7 @@ class SpanaConfig:
     reid: ReidConfig
     reid_resolve: ReidResolveConfig
     ball: BallConfig
+    team: TeamConfig
     output: OutputConfig
 
     def validate(self) -> None:

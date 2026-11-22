@@ -1182,3 +1182,102 @@ def validate_ball(doc: Any, detections: Optional[dict] = None) -> None:
             raise ArtifactError("ball frames differ from the detection frames")
         if any(f["candidates"] != det[f["frame"]] for f in doc["frames"]):
             raise ArtifactError("candidate counts differ from the detections")
+
+
+# ----------------------------------------------------------------------------- teams
+TEAMS_SCHEMA = ("spana.teams", "1.1.0")   # 1.1.0: + reason COLOUR_OUTLIER, model reason CLUSTERS_OVERLAP,
+TEAMS_VERSIONS = ("1.0.0", "1.1.0")       #   team_config roles_enabled (no role answer when false); 1.0.0 still validates
+_TEAMS_INPUT_KEYS = ("clip", "video_sha256", "tracks_sha256", "detections_sha256")
+_TEAMS_MODEL_KEYS = ("status", "reason", "clusters", "separation", "trimmed_segments", "outlier_segments")
+_TEAMS_MODEL_REASONS = {"FITTED": (None,), "ABSTAIN": ("TOO_FEW_SEGMENTS", "CLUSTERS_NOT_SEPARATED", "CLUSTERS_OVERLAP",
+                                                       "CLUSTER_TOO_SMALL")}
+_TEAMS_SEG_KEYS = ("frame", "frame_end", "label", "reasons", "evidence_frames", "votes", "dist", "role_hint_share")
+
+
+def validate_teams(doc: Any, tracks_by_clip: Optional[Dict[str, dict]] = None) -> None:
+    """spana.teams 1.1.0 (1.0.0 still validates). With the clips' tracks documents: same hashes, and every segment is a
+    run of rows of its track that are all confirmed and identity CERTAIN."""
+    from .records import TeamLabel, TeamReason
+    if not isinstance(doc, dict) or doc.get("schema_version") not in TEAMS_VERSIONS:
+        raise ArtifactError(f"teams: schema_version {doc.get('schema_version') if isinstance(doc, dict) else None!r} "
+                            f"not in {TEAMS_VERSIONS}")
+    version = doc["schema_version"]
+    _header(doc, (TEAMS_SCHEMA[0], version), ("schema", "schema_version", "provenance", "match_id", "inputs",
+                                              "team_config", "appearance_config", "feature", "model", "tracks"))
+    if not (isinstance(doc["match_id"], str) and doc["match_id"]):
+        raise ArtifactError("teams: match_id missing")
+    clips = []
+    for i in doc["inputs"]:
+        _keys(i, _TEAMS_INPUT_KEYS, "teams input")
+        clips.append(i["clip"])
+    if not clips or len(set(clips)) != len(clips):
+        raise ArtifactError("teams: inputs need distinct clips")
+    m = doc["model"]
+    _keys(m, _TEAMS_MODEL_KEYS, "teams model")
+    if m["status"] not in _TEAMS_MODEL_REASONS or m["reason"] not in _TEAMS_MODEL_REASONS[m["status"]] or \
+            (version == "1.0.0" and m["reason"] == "CLUSTERS_OVERLAP"):
+        raise ArtifactError(f"teams model: bad status / reason {m['status']!r} {m['reason']!r}")
+    if m["status"] == "FITTED" and [c.get("label") for c in m["clusters"]] != ["TEAM_A", "TEAM_B"]:
+        raise ArtifactError("teams model: a fitted model has clusters TEAM_A, TEAM_B")
+    labels = {v.value for v in TeamLabel}
+    reasons = {v.value for v in TeamReason} - {TeamReason.OUTSIDE_SEGMENT.value}
+    if version == "1.0.0":
+        reasons -= {TeamReason.COLOUR_OUTLIER.value}
+    roles_off = version != "1.0.0" and not doc["team_config"].get("roles_enabled", False)
+    seen = set()
+    for t in doc["tracks"]:
+        _keys(t, ("clip", "track_id", "segments", "flags"), "teams track")
+        if t["clip"] not in clips or (t["clip"], t["track_id"]) in seen:
+            raise ArtifactError(f"teams: unknown clip or duplicate track {t['clip']!r} {t['track_id']!r}")
+        seen.add((t["clip"], t["track_id"]))
+        prev = -1
+        decided = set()
+        for sg in t["segments"]:
+            _keys(sg, _TEAMS_SEG_KEYS, "teams segment")
+            if not (isinstance(sg["frame"], int) and isinstance(sg["frame_end"], int)
+                    and prev < sg["frame"] <= sg["frame_end"]):
+                raise ArtifactError(f"{t['track_id']}: segments not ordered / disjoint")
+            prev = sg["frame_end"]
+            if sg["label"] not in labels or any(x not in reasons for x in sg["reasons"]):
+                raise ArtifactError(f"{t['track_id']}: bad label / reasons {sg['label']!r} {sg['reasons']!r}")
+            if (sg["label"] == TeamLabel.UNKNOWN.value) != bool(sg["reasons"]):
+                raise ArtifactError(f"{t['track_id']}: UNKNOWN needs a reason and a decided label none")
+            if sg["label"] != TeamLabel.UNKNOWN.value:
+                if m["status"] != "FITTED":
+                    raise ArtifactError(f"{t['track_id']}: decided label without a fitted match model")
+                if roles_off and sg["label"] in (TeamLabel.GOALKEEPER.value, TeamLabel.REFEREE.value):
+                    raise ArtifactError(f"{t['track_id']}: role answer {sg['label']} with roles_enabled false")
+                decided.add(sg["label"])
+            if set(sg["votes"]) != {"TEAM_A", "TEAM_B", "abstain"} or \
+                    sum(sg["votes"].values()) not in (0, sg["evidence_frames"]):
+                raise ArtifactError(f"{t['track_id']}: votes do not add up to the evidence frames")
+            if set(sg["dist"]) != {"TEAM_A", "TEAM_B"} or \
+                    not all(v is None or (_num(v) and 0.0 <= v <= 1.0) for v in sg["role_hint_share"].values()):
+                raise ArtifactError(f"{t['track_id']}: bad dist / role_hint_share")
+        if t["flags"] != (["TEAM_CHANGE"] if len(decided) > 1 else []):
+            raise ArtifactError(f"{t['track_id']}: TEAM_CHANGE flag inconsistent with its segments")
+    if tracks_by_clip is not None:
+        inputs = {i["clip"]: i for i in doc["inputs"]}
+        if set(tracks_by_clip) != set(inputs):
+            raise ArtifactError("teams: clips differ from the tracks documents given")
+        for clip, tdoc in tracks_by_clip.items():
+            if inputs[clip]["tracks_sha256"] != sha256_doc(tdoc) or \
+                    inputs[clip]["video_sha256"] != tdoc["video"]["sha256"] or \
+                    inputs[clip]["detections_sha256"] != tdoc["detections_sha256"]:
+                raise ArtifactError(f"teams: {clip} was made from other tracks / video / detections")
+            rows: Dict[str, Dict[int, dict]] = {}
+            for fr in tdoc["frames"]:
+                for r in fr["tracks"]:
+                    rows.setdefault(r["track_id"], {})[fr["frame"]] = r
+            for t in doc["tracks"]:
+                if t["clip"] != clip:
+                    continue
+                own = rows.get(t["track_id"])
+                if own is None:
+                    raise ArtifactError(f"teams: {clip} {t['track_id']} not in its tracks document")
+                for sg in t["segments"]:
+                    span = [f for f in own if sg["frame"] <= f <= sg["frame_end"]]
+                    if sg["frame"] not in own or sg["frame_end"] not in own or not all(
+                            own[f]["confirmed"] and own[f]["identity"] == "CERTAIN" for f in span):
+                        raise ArtifactError(f"teams: {clip} {t['track_id']} segment {sg['frame']}..{sg['frame_end']}"
+                                            " covers a row that is not confirmed and CERTAIN")

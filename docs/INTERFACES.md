@@ -92,6 +92,50 @@ What the tracking layer receives from any detector, the football detector includ
   `aggregate(vecs)`, `similarity(a, b) -> [0,1]|None`. CLI: `python -m spana.cli link --video --config
   --linking-config --tracks --decisions --out`.
 
+## Tracks -> team classification (defined 2026-11-22; `spana.teams` 1.1.0 on main)
+- **Command:** `spana/teams/classifier.py`, CLI `python -m spana.cli teams --match-id M --config C --clip VIDEO TRACKS
+  DETECTIONS [--clip ...] --out teams.json`. Every clip of one match goes in together, so TEAM_A is one kit across
+  the match's clips. Design: `records/design/TEAM_CLASSIFICATION_V1_DESIGN.md`.
+- **In:** per clip the video, a `spana.tracks` document (2.1.0-2.3.0), and the `spana.detections` artifact it was
+  made from (`class_names` gives the role hint, used only with roles on). Both are validated and hash-checked.
+- **Out: `spana.teams` 1.1.0** (1.0.0 still validates):
+  - `{schema, schema_version, provenance, match_id, inputs [{clip, video_sha256, tracks_sha256,
+    detections_sha256}], team_config, appearance_config, feature: torso_colour_hs_hist_v1, model {status FITTED |
+    ABSTAIN, reason None | TOO_FEW_SEGMENTS | CLUSTERS_NOT_SEPARATED | CLUSTERS_OVERLAP | CLUSTER_TOO_SMALL,
+    clusters [{label, segments, evidence_frames, radius}], separation, trimmed_segments, outlier_segments}, tracks
+    [{clip, track_id, segments [{frame, frame_end, label, reasons, evidence_frames, votes {TEAM_A, TEAM_B, abstain},
+    dist {TEAM_A, TEAM_B}, role_hint_share {class: share}}], flags [TEAM_CHANGE]}]}`.
+  - A segment is a maximal run of the track's rows that are confirmed and identity CERTAIN. Frames outside every
+    segment read UNKNOWN / OUTSIDE_SEGMENT (`label_at`).
+  - A decided label has no reason; UNKNOWN has at least one.
+  - `TEAM_CHANGE` is a QA flag when one track has two different decided labels.
+- **Labels** (`TeamLabel`): `TEAM_A, TEAM_B, GOALKEEPER, REFEREE, UNKNOWN`.
+  - **v1 answers TEAM_A / TEAM_B / UNKNOWN only.** `team.roles_enabled` is false (decision 2026-11-22). With it
+    false, a GOALKEEPER / REFEREE answer fails validation, and a colour outlier is UNKNOWN / COLOUR_OUTLIER, never
+    the nearest team.
+  - A / B are per-match names: TEAM_A is the cluster of the earliest-starting segment, with no home / away meaning.
+- **Reasons** (`TeamReason`): `TOO_FEW_CLEAN_FRAMES, LOW_VOTE_SHARE, COLOUR_OUTLIER (1.1.0), COLOUR_OUTLIER_NO_ROLE,
+  ROLE_HINT_CONFLICT, MATCH_MODEL_ABSTAIN`, plus `OUTSIDE_SEGMENT` (`label_at` only).
+- **Match abstention:** the whole match is UNKNOWN when the two kit centres are closer than
+  `team.min_cluster_separation`, or not farther apart than `team.min_separation_radius_ratio` x the larger cluster
+  radius (CLUSTERS_OVERLAP), or a cluster is too small.
+- **Config:** `team` (schema 2.18.0) plus the `appearance` crop geometry.
+- **Validation:** `validate_teams(doc, tracks_by_clip)`.
+- **Consumers:** none yet. Linking's `teams` input stays unwired.
+- **Scoring:** `tools/team_score.py`, DEV side labels `data/labels/<clip>/teams_v1` (`records/team_score_v11_2026-11-22`).
+
+## DEV team side labels (defined 2026-11-22, `evaluation/team-labels-dev`)
+- **`spana.team_sides` 1.0.0** (`tools/team_label_sheet.py` writes the template; Nathan fills it in):
+  - `{schema, schema_version, split: DEV, match_id, clip {name, sha256}, label_version, gt_sha256, annotator,
+    sides_allowed, sides {gt id: A | B | GK_A | GK_B | REF | OTHER}, notes}`;
+  - one file per clip; the same letter means the same kit in every clip of the match.
+- **Frozen** by `tools/freeze_team_labels.py` to `data/labels/<clip>/teams_v<N>/{sides.json, FROZEN.json}`:
+  - DEV only;
+  - hashes of the frozen GT re-checked;
+  - exactly the GT ids, each with one side;
+  - never overwritten.
+  The GT version `v<N>` itself is not touched.
+
 ### State enums (`spana/records.py`)
 | enum | values |
 |---|---|
@@ -358,7 +402,6 @@ Follow the user's chosen player through a clip, and say so when unsure.
 | layer | inputs / outputs | state enum |
 |---|---|---|
 | ball tracking | NOT DEFINED | NOT DEFINED |
-| team classification | NOT DEFINED | NOT DEFINED |
 | pitch context | NOT DEFINED | NOT DEFINED |
 | possession/touches | NOT DEFINED | NOT DEFINED |
 | event segmentation | NOT DEFINED | NOT DEFINED |
