@@ -37,6 +37,15 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      all wrong answers 122 -> 19, seen coverage 0.636 -> 0.586. FRESH_08 coverage drop (0.463 -> 0.333) not
      diagnosed. Tracker tuning on these clips STOPPED. FRESH_02 = detector limit (a false object at a player's feet
      scoring like its small ball): detector data, not tracker rules. Nothing merged; merge decision with Nathan.
+   - BALL PATH v1 built 2026-11-23 on `ball/path-v1` (Nathan's design decision: decide afterwards from both ends,
+     never guess; DESIGN + pass bar committed before code, `records/ball_path_v1_2026-11-23`). Two passes:
+     `spana.cli ball` (now `spana.ball` 1.3.0 with every sighting) then `spana.cli ball-path` (`spana.ball_path`
+     1.0.0, config 2.21.0 `ball_path`): only stretches >= 0.5 s seen on >= 50 % of their frames are the ball, split at
+     holes > 0.4 s and at far rejoins (amendment 1); overlapping stretches = CONFLICT; gaps recorded from both ends;
+     no predicted positions. Replaces the seen-share rule (off) and the "with player X" memory (not built).
+     NOT YET MEASURED on DEV. Bar: 0 wrong SEEN on each clip (FRESH_08 on labels v2), then ONE unseen clip scored
+     once. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
+     its `possession` section becomes config 2.22.0 on merge.
    - CORRECTION 2026-11-23: FRESH_08 re-scored on Nathan's every-frame labels (ball labels v2, 391 frames; on his
      Mac, not yet pushed): 2 wrong OBSERVED of 59 (frames 361-362, ball out of the picture), not 0; coverage 0.352;
      77 of 162 visible frames have no answer. The every-3rd-frame labels missed the 2 errors, so FRESH_05 / 07's
