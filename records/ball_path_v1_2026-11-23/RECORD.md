@@ -69,4 +69,36 @@ clip-specific).
 Also added to the design by this review: a stretch is split at CUT / UNKNOWN camera frames. The code did it; the
 design text did not say so.
 
-## DEV measurement: PENDING
+## DEV measurement on the 4 clips (Nathan's Mac, 2026-11-23; `~/spana-ball-run/v5/`): PASSES the bar
+- Code 3ab9829.
+- `spana.cli ball --tracks` on the existing `*.balldet.json` / `*.tracks.json`, then `spana.cli ball-path`.
+- `tools.ball_score --clip LABELS PATH BALL`: each path recomputed from its ball document, recorded settings checked.
+- Labels: FRESH_02 / 05 / 07 v1, FRESH_08 v2 (every frame).
+- Numbers pasted from the terminal.
+
+| clip | frames scored | wrong SEEN (95 % bound) | coverage (SEEN hits / VISIBLE) | first run: coverage / wrong OBSERVED |
+|---|---|---|---|---|
+| FRESH_02 | 131 | 0 / 36 (0.080) | 0.279 | 0.271 / 13 |
+| FRESH_05 | 131 | 0 / 123 (0.024) | 0.946 | 0.938 / 0 |
+| FRESH_07 | 131 | 0 / 99 (0.030) | 0.798 | 0.790 / 2 |
+| FRESH_08 | 391 | 0 / 60 (0.049) | 0.370 | (narrowed step 1 on the same v2 labels: 0.352 / 2) |
+| pooled | 784 | 0 / 318 (0.0094) | 0.583 | |
+
+Pass bar (0 wrong SEEN on EACH clip): met on all four. The path has no PREDICTED answers, so "wrong all" = "wrong
+SEEN".
+
+What this does and does not show:
+- Coverage is at or above every earlier version on every clip, including the unfiltered first run.
+  - Sightings before online confirmation now count.
+  - A false object no longer blocks the real ball.
+- FRESH_02 / FRESH_08 coverage stays low (0.28 / 0.37): the detector does not fire on the ball. That is now UNKNOWN,
+  not wrong.
+- These are the clips the design was shaped on.
+- FRESH_02 / 05 / 07 are labelled every 3rd / 6th frame, which can hide short errors (it did on FRESH_08 v1).
+- 0 / 36 on FRESH_02 is consistent with a true wrong rate of up to 8 %.
+- The DESIGN's listed risks (near rejoin, undetected shot change, replays, persistent false objects) are not
+  exercised unless they occur in these clips.
+
+## Unseen clip: PENDING
+One DEV clip never used in the design, labelled by Nathan AFTER the code was frozen at 3ab9829 (labels frozen and
+pushed before the tracker is run on it), scored exactly once with the same bar. Settings are not changed after it.

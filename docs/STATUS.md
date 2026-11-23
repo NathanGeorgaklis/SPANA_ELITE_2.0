@@ -43,8 +43,10 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      1.0.0, config 2.21.0 `ball_path`): only stretches >= 0.5 s seen on >= 50 % of their frames are the ball, split at
      holes > 0.4 s and at far rejoins (amendment 1); overlapping stretches = CONFLICT; gaps recorded from both ends;
      no predicted positions. Replaces the seen-share rule (off) and the "with player X" memory (not built).
-     NOT YET MEASURED on DEV. Bar: 0 wrong SEEN on each clip (FRESH_08 on labels v2), then ONE unseen clip scored
-     once. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
+     MEASURED 2026-11-23 on the 4 clips: PASSES (0 wrong SEEN on each: 0/36, 0/123, 0/99, 0/60 on FRESH_08's
+     every-frame labels; pooled 0/318, bound 0.94 %; coverage 0.279 / 0.946 / 0.798 / 0.370, at or above every earlier
+     version). Reviewed twice, all findings fixed (code frozen at 3ab9829). NEXT: ONE unseen clip, labelled after
+     the freeze, scored once. Not merged. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
      its `possession` section becomes config 2.22.0 on merge.
    - CORRECTION 2026-11-23: FRESH_08 re-scored on Nathan's every-frame labels (ball labels v2, 391 frames; on his
      Mac, not yet pushed): 2 wrong OBSERVED of 59 (frames 361-362, ball out of the picture), not 0; coverage 0.352;
