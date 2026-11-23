@@ -155,10 +155,10 @@ What the tracking layer receives from any detector, the football detector includ
   `detection_config` = the `ball` config section. `track` refuses it; `ball` refuses anything else.
 - `spana.ball` 1.2.0 (2026-11-23; 1.0.0 / 1.1.0 still validate): + top-level `tracks_sha256` (or null).
   `spana.cli ball ... [--tracks T.json]` (same video; must cover every ball detection frame) gives the tracker the
-  boxes of the player tracks OBSERVED on each frame. Then, for a hypothesis NOT observed on the previous processed
-  frame: a candidate inside a player's box above the feet zone (`ball.feet_zone_h`) cannot join it, nor start a
-  hypothesis (decision `blocked` / ON_BODY), and a confirmed hypothesis rejoins only a candidate within
-  `ball.reacquire_max_d` diameters of its predicted position (a ball reappearing elsewhere is a new hypothesis).
+  boxes of the player tracks OBSERVED on each frame. A candidate inside a player's box above the feet zone
+  (`ball.feet_zone_h`) is on the body: it cannot start a hypothesis (decision `blocked` / ON_BODY), and a hypothesis
+  NOT observed on the previous processed frame rejoins it only within `ball.reacquire_max_d` diameters of the
+  predicted position (narrowed 2026-11-23: candidates off the body rejoin as before).
   Without `--tracks` the ball pass knows no players, as before.
 - `spana.ball` 1.1.0 (2026-11-23; 1.0.0 documents still validate): + LOST reason SPARSE_OBSERVATIONS. A confirmed
   hypothesis is the answer (OBSERVED / PREDICTED) only while observed on >= `ball.min_seen_share` of its processed

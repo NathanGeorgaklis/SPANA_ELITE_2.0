@@ -145,16 +145,26 @@ class BallTrackerTests(unittest.TestCase):
         self.assertEqual(trk.summaries(), [])
         self.assertTrue(all(d["reason"] == "ON_BODY" for f in out for d in f.decisions if d["kind"] == "blocked"))
 
-    def test_single_far_detection_after_a_gap_is_not_the_ball(self):
-        # ball at P1's feet, unseen 3 frames, one detection 250 px away in the open (not on a body), then nothing
+    def test_single_far_detection_on_a_body_after_a_gap_is_not_the_ball(self):
+        # ball at P1's feet, unseen 3 frames, one detection 250 px away on P3's leg (y 0.73 of his box), then nothing
+        p3 = (780.0, 150.0, 840.0, 340.0)
         n = 30
-        frames = [[self.at_feet(i)] for i in range(n)] + [[] for _ in range(3)] + [[ball(810, 290, score=0.42)]] + \
+        frames = [[self.at_feet(i)] for i in range(n)] + [[] for _ in range(3)] + [[ball(810, 289, score=0.42)]] + \
                  [[] for _ in range(3)]
         blind, _ = run_with_players(frames, None)
         self.assertEqual(blind[n + 3].state, BallState.OBSERVED)                 # the bug
-        aware, _ = run_with_players(frames, [self.P1])
+        aware, _ = run_with_players(frames, [self.P1, p3])
         self.assertNotEqual(aware[n + 3].state, BallState.OBSERVED)
         self.assertTrue(all(abs(f.center[0] - 810) > 100 for f in aware[n:] if f.center))
+
+    def test_ball_overlapping_a_players_box_rejoins_where_it_was_expected(self):
+        # a still ball that sits, in the picture, on the top of a nearer player's box: one missed frame, then back
+        # (picked up in the open first: x 240 -> 300 rolls into the box, y 160 = 0.06 of P2's box, then it rests)
+        frames = [[ball(min(300, 240 + 3 * i), 160)] if i != 35 else [] for i in range(50)]
+        out, _ = run_with_players(frames, [self.P2])
+        self.assertEqual(out[35].state, BallState.PREDICTED)
+        self.assertTrue(all(f.state is BallState.OBSERVED for f in out[36:]))
+        self.assertEqual(len({f.hypothesis for f in out if f.hypothesis}), 1)
 
     def test_ball_back_near_its_prediction_rejoins_at_once(self):
         n = 30
@@ -172,23 +182,22 @@ class BallTrackerTests(unittest.TestCase):
         self.assertTrue(all(f.state is BallState.OBSERVED for f in out[k:]))
         self.assertEqual(len({f.hypothesis for f in out[k:]}), 1)
 
-    def test_ball_reappearing_far_away_is_confirmed_as_a_new_ball(self):
-        # a real pass missed for a few frames: seen steadily far from the prediction -> answered again, new hypothesis
+    def test_kicked_ball_seen_again_off_the_body_rejoins_at_once(self):
+        # a pass missed for 2 frames: the ball is far from the constant-velocity prediction, in the open
         n = 30
-        frames = [[self.at_feet(i)] for i in range(n)] + [[] for _ in range(4)] + \
-                 [[ball(800 + 6 * i, 320)] for i in range(40)]
+        frames = [[self.at_feet(i)] for i in range(n)] + [[], []] + [[ball(640 + 20 * i, 320)] for i in range(10)]
         out, _ = run_with_players(frames, [self.P1])
-        late = [f for f in out[-10:]]
-        self.assertTrue(all(f.state is BallState.OBSERVED and f.center[0] > 700 for f in late))
-        self.assertEqual(len({f.hypothesis for f in out if f.hypothesis}), 2)
+        self.assertTrue(all(f.state is BallState.OBSERVED and f.center[0] > 600 for f in out[n + 2:]))
+        self.assertEqual(len({f.hypothesis for f in out if f.hypothesis}), 1)
 
     def test_feet_zone_and_rejoin_distance_come_from_config(self):
         glove = [[ball(300, 200, score=0.5)] for _ in range(40)]
         out, _ = run_with_players(glove, [self.P2], cfg=dataclasses.replace(B, feet_zone_h=0.99))
         self.assertIn(BallState.OBSERVED, set(states(out)))                      # everything is "feet": not blocked
         n = 30
-        far = [[self.at_feet(i)] for i in range(n)] + [[] for _ in range(3)] + [[ball(810, 290)]] + [[]]
-        out, _ = run_with_players(far, [self.P1], cfg=dataclasses.replace(B, reacquire_max_d=1000.0))
+        far = [[self.at_feet(i)] for i in range(n)] + [[] for _ in range(3)] + [[ball(810, 289)]] + [[]]
+        out, _ = run_with_players(far, [self.P1, (780.0, 150.0, 840.0, 340.0)],
+                                  cfg=dataclasses.replace(B, reacquire_max_d=1000.0))
         self.assertEqual(out[n + 3].state, BallState.OBSERVED)
 
     def test_hidden_ball_reacquired_on_same_hypothesis(self):

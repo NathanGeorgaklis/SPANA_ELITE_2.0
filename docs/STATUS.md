@@ -31,6 +31,9 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      (`ball.feet_zone_h` 0.20, `ball.reacquire_max_d` 3.0), `spana.ball` 1.2.0. MEASURED 2026-11-23: FAILS the bar
      (wrong OBSERVED pooled 5 -> 2, both FRESH_02; FRESH_07 coverage 0.734 < 0.740; F07 / F08 now 0 wrong OBSERVED).
      Not adopted (`records/ball_player_aware_2026-11-23`). Step 2 ("with player X" memory) not built yet.
+   - Step 1 NARROWED 2026-11-23 (DECISIONS; last tracker-tuning round on these clips): block only on-body AND far
+     rejoins, and starts on a body. NOT YET MEASURED. FRESH_02's remaining errors are a detector limit (a false
+     object at a player's feet scoring like its small ball): detector data, not tracker rules.
      If touches v1 merges after this, its `possession` section becomes config 2.21.0.
 2. **Possession / touches v1: review and merge decision.**
    - The work is on `origin/possession/touches-v1` (160e1b0, not merged; another session). It has QA on scripted

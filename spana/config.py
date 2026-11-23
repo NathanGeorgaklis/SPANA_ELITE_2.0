@@ -367,8 +367,8 @@ class BallConfig:
     feet_zone_h: float             # with player tracks: the bottom share of a player's box where a ball at the feet
                                    #   is; a candidate inside a box above it is on the body (cannot start or bring
                                    #   back a ball; it counts only for a hypothesis observed on the previous frame)
-    reacquire_max_d: float         # with player tracks: a confirmed hypothesis not observed on the previous frame
-                                   #   rejoins only a candidate within this many diameters of its predicted position
+    reacquire_max_d: float         # with player tracks: a hypothesis not observed on the previous frame rejoins a
+                                   #   candidate ON A BODY only within this many diameters of its predicted position
 
     def validate(self) -> None:
         _unit("ball.score_min", self.score_min)

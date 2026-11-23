@@ -305,7 +305,7 @@ ball:
   # height from the top; the real ball at a player's feet 0.91-0.99), taken after 3-7 unseen frames and 210-320 px
   # (13-25 diameters) from the prediction (records/ball_player_aware_2026-11-23). Set before measuring.
   feet_zone_h: 0.20          # bottom share of a player's box = feet zone; above it a candidate is on the body
-  reacquire_max_d: 3.0       # after an unseen frame, rejoin only within this many diameters of the prediction
+  reacquire_max_d: 3.0       # after an unseen frame, rejoin a candidate ON A BODY only this close (diameters) to the prediction
 
 team:
   # Team classification v1 (spana/teams/classifier.py, records/design/TEAM_CLASSIFICATION_V1_DESIGN.md). Per match:

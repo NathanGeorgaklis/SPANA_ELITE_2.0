@@ -15,11 +15,11 @@ Several hypotheses live at once, because a ball view also fires on heads, boots,
        no selected ball is still within predict_max_s (no silent switch to another ball);
      - PREDICTED for the selected ball unobserved <= predict_max_s with its extrapolation inside the picture;
      - with player boxes (the observed player tracks of the frame; optional): a candidate inside a player's box
-       above its feet zone is ON THE BODY (the ball view fires on jerseys, shorts, gloves). It cannot start a
-       hypothesis, and it can join one only if that hypothesis was observed on the previous processed frame (a ball
-       followed across a player). A confirmed hypothesis not observed on the previous frame rejoins only a candidate
-       within reacquire_max_d diameters of its predicted position; a ball that reappears elsewhere starts a new
-       hypothesis and must be confirmed like any other;
+       above its feet zone is ON THE BODY (the ball view fires on jerseys, shorts, boots, gloves). It cannot start
+       a hypothesis. A hypothesis not observed on the previous processed frame cannot rejoin it unless it lies within
+       reacquire_max_d diameters of the predicted position (a real ball that merely overlaps a player's box in the
+       picture is where it was expected; a jersey 200 px away is not). A ball followed frame to frame across a
+       player, and any candidate off the body, are treated as before;
      - a hypothesis observed on fewer than min_seen_share of its frames over the last seen_share_window_s is never
        the answer (LOST SPARSE_OBSERVATIONS): a false object detected now and then is kept alive by each sporadic
        re-detection, while the ball being followed is detected on most frames. It still counts as a rival;
@@ -107,7 +107,7 @@ class BallTracker:
         elif camera.status is CameraStatus.OK:
             self._carry(camera.matrix())
 
-        matched = self._associate(frame, t, candidates, log, on_body, players is not None)
+        matched = self._associate(frame, t, candidates, log, on_body)
         for i, d in enumerate(candidates):
             if i in matched:
                 continue
@@ -157,7 +157,7 @@ class BallTracker:
         return any(x1 <= cx <= x2 and y1 <= cy < y2 - self.cfg.feet_zone_h * (y2 - y1) for x1, y1, x2, y2 in players)
 
     def _associate(self, frame: int, t: float, cands: Sequence[Detection], log: List[dict],
-                   on_body: Sequence[bool], player_aware: bool) -> Dict[int, str]:
+                   on_body: Sequence[bool]) -> Dict[int, str]:
         c = self.cfg
         pairs: List[Tuple[int, float, str, int, _Assoc]] = []
         for hid, h in self._hyps.items():
@@ -171,8 +171,8 @@ class BallTracker:
                 dist_d = float(np.linalg.norm(p - h.pos)) / d
                 if dist_d <= gate_d:
                     cost = float(np.linalg.norm(p - pred)) / d
-                    if not followed and (on_body[i] or (player_aware and h.confirmed and cost > c.reacquire_max_d)):
-                        continue                                      # no re-acquisition on a body / far away
+                    if not followed and on_body[i] and cost > c.reacquire_max_d:
+                        continue                 # no re-acquisition on a player's body away from the prediction
                     pairs.append((0 if h.confirmed else 1, cost, hid, i, _Assoc(cost, dist_d, gate_d)))
         pairs.sort(key=lambda r: r[:4])
         used_h, matched = set(), {}

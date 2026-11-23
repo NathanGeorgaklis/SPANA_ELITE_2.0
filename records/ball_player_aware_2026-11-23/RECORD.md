@@ -100,3 +100,19 @@ Not adopted, and the bar is not changed after the fact.
 - A narrower rule would have caught the same 4: block a rejoin only when on a body and far; block starts on a
   body; no far-rejoin rule off the body. Not built or measured yet.
 - Caution: every rule so far was shaped on the same 4 clips (524 labelled frames).
+
+## Step 1 narrowed (2026-11-23; DECISIONS: the last tracker-tuning round on these clips)
+- A rejoin after an unseen frame is blocked only when the candidate is on a body AND more than `reacquire_max_d`
+  (3.0) diameters from the prediction.
+- A hypothesis still cannot start on a body.
+- The far-rejoin rule off the body is dropped.
+- Values and pass bar unchanged.
+
+Tests: `tests/test_ball_tracker.py`, 31 passed. Changed or new:
+- a single far detection on another player's leg is not the ball;
+- a ball overlapping a player's box rejoins where it was expected;
+- a kicked ball seen again off the body rejoins at once, on the same hypothesis.
+
+Full suite: 732 passed, 15 skipped, 2 failed (`test_botsort_compare.py`, environment only).
+
+DEV measurement of the narrowed rule: PENDING (`~/spana-ball-run/v4/`).
