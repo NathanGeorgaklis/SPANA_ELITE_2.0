@@ -120,3 +120,23 @@ Pass bar (0 wrong SEEN): **FAIL**. The result stands; the settings are not chang
   diagnosed.
 - Ball path v1 is therefore NOT adopted as meeting the bar. Whether it is merged as an improvement over the tracker's
   own answer (first run: 32 wrong OBSERVED of 310 on the four clips) is Nathan's decision, to be recorded as that.
+
+### The 4 wrong SEEN frames on the unseen clip (diagnosed 2026-11-23; `~/spana-ball-run/diag5.txt`; frames viewed by Nathan)
+Path on FRESH_03: SEEN 629 frames, HOLE 132, GAP 20, CONFLICT 0; 3 confident stretches of 10; 2 gaps, both OPEN
+(341 -> 349, 387 -> 401).
+
+| frame | label v1 | path answer | what the frame shows (Nathan) |
+|---|---|---|---|
+| 380, 382, 386 | OUT (from frame 374) | SEEN at x 105-120, scores 0.57-0.82, same hypothesis as frame 372 (a hit at (177, 371), moving left ~7 px / frame), rejoin_d 1.9 after 7 unseen frames | the ball (also on 381, 385, 387): still in the picture near the left edge |
+| 780 (last frame) | VISIBLE at (872, 360) | SEEN at (895, 354), 23.9 px away, score 0.51, rejoin_d 2.5 after 8 unseen frames | mostly on the player next to the ball, partly on the ball |
+
+- Frames 380 / 382 / 386: the label is wrong, not the path. The ball was labelled OUT while still in the picture. A
+  corrected label version (v2, with this reason) is needed. v1 is never edited, and the measured 4 / 314 stands as
+  the result on v1.
+- Frame 780: a real wrong position. It is the DESIGN's disclosed risk 1 (a near rejoin, `rejoin_d` 2.5 <=
+  `reacquire_max_d` 3.0, onto a detection that is not centred on the ball).
+- Caution: the label correction comes from inspecting only the frames where the path disagreed with the labels, which
+  can only improve the score. A re-score on v2 is weaker evidence than the untouched score on v1.
+- Coverage: of the 55 MISS frames (51 HOLE, 4 GAP), pass 1 had a sighting within the scoring radius of the label on
+  0. All coverage lost on this clip is the detector not firing; none is the path's rules discarding a correct
+  sighting.
