@@ -144,3 +144,29 @@ Not adopted by the bar, and the bar is not changed.
   - detector data for small balls and hard negatives (boots, jerseys, gloves);
   - more DEV ball clips before any further tracker rule;
   - step 2 ("with player X" memory) is not built.
+
+## FRESH_08 re-scored on denser labels (2026-11-23): the "0 wrong OBSERVED" on FRESH_08 was a sampling effect
+Nathan labelled every frame of FRESH_08 (ball labels v2, 391 frames; v1 = every 3rd frame, 131). At the time of
+writing v2 is frozen on Nathan's Mac but not yet pushed. Same v4 ball output (narrowed step 1), no tracker rerun;
+`~/spana-ball-run/v4/ball_score_F08_v2.json`; numbers pasted from the terminal.
+
+| FRESH_08, v4 output | labels v1 (131) | labels v2 (391) |
+|---|---|---|
+| coverage seen | 0.333 | 0.352 |
+| coverage seen + predicted | 0.370 | 0.401 |
+| wrong OBSERVED (95 % bound) | 0 / 18 (0.153) | 2 / 59 (0.103) |
+| wrong all answers | 9 / 32 | 24 / 97 |
+
+v2 breakdown (labels: VISIBLE 162, HIDDEN 10, OUT 219):
+- VISIBLE: HIT_OBSERVED 57, HIT_PREDICTED 8, MISS 77, WRONG_POSITION (PREDICTED) 20;
+- HIDDEN: PREDICTED_HIDDEN 8, ABSTAIN_OK 2;
+- OUT: ABSTAIN_OK 215, WRONG_PHANTOM OBSERVED 2 (frames 361, 362), WRONG_PHANTOM PREDICTED 2 (363, 364).
+
+- FRESH_08 is NOT clean. One short false hypothesis is answered OBSERVED on frames 361-362 (ball out of the
+  picture), between v1's labelled frames. What it is on: not diagnosed.
+- The 20 wrong PREDICTED positions come in runs (13-14, 18, 21, 27, 50-51, 54-57, 62-65, 105-109). Not diagnosed;
+  they fit constant-velocity extrapolation while the ball is being kicked.
+- The main failure on this clip is misses: no answer on 77 of 162 visible frames. The split between detector misses
+  and rule costs (body / seen share / ambiguity) is not measured.
+- Consequence for the other clips: FRESH_05 / 07 are labelled every 3rd / 6th frame only, so their "0 wrong
+  OBSERVED" may hide errors of the same kind.

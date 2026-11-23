@@ -37,6 +37,10 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      all wrong answers 122 -> 19, seen coverage 0.636 -> 0.586. FRESH_08 coverage drop (0.463 -> 0.333) not
      diagnosed. Tracker tuning on these clips STOPPED. FRESH_02 = detector limit (a false object at a player's feet
      scoring like its small ball): detector data, not tracker rules. Nothing merged; merge decision with Nathan.
+   - CORRECTION 2026-11-23: FRESH_08 re-scored on Nathan's every-frame labels (ball labels v2, 391 frames; on his
+     Mac, not yet pushed): 2 wrong OBSERVED of 59 (frames 361-362, ball out of the picture), not 0; coverage 0.352;
+     77 of 162 visible frames have no answer. The every-3rd-frame labels missed the 2 errors, so FRESH_05 / 07's
+     "0 wrong" may hide the same.
      If touches v1 merges after this, its `possession` section becomes config 2.21.0.
 2. **Possession / touches v1: review and merge decision.**
    - The work is on `origin/possession/touches-v1` (160e1b0, not merged; another session). It has QA on scripted
