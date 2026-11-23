@@ -72,6 +72,7 @@ class _Assoc:
     cost: float
     dist_d: float
     gate_d: float
+    followed: bool = True
 
 
 def _center(d: Detection) -> np.ndarray:
@@ -93,6 +94,7 @@ class BallTracker:
         self._next = 1
         self._summaries: Dict[str, BallHypothesisSummary] = {}
         self._prev_frame: Optional[int] = None
+        self._rejoin_d: Dict[str, float] = {}      # this frame: hypothesis -> rejoin distance (only when not followed)
 
     # ------------------------------------------------------------------ public
     def update(self, frame: int, t: float, candidates: Sequence[Detection], camera: CameraObservation,
@@ -100,6 +102,7 @@ class BallTracker:
         """players: boxes [x1, y1, x2, y2] of the player tracks OBSERVED on this frame, or None (no player
         knowledge: every candidate is treated as before)."""
         log: List[dict] = []
+        self._rejoin_d = {}
         on_body = [self._on_body(d, players) for d in candidates]
         discontinuous = camera.status in _DISCONTINUOUS
         if discontinuous:
@@ -120,8 +123,9 @@ class BallTracker:
         self._record_seen(t, set(matched.values()))
         self._expire(frame, t, log)
         self._prev_frame = frame
-        sightings = tuple(sorted((hid, *(float(v) for v in _center(candidates[i])), _diameter(candidates[i]),
-                                  float(candidates[i].score)) for i, hid in seen_by.items()))
+        sightings = tuple(sorted(((hid, *(float(v) for v in _center(candidates[i])), _diameter(candidates[i]),
+                                   float(candidates[i].score), self._rejoin_d.get(hid))
+                                  for i, hid in seen_by.items()), key=lambda s: s[0]))
         affine = camera.affine if camera.status is CameraStatus.OK else CameraObservation.identity(camera.status).affine
         answer = self._answer(frame, t, camera.status, discontinuous, matched, candidates, log)
         return dataclasses.replace(answer, sightings=sightings,
@@ -180,7 +184,7 @@ class BallTracker:
                     cost = float(np.linalg.norm(p - pred)) / d
                     if not followed and on_body[i] and cost > c.reacquire_max_d:
                         continue                 # no re-acquisition on a player's body away from the prediction
-                    pairs.append((0 if h.confirmed else 1, cost, hid, i, _Assoc(cost, dist_d, gate_d)))
+                    pairs.append((0 if h.confirmed else 1, cost, hid, i, _Assoc(cost, dist_d, gate_d, followed)))
         pairs.sort(key=lambda r: r[:4])
         used_h, matched = set(), {}
         for _, _, hid, i, ev in pairs:
@@ -188,6 +192,8 @@ class BallTracker:
                 continue
             used_h.add(hid)
             matched[i] = hid
+            if not ev.followed:
+                self._rejoin_d[hid] = ev.cost
             self._observe(self._hyps[hid], frame, t, cands[i], log)
             log.append({"kind": "match", "hypothesis": hid, "candidate": i, "cost_d": round(ev.cost, 3),
                         "dist_d": round(ev.dist_d, 3), "gate_d": round(ev.gate_d, 3)})

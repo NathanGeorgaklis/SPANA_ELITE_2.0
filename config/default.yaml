@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.20.0"
+schema_version: "2.21.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -308,6 +308,13 @@ ball:
   # (13-25 diameters) from the prediction (records/ball_player_aware_2026-11-23). Set before measuring.
   feet_zone_h: 0.20          # bottom share of a player's box = feet zone; above it a candidate is on the body
   reacquire_max_d: 3.0       # after an unseen frame, rejoin a candidate ON A BODY only this close (diameters) to the prediction
+
+ball_path:
+  # Offline ball path (spana/ball/path.py): which sightings are the ball, decided afterwards over the whole clip.
+  # Set BEFORE any measurement (DECISIONS 2026-11-23, records/ball_path_v1_2026-11-23/DESIGN.md).
+  max_hole_s: 0.4        # = ball.predict_max_s: sightings of one hypothesis farther apart are separate stretches
+  min_stretch_s: 0.5     # ~2x the longest dense false stretch seen on DEV (0.23 s)
+  min_density: 0.5       # sighted on >= this share of the stretch's frames (DEV: false 0.25-0.37, real 0.63-0.94)
 
 team:
   # Team classification v1 (spana/teams/classifier.py, records/design/TEAM_CLASSIFICATION_V1_DESIGN.md). Per match:

@@ -3,6 +3,9 @@
     python -m tools.ball_score --clip data/ball_labels/<clip>/v1 BALL.json [--clip ...] --out REPORT.json \
         [--config config/ball_score.yaml]
 
+BALL.json is a spana.ball document (the tracker's per-frame answer) or a spana.ball_path document (the offline ball
+path: its SEEN frames are scored as OBSERVED answers; it has no PREDICTED answers).
+
 Each labelled frame is judged by CENTRE distance (label box centre; box size is not truth) with the radius
 `hit_radius_frac_height` x frame height (config/ball_score.yaml). UNSURE frames are not scored.
 
@@ -32,7 +35,8 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 import yaml
 
-from spana.artifacts import read_json, refuse_existing, validate_ball, write_json_atomic
+from spana.artifacts import read_json, refuse_existing, validate_ball, validate_ball_path, write_json_atomic
+from spana.ball.path import PATH_SCHEMA, as_ball_answers
 from spana.ball_labels import BallLabel, load_frozen
 from spana.config import ConfigError, typed_from_dict
 from spana.reid_labels import split_guard
@@ -182,6 +186,17 @@ def pooled(clips: List[dict], cfg: BallScoreConfig) -> dict:
     return summarise([r for c in clips for r in c["frames"]], cfg, len({c["height"] for c in clips}) == 1)
 
 
+def load_answers(path: str) -> Tuple[str, dict]:
+    """(kind, answers) of a spana.ball document, or of a spana.ball_path document (SEEN = an OBSERVED answer, every
+    other frame no answer: the path never predicts)."""
+    doc = read_json(path)
+    if isinstance(doc, dict) and doc.get("schema") == PATH_SCHEMA[0]:
+        validate_ball_path(doc)
+        return "spana.ball_path", as_ball_answers(doc)
+    validate_ball(doc)
+    return "spana.ball", doc
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--clip", nargs=2, action="append", required=True, metavar=("LABEL_DIR", "BALL_JSON"))
@@ -193,9 +208,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     clips = []
     for label_dir, ball_path in a.clip:
         rec, labels = load_frozen(Path(label_dir))
-        ball = read_json(ball_path)
-        validate_ball(ball)
-        clips.append(score_clip(rec, labels, ball, cfg))
+        kind, answers = load_answers(ball_path)
+        clips.append({"scored": kind, **score_clip(rec, labels, answers, cfg)})
     report = {"tool": "tools.ball_score", "config": cfg.__dict__, "clips": clips, "pooled": pooled(clips, cfg)}
     write_json_atomic(a.out, report)
     for c in clips + [{"clip": "POOLED", "summary": report["pooled"]}]:

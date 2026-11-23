@@ -93,3 +93,38 @@ for the unseen-clip test below.
 4. `validate_ball_path(doc, ball)` recomputes the whole document from the ball document and refuses any difference.
 5. Two independent code reviews before any DEV run.
 6. DEV run on the existing detector outputs (no detector rerun), then the unseen clip.
+
+## Amendment 1 (2026-11-23, during the build, BEFORE any DEV measurement of the path)
+Found by a scripted test, not by DEV data.
+
+**The hole in the design.** A stretch was "the sightings of one hypothesis, split at holes > max_hole_s". But the
+tracker lets a lost hypothesis rejoin any candidate inside its speed gate (`gate_base_d + max_speed_d_per_s x gap`:
+~60 diameters after 0.4 s). A real ball's stretch could therefore continue onto a different object after a short
+hole. Those frames would be SEEN on the strength of the real part: a false tail, never judged on its own. This is
+the FRESH_02 jersey jump in a form the body rule does not cover (off the body, or without `--tracks`).
+
+**Change.**
+- Pass 1: each sighting carries `rejoin_d`.
+  - Null when the hypothesis was observed on the previous processed frame, or the sighting starts the hypothesis.
+  - Otherwise the distance, in diameters, from the hypothesis' constant-velocity prediction (the association cost).
+- Pass 2: a stretch is ALSO split before a sighting whose `rejoin_d` exceeds `ball.reacquire_max_d` (3.0).
+  - Existing key, value recorded 2026-11-23, same meaning: after an unseen frame, how far from the prediction is
+    "far". It is read from the ball document's own `ball_config`.
+  - The part after the split is a new stretch and must be confident on its own. A false tail of a few frames is
+    discarded; a kicked ball that goes on for >= min_stretch_s is kept, with a gap record between the two parts.
+
+**Known cost (fail closed, never a wrong answer).**
+- After a far reappearance, the first few sightings may belong to a new hypothesis before the old one's gate reaches
+  them. That fragment is usually < min_stretch_s and is discarded: a few frames of coverage per far reappearance.
+- Real-ball fragments between quick far rejoins that last < min_stretch_s are discarded too.
+
+**Still not covered.** A hop between two candidates on consecutive frames (no unseen frame), within the per-frame
+gate (~8 diameters), e.g. from the ball to a boot next to it.
+
+**IMPLAUSIBLE gaps: weaker than the design implied.**
+- A rejoin by the same hypothesis is inside the speed gate by construction.
+- At `max_speed_d_per_s` 150 the bound exceeds the frame width after ~0.5 s for a small ball.
+- So the kind will rarely fire with the default config. It is kept (harmless, and it does fire between different
+  hypotheses over very short gaps), but it is not a safeguard to rely on.
+
+Pass bar and the three `ball_path` settings are unchanged.

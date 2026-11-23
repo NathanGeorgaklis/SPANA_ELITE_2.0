@@ -122,11 +122,21 @@ class BallTrackerTests(unittest.TestCase):
         cands = [[ball(100 + 6 * i, 300)] + ([ball(900, 500, score=0.4)] if i == 20 else []) for i in range(30)]
         out, trk = run(cands)
         self.assertEqual([len(f.sightings) for f in out], [2 if i == 20 else 1 for i in range(30)])
-        hid, x, y, d, score = out[20].sightings[1]
-        self.assertEqual((round(x), round(y), round(d), score), (900, 500, 10, 0.4))
+        hid, x, y, d, score, rejoin = out[20].sightings[1]
+        self.assertEqual((round(x), round(y), round(d), score, rejoin), (900, 500, 10, 0.4, None))
+        self.assertTrue(all(s[5] is None for f in out for s in f.sightings))    # followed frame to frame: no rejoin
         self.assertEqual(out[0].sightings[0][0], out[29].sightings[0][0])       # one hypothesis for the real ball
         self.assertEqual(out[0].state, BallState.LOST)                           # sighted before it is confirmed
         self.assertEqual({s[0] for f in out for s in f.sightings}, {h.hypothesis for h in trk.summaries()})
+
+    def test_rejoin_distance_is_recorded_after_an_unseen_frame(self):
+        # seen 20 frames moving right, unseen 3, then found 40 px (4 diameters) off its straight-line path
+        frames = [[ball(100 + 6 * i, 300)] for i in range(20)] + [[], [], []] + [[ball(100 + 6 * 23, 340)]] + \
+                 [[ball(100 + 6 * i, 340)] for i in range(24, 28)]
+        out, _ = run(frames)
+        self.assertAlmostEqual(out[23].sightings[0][5], 4.0, delta=0.3)
+        self.assertTrue(all(f.sightings[0][5] is None for f in out[24:]))        # followed again
+        self.assertEqual(len({s[0] for f in out for s in f.sightings}), 1)
 
     def test_camera_affine_is_the_identity_unless_ok(self):
         ident = ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0))

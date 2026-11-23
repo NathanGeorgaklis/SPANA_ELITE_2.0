@@ -241,8 +241,10 @@ class BallFrame:
     confirmed_live: int                          # confirmed hypotheses alive after this frame
     decisions: List[dict] = field(default_factory=list)
     # spana.ball 1.3.0: every hypothesis observed on this frame (confirmed or not, selected or not), for the offline
-    # ball path: (hypothesis id, centre x, centre y, detection diameter, detection score), sorted by id
-    sightings: Tuple[Tuple[str, float, float, float, float], ...] = ()
+    # ball path: (hypothesis id, centre x, centre y, detection diameter, detection score, rejoin_d), sorted by id.
+    # rejoin_d: None when the hypothesis was observed on the previous processed frame or starts here; else the
+    # distance, in diameters, from its constant-velocity prediction (how far away it was found again)
+    sightings: Tuple[Tuple[str, float, float, float, float, Optional[float]], ...] = ()
     # the ball pass's inter-frame camera transform (previous frame -> this frame); identity unless the camera is OK
     camera_affine: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0))
 

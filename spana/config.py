@@ -20,7 +20,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.20.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.21.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
@@ -39,6 +39,7 @@ CONFIG_SCHEMA_VERSION = "2.20.0"   # 2.1.0: + target section; 2.2.0: + target re
 #   2.19.0: + ball.min_seen_share / seen_share_window_s (a sparsely observed hypothesis is never the answer)
 #   2.20.0: + ball.feet_zone_h / reacquire_max_d (player-aware re-acquisition; used only when the ball pass is given
 #   the player tracks)
+#   2.21.0: + ball_path section (offline ball path: confident stretches, spana.ball.path)
 
 
 class ConfigError(ValueError):
@@ -434,6 +435,19 @@ class TeamConfig:
 
 
 @dataclass(frozen=True)
+class BallPathConfig:
+    """Offline ball path (spana.ball.path): which sightings are the ball, decided over the whole clip."""
+    max_hole_s: float              # a hypothesis' sightings farther apart than this are separate stretches
+    min_stretch_s: float           # a stretch is the ball only if it lasts at least this long (first to last sighting)
+    min_density: float             # ... and was sighted on at least this share of its frames
+
+    def validate(self) -> None:
+        _pos("ball_path.max_hole_s", self.max_hole_s)
+        _pos("ball_path.min_stretch_s", self.min_stretch_s)
+        _unit("ball_path.min_density", self.min_density)
+
+
+@dataclass(frozen=True)
 class OutputConfig:
     box_decimals: int
     score_decimals: int
@@ -455,6 +469,7 @@ class SpanaConfig:
     reid: ReidConfig
     reid_resolve: ReidResolveConfig
     ball: BallConfig
+    ball_path: BallPathConfig
     team: TeamConfig
     output: OutputConfig
 

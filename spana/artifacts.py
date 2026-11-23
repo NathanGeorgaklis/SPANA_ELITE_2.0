@@ -55,8 +55,13 @@ Change log:
         meaning. A track_embeddings document validates with validate_track_embeddings.
   2.3.0 target: + target_config.resume_after_doubt_resolved (a no-rival doubt episode does not taint the followed
         track). Answers keep the 2.2.0 rules. 2.2.0 documents keep their meaning.
+  1.0.0 ball_path: the ball decided offline over a whole spana.ball 1.3.0 document: per-frame SEEN (with the
+        sighted position) or UNKNOWN (HOLE / CONFLICT / GAP / NO_BALL, never a position), every stretch with its
+        duration / density / confident flag, and gap records from both ends (CAMERA_BREAK / CONFLICT / IMPLAUSIBLE /
+        OPEN). Validation with the ball document recomputes everything.
   1.3.0 ball: + per-frame sightings (every hypothesis observed on the frame: hypothesis, center, diameter,
-        score; confirmed or not, selected or not) and camera_affine (the ball pass's inter-frame transform, identity
+        score, rejoin_d = how far from its prediction it was found again after an unseen frame, else null;
+        confirmed or not, selected or not) and camera_affine (the ball pass's inter-frame transform, identity
         unless the camera is OK), for the offline ball path (spana.ball_path). Earlier documents keep their meaning.
   1.2.0 ball: + top-level tracks_sha256 (the player tracks given to the ball pass for player-aware
         re-acquisition, or null). 1.0.0 / 1.1.0 documents keep their meaning.
@@ -1111,7 +1116,7 @@ def validate_track_embeddings(doc: Any, tracks: Optional[dict] = None) -> None:
 BALL_SCHEMA = ("spana.ball", "1.3.0")
 BALL_ACCEPTED = ("1.0.0", "1.1.0", "1.2.0", "1.3.0")   # 1.0.0: no LOST SPARSE_OBSERVATIONS; < 1.2.0: no
 #   tracks_sha256; < 1.3.0: no per-frame sightings / camera_affine
-_BALL_SIGHTING_KEYS = ("hypothesis", "center", "diameter", "score")
+_BALL_SIGHTING_KEYS = ("hypothesis", "center", "diameter", "score", "rejoin_d")
 _BALL_FRAME_KEYS = ("frame", "t", "camera_status", "state", "reason", "hypothesis", "center", "diameter",
                     "confidence", "contested", "candidates", "confirmed_live")
 _BALL_HYP_KEYS = ("hypothesis", "first_frame", "last_observed_frame", "observed_frames", "confirmed_frame",
@@ -1135,8 +1140,9 @@ def ball_frame(bf, oc: OutputConfig) -> dict:
             "diameter": r(bf.diameter, oc.box_decimals), "confidence": r(bf.confidence, oc.score_decimals),
             "contested": bf.contested, "candidates": bf.candidates, "confirmed_live": bf.confirmed_live,
             "sightings": [{"hypothesis": h, "center": [round(x, oc.box_decimals), round(y, oc.box_decimals)],
-                           "diameter": round(d, oc.box_decimals), "score": round(s, oc.score_decimals)}
-                          for h, x, y, d, s in bf.sightings],
+                           "diameter": round(d, oc.box_decimals), "score": round(s, oc.score_decimals),
+                           "rejoin_d": None if rj is None else round(rj, 3)}
+                          for h, x, y, d, s, rj in bf.sightings],
             "camera_affine": [[round(v, 6) for v in row] for row in bf.camera_affine]}
 
 
@@ -1162,7 +1168,8 @@ def _check_ball_sightings(fr: dict, hyps: dict) -> None:
         if h is None or not h["first_frame"] <= fr["frame"] <= h["last_observed_frame"]:
             raise ArtifactError(f"{where}: sighting of an unknown hypothesis, or outside its observed span")
         if not (isinstance(x["center"], list) and len(x["center"]) == 2 and all(map(_num, x["center"]))
-                and _num(x["diameter"]) and x["diameter"] > 0 and _num(x["score"]) and 0.0 <= x["score"] <= 1.0):
+                and _num(x["diameter"]) and x["diameter"] > 0 and _num(x["score"]) and 0.0 <= x["score"] <= 1.0
+                and (x["rejoin_d"] is None or (_num(x["rejoin_d"]) and x["rejoin_d"] >= 0))):
             raise ArtifactError(f"{where}: bad sighting {x!r}")
         ids.append(x["hypothesis"])
     if ids != sorted(set(ids)):
@@ -1336,3 +1343,78 @@ def validate_teams(doc: Any, tracks_by_clip: Optional[Dict[str, dict]] = None) -
                             own[f]["confirmed"] and own[f]["identity"] == "CERTAIN" for f in span):
                         raise ArtifactError(f"teams: {clip} {t['track_id']} segment {sg['frame']}..{sg['frame_end']}"
                                             " covers a row that is not confirmed and CERTAIN")
+
+
+# ----------------------------------------------------------------------------- ball path
+def validate_ball_path(doc: Any, ball: Optional[dict] = None) -> None:
+    """spana.ball_path 1.0.0. Alone: structure and the frame / stretch / gap rules that the document itself shows.
+    With the source ball document: same hash, and every frame, stretch and gap recomputed."""
+    import dataclasses as _dc
+    from .ball.path import (FRAME_KEYS, GAP_END_KEYS, GAP_KEYS, GAP_KINDS, PATH_SCHEMA, STATES_REASONS, STRETCH_KEYS,
+                            ball_path)
+    from .config import BallPathConfig, ConfigError
+    _header(doc, PATH_SCHEMA, ("schema", "schema_version", "provenance", "video", "ball_sha256", "ball_path_config",
+                               "frames", "stretches", "gaps"))
+    _keys(doc["ball_path_config"], [f.name for f in _dc.fields(BallPathConfig)], "ball_path_config")
+    try:
+        pc = BallPathConfig(**doc["ball_path_config"])
+        pc.validate()
+    except (ConfigError, TypeError) as e:
+        raise ArtifactError(f"ball_path_config: {e}") from e
+    if not doc["frames"]:
+        raise ArtifactError("ball path has no frames")
+    confident = {}
+    for s in doc["stretches"]:
+        _keys(s, STRETCH_KEYS, "stretch")
+        if s["stretch"] in confident or not (isinstance(s["confident"], bool) and s["first_frame"] <= s["last_frame"]
+                                             and 1 <= s["sightings"] <= s["frames"]):
+            raise ArtifactError(f"bad or duplicate stretch {s.get('stretch')!r}")
+        confident[s["stretch"]] = s["confident"]
+        if s["confident"] and (s["duration_s"] < pc.min_stretch_s - 1e-6 or s["density"] < pc.min_density - 1e-4):
+            raise ArtifactError(f"stretch {s['stretch']} is marked confident below the configured duration / density")
+    prev, prev_t = -1, -math.inf
+    seen = {}
+    for fr in doc["frames"]:
+        _keys(fr, FRAME_KEYS, "ball path frame")
+        prev = _frame_order(fr, prev)
+        where = f"frame {fr['frame']}"
+        if not (_num(fr["t"]) and fr["t"] > prev_t):
+            raise ArtifactError(f"{where}: time not increasing")
+        prev_t = fr["t"]
+        st, why = fr["state"], fr["reason"]
+        if st not in STATES_REASONS or why not in STATES_REASONS[st]:
+            raise ArtifactError(f"{where}: bad state / reason {st!r} {why!r}")
+        pos = (fr["center"], fr["diameter"], fr["score"])
+        if st == "SEEN":
+            if not (isinstance(fr["center"], list) and len(fr["center"]) == 2 and all(map(_num, fr["center"]))
+                    and _num(fr["diameter"]) and fr["diameter"] > 0 and _num(fr["score"])):
+                raise ArtifactError(f"{where}: SEEN needs center / diameter / score")
+            seen[fr["frame"]] = fr
+        elif any(v is not None for v in pos):
+            raise ArtifactError(f"{where}: only SEEN carries a position (never a guessed one)")
+        if (fr["stretch"] is not None) != (why in ("CONFIDENT_STRETCH", "HOLE")) or \
+                (fr["stretch"] is not None and confident.get(fr["stretch"]) is not True):
+            raise ArtifactError(f"{where}: SEEN / HOLE name a confident stretch, other frames none")
+    last_to = -1
+    for g in doc["gaps"]:
+        _keys(g, GAP_KEYS, "gap")
+        for end in ("from", "to"):
+            _keys(g[end], GAP_END_KEYS, f"gap {end}")
+            f = seen.get(g[end]["frame"])
+            if f is None or any(g[end][k] != f[k] for k in ("t", "center", "diameter", "stretch")):
+                raise ArtifactError(f"gap {end} at frame {g[end]['frame']} is not a SEEN frame of the path")
+        if g["kind"] not in GAP_KINDS or not g["from"]["frame"] < g["to"]["frame"] or g["from"]["frame"] < last_to:
+            raise ArtifactError(f"bad gap {g['from']['frame']} -> {g['to']['frame']}")
+        last_to = g["to"]["frame"]
+        if (g["distance_d"] is None) != (g["kind"] == "CAMERA_BREAK") or \
+                (g["kind"] == "OPEN" and g["distance_d"] > g["allowed_d"] + 1e-3):
+            raise ArtifactError(f"gap {g['from']['frame']} -> {g['to']['frame']}: kind disagrees with its distances")
+    if ball is not None:
+        if sha256_doc(ball) != doc["ball_sha256"]:
+            raise ArtifactError("ball path was made from a different ball document")
+        try:
+            frames, rows, gaps = ball_path(ball, pc)
+        except ValueError as e:
+            raise ArtifactError(str(e)) from e
+        if frames != doc["frames"] or rows != doc["stretches"] or gaps != doc["gaps"]:
+            raise ArtifactError("ball path frames / stretches / gaps differ from a recomputation")
