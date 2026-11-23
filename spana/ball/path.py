@@ -19,18 +19,23 @@ function of the ball document and the `ball_path` config section. Design: record
    next, with a kind (first match): CAMERA_BREAK (a CUT / UNKNOWN camera frame in (from, to]), CONFLICT (a conflict
    frame inside), IMPLAUSIBLE (the from position, carried through the camera transforms, is farther from the to
    position than the ball tracker's own speed bound allows), OPEN (the only kind "left here, arrived there" may be
-   read from).
+   read from). A gap's `frames` counts the processed frames strictly between its two ends (with a frame stride > 1
+   these are not video frames; `duration_s` is always in seconds).
+Note: a run covered by one confident stretch that holds no SEEN frame (possible only between conflict frames) is not
+a segment; its frames stay HOLE (inside that stretch, not sighted), wherever the run lies.
 """
 from __future__ import annotations
 
 import dataclasses
 import math
+from bisect import bisect_right
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from ..config import BallPathConfig
 
 PATH_SCHEMA = ("spana.ball_path", "1.0.0")
 BALL_VERSION_NEEDED = "1.3.0"                     # sightings + camera_affine
+BALL_CONFIG_KEYS = ("reacquire_max_d", "gate_base_d", "max_speed_d_per_s", "min_diameter_px")   # read from the ball doc
 STATES_REASONS = {"SEEN": ("CONFIDENT_STRETCH",), "UNKNOWN": ("HOLE", "CONFLICT", "GAP", "NO_BALL")}
 GAP_KINDS = ("CAMERA_BREAK", "CONFLICT", "IMPLAUSIBLE", "OPEN")
 STRETCH_KEYS = ("stretch", "hypothesis", "first_frame", "last_frame", "sightings", "frames", "duration_s", "density",
@@ -51,13 +56,17 @@ def stretches(frames: Sequence[dict], pc: BallPathConfig, far_rejoin_d: float) -
             seen_at.setdefault(s["hypothesis"], []).append(k)
             if s["rejoin_d"] is not None and s["rejoin_d"] > far_rejoin_d + _EPS:
                 far.add((s["hypothesis"], k))
-    breaks = [k for k, fr in enumerate(frames) if fr["camera_status"] in _BREAKS]
+    breaks = [k for k, fr in enumerate(frames) if fr["camera_status"] in _BREAKS]          # sorted
+
+    def broken(a: int, b: int) -> bool:            # a CUT / UNKNOWN camera frame in (a, b]
+        return bisect_right(breaks, b) > bisect_right(breaks, a)
+
     rows = []
     for hid in sorted(seen_at):
         idx, start = seen_at[hid], 0
         for j in range(1, len(idx) + 1):
             split = j == len(idx) or frames[idx[j]]["t"] - frames[idx[j - 1]]["t"] > pc.max_hole_s + _EPS \
-                or any(idx[j - 1] < b <= idx[j] for b in breaks) or (hid, idx[j]) in far
+                or broken(idx[j - 1], idx[j]) or (hid, idx[j]) in far
             if not split:
                 continue
             run = idx[start:j]
@@ -81,12 +90,19 @@ def _carry(p: Tuple[float, float], affine: Sequence[Sequence[float]]) -> Tuple[f
     return a * p[0] + b * p[1] + c, d * p[0] + e * p[1] + f
 
 
+def _gap_end(row: dict) -> dict:
+    return {k: row[k] for k in GAP_END_KEYS}
+
+
 def ball_path(ball_doc: dict, pc: BallPathConfig) -> Tuple[List[dict], List[dict], List[dict]]:
     """(frames, stretches, gaps) of a validated spana.ball 1.3.0 document."""
     if ball_doc.get("schema_version") != BALL_VERSION_NEEDED:
         raise ValueError(f"the ball path needs a spana.ball {BALL_VERSION_NEEDED} document (sightings, camera_affine)")
     frames = ball_doc["frames"]
     bc = ball_doc["ball_config"]
+    missing = [k for k in BALL_CONFIG_KEYS if not isinstance(bc, dict) or not isinstance(bc.get(k), (int, float))]
+    if missing:
+        raise ValueError(f"the ball document's ball_config lacks {missing}")
     rows = stretches(frames, pc, bc["reacquire_max_d"])
     confident = [r for r in rows if r["confident"]]
     cover: List[List[dict]] = [[] for _ in frames]
@@ -130,10 +146,8 @@ def ball_path(ball_doc: dict, pc: BallPathConfig) -> Tuple[List[dict], List[dict
             if out[i]["reason"] == "NO_BALL":
                 out[i]["reason"] = "GAP"
         duration = frames[b]["t"] - frames[a]["t"]
-        end = lambda i: {"frame": out[i]["frame"], "t": out[i]["t"], "center": out[i]["center"],   # noqa: E731
-                         "diameter": out[i]["diameter"], "stretch": out[i]["stretch"]}
-        gap = {"from": end(a), "to": end(b), "frames": b - a - 1, "duration_s": round(duration, 6), "kind": "OPEN",
-               "distance_d": None, "allowed_d": None}
+        gap = {"from": _gap_end(out[a]), "to": _gap_end(out[b]), "frames": b - a - 1,
+               "duration_s": round(duration, 6), "kind": "OPEN", "distance_d": None, "allowed_d": None}
         if any(frames[i]["camera_status"] in _BREAKS for i in range(a + 1, b + 1)):
             gap["kind"] = "CAMERA_BREAK"
         else:

@@ -1364,12 +1364,18 @@ def validate_ball_path(doc: Any, ball: Optional[dict] = None) -> None:
     if not doc["frames"]:
         raise ArtifactError("ball path has no frames")
     confident = {}
+    spans = {}                         # confident stretch -> (first_frame, last_frame)
     for s in doc["stretches"]:
         _keys(s, STRETCH_KEYS, "stretch")
-        if s["stretch"] in confident or not (isinstance(s["confident"], bool) and s["first_frame"] <= s["last_frame"]
-                                             and 1 <= s["sightings"] <= s["frames"]):
+        ints = all(isinstance(s[k], int) and not isinstance(s[k], bool)
+                   for k in ("first_frame", "last_frame", "sightings", "frames"))
+        if not ints or not isinstance(s["stretch"], str) or s["stretch"] in confident or not (
+                isinstance(s["confident"], bool) and s["first_frame"] <= s["last_frame"]
+                and 1 <= s["sightings"] <= s["frames"] and _num(s["duration_s"]) and _num(s["density"])):
             raise ArtifactError(f"bad or duplicate stretch {s.get('stretch')!r}")
         confident[s["stretch"]] = s["confident"]
+        if s["confident"]:
+            spans[s["stretch"]] = (s["first_frame"], s["last_frame"])
         if s["confident"] and (s["duration_s"] < pc.min_stretch_s - 1e-6 or s["density"] < pc.min_density - 1e-4):
             raise ArtifactError(f"stretch {s['stretch']} is marked confident below the configured duration / density")
     prev, prev_t = -1, -math.inf
@@ -1395,23 +1401,53 @@ def validate_ball_path(doc: Any, ball: Optional[dict] = None) -> None:
         if (fr["stretch"] is not None) != (why in ("CONFIDENT_STRETCH", "HOLE")) or \
                 (fr["stretch"] is not None and confident.get(fr["stretch"]) is not True):
             raise ArtifactError(f"{where}: SEEN / HOLE name a confident stretch, other frames none")
+        covering = [sid for sid, (a, b) in spans.items() if a <= fr["frame"] <= b]
+        if fr["stretch"] is not None and covering != [fr["stretch"]]:
+            raise ArtifactError(f"{where}: SEEN / HOLE only where exactly that one confident stretch covers the frame")
+        if (len(covering) > 1) != (why == "CONFLICT") or (not covering and why not in ("GAP", "NO_BALL")):
+            raise ArtifactError(f"{where}: reason {why} disagrees with the confident stretches covering the frame")
+    counts: Dict[str, int] = {}
+    for fr in doc["frames"]:
+        if fr["state"] == "SEEN":
+            counts[fr["stretch"]] = counts.get(fr["stretch"], 0) + 1
+    for s in doc["stretches"]:
+        if s["confident"] and counts.get(s["stretch"], 0) > s["sightings"]:
+            raise ArtifactError(f"stretch {s['stretch']}: more SEEN frames than sightings")
+    index = {fr["frame"]: k for k, fr in enumerate(doc["frames"])}
     last_to = -1
     for g in doc["gaps"]:
         _keys(g, GAP_KEYS, "gap")
         for end in ("from", "to"):
             _keys(g[end], GAP_END_KEYS, f"gap {end}")
-            f = seen.get(g[end]["frame"])
+            n = g[end]["frame"]
+            f = seen.get(n) if isinstance(n, int) and not isinstance(n, bool) else None
             if f is None or any(g[end][k] != f[k] for k in ("t", "center", "diameter", "stretch")):
-                raise ArtifactError(f"gap {end} at frame {g[end]['frame']} is not a SEEN frame of the path")
-        if g["kind"] not in GAP_KINDS or not g["from"]["frame"] < g["to"]["frame"] or g["from"]["frame"] < last_to:
-            raise ArtifactError(f"bad gap {g['from']['frame']} -> {g['to']['frame']}")
+                raise ArtifactError(f"gap {end} at frame {n!r} is not a SEEN frame of the path")
+        a, b = index[g["from"]["frame"]], index[g["to"]["frame"]]
+        where = f"gap {g['from']['frame']} -> {g['to']['frame']}"
+        if g["kind"] not in GAP_KINDS or not a < b or g["from"]["frame"] < last_to:
+            raise ArtifactError(f"bad {where}")
         last_to = g["to"]["frame"]
-        if (g["distance_d"] is None) != (g["kind"] == "CAMERA_BREAK") or \
-                (g["kind"] == "OPEN" and g["distance_d"] > g["allowed_d"] + 1e-3):
-            raise ArtifactError(f"gap {g['from']['frame']} -> {g['to']['frame']}: kind disagrees with its distances")
+        inside = doc["frames"][a + 1:b]
+        if any(f["state"] == "SEEN" for f in inside):
+            raise ArtifactError(f"{where}: a gap holds no SEEN frame")
+        if g["frames"] != b - a - 1 or not _num(g["duration_s"]) or \
+                abs(g["duration_s"] - (g["to"]["t"] - g["from"]["t"])) > 1e-5:
+            raise ArtifactError(f"{where}: frames / duration_s disagree with its ends")
+        if g["kind"] == "CAMERA_BREAK":
+            if g["distance_d"] is not None or g["allowed_d"] is not None:
+                raise ArtifactError(f"{where}: a camera break has no distances")
+        elif not (_num(g["distance_d"]) and _num(g["allowed_d"])):
+            raise ArtifactError(f"{where}: {g['kind']} needs distance_d / allowed_d")
+        elif (g["kind"] == "CONFLICT") != any(f["reason"] == "CONFLICT" for f in inside) or \
+                (g["kind"] == "OPEN" and g["distance_d"] > g["allowed_d"] + 1e-3) or \
+                (g["kind"] == "IMPLAUSIBLE" and g["distance_d"] <= g["allowed_d"] - 1e-3):
+            raise ArtifactError(f"{where}: kind {g['kind']} disagrees with its frames / distances")
     if ball is not None:
         if sha256_doc(ball) != doc["ball_sha256"]:
             raise ArtifactError("ball path was made from a different ball document")
+        if doc["video"] != ball.get("video"):
+            raise ArtifactError("ball path names another video than its ball document")
         try:
             frames, rows, gaps = ball_path(ball, pc)
         except ValueError as e:

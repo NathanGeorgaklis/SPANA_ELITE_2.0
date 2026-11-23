@@ -157,3 +157,10 @@ A SEEN answer can still be WRONG in these cases. None is fixed by v1.
 
 Items 1-4 cannot be tested on the four DEV clips unless they happen to occur there. The unseen clip is the first
 real check, and one clip will not exercise all of them.
+8. **Design text correction.** A stretch is also split at a CUT / UNKNOWN camera frame (the tracker ends every
+   hypothesis there anyway). The first version of this document did not say so.
+
+## How a path is scored (added after the review)
+`tools/ball_score.py` scores a path only together with the ball document it was made from. It recomputes the whole
+path and refuses any difference, and it refuses a path whose `ball_path` settings are not the recorded ones.
+

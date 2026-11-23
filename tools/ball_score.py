@@ -2,9 +2,12 @@
 
     python -m tools.ball_score --clip data/ball_labels/<clip>/v1 BALL.json [--clip ...] --out REPORT.json \
         [--config config/ball_score.yaml]
+    python -m tools.ball_score --clip data/ball_labels/<clip>/v1 PATH.json BALL.json [--clip ...] --out REPORT.json
 
-BALL.json is a spana.ball document (the tracker's per-frame answer) or a spana.ball_path document (the offline ball
-path: its SEEN frames are scored as OBSERVED answers; it has no PREDICTED answers).
+BALL.json is a spana.ball document (the tracker's per-frame answer). PATH.json is a spana.ball_path document (the
+offline ball path: its SEEN frames are scored as OBSERVED answers; it has no PREDICTED answers). A path is scored
+only together with the ball document it was made from: it is recomputed from it, and must have been made with the
+recorded `ball_path` settings (--spana-config, default config/default.yaml).
 
 Each labelled frame is judged by CENTRE distance (label box centre; box size is not truth) with the radius
 `hit_radius_frac_height` x frame height (config/ball_score.yaml). UNSURE frames are not scored.
@@ -27,6 +30,7 @@ every scored labelled frame, and the same video passed twice.
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import math
 import sys
 from dataclasses import dataclass
@@ -39,10 +43,12 @@ from spana.artifacts import read_json, refuse_existing, validate_ball, validate_
 from spana.ball.path import PATH_SCHEMA, as_ball_answers
 from spana.ball_labels import BallLabel, load_frozen
 from spana.config import ConfigError, typed_from_dict
+from spana.config import load_config as load_spana_config
 from spana.reid_labels import split_guard
 from tools.reid_cluster import upper_bound
 
 DEFAULT_CONFIG = Path(__file__).resolve().parents[1] / "config" / "ball_score.yaml"
+DEFAULT_SPANA_CONFIG = Path(__file__).resolve().parents[1] / "config" / "default.yaml"
 CONFIG_VERSION = "1.0.0"
 WRONG = ("WRONG_POSITION", "WRONG_OTHER_BALL", "WRONG_CLAIMED_SEEN", "WRONG_PHANTOM")
 OUTCOMES = ("HIT_OBSERVED", "HIT_PREDICTED", "MISS", "PREDICTED_HIDDEN", "ABSTAIN_OK") + WRONG
@@ -186,29 +192,52 @@ def pooled(clips: List[dict], cfg: BallScoreConfig) -> dict:
     return summarise([r for c in clips for r in c["frames"]], cfg, len({c["height"] for c in clips}) == 1)
 
 
-def load_answers(path: str) -> Tuple[str, dict]:
+def load_answers(path: str, source_ball: Optional[str] = None,
+                 spana_config: str = str(DEFAULT_SPANA_CONFIG)) -> Tuple[str, dict]:
     """(kind, answers) of a spana.ball document, or of a spana.ball_path document (SEEN = an OBSERVED answer, every
-    other frame no answer: the path never predicts)."""
+    other frame no answer: the path never predicts).
+
+    A path document is scored only with the ball document it was made from: the whole path is recomputed from it and
+    must be identical, and it must have been made with the `ball_path` settings of `spana_config` (the recorded
+    ones). A path that nothing verified is refused."""
     doc = read_json(path)
-    if isinstance(doc, dict) and doc.get("schema") == PATH_SCHEMA[0]:
-        validate_ball_path(doc)
-        return "spana.ball_path", as_ball_answers(doc)
-    validate_ball(doc)
-    return "spana.ball", doc
+    if not (isinstance(doc, dict) and doc.get("schema") == PATH_SCHEMA[0]):
+        if source_ball is not None:
+            raise SystemExit(f"refusing: {path} is not a ball path, so no source ball document belongs with it")
+        validate_ball(doc)
+        return "spana.ball", doc
+    if source_ball is None:
+        raise SystemExit(f"refusing: {path} is a ball path; give its ball document too "
+                         "(--clip LABEL_DIR PATH.json BALL.json) so the path can be recomputed")
+    ball = read_json(source_ball)
+    validate_ball(ball)
+    validate_ball_path(doc, ball)
+    recorded = dataclasses.asdict(load_spana_config(spana_config).ball_path)
+    if doc["ball_path_config"] != recorded:
+        raise SystemExit(f"refusing: {path} was made with ball_path settings {doc['ball_path_config']}, not the "
+                         f"recorded {recorded} ({spana_config})")
+    return "spana.ball_path", as_ball_answers(doc)
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--clip", nargs=2, action="append", required=True, metavar=("LABEL_DIR", "BALL_JSON"))
+    p.add_argument("--clip", nargs="+", action="append", required=True,
+                   metavar="LABEL_DIR DOC [BALL_OF_PATH]",
+                   help="frozen label dir, then a spana.ball document, or a spana.ball_path document followed by "
+                        "the spana.ball document it was made from")
     p.add_argument("--config", default=str(DEFAULT_CONFIG), help="scoring conventions (config/ball_score.yaml)")
+    p.add_argument("--spana-config", default=str(DEFAULT_SPANA_CONFIG),
+                   help="the config whose ball_path settings a scored ball path must have been made with")
     p.add_argument("--out", required=True)
     a = p.parse_args(argv)
+    if any(len(c) not in (2, 3) for c in a.clip):
+        raise SystemExit("--clip takes LABEL_DIR DOC [BALL_OF_PATH]")
     refuse_existing(a.out)
     cfg = load_config(a.config)
     clips = []
-    for label_dir, ball_path in a.clip:
+    for label_dir, doc_path, *source in a.clip:
         rec, labels = load_frozen(Path(label_dir))
-        kind, answers = load_answers(ball_path)
+        kind, answers = load_answers(doc_path, source[0] if source else None, a.spana_config)
         clips.append({"scored": kind, **score_clip(rec, labels, answers, cfg)})
     report = {"tool": "tools.ball_score", "config": cfg.__dict__, "clips": clips, "pooled": pooled(clips, cfg)}
     write_json_atomic(a.out, report)

@@ -73,8 +73,8 @@ class ConfidentStretch(unittest.TestCase):
         self.assertEqual((len(doc["stretches"]), doc["stretches"][0]["confident"], doc["gaps"]), (1, True, []))
 
     def test_short_false_objects_are_never_the_ball(self):
-        cases = {"phantom, 2 frames": [1, 1], "glove / jersey, 5 frames": [1] * 5,
-                 "boot, 6 of 8 frames": [1, 1, 1, 1, 1, 0, 1, 1]}
+        cases = {"phantom, 2 sightings": [1, 1], "phantom answered on 2 frames (4 sightings)": [1] * 4,
+                 "glove / jersey, 5 frames": [1] * 5, "boot, 6 of 8 frames": [1, 1, 0, 1, 1, 0, 1, 1]}
         for name, pattern in cases.items():
             frames = [[] for _ in range(10)] + [[ball(600, 400)] if on else [] for on in pattern] + \
                      [[] for _ in range(30)]
@@ -83,8 +83,9 @@ class ConfidentStretch(unittest.TestCase):
                 self.assertEqual(set(states(doc)), {("UNKNOWN", "NO_BALL")})
                 self.assertFalse(any(s["confident"] for s in doc["stretches"]))
                 self.assertTrue(doc["stretches"])                                   # recorded, not hidden
-        doc, bdoc = path_of([[] for _ in range(10)] + [[ball(600, 400)]] * 5 + [[] for _ in range(30)])
-        self.assertIn("OBSERVED", {f["state"] for f in bdoc["frames"]})            # pass 1 alone answers it
+        for n, answered in ((4, 2), (5, 3)):                                        # pass 1 alone answers them
+            _, bdoc = path_of([[] for _ in range(10)] + [[ball(600, 400)]] * n + [[] for _ in range(30)])
+            self.assertEqual(sum(f["state"] == "OBSERVED" for f in bdoc["frames"]), answered)
 
     def test_long_flicker_is_never_the_ball(self):
         # confirmed by 3 frames in a row, then seen every 4th frame for 3 s: one long stretch at ~25 %
@@ -186,6 +187,38 @@ class HolesAndGaps(unittest.TestCase):
         (g,) = doc["gaps"]
         self.assertEqual((g["kind"], g["distance_d"], g["allowed_d"]), ("CAMERA_BREAK", None, None))
 
+    def test_unknown_camera_inside_a_gap_is_a_camera_break(self):
+        n = 75
+        cams = [cam(CameraStatus.FIRST)] + [cam() for _ in range(n - 1)]
+        cams[38] = cam(CameraStatus.UNKNOWN)
+        doc, _ = path_of([[moving(i)] if not 30 <= i < 45 else [] for i in range(n)], cams=cams)
+        self.assertEqual([g["kind"] for g in doc["gaps"]], ["CAMERA_BREAK"])
+
+    def test_cut_while_the_ball_is_seen_gives_adjacent_segments(self):
+        n = 60
+        cams = [cam(CameraStatus.FIRST)] + [cam() for _ in range(n - 1)]
+        cams[30] = cam(CameraStatus.CUT)
+        doc, _ = path_of([[moving(i)] for i in range(n)], cams=cams)
+        self.assertEqual(set(states(doc)), {SEEN})
+        (g,) = doc["gaps"]
+        self.assertEqual((g["from"]["frame"], g["to"]["frame"], g["frames"], g["kind"]), (29, 30, 0, "CAMERA_BREAK"))
+
+    def test_trailing_frames_after_the_last_stretch_are_no_ball(self):
+        doc, _ = path_of([[moving(i)] for i in range(30)] + [[] for _ in range(20)])
+        self.assertEqual(set(states(doc)[30:]), {("UNKNOWN", "NO_BALL")})
+        self.assertEqual(doc["gaps"], [])
+
+    def test_known_limit_a_near_rejoin_onto_another_object_is_accepted(self):
+        # DESIGN "risks added after the review", item 1: unseen 3 frames, then something within 3 diameters of the
+        # predicted position that then goes its own way. Nothing here can tell it from the ball: it stays SEEN.
+        # Pinned so that a later change to this behaviour is visible.
+        frames = [[moving(i)] for i in range(40)] + [[], [], []] + \
+                 [[ball(100 + 6 * 43 + 5, 300 + 12 + 5 * k)] for k in range(20)]
+        doc, bdoc = path_of(frames)
+        self.assertLessEqual(bdoc["frames"][43]["sightings"][0]["rejoin_d"], CFG.ball.reacquire_max_d)
+        self.assertEqual(set(states(doc)[43:]), {SEEN})
+        self.assertEqual(len([s for s in doc["stretches"] if s["confident"]]), 1)
+
     def test_camera_pan_is_compensated_in_the_plausibility_check(self):
         # a ball at rest on the pitch while the camera pans 80 px per frame during the gap (1200 px in the picture)
         n, pan = 75, 80.0
@@ -196,6 +229,45 @@ class HolesAndGaps(unittest.TestCase):
         (g,) = doc["gaps"]
         self.assertEqual(g["kind"], "OPEN")
         self.assertLess(g["distance_d"], 1.0)                                       # carried: it did not move
+
+
+class Boundaries(unittest.TestCase):
+    """Exactly at each setting (30 fps, where 0.4 s and 0.5 s are whole frames): >= keeps, > splits."""
+
+    @staticmethod
+    def frames(sighted, n, rejoin=None):
+        return [{"frame": i, "t": round(i / 30.0, 6), "camera_status": "OK",
+                 "sightings": [{"hypothesis": "B000001", "rejoin_d": (rejoin or {}).get(i)}] if i in sighted else []}
+                for i in range(n)]
+
+    def rows(self, sighted, n, rejoin=None):
+        from spana.ball.path import stretches
+        return stretches(self.frames(set(sighted), n, rejoin), PC, CFG.ball.reacquire_max_d)
+
+    def test_duration(self):
+        self.assertEqual([r["confident"] for r in self.rows(range(16), 16)], [True])      # 15 / 30 = 0.5 s exactly
+        self.assertEqual([r["confident"] for r in self.rows(range(15), 15)], [False])     # 0.4667 s
+
+    def test_density(self):
+        half = [0, 1, 3, 5, 7, 9, 11, 15]                                              # 8 of 16 frames
+        self.assertEqual([(r["density"], r["confident"]) for r in self.rows(half, 16)], [(0.5, True)])
+        self.assertEqual([r["confident"] for r in self.rows([0, 3, 5, 7, 9, 11, 15], 16)], [False])   # 7 of 16
+
+    def test_hole(self):
+        self.assertEqual(len(self.rows(list(range(5)) + [16, 17], 18)), 1)               # 12 frames = 0.4 s: one
+        self.assertEqual(len(self.rows(list(range(5)) + [17, 18], 19)), 2)               # 13 frames: split
+
+    def test_far_rejoin(self):
+        at = CFG.ball.reacquire_max_d
+        self.assertEqual(len(self.rows([0, 1, 2, 5, 6], 7, {5: at})), 1)                 # exactly the bound: near
+        self.assertEqual(len(self.rows([0, 1, 2, 5, 6], 7, {5: at + 0.001})), 2)
+
+    def test_unknown_camera_breaks_a_stretch_like_a_cut(self):
+        from spana.ball.path import stretches
+        for status in ("CUT", "UNKNOWN"):
+            fr = self.frames(set(range(40)), 40)
+            fr[20]["camera_status"] = status
+            self.assertEqual(len(stretches(fr, PC, CFG.ball.reacquire_max_d)), 2, status)
 
 
 class Safeguards(unittest.TestCase):
@@ -232,6 +304,26 @@ class OneBall(unittest.TestCase):
         self.assertTrue(all(f["center"] is None for f in doc["frames"][30:50]))
         self.assertEqual([g["kind"] for g in doc["gaps"]], ["CONFLICT"])
         self.assertEqual((doc["gaps"][0]["from"]["frame"], doc["gaps"][0]["to"]["frame"]), (29, 50))
+        self.frames = frames
+
+    def test_gap_kind_precedence(self):
+        self.test_two_confident_stretches_at_once_are_a_conflict()
+        slow = dataclasses.replace(CFG.ball, max_speed_d_per_s=20.0)                # the 29 -> 50 gap is also too far
+        doc, _ = path_of(self.frames, ball_cfg=slow)
+        (g,) = doc["gaps"]
+        self.assertEqual(g["kind"], "CONFLICT")                                     # CONFLICT before IMPLAUSIBLE
+        self.assertGreater(g["distance_d"], g["allowed_d"])
+        # A on frames 0-59, B on 20-79, a cut at 40: conflict on 20-59, with the cut inside it
+        frames = [[moving(i)] if i < 60 else [] for i in range(80)]
+        for i in range(20, 80):
+            frames[i] = frames[i] + [ball(1100 - 3 * i, 600)]
+        cams = [cam(CameraStatus.FIRST)] + [cam() for _ in range(79)]
+        cams[40] = cam(CameraStatus.CUT)
+        doc, _ = path_of(frames, cams=cams)
+        (g,) = doc["gaps"]
+        self.assertEqual((g["from"]["frame"], g["to"]["frame"]), (19, 60))
+        self.assertEqual(set(states(doc)[20:60]), {("UNKNOWN", "CONFLICT")})
+        self.assertEqual((g["kind"], g["distance_d"]), ("CAMERA_BREAK", None))      # CAMERA_BREAK before CONFLICT
 
 
 class Validation(unittest.TestCase):
@@ -268,6 +360,53 @@ class Validation(unittest.TestCase):
         d = copy.deepcopy(self.doc)
         d["gaps"][0].update(distance_d=500.0)                                       # OPEN beyond the bound
         self.refused(d)
+
+    def test_alone_the_validator_still_enforces_the_central_rule(self):
+        frames = [[moving(i)] if i < 50 else [] for i in range(80)]
+        for i in range(30, 80):
+            frames[i] = frames[i] + [ball(1100 - 3 * i, 600)]
+        doc, _ = path_of(frames)                                                    # conflict on frames 30-49
+        s1 = doc["frames"][0]["stretch"]
+        d = copy.deepcopy(doc)
+        d["frames"][35].update(state="SEEN", reason="CONFIDENT_STRETCH", stretch=s1, center=[1.0, 2.0],
+                               diameter=10.0, score=0.5)                            # a conflict frame made SEEN
+        self.refused(d)
+        d = copy.deepcopy(doc)
+        d["frames"][60].update(stretch=s1)                                          # SEEN outside its stretch's span
+        self.refused(d)
+        d = copy.deepcopy(doc)
+        d["frames"][35].update(reason="GAP")                                        # two stretches cover it: CONFLICT
+        self.refused(d)
+
+    def test_alone_the_validator_checks_gaps_against_the_frames(self):
+        base = self.doc
+        end = lambda f: {k: f[k] for k in ("frame", "t", "center", "diameter", "stretch")}    # noqa: E731
+        d = copy.deepcopy(base)
+        a, b = d["frames"][10], d["frames"][12]                                     # two SEEN frames of one stretch
+        d["gaps"].insert(0, {"from": end(a), "to": end(b), "frames": 1, "duration_s": round(b["t"] - a["t"], 6),
+                             "kind": "OPEN", "distance_d": 0.0, "allowed_d": 9.0})
+        self.refused(d)                                                             # a SEEN frame inside a "gap"
+        for change in ({"frames": 3}, {"duration_s": 9.0}, {"allowed_d": None}, {"kind": "CONFLICT"},
+                       {"kind": "CAMERA_BREAK"}, {"kind": "IMPLAUSIBLE"}):
+            d = copy.deepcopy(base)
+            d["gaps"][0].update(change)
+            with self.subTest(change):
+                self.refused(d)
+        d = copy.deepcopy(base)
+        d["gaps"][0]["from"]["frame"] = [34]                                        # refused, not a crash
+        self.refused(d)
+
+    def test_path_must_name_the_ball_documents_video(self):
+        d = copy.deepcopy(self.doc)
+        d["video"] = {**d["video"], "sha256": "b" * 64}
+        validate_ball_path(d)
+        self.refused(d, self.bdoc)
+
+    def test_ball_document_without_the_needed_settings_is_refused(self):
+        b = copy.deepcopy(self.bdoc)
+        del b["ball_config"]["reacquire_max_d"]
+        with self.assertRaises(ValueError):
+            ball_path(b, PC)
 
     def test_older_ball_documents_are_refused(self):
         old = {**self.bdoc, "schema_version": "1.2.0",
@@ -322,18 +461,29 @@ class Cli(unittest.TestCase):
             with self.assertRaises(Exception):
                 cli.main(argv)                                                      # never overwrites
 
-    def test_ball_score_reads_a_path_document(self):
+    def test_ball_score_scores_a_path_only_after_recomputing_it(self):
         from tools.ball_score import load_answers
         bdoc = ball_doc([[moving(i)] for i in range(40)])
         doc = ball_path_document(bdoc, PC, {}, sha256_doc(bdoc))
         with tempfile.TemporaryDirectory() as tmp:
-            b, p = Path(tmp) / "b.json", Path(tmp) / "p.json"
-            b.write_text(json.dumps(bdoc))
-            p.write_text(json.dumps(doc))
-            kind, answers = load_answers(str(p))
+            write = lambda name, d: (Path(tmp) / name).write_text(json.dumps(d)) and str(Path(tmp) / name)  # noqa
+            b, p = write("b.json", bdoc), write("p.json", doc)
+            kind, answers = load_answers(p, b)
             self.assertEqual(kind, "spana.ball_path")
             self.assertEqual({f["state"] for f in answers["frames"]}, {"OBSERVED"})
-            self.assertEqual(load_answers(str(b))[0], "spana.ball")
+            self.assertEqual(load_answers(b)[0], "spana.ball")
+            with self.assertRaisesRegex(SystemExit, "give its ball document"):      # a path alone is not scored
+                load_answers(p)
+            with self.assertRaises(SystemExit):                                     # a ball has no source document
+                load_answers(b, b)
+            moved = copy.deepcopy(doc)
+            moved["frames"][10]["center"][0] += 3.0
+            with self.assertRaises(ArtifactError):                                  # not what the ball document gives
+                load_answers(write("moved.json", moved), b)
+            loose_pc = dataclasses.replace(PC, min_stretch_s=0.1)
+            loose = ball_path_document(bdoc, loose_pc, {}, sha256_doc(bdoc))
+            with self.assertRaisesRegex(SystemExit, "recorded"):                    # made with other settings
+                load_answers(write("loose.json", loose), b)
 
 
 if __name__ == "__main__":
