@@ -68,3 +68,35 @@ Not adopted, and the bar is not changed after the fact.
 - Not gone: 2 wrong OBSERVED on FRESH_02, not yet diagnosed (the body rule was expected to stop the frame 29-33
   jersey jump).
 - Cost: about 3 correct OBSERVED frames each on FRESH_05 and FRESH_07; FRESH_08 coverage 0.463 -> 0.407.
+
+## Why step 1 failed (diagnosed 2026-11-23 from `~/spana-ball-run/diag4.txt`, Nathan's Mac)
+### The 2 wrong OBSERVED frames (FRESH_02 303, 306) are a new false object in the feet zone
+- No ball was selected. The real ball (label at (1103, 418), frames 291-306) had no detection at all.
+- Hypothesis B000014 started at frame 299 and was confirmed at 301 on a detection at (283, 566):
+  - position: at a player's feet (y 0.92-0.96 of the box, 0.07-0.15 h from the feet point);
+  - scores: 0.38-0.65;
+  - seen on 6 of 8 frames.
+- The body rule cannot catch it, because it is in the feet zone.
+- Score cannot separate it: FRESH_02's real ball scores 0.41-0.53 on frames 20-24.
+- Reading: a detector limit on this clip (small ball, ~12 px). No tracker rule found that removes it without
+  removing the real ball.
+- The frame 29-33 jersey jump of v2 is gone.
+
+### Coverage lost against v2 (correct OBSERVED frames; none gained)
+| frame | what happened | rule responsible |
+|---|---|---|
+| F02 156, F08 93, F07 273 | candidate 1-12 px from the predicted position, blocked ON_BODY: the real ball overlaps a player's box in the picture (y 0.04-0.76) | body rule on rejoin |
+| F08 66 | real ball (score 0.59-0.70) at y 0.11-0.13 of a player's box, no ball selected: cannot start | body rule on spawn |
+| F05 72 | real ball 55-60 px (~3 d) from a stale prediction: new hypothesis, then AMBIGUOUS SELECTED_HIDDEN_RIVAL while the old one is within `predict_max_s` | far-rejoin rule |
+| F05 138, 144 | real ball moving away at score 0.79-0.86, AMBIGUOUS for > 12 frames for the same reason | far-rejoin rule |
+| F07 261 | real ball ~90 px from the prediction after a 6-frame gap: new hypothesis | far-rejoin rule |
+| F07 216 | detections at 0.88-0.90 on every frame, but B000001 is SPARSE: it missed earlier rejoins, so its seen share is low | far-rejoin rule, then seen share |
+| F08 15 | first candidate after the gap on a body and 72 px away (blocked), the next one starts a new hypothesis | body + far-rejoin |
+
+- The far-rejoin rule is too tight for a kicked ball: the constant-velocity prediction is wrong after a kick. Each
+  far re-acquisition then costs up to `predict_max_s` of AMBIGUOUS.
+- All 4 body-part errors of v2 were either on a body AND far from the prediction (jersey, boot, shorts), or a start
+  on a body (glove).
+- A narrower rule would have caught the same 4: block a rejoin only when on a body and far; block starts on a
+  body; no far-rejoin rule off the body. Not built or measured yet.
+- Caution: every rule so far was shaped on the same 4 clips (524 labelled frames).
