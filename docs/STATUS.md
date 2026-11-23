@@ -51,7 +51,8 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      (label OUT marked too early; labels v2 frozen with the reason), 1 is a real near-rejoin error on the last frame.
      Re-score on v2: 1 / 314 (bound 1.5 %), coverage 0.839; weaker evidence than the v1 score (correction prompted by
      the disagreements). All 55 misses on the clip are detector misses. "0 wrong" is not met on unseen footage; a
-     replacement bar (error budget on unseen clips; strict bar at event level) is NOT set yet (Nathan). Not merged.
+     replacement bar (error budget on unseen clips; strict bar at event level) is NOT set yet (Nathan). MERGED to
+     main 2026-11-23 as an improvement, not as meeting its bar (DECISIONS).
      Next lever for coverage: tiling for the football detector. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
      its `possession` section becomes config 2.22.0 on merge.
    - CORRECTION 2026-11-23: FRESH_08 re-scored on Nathan's every-frame labels (ball labels v2, 391 frames; on his
