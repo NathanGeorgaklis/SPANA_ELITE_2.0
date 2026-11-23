@@ -70,11 +70,16 @@ def _request_confidence(a: argparse.Namespace, cfg) -> float:
     return min(cfg.detection.score_low, cfg.ball.score_min) if a.ball_out else cfg.detection.score_low
 
 
-def _ball_view(a: argparse.Namespace, raw, dcfg, cfg):
+def _ball_view(a: argparse.Namespace, raw, dcfg, cfg, tile_detector=None):
+    """tile_detector: the uncached detector for ball tiles (local backend); None for hosted inference, where tiling
+    would multiply third-party requests (ball.tile_size_frac > 0 is then refused by the view)."""
     if not a.ball_out:
         return None
-    from .detection.ball_view import BallView
-    return BallView(raw, dcfg.detector.ball_classes, cfg.ball)
+    from .detection.ball_view import BallView, BallViewError
+    try:
+        return BallView(raw, dcfg.detector.ball_classes, cfg.ball, tile_detector)
+    except BallViewError as e:
+        raise ArtifactError(str(e)) from e
 
 
 def _onnx_detector(a: argparse.Namespace, cfg):
@@ -118,13 +123,13 @@ def _local_detector(a: argparse.Namespace, cfg):
         raise ArtifactError("--backend local needs --model-record, --dataset-config, --runtime and --device")
     dcfg = load_dataset_config(a.dataset_config)
     rec = LocalModelRecord.load(a.model_record)
-    raw = _FrameCache(LocalRFDETRDetector(rec, make_runner(rec, a.runtime, a.device), dcfg.classes,
-                                          _request_confidence(a, cfg)))
+    local = LocalRFDETRDetector(rec, make_runner(rec, a.runtime, a.device), dcfg.classes, _request_confidence(a, cfg))
+    raw = _FrameCache(local)
     det = PersonView(raw, dcfg.detector.person_classes, cfg.detection)
     return det, list(det.class_names), {"model_record": sha256_file(a.model_record),
                                         "weights": rec.weights_sha256 if a.runtime == "torch" else rec.onnx_sha256,
                                         "dataset_config_detector": dcfg.section_sha256("detector")}, \
-        _ball_view(a, raw, dcfg, cfg)
+        _ball_view(a, raw, dcfg, cfg, tile_detector=local)
 
 
 _BACKENDS = {"onnx": _onnx_detector, "roboflow": _roboflow_detector, "local": _local_detector}

@@ -20,7 +20,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.21.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.22.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
@@ -40,6 +40,7 @@ CONFIG_SCHEMA_VERSION = "2.21.0"   # 2.1.0: + target section; 2.2.0: + target re
 #   2.20.0: + ball.feet_zone_h / reacquire_max_d (player-aware re-acquisition; used only when the ball pass is given
 #   the player tracks)
 #   2.21.0: + ball_path section (offline ball path: confident stretches, spana.ball.path)
+#   2.22.0: + ball.tile_size_frac / tile_overlap_frac / tile_edge_margin_frac (ball-only tiled detector pass)
 
 
 class ConfigError(ValueError):
@@ -370,6 +371,11 @@ class BallConfig:
                                    #   back a ball; it counts only for a hypothesis observed on the previous frame)
     reacquire_max_d: float         # with player tracks: a hypothesis not observed on the previous frame rejoins a
                                    #   candidate ON A BODY only within this many diameters of its predicted position
+    tile_size_frac: float          # ball view: 0 = full frame only; else also run the detector on square tiles of
+                                   #   side tile_size_frac x frame height (the ball is seen larger); ball class only
+    tile_overlap_frac: float       # ... neighbouring tiles overlap by at least this share of the tile side
+    tile_edge_margin_frac: float   # ... a tile box within this share of the side of an INTERNAL tile edge is cut
+                                   #   off there and dropped (the neighbouring tile sees it whole)
 
     def validate(self) -> None:
         _unit("ball.score_min", self.score_min)
@@ -379,6 +385,13 @@ class BallConfig:
         _pos("ball.seen_share_window_s", self.seen_share_window_s)
         _unit("ball.feet_zone_h", self.feet_zone_h)
         _pos("ball.reacquire_max_d", self.reacquire_max_d)
+        if not 0.0 <= self.tile_size_frac <= 1.0:
+            raise ConfigError("ball.tile_size_frac must be in [0, 1] (0 = no tiling)")
+        if not 0.0 <= self.tile_overlap_frac < 1.0:
+            raise ConfigError("ball.tile_overlap_frac must be in [0, 1)")
+        if not 0.0 <= self.tile_edge_margin_frac <= self.tile_overlap_frac / 2 + 1e-9:
+            raise ConfigError("ball.tile_edge_margin_frac must be in [0, tile_overlap_frac / 2]: a ball cut by one "
+                              "tile's edge must lie whole inside its neighbour")
         for n in ("min_diameter_px", "gate_base_d", "max_speed_d_per_s", "confirm_window_s", "predict_max_s",
                   "lost_max_s"):
             _pos(f"ball.{n}", getattr(self, n))

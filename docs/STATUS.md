@@ -53,6 +53,12 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      the disagreements). All 55 misses on the clip are detector misses. "0 wrong" is not met on unseen footage; a
      replacement bar (error budget on unseen clips; strict bar at event level) is NOT set yet (Nathan). MERGED to
      main 2026-11-23 as an improvement, not as meeting its bar (DECISIONS).
+   - BALL BAR from 2026-11-23 (Nathan): 95 % upper bound on wrong SEEN <= 2 %, on unseen clips only, pooled. The path
+     is on the edge of it (FRESH_03: 2.9 % on labels v1, 1.5 % on v2); more unseen clips needed.
+   - BALL TILING built 2026-11-23 on `detection/ball-tiling-v1` (config 2.22.0, OFF by default): ball-only tiled
+     detector pass, two frame-height tiles on 16:9, ~3x detection time. NOT YET MEASURED. Adoption rule and baseline:
+     `records/ball_tiling_v1_2026-11-23` (pooled coverage 0.687 today; on only if >= 0.737 and no clip gets more
+     wrong SEEN).
      Next lever for coverage: tiling for the football detector. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
      its `possession` section becomes config 2.22.0 on merge.
    - CORRECTION 2026-11-23: FRESH_08 re-scored on Nathan's every-frame labels (ball labels v2, 391 frames; on his

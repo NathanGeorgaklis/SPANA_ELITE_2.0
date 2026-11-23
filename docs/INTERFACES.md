@@ -153,6 +153,16 @@ What the tracking layer receives from any detector, the football detector includ
   it from the same detector pass as the person view (one request per frame; the detector is asked down to
   min(detection.score_low, ball.score_min)). It is a `spana.detections` 1.4.0 document with `model.ball_view` and
   `detection_config` = the `ball` config section. `track` refuses it; `ball` refuses anything else.
+- Ball tiling (2026-11-23, config 2.22.0, OFF by default): with `ball.tile_size_frac` > 0 the ball view also runs
+  the detector on square tiles of side `tile_size_frac` x frame height (`spana.detection.ball_view.tile_grid`: the
+  fewest evenly spaced tiles with at least `ball.tile_overlap_frac` overlap; two on 1920 x 1080 at 1.0).
+  - Only the ball class is kept from tiles.
+  - A tile box within `ball.tile_edge_margin_frac` of the side of an internal tile edge is dropped.
+  - Everything is merged by the view's NMS.
+  - Persons are never tiled.
+  - Local backend only: hosted inference refuses it.
+  - The three tile keys are part of `VIEW_KEYS`: `spana.cli ball` refuses ball detections made under another tile
+    setting (and ball-view detections made before 2.22.0, which lack the keys).
 - **Ball path, `spana.ball_path` 1.0.0** (2026-11-23; `spana/ball/path.py`, `validate_ball_path`): the ball decided
   OFFLINE over one whole `spana.ball` 1.3.0 document. `spana.cli ball-path --ball B --config C --out P`.
   - Consumers of ball positions (possession / touches, events) should read the path's SEEN frames, not the

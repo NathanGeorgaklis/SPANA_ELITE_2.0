@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.21.0"
+schema_version: "2.22.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -310,6 +310,12 @@ ball:
   reacquire_max_d: 3.0       # after an unseen frame, how far (diameters) from the prediction counts as FAR. Used twice:
                              # the tracker does not rejoin a candidate ON A BODY beyond it, and the ball path starts a
                              # new stretch at ANY rejoin beyond it (records/ball_path_v1_2026-11-23/DESIGN.md, amendment 1)
+  # Ball-only tiled detector pass (spana/detection/ball_view.py; local backend only). The football detector sees a
+  # 1920 px frame at 1280, so a 12 px ball is ~8 px; on tiles of the frame height it is ~14 px. OFF (0) until the
+  # adoption rule of DECISIONS 2026-11-23 is met; measured with records/ball_tiling_v1_2026-11-23/tiling_on.config.yaml.
+  tile_size_frac: 0.0        # 0 = full frame only; 1.0 = square tiles of the frame height (two on a 16:9 frame)
+  tile_overlap_frac: 0.20    # minimum overlap of neighbouring tiles, share of the tile side
+  tile_edge_margin_frac: 0.02  # 22 px at 1080p: a tile box this close to an internal tile edge is dropped
 
 ball_path:
   # Offline ball path (spana/ball/path.py): which sightings are the ball, decided afterwards over the whole clip.

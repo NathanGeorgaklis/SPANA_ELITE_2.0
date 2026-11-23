@@ -438,7 +438,8 @@ class BallCli(unittest.TestCase):
         self.detect("--ball-out", str(bd))
         raw = yaml.safe_load(Path(CONFIG_PATH).read_text())
         for key, value, ok in (("min_seen_share", 0.3, True), ("predict_max_s", 0.3, True),
-                               ("score_min", 0.45, False), ("nms_iou", 0.5, False)):
+                               ("score_min", 0.45, False), ("nms_iou", 0.5, False),
+                               ("tile_size_frac", 1.0, False)):       # tiled detections are another view
             with self.subTest(key=key):
                 r = {**raw, "ball": {**raw["ball"], key: value}}
                 cfgp = self.td / f"c_{key}.yaml"
