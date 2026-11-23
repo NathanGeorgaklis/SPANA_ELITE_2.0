@@ -307,7 +307,9 @@ ball:
   # height from the top; the real ball at a player's feet 0.91-0.99), taken after 3-7 unseen frames and 210-320 px
   # (13-25 diameters) from the prediction (records/ball_player_aware_2026-11-23). Set before measuring.
   feet_zone_h: 0.20          # bottom share of a player's box = feet zone; above it a candidate is on the body
-  reacquire_max_d: 3.0       # after an unseen frame, rejoin a candidate ON A BODY only this close (diameters) to the prediction
+  reacquire_max_d: 3.0       # after an unseen frame, how far (diameters) from the prediction counts as FAR. Used twice:
+                             # the tracker does not rejoin a candidate ON A BODY beyond it, and the ball path starts a
+                             # new stretch at ANY rejoin beyond it (records/ball_path_v1_2026-11-23/DESIGN.md, amendment 1)
 
 ball_path:
   # Offline ball path (spana/ball/path.py): which sightings are the ball, decided afterwards over the whole clip.

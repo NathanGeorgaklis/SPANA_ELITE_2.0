@@ -128,3 +128,32 @@ gate (~8 diameters), e.g. from the ball to a boot next to it.
   hypotheses over very short gaps), but it is not a safeguard to rely on.
 
 Pass bar and the three `ball_path` settings are unchanged.
+
+## Risks added after the independent review (2026-11-23, before any DEV measurement)
+A SEEN answer can still be WRONG in these cases. None is fixed by v1.
+
+1. **Near rejoin onto the wrong object.** After a short occlusion (the ball behind a player's legs for a few
+   frames), a boot or sock within `reacquire_max_d` (3 diameters) of the predicted position is accepted as the same
+   hypothesis: no far-rejoin split. The stretch then continues on that object.
+   - If the real ball is itself a confident stretch at the same time, the frames are CONFLICT (fail closed).
+   - Otherwise they are SEEN and wrong.
+   - The same happens at the end of a stretch, when the ball leaves and the hypothesis lingers on something next to
+     it.
+2. **Undetected shot change.** Stretches split only on camera status CUT / UNKNOWN. A dissolve, wipe or fast zoom
+   the camera layer reports as OK lets a stretch run through it.
+3. **Replays, close-ups, picture-in-picture.** A replayed ball is a dense stretch of >= 0.5 s that is not the live
+   ball.
+4. **Persistent false objects** (a ball logo on a board, a spare ball at the touchline, a bright spot on the pitch).
+   Such an object is a confident stretch for as long as it is visible.
+   - While the real ball is not a confident stretch, the object is SEEN: wrong.
+   - While the real ball is confident, every frame is CONFLICT: one such object can remove the real ball's coverage
+     for the whole clip. That is a coverage failure, not a wrong answer.
+5. **Two detections of the one real ball** (the ball and its motion blur) can form two overlapping stretches:
+   CONFLICT on the real ball. Coverage lost, not wrong.
+6. **A consecutive-frame hop at the START of a stretch** (a stretch that began on a false object before the ball came
+   within its gate) is the same class as the "still not covered" hop in amendment 1.
+7. **`min_stretch_s` 0.5 s comes from four clips.** A dense false stretch of 0.5-1 s (a boot carried by a running
+   player) passes.
+
+Items 1-4 cannot be tested on the four DEV clips unless they happen to occur there. The unseen clip is the first
+real check, and one clip will not exercise all of them.
