@@ -62,6 +62,11 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      shows the ball path does not stop a steadily detected false object: its 0 wrong on the design clips depended on
      the untiled detector's false positives being sparse (`records/ball_tiling_v1_2026-11-23`). Not merged. Next
      lever: detector data (small balls, hard negatives), not resolution.
+   - TILING FALSE-POSITIVE DIAGNOSIS (CODE TASK 2026-11-23, branch `ball/tiling-fp-diagnostic`, analysis only):
+     `tools/diagnostics/ball_tiling_fp.py` + `config/ball_fp_diag.yaml` built and tested (what the tiled detector
+     mistook for the ball on FRESH_02 / FRESH_08: source pass, tile overlap, new vs untiled, persistence, contact
+     sheets, generic categories). RESULTS PENDING: it runs on Nathan's Mac; findings go to
+     `docs/BALL_TILING_FP_FINDINGS.md`.
      Next lever for coverage: tiling for the football detector. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
      its `possession` section becomes config 2.22.0 on merge.
    - CORRECTION 2026-11-23: FRESH_08 re-scored on Nathan's every-frame labels (ball labels v2, 391 frames; on his

@@ -1,0 +1,22 @@
+# tools/diagnostics/ball_tiling_fp.py: presentation settings and the category list of the tiled-detector ball
+# false-positive diagnosis. Read by the diagnostic only; nothing here is read by the product or by scoring.
+# What counts as a wrong answer comes from config/ball_score.yaml; tile geometry and the merge IoU come from the
+# ball_config stored in the run's own ball document.
+schema_version: "1.0.0"
+crop_pad_d: 8.0          # contact-sheet crop: this many ball diameters of context on each side of the detection
+min_crop_px: 96          # ... but never smaller than this many source pixels across
+cell_px: 192             # each crop is shown at this size
+sheet_cols: 6
+sheet_rows: 5
+crops_per_object: 6      # crops per false object, spread evenly over the frames it was accepted on
+# Generic categories only: no player, team or kit-specific labels.
+categories:
+  - boot/foot
+  - head
+  - glove/hand
+  - shin/sock
+  - pitch marking
+  - crowd/background
+  - other ball
+  - equipment/cone
+  - unclear
