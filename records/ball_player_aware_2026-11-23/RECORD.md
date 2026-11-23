@@ -115,4 +115,32 @@ Tests: `tests/test_ball_tracker.py`, 31 passed. Changed or new:
 
 Full suite: 732 passed, 15 skipped, 2 failed (`test_botsort_compare.py`, environment only).
 
-DEV measurement of the narrowed rule: PENDING (`~/spana-ball-run/v4/`).
+## DEV measurement, narrowed step 1 (Nathan's Mac, 2026-11-23; `~/spana-ball-run/v4/`): FAILS the pass bar
+Numbers pasted from the terminal. Columns: first run -> seen-share (v2) -> step 1 (v3) -> narrowed (v4).
+
+| clip | coverage seen | coverage seen + predicted (v4) | wrong OBSERVED (v4, 95 % bound) | wrong all answers (v4) |
+|---|---|---|---|---|
+| FRESH_02 | 0.271 -> 0.163 -> 0.155 -> 0.171 | 0.279 | 13 -> 2 -> 2 -> 3 / 25 (0.282) | 6 / 44 |
+| FRESH_05 | 0.938 -> 0.938 -> 0.915 -> 0.938 | 0.977 | 0 -> 0 -> 0 -> 0 / 122 (0.024) | 2 / 130 |
+| FRESH_07 | 0.790 -> 0.758 -> 0.734 -> 0.758 | 0.887 | 2 -> 2 -> 0 -> 0 / 94 (0.031) | 2 / 117 |
+| FRESH_08 | 0.426 -> 0.463 -> 0.407 -> 0.333 | 0.370 | 17 -> 1 -> 0 -> 0 / 18 (0.153) | 9 / 32 |
+| pooled | 0.636 -> 0.600 -> 0.577 -> 0.586 | 0.670 | 32 -> 5 -> 2 -> 3 / 259 (0.030) | 19 / 323 (first run 122 / 447) |
+
+Pass bar:
+- 0 wrong OBSERVED pooled: 3 (all FRESH_02), **FAIL**;
+- FRESH_05 coverage >= 0.888: 0.938, pass;
+- FRESH_07 coverage >= 0.740: 0.758, pass.
+
+Not adopted by the bar, and the bar is not changed.
+
+- FRESH_05 / 07 / 08: 0 wrong OBSERVED of 234 answers (19 in the first run). FRESH_05 / 07 coverage is back at the
+  v2 level.
+- FRESH_02: 3 wrong OBSERVED. Which frames is not re-diagnosed; expected to be the feet-zone false object
+  (detector limit, above).
+- FRESH_08 coverage fell 0.463 -> 0.333, about 7 correct frames of 54. NOT diagnosed. Suspected, unverified: starts
+  on a body blocked for a real ball that overlaps a player's box in the picture (as at frame 66).
+- Tracker tuning on these 4 clips stops here (DECISIONS 2026-11-23).
+- Open:
+  - detector data for small balls and hard negatives (boots, jerseys, gloves);
+  - more DEV ball clips before any further tracker rule;
+  - step 2 ("with player X" memory) is not built.
