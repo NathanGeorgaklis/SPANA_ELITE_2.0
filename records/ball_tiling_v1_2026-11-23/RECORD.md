@@ -59,4 +59,46 @@ Baseline today (ball path on untiled detections, `records/ball_path_v1_2026-11-2
 ADOPTION RULE (DECISIONS): tiling goes on by default only if pooled coverage >= 0.737 (+0.05) AND no clip has more
 wrong SEEN than in this table. None of these clips is unseen any more; an independent check needs a fresh clip.
 
-## DEV measurement: PENDING
+## DEV measurement (Nathan's Mac, 2026-11-23; `~/spana-ball-run/tile/`): FAILS the adoption rule. Tiling stays OFF
+- Code 052110d.
+- `detect --backend local --ball-out` and `ball --tracks` with `tiling_on.config.yaml`; `ball-path` with
+  `config/default.yaml`; player tracks reused.
+- `tools.ball_score --clip LABELS PATH BALL` (each path recomputed).
+- Detection took ~1.2 s / frame on an Apple M3 (8 GB): 3 passes.
+- Numbers pasted from the terminal.
+
+| clip | coverage: untiled -> tiled | wrong SEEN: untiled -> tiled (95 % bound, tiled) |
+|---|---|---|
+| FRESH_02 | 0.279 -> 0.155 | 0 / 36 -> 42 / 62 (0.775) |
+| FRESH_05 | 0.946 -> 0.962 | 0 / 123 -> 0 / 125 (0.024) |
+| FRESH_07 | 0.798 -> 0.855 | 0 / 99 -> 0 / 106 (0.028) |
+| FRESH_08 (v2) | 0.370 -> 0.407 | 0 / 60 -> 17 / 83 (0.291) |
+| FRESH_03 (v2) | 0.839 -> 0.887 | 1 / 314 -> 1 / 332 (0.014) |
+| pooled | 0.687 -> 0.706 | 1 / 632 -> 60 / 708 (0.104) |
+
+Adoption rule:
+- pooled coverage >= 0.737: 0.706, **FAIL**;
+- no clip with more wrong SEEN: FRESH_02 0 -> 42, FRESH_08 0 -> 17, **FAIL**.
+
+Tiling is not adopted. `ball.tile_size_frac` stays 0.
+
+Path summaries from the run log (tiled; frames / seen / hole / gap / no_ball / confident stretches of all):
+- FRESH_05: 781 / 746 / 29 / 6 / 0 / 2 of 11;
+- FRESH_07: 391 / 319 / 18 / 32 / 22 / 4 of 19;
+- FRESH_08: 391 / 83 / 16 / 218 / 74 / 3 of 42;
+- FRESH_03: 781 / 665 / 86 / 19 / 11 / 3 of 24.
+
+No CONFLICT frames on any of these four.
+
+What it shows:
+- Where the detector already finds the ball (FRESH_05 / 07 / 03), tiling adds 0.02-0.06 coverage with no new wrong
+  answer.
+- On the two hard clips it produces wrong SEEN answers in bulk (FRESH_02: 42 of 62; FRESH_08: 17 of 83), and on
+  FRESH_02 the real ball's coverage falls.
+- NOT diagnosed: which objects, and why FRESH_02 coverage fell. Expected, unverified: enlarged non-balls are detected
+  steadily enough to form confident stretches.
+- The ball path does not stop a steadily detected false object (DESIGN risks 4 and 7). The 0 / 318 on the design
+  clips depended on the untiled detector's false positives being brief or sparse. The path's protection is
+  conditional on the detector, not absolute.
+- The detector's limit on hard footage is ball / non-ball discrimination, not resolution. More pixels did not fix it.
+  Detector data (small balls; boots, gloves, heads as hard negatives) is the remaining lever.
