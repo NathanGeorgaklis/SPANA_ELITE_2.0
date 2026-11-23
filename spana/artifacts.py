@@ -55,6 +55,9 @@ Change log:
         meaning. A track_embeddings document validates with validate_track_embeddings.
   2.3.0 target: + target_config.resume_after_doubt_resolved (a no-rival doubt episode does not taint the followed
         track). Answers keep the 2.2.0 rules. 2.2.0 documents keep their meaning.
+  1.3.0 ball: + per-frame sightings (every hypothesis observed on the frame: hypothesis, center, diameter,
+        score; confirmed or not, selected or not) and camera_affine (the ball pass's inter-frame transform, identity
+        unless the camera is OK), for the offline ball path (spana.ball_path). Earlier documents keep their meaning.
   1.2.0 ball: + top-level tracks_sha256 (the player tracks given to the ball pass for player-aware
         re-acquisition, or null). 1.0.0 / 1.1.0 documents keep their meaning.
   1.1.0 ball: + LOST reason SPARSE_OBSERVATIONS (the only candidate ball is observed on fewer than
@@ -1105,8 +1108,10 @@ def validate_track_embeddings(doc: Any, tracks: Optional[dict] = None) -> None:
 
 
 # ----------------------------------------------------------------------------- ball
-BALL_SCHEMA = ("spana.ball", "1.2.0")
-BALL_ACCEPTED = ("1.0.0", "1.1.0", "1.2.0")   # 1.0.0: no LOST SPARSE_OBSERVATIONS; < 1.2.0: no tracks_sha256
+BALL_SCHEMA = ("spana.ball", "1.3.0")
+BALL_ACCEPTED = ("1.0.0", "1.1.0", "1.2.0", "1.3.0")   # 1.0.0: no LOST SPARSE_OBSERVATIONS; < 1.2.0: no
+#   tracks_sha256; < 1.3.0: no per-frame sightings / camera_affine
+_BALL_SIGHTING_KEYS = ("hypothesis", "center", "diameter", "score")
 _BALL_FRAME_KEYS = ("frame", "t", "camera_status", "state", "reason", "hypothesis", "center", "diameter",
                     "confidence", "contested", "candidates", "confirmed_live")
 _BALL_HYP_KEYS = ("hypothesis", "first_frame", "last_observed_frame", "observed_frames", "confirmed_frame",
@@ -1128,15 +1133,48 @@ def ball_frame(bf, oc: OutputConfig) -> dict:
             "state": bf.state.value, "reason": bf.reason.value, "hypothesis": bf.hypothesis,
             "center": None if bf.center is None else [round(v, oc.box_decimals) for v in bf.center],
             "diameter": r(bf.diameter, oc.box_decimals), "confidence": r(bf.confidence, oc.score_decimals),
-            "contested": bf.contested, "candidates": bf.candidates, "confirmed_live": bf.confirmed_live}
+            "contested": bf.contested, "candidates": bf.candidates, "confirmed_live": bf.confirmed_live,
+            "sightings": [{"hypothesis": h, "center": [round(x, oc.box_decimals), round(y, oc.box_decimals)],
+                           "diameter": round(d, oc.box_decimals), "score": round(s, oc.score_decimals)}
+                          for h, x, y, d, s in bf.sightings],
+            "camera_affine": [[round(v, 6) for v in row] for row in bf.camera_affine]}
 
 
 def ball_hypothesis_rows(summaries) -> List[dict]:
     return [{k: getattr(s, k) for k in _BALL_HYP_KEYS} for s in summaries]
 
 
+def _check_ball_sightings(fr: dict, hyps: dict) -> None:
+    where = f"frame {fr['frame']}"
+    a = fr["camera_affine"]
+    if not (isinstance(a, list) and len(a) == 2 and all(isinstance(r, list) and len(r) == 3 and all(map(_num, r))
+                                                        for r in a)):
+        raise ArtifactError(f"{where}: bad camera_affine")
+    if fr["camera_status"] != CameraStatus.OK.value and a != [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]:
+        raise ArtifactError(f"{where}: camera_affine must be the identity unless the camera is OK")
+    s = fr["sightings"]
+    if not isinstance(s, list) or len(s) > fr["candidates"]:
+        raise ArtifactError(f"{where}: sightings must be a list of at most `candidates` entries")
+    ids = []
+    for x in s:
+        _keys(x, _BALL_SIGHTING_KEYS, f"{where} sighting")
+        h = hyps.get(x["hypothesis"])
+        if h is None or not h["first_frame"] <= fr["frame"] <= h["last_observed_frame"]:
+            raise ArtifactError(f"{where}: sighting of an unknown hypothesis, or outside its observed span")
+        if not (isinstance(x["center"], list) and len(x["center"]) == 2 and all(map(_num, x["center"]))
+                and _num(x["diameter"]) and x["diameter"] > 0 and _num(x["score"]) and 0.0 <= x["score"] <= 1.0):
+            raise ArtifactError(f"{where}: bad sighting {x!r}")
+        ids.append(x["hypothesis"])
+    if ids != sorted(set(ids)):
+        raise ArtifactError(f"{where}: sightings must be sorted by hypothesis, one per hypothesis")
+    if fr["state"] == "OBSERVED":
+        own = [x for x in s if x["hypothesis"] == fr["hypothesis"]]
+        if not own or own[0]["center"] != fr["center"]:
+            raise ArtifactError(f"{where}: an OBSERVED answer must be one of the frame's sightings")
+
+
 def validate_ball(doc: Any, detections: Optional[dict] = None) -> None:
-    """spana.ball 1.2.0 (1.0.0 / 1.1.0 still accepted). With the source detections: same hash, same frames, candidate
+    """spana.ball 1.3.0 (1.0.0 - 1.2.0 still accepted). With the source detections: same hash, same frames, candidate
     counts match."""
     version = doc.get("schema_version") if isinstance(doc, dict) else None
     _header(doc, (BALL_SCHEMA[0], version if version in BALL_ACCEPTED else BALL_SCHEMA[1]),
@@ -1159,9 +1197,13 @@ def validate_ball(doc: Any, detections: Optional[dict] = None) -> None:
         raise ArtifactError("duplicate hypothesis ids")
     prev, prev_t = -1, -math.inf
     cams = {c.value for c in CameraStatus}
+    v13 = version not in ("1.0.0", "1.1.0", "1.2.0")
+    frame_keys = _BALL_FRAME_KEYS + (("sightings", "camera_affine") if v13 else ())
     for fr in doc["frames"]:
-        _keys(fr, _BALL_FRAME_KEYS, "ball frame")
+        _keys(fr, frame_keys, "ball frame")
         prev = _frame_order(fr, prev)
+        if v13:
+            _check_ball_sightings(fr, hyps)
         if not (_num(fr["t"]) and fr["t"] > prev_t):
             raise ArtifactError(f"frame {fr['frame']}: time not increasing")
         prev_t = fr["t"]

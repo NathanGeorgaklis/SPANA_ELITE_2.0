@@ -298,7 +298,9 @@ ball:
   # A false object (head, boot, pitch spot) detected now and then can be confirmed and kept alive by each sporadic
   # re-detection; the real ball being followed is detected on most frames. Set BEFORE measuring (DECISIONS
   # 2026-11-23; records/ball_score_dev_2026-11-23: false 0.25-0.37 vs real 0.63-0.94 seen share on DEV).
-  min_seen_share: 0.5        # observed on >= this share of its frames over the window, or it is not the answer
+  min_seen_share: 0.0        # 0 = OFF since 2026-11-23: the offline ball path (ball_path section) replaces it.
+                             # 0.5 was measured in records/ball_seen_share_2026-11-23 (observed on >= this share
+                             # of its frames over the window, or it is not the answer)
   seen_share_window_s: 1.0
   # Player-aware re-acquisition (only when `spana.cli ball` is given --tracks; DECISIONS 2026-11-23). On DEV every
   # wrong OBSERVED answer left after the seen-share rule was a detection on a player's body (0.29-0.73 of the box

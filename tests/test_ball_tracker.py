@@ -25,6 +25,7 @@ from tests.test_roboflow_prep import raw as raw_dataset_cfg
 
 CFG = load_config(CONFIG_PATH)
 B = CFG.ball
+SHARE = dataclasses.replace(B, min_seen_share=0.5)      # the seen-share rule as measured (off by default now)
 FPS = 25.0
 W, H = 1280, 720
 
@@ -88,7 +89,7 @@ class BallTrackerTests(unittest.TestCase):
     def test_flickering_false_object_is_never_the_answer(self):
         # seen 3 frames in a row (confirmed), then only every 4th frame: kept alive, but sparse -> never answered
         cands = [[ball(600, 400)] if i < 3 or i % 4 == 0 else [] for i in range(60)]
-        out, trk = run(cands)
+        out, trk = run(cands, cfg=SHARE)
         late = out[int(B.seen_share_window_s * FPS):]
         self.assertTrue(all(f.state is BallState.LOST for f in late))
         self.assertIn(BallReason.SPARSE_OBSERVATIONS, {f.reason for f in late})
@@ -97,19 +98,41 @@ class BallTrackerTests(unittest.TestCase):
     def test_flickering_object_does_not_take_the_answer_from_nothing_but_ball_still_wins(self):
         # the real ball moves and is seen every frame; a sparse false object never takes over and never answers
         cands = [[ball(100 + 6 * i, 300)] + ([ball(900, 500)] if i < 3 or i % 4 == 0 else []) for i in range(60)]
-        out, _ = run(cands)
+        out, _ = run(cands, cfg=SHARE)
         ans = [f for f in out if f.state in (BallState.OBSERVED, BallState.PREDICTED)]
         self.assertTrue(ans)
         self.assertTrue(all(abs(f.center[1] - 300) < 1 for f in ans))        # only ever the real ball
 
     def test_young_ball_hidden_goes_sparse_before_predict_max(self):
         seen = [[ball(100 + 8 * i, 300)] for i in range(6)]          # followed 0.24 s, then hidden
-        out, _ = run(seen + [[] for _ in range(20)])
+        out, _ = run(seen + [[] for _ in range(20)], cfg=SHARE)
         gap = out[6:]
         self.assertEqual(gap[0].state, BallState.PREDICTED)
         first_lost = next(f for f in gap if f.state is BallState.LOST)
         self.assertEqual(first_lost.reason, BallReason.SPARSE_OBSERVATIONS)
         self.assertLess(first_lost.frame_index - 6, int(B.predict_max_s * FPS))
+
+    def test_seen_share_is_off_by_default(self):
+        self.assertEqual(B.min_seen_share, 0.0)                       # replaced by the offline ball path
+        cands = [[ball(600, 400)] if i < 3 or i % 4 == 0 else [] for i in range(60)]
+        self.assertNotIn(BallReason.SPARSE_OBSERVATIONS, {f.reason for f in run(cands)[0]})
+
+    def test_sightings_list_every_observed_hypothesis(self):
+        # the real ball (steady) and a blip elsewhere: both are sightings on the blip's frame, whatever is selected
+        cands = [[ball(100 + 6 * i, 300)] + ([ball(900, 500, score=0.4)] if i == 20 else []) for i in range(30)]
+        out, trk = run(cands)
+        self.assertEqual([len(f.sightings) for f in out], [2 if i == 20 else 1 for i in range(30)])
+        hid, x, y, d, score = out[20].sightings[1]
+        self.assertEqual((round(x), round(y), round(d), score), (900, 500, 10, 0.4))
+        self.assertEqual(out[0].sightings[0][0], out[29].sightings[0][0])       # one hypothesis for the real ball
+        self.assertEqual(out[0].state, BallState.LOST)                           # sighted before it is confirmed
+        self.assertEqual({s[0] for f in out for s in f.sightings}, {h.hypothesis for h in trk.summaries()})
+
+    def test_camera_affine_is_the_identity_unless_ok(self):
+        ident = ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0))
+        cams = [cam(CameraStatus.FIRST), cam(dx=5.0), cam(CameraStatus.UNKNOWN, dx=9.0), cam(CameraStatus.CUT, dx=9.0)]
+        out, _ = run([[], [], [], []], cams=cams)
+        self.assertEqual([f.camera_affine for f in out], [ident, ((1.0, 0.0, 5.0), (0.0, 1.0, 0.0)), ident, ident])
 
     def test_seen_share_comes_from_config(self):
         cands = [[ball(600, 400)] if i < 3 or i % 4 == 0 else [] for i in range(60)]
@@ -356,16 +379,26 @@ class BallCli(unittest.TestCase):
         with self.assertRaises(ArtifactError):                                  # reason not allowed with LOST
             validate_ball(bad)
 
-        self.assertEqual((doc["schema_version"], doc["tracks_sha256"]), ("1.2.0", None))
-        old = {k: v for k, v in doc.items() if k != "tracks_sha256"}
+        self.assertEqual((doc["schema_version"], doc["tracks_sha256"]), ("1.3.0", None))
+        self.assertTrue(all(len(f["sightings"]) == 1 for f in doc["frames"]))     # the still ball, every frame
+        strip = lambda d: {**d, "frames": [{k: v for k, v in f.items() if k not in ("sightings", "camera_affine")}
+                                           for f in d["frames"]]}             # noqa: E731
+        with self.assertRaises(ArtifactError):                                  # 1.3.0 needs the sightings
+            validate_ball(strip(doc))
+        validate_ball({**strip(doc), "schema_version": "1.2.0"})
+        moved = {**doc, "frames": [dict(f) for f in doc["frames"]]}
+        moved["frames"][-1] = {**moved["frames"][-1], "sightings": []}
+        with self.assertRaises(ArtifactError):                                  # OBSERVED without its sighting
+            validate_ball(moved)
+        old = {k: v for k, v in strip(doc).items() if k != "tracks_sha256"}     # the pre-1.2.0 shape
         sparse = {**doc, "frames": [dict(f) for f in doc["frames"]]}
         sparse["frames"][0] = {**sparse["frames"][0], "state": "LOST", "reason": "SPARSE_OBSERVATIONS"}
         validate_ball(sparse)                                                   # 1.1.0 on: allowed
         with self.assertRaises(ArtifactError):                                  # 1.0.0 had no such reason
-            validate_ball({**old, "frames": sparse["frames"], "schema_version": "1.0.0"})
+            validate_ball({**old, "frames": strip(sparse)["frames"], "schema_version": "1.0.0"})
         validate_ball({**old, "schema_version": "1.1.0"})
-        with self.assertRaises(ArtifactError):                                  # 1.2.0 needs tracks_sha256
-            validate_ball(old)
+        with self.assertRaises(ArtifactError):                                  # 1.2.0 on needs tracks_sha256
+            validate_ball({**old, "schema_version": "1.2.0"})
         self.assertNotIn("SPARSE_OBSERVATIONS", {f["reason"] for f in doc["frames"]})   # a still ball, always seen
         validate_ball({**old, "schema_version": "1.0.0"})                       # 1.0.0 documents still validate
 

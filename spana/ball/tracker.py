@@ -29,6 +29,7 @@ Every association, start, confirmation, end and selection change is returned as 
 """
 from __future__ import annotations
 
+import dataclasses
 from collections import deque
 from dataclasses import dataclass
 from typing import Deque, Dict, List, Optional, Sequence, Tuple
@@ -108,17 +109,23 @@ class BallTracker:
             self._carry(camera.matrix())
 
         matched = self._associate(frame, t, candidates, log, on_body)
+        seen_by = dict(matched)                     # candidate index -> hypothesis that observed it on this frame
         for i, d in enumerate(candidates):
             if i in matched:
                 continue
             if on_body[i]:
                 log.append({"kind": "blocked", "candidate": i, "reason": "ON_BODY", "score": round(d.score, 4)})
             else:
-                self._spawn(frame, t, d, i, log)
+                seen_by[i] = self._spawn(frame, t, d, i, log)
         self._record_seen(t, set(matched.values()))
         self._expire(frame, t, log)
         self._prev_frame = frame
-        return self._answer(frame, t, camera.status, discontinuous, matched, candidates, log)
+        sightings = tuple(sorted((hid, *(float(v) for v in _center(candidates[i])), _diameter(candidates[i]),
+                                  float(candidates[i].score)) for i, hid in seen_by.items()))
+        affine = camera.affine if camera.status is CameraStatus.OK else CameraObservation.identity(camera.status).affine
+        answer = self._answer(frame, t, camera.status, discontinuous, matched, candidates, log)
+        return dataclasses.replace(answer, sightings=sightings,
+                                   camera_affine=tuple(tuple(float(v) for v in row) for row in affine))
 
     def summaries(self) -> List[BallHypothesisSummary]:
         out = dict(self._summaries)
@@ -209,7 +216,7 @@ class BallTracker:
             h.confirmed_frame = frame
             log.append({"kind": "confirm", "hypothesis": h.hid, "observations": recent})
 
-    def _spawn(self, frame: int, t: float, d: Detection, i: int, log: List[dict]) -> None:
+    def _spawn(self, frame: int, t: float, d: Detection, i: int, log: List[dict]) -> str:
         c = self.cfg
         hid = f"B{self._next:06d}"
         self._next += 1
@@ -218,6 +225,7 @@ class BallTracker:
         self._hyps[hid] = h
         log.append({"kind": "spawn", "hypothesis": hid, "candidate": i, "score": round(d.score, 4)})
         self._maybe_confirm(h, frame, t, log)
+        return hid
 
     def _expire(self, frame: int, t: float, log: List[dict]) -> None:
         c = self.cfg
