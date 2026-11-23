@@ -1,7 +1,7 @@
 # SPANA default configuration.
 # CALIBRATION STATUS: every value below is an initial engineering prior, NOT calibrated on labelled footage.
 # Values must be re-derived on DEV data only (never EVAL) and the change recorded with evidence.
-schema_version: "2.19.0"
+schema_version: "2.20.0"
 
 detection:
   score_low: 0.10          # keep weak boxes for stage-2 association only
@@ -300,6 +300,12 @@ ball:
   # 2026-11-23; records/ball_score_dev_2026-11-23: false 0.25-0.37 vs real 0.63-0.94 seen share on DEV).
   min_seen_share: 0.5        # observed on >= this share of its frames over the window, or it is not the answer
   seen_share_window_s: 1.0
+  # Player-aware re-acquisition (only when `spana.cli ball` is given --tracks; DECISIONS 2026-11-23). On DEV every
+  # wrong OBSERVED answer left after the seen-share rule was a detection on a player's body (0.29-0.73 of the box
+  # height from the top; the real ball at a player's feet 0.91-0.99), taken after 3-7 unseen frames and 210-320 px
+  # (13-25 diameters) from the prediction (records/ball_player_aware_2026-11-23). Set before measuring.
+  feet_zone_h: 0.20          # bottom share of a player's box = feet zone; above it a candidate is on the body
+  reacquire_max_d: 3.0       # after an unseen frame, rejoin only within this many diameters of the prediction
 
 team:
   # Team classification v1 (spana/teams/classifier.py, records/design/TEAM_CLASSIFICATION_V1_DESIGN.md). Per match:

@@ -3,6 +3,7 @@ No network, no real footage: generic scenes only."""
 from __future__ import annotations
 
 import dataclasses
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,7 +13,7 @@ import numpy as np
 import yaml
 
 from spana import cli
-from spana.artifacts import ArtifactError, read_json, validate_ball, validate_detections
+from spana.artifacts import ArtifactError, read_json, sha256_doc, validate_ball, validate_detections
 from spana.ball.tracker import BallTracker
 from spana.config import ConfigError, config_from_dict, load_config
 from spana.detection.ball_view import BallView, BallViewError
@@ -44,6 +45,13 @@ def run(frames, cfg=B, cams=None):
         c = cams[i] if cams else (cam(CameraStatus.FIRST) if i == 0 else cam())
         out.append(trk.update(i, i / FPS, cands, c))
     return out, trk
+
+
+def run_with_players(frames, players, cfg=B):
+    """Like run(), with the same player boxes on every frame (None = no player knowledge)."""
+    trk = BallTracker(cfg, W, H)
+    return [trk.update(i, i / FPS, cands, cam(CameraStatus.FIRST) if i == 0 else cam(), players)
+            for i, cands in enumerate(frames)], trk
 
 
 def states(out):
@@ -108,6 +116,80 @@ class BallTrackerTests(unittest.TestCase):
         loose = dataclasses.replace(B, min_seen_share=0.2)
         out, _ = run(cands, cfg=loose)
         self.assertIn(BallState.OBSERVED, {f.state for f in out[30:]})
+
+    # ---- player-aware re-acquisition (patterns of the DEV errors, records/ball_player_aware_2026-11-23)
+    P1 = (480.0, 140.0, 540.0, 310.0)          # the player with the ball at his feet (feet y = 310)
+    P2 = (270.0, 150.0, 330.0, 330.0)          # another player ~200 px away
+
+    def at_feet(self, i):
+        return ball(500 + 2 * i, 300)           # inside P1's box, in the feet zone
+
+    def test_jump_to_a_steady_detection_on_another_players_body(self):
+        # ball at P1's feet, unseen 4 frames, then a steady detection on P2's lower back (mid-body)
+        n = 30
+        frames = [[self.at_feet(i)] for i in range(n)] + [[] for _ in range(4)] + \
+                 [[ball(300, 235, score=0.35)] for _ in range(6)]
+        blind, _ = run_with_players(frames, None)
+        self.assertEqual(blind[-1].state, BallState.OBSERVED)                    # the bug: it takes the jersey
+        self.assertAlmostEqual(blind[-1].center[0], 300, delta=1)
+        aware, trk = run_with_players(frames, [self.P1, self.P2])
+        self.assertFalse([f for f in aware[n:] if f.state is BallState.OBSERVED])
+        self.assertTrue(all(abs(f.center[0] - 300) > 100 for f in aware[n:] if f.center))
+        self.assertEqual(len(trk.summaries()), 1)                                # the jersey never became a ball
+
+    def test_body_detection_never_starts_a_ball(self):
+        glove = [[ball(300, 200, score=0.5)] for _ in range(40)]                 # steady, on P2's upper body
+        self.assertIn(BallState.OBSERVED, set(states(run_with_players(glove, None)[0])))
+        out, trk = run_with_players(glove, [self.P2])
+        self.assertEqual(set(states(out)), {BallState.LOST})
+        self.assertEqual(trk.summaries(), [])
+        self.assertTrue(all(d["reason"] == "ON_BODY" for f in out for d in f.decisions if d["kind"] == "blocked"))
+
+    def test_single_far_detection_after_a_gap_is_not_the_ball(self):
+        # ball at P1's feet, unseen 3 frames, one detection 250 px away in the open (not on a body), then nothing
+        n = 30
+        frames = [[self.at_feet(i)] for i in range(n)] + [[] for _ in range(3)] + [[ball(810, 290, score=0.42)]] + \
+                 [[] for _ in range(3)]
+        blind, _ = run_with_players(frames, None)
+        self.assertEqual(blind[n + 3].state, BallState.OBSERVED)                 # the bug
+        aware, _ = run_with_players(frames, [self.P1])
+        self.assertNotEqual(aware[n + 3].state, BallState.OBSERVED)
+        self.assertTrue(all(abs(f.center[0] - 810) > 100 for f in aware[n:] if f.center))
+
+    def test_ball_back_near_its_prediction_rejoins_at_once(self):
+        n = 30
+        frames = [[self.at_feet(i)] for i in range(n)] + [[] for _ in range(3)] + \
+                 [[self.at_feet(i)] for i in range(n + 3, n + 8)]
+        out, _ = run_with_players(frames, [self.P1])
+        self.assertTrue(all(f.state is BallState.OBSERVED for f in out[n + 3:]))
+        self.assertEqual(len({f.hypothesis for f in out if f.hypothesis}), 1)
+
+    def test_ball_followed_across_a_body_stays_observed(self):
+        # a ball in the air passes in front of P2's body, detected on every frame
+        frames = [[ball(150 + 10 * i, 240)] for i in range(40)]                  # x 150 -> 540 crosses P2 (270-330)
+        out, _ = run_with_players(frames, [self.P2])
+        k = B.confirm_min_obs - 1
+        self.assertTrue(all(f.state is BallState.OBSERVED for f in out[k:]))
+        self.assertEqual(len({f.hypothesis for f in out[k:]}), 1)
+
+    def test_ball_reappearing_far_away_is_confirmed_as_a_new_ball(self):
+        # a real pass missed for a few frames: seen steadily far from the prediction -> answered again, new hypothesis
+        n = 30
+        frames = [[self.at_feet(i)] for i in range(n)] + [[] for _ in range(4)] + \
+                 [[ball(800 + 6 * i, 320)] for i in range(40)]
+        out, _ = run_with_players(frames, [self.P1])
+        late = [f for f in out[-10:]]
+        self.assertTrue(all(f.state is BallState.OBSERVED and f.center[0] > 700 for f in late))
+        self.assertEqual(len({f.hypothesis for f in out if f.hypothesis}), 2)
+
+    def test_feet_zone_and_rejoin_distance_come_from_config(self):
+        glove = [[ball(300, 200, score=0.5)] for _ in range(40)]
+        out, _ = run_with_players(glove, [self.P2], cfg=dataclasses.replace(B, feet_zone_h=0.99))
+        self.assertIn(BallState.OBSERVED, set(states(out)))                      # everything is "feet": not blocked
+        n = 30
+        far = [[self.at_feet(i)] for i in range(n)] + [[] for _ in range(3)] + [[ball(810, 290)]] + [[]]
+        out, _ = run_with_players(far, [self.P1], cfg=dataclasses.replace(B, reacquire_max_d=1000.0))
+        self.assertEqual(out[n + 3].state, BallState.OBSERVED)
 
     def test_hidden_ball_reacquired_on_same_hypothesis(self):
         seen = [[ball(100 + 8 * i, 300)] for i in range(6)]
@@ -265,14 +347,39 @@ class BallCli(unittest.TestCase):
         with self.assertRaises(ArtifactError):                                  # reason not allowed with LOST
             validate_ball(bad)
 
-        self.assertEqual(doc["schema_version"], "1.1.0")
+        self.assertEqual((doc["schema_version"], doc["tracks_sha256"]), ("1.2.0", None))
+        old = {k: v for k, v in doc.items() if k != "tracks_sha256"}
         sparse = {**doc, "frames": [dict(f) for f in doc["frames"]]}
         sparse["frames"][0] = {**sparse["frames"][0], "state": "LOST", "reason": "SPARSE_OBSERVATIONS"}
-        validate_ball({**sparse, "frames": sparse["frames"]})                   # 1.1.0: allowed
+        validate_ball(sparse)                                                   # 1.1.0 on: allowed
         with self.assertRaises(ArtifactError):                                  # 1.0.0 had no such reason
-            validate_ball({**sparse, "schema_version": "1.0.0"})
+            validate_ball({**old, "frames": sparse["frames"], "schema_version": "1.0.0"})
+        validate_ball({**old, "schema_version": "1.1.0"})
+        with self.assertRaises(ArtifactError):                                  # 1.2.0 needs tracks_sha256
+            validate_ball(old)
         self.assertNotIn("SPARSE_OBSERVATIONS", {f["reason"] for f in doc["frames"]})   # a still ball, always seen
-        validate_ball({**doc, "schema_version": "1.0.0"})                       # 1.0.0 documents still validate
+        validate_ball({**old, "schema_version": "1.0.0"})                       # 1.0.0 documents still validate
+
+    def test_ball_with_player_tracks(self):
+        bd, tr, bo = self.td / "bd.json", self.td / "t.json", self.td / "ball.json"
+        self.detect("--ball-out", str(bd))
+        self.assertEqual(cli.main(["track", "--video", str(self.video), "--config", str(CONFIG_PATH),
+                                   "--detections", str(self.td / "d.json"), "--out", str(tr)]), 0)
+        argv = ["ball", "--video", str(self.video), "--config", str(CONFIG_PATH), "--detections", str(bd)]
+        self.assertEqual(cli.main(argv + ["--tracks", str(tr), "--out", str(bo)]), 0)
+        doc, tdoc = read_json(bo), read_json(tr)
+        validate_ball(doc, read_json(bd))
+        self.assertEqual(doc["tracks_sha256"], sha256_doc(tdoc))
+        self.assertEqual(doc["provenance"]["inputs"]["tracks"], sha256_doc(tdoc))
+        short = {**tdoc, "frames": tdoc["frames"][:-1],                         # tracks not covering every frame
+                 "tracklets": tdoc["tracklets"]}
+        (self.td / "short.json").write_text(json.dumps(short))
+        with self.assertRaises(ArtifactError):
+            cli.main(argv + ["--tracks", str(self.td / "short.json"), "--out", str(self.td / "b3.json")])
+        other = {**tdoc, "video": {**tdoc["video"], "sha256": "f" * 64}}
+        (self.td / "other.json").write_text(json.dumps(other))
+        with self.assertRaisesRegex(ArtifactError, "different video"):
+            cli.main(argv + ["--tracks", str(self.td / "other.json"), "--out", str(self.td / "b4.json")])
 
     def test_ball_reuses_detections_unless_the_view_changed(self):
         bd = self.td / "bd.json"

@@ -14,6 +14,12 @@ Several hypotheses live at once, because a ball view also fires on heads, boots,
      - OBSERVED only for the selected ball observed again, or for the single confirmed hypothesis observed while
        no selected ball is still within predict_max_s (no silent switch to another ball);
      - PREDICTED for the selected ball unobserved <= predict_max_s with its extrapolation inside the picture;
+     - with player boxes (the observed player tracks of the frame; optional): a candidate inside a player's box
+       above its feet zone is ON THE BODY (the ball view fires on jerseys, shorts, gloves). It cannot start a
+       hypothesis, and it can join one only if that hypothesis was observed on the previous processed frame (a ball
+       followed across a player). A confirmed hypothesis not observed on the previous frame rejoins only a candidate
+       within reacquire_max_d diameters of its predicted position; a ball that reappears elsewhere starts a new
+       hypothesis and must be confirmed like any other;
      - a hypothesis observed on fewer than min_seen_share of its frames over the last seen_share_window_s is never
        the answer (LOST SPARSE_OBSERVATIONS): a false object detected now and then is kept alive by each sporadic
        re-detection, while the ball being followed is detected on most frames. It still counts as a rival;
@@ -85,10 +91,15 @@ class BallTracker:
         self._selected: Optional[str] = None
         self._next = 1
         self._summaries: Dict[str, BallHypothesisSummary] = {}
+        self._prev_frame: Optional[int] = None
 
     # ------------------------------------------------------------------ public
-    def update(self, frame: int, t: float, candidates: Sequence[Detection], camera: CameraObservation) -> BallFrame:
+    def update(self, frame: int, t: float, candidates: Sequence[Detection], camera: CameraObservation,
+               players: Optional[Sequence[Sequence[float]]] = None) -> BallFrame:
+        """players: boxes [x1, y1, x2, y2] of the player tracks OBSERVED on this frame, or None (no player
+        knowledge: every candidate is treated as before)."""
         log: List[dict] = []
+        on_body = [self._on_body(d, players) for d in candidates]
         discontinuous = camera.status in _DISCONTINUOUS
         if discontinuous:
             for hid in sorted(self._hyps):
@@ -96,12 +107,17 @@ class BallTracker:
         elif camera.status is CameraStatus.OK:
             self._carry(camera.matrix())
 
-        matched = self._associate(frame, t, candidates, log)
+        matched = self._associate(frame, t, candidates, log, on_body, players is not None)
         for i, d in enumerate(candidates):
-            if i not in matched:
+            if i in matched:
+                continue
+            if on_body[i]:
+                log.append({"kind": "blocked", "candidate": i, "reason": "ON_BODY", "score": round(d.score, 4)})
+            else:
                 self._spawn(frame, t, d, i, log)
         self._record_seen(t, set(matched.values()))
         self._expire(frame, t, log)
+        self._prev_frame = frame
         return self._answer(frame, t, camera.status, discontinuous, matched, candidates, log)
 
     def summaries(self) -> List[BallHypothesisSummary]:
@@ -134,7 +150,14 @@ class BallTracker:
             h.vel = lin @ h.vel
             h.diameters = deque((v * scale for v in h.diameters), maxlen=h.diameters.maxlen)
 
-    def _associate(self, frame: int, t: float, cands: Sequence[Detection], log: List[dict]) -> Dict[int, str]:
+    def _on_body(self, d: Detection, players: Optional[Sequence[Sequence[float]]]) -> bool:
+        if not players:
+            return False
+        cx, cy = _center(d)
+        return any(x1 <= cx <= x2 and y1 <= cy < y2 - self.cfg.feet_zone_h * (y2 - y1) for x1, y1, x2, y2 in players)
+
+    def _associate(self, frame: int, t: float, cands: Sequence[Detection], log: List[dict],
+                   on_body: Sequence[bool], player_aware: bool) -> Dict[int, str]:
         c = self.cfg
         pairs: List[Tuple[int, float, str, int, _Assoc]] = []
         for hid, h in self._hyps.items():
@@ -142,11 +165,14 @@ class BallTracker:
             d = h.diameter(c.min_diameter_px)
             pred = h.pos + h.vel * gap
             gate_d = c.gate_base_d + c.max_speed_d_per_s * gap
+            followed = h.last_obs_frame == self._prev_frame          # observed on the previous processed frame
             for i, cand in enumerate(cands):
                 p = _center(cand)
                 dist_d = float(np.linalg.norm(p - h.pos)) / d
                 if dist_d <= gate_d:
                     cost = float(np.linalg.norm(p - pred)) / d
+                    if not followed and (on_body[i] or (player_aware and h.confirmed and cost > c.reacquire_max_d)):
+                        continue                                      # no re-acquisition on a body / far away
                     pairs.append((0 if h.confirmed else 1, cost, hid, i, _Assoc(cost, dist_d, gate_d)))
         pairs.sort(key=lambda r: r[:4])
         used_h, matched = set(), {}
