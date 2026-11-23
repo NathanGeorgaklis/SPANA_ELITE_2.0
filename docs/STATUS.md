@@ -28,8 +28,9 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      0.27 -> 0.16). Not adopted. Next: diagnose the 5 remaining wrong frames (`records/ball_seen_share_2026-11-23`).
    - Player-aware step 1 built 2026-11-23 on `ball/player-aware-v1` (Nathan approved the ball layer reading player
      tracks; pass bar in DECISIONS 2026-11-23, recorded first): `spana.cli ball --tracks`, config 2.20.0
-     (`ball.feet_zone_h` 0.20, `ball.reacquire_max_d` 3.0), `spana.ball` 1.2.0. NOT YET MEASURED on DEV
-     (`records/ball_player_aware_2026-11-23`). Step 2 ("with player X" memory) not built yet.
+     (`ball.feet_zone_h` 0.20, `ball.reacquire_max_d` 3.0), `spana.ball` 1.2.0. MEASURED 2026-11-23: FAILS the bar
+     (wrong OBSERVED pooled 5 -> 2, both FRESH_02; FRESH_07 coverage 0.734 < 0.740; F07 / F08 now 0 wrong OBSERVED).
+     Not adopted (`records/ball_player_aware_2026-11-23`). Step 2 ("with player X" memory) not built yet.
      If touches v1 merges after this, its `possession` section becomes config 2.21.0.
 2. **Possession / touches v1: review and merge decision.**
    - The work is on `origin/possession/touches-v1` (160e1b0, not merged; another session). It has QA on scripted

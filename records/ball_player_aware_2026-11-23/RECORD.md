@@ -45,6 +45,26 @@ bench-only `supervision` package is not installed in the cloud container). New t
 - both settings are read from config;
 - the CLI with `--tracks` (hash recorded; other video / uncovered frames refused).
 
-## DEV measurement: PENDING (Nathan's Mac)
-Pass bar: 0 wrong OBSERVED pooled (0 wrong with-player answers applies from step 2); FRESH_05 OBSERVED coverage
->= 0.888; FRESH_07 >= 0.740.
+## DEV measurement, step 1 (Nathan's Mac, 2026-11-23; `~/spana-ball-run/v3/`, not committed): FAILS the pass bar
+`spana.cli ball --tracks` on the same `*.balldet.json` and the new `*.tracks.json`, then `tools.ball_score`. Numbers
+transcribed from the terminal. Columns: first run -> seen-share rule (v2) -> player-aware step 1 (v3).
+
+| clip | coverage seen | coverage seen + predicted | wrong OBSERVED (95 % bound, v3) | wrong all answers |
+|---|---|---|---|---|
+| FRESH_02 | 0.271 -> 0.163 -> 0.155 | 0.395 -> 0.209 -> 0.233 | 13 / 48 -> 2 / 23 -> 2 / 22 (0.259) | 45 / 98 -> 7 / 36 -> 3 / 34 |
+| FRESH_05 | 0.938 -> 0.938 -> 0.915 | 0.977 -> 0.977 -> 0.946 | 0 / 122 -> 0 / 122 -> 0 / 119 (0.025) | 2 / 130 -> 2 / 130 -> 3 / 127 |
+| FRESH_07 | 0.790 -> 0.758 -> 0.734 | 0.919 -> 0.879 -> 0.863 | 2 / 100 -> 2 / 96 -> 0 / 91 (0.032) | 7 / 124 -> 6 / 118 -> 4 / 116 |
+| FRESH_08 | 0.426 -> 0.463 -> 0.407 | 0.463 -> 0.519 -> 0.463 | 17 / 40 -> 1 / 26 -> 0 / 22 (0.127) | 68 / 95 -> 8 / 38 -> 10 / 38 |
+| pooled | 0.636 -> 0.600 -> 0.577 | 0.725 -> 0.666 -> 0.652 | 32 / 310 -> 5 / 267 -> 2 / 254 (0.025) | 122 / 447 -> 23 / 322 -> 20 / 315 |
+
+Pass bar (DECISIONS 2026-11-23):
+- 0 wrong OBSERVED pooled: 2 (both FRESH_02), **FAIL**;
+- FRESH_05 coverage >= 0.888: 0.915, pass;
+- FRESH_07 coverage >= 0.740: 0.734, **FAIL**.
+
+Not adopted, and the bar is not changed after the fact.
+
+- Gone: the F07 boot / shorts answers and the F08 glove (F07 and F08: 0 wrong OBSERVED).
+- Not gone: 2 wrong OBSERVED on FRESH_02, not yet diagnosed (the body rule was expected to stop the frame 29-33
+  jersey jump).
+- Cost: about 3 correct OBSERVED frames each on FRESH_05 and FRESH_07; FRESH_08 coverage 0.463 -> 0.407.
