@@ -99,6 +99,24 @@ What this does and does not show:
 - The DESIGN's listed risks (near rejoin, undetected shot change, replays, persistent false objects) are not
   exercised unless they occur in these clips.
 
-## Unseen clip: PENDING
-One DEV clip never used in the design, labelled by Nathan AFTER the code was frozen at 3ab9829 (labels frozen and
-pushed before the tracker is run on it), scored exactly once with the same bar. Settings are not changed after it.
+## Unseen clip (Nathan's Mac, 2026-11-23; `~/spana-ball-run/unseen/`): FAILS the bar
+- Clip: FRESH_03_G2_2712_midfield_possession_switch_of_play (DEV, Game 2, 60 fps). Chosen before any tracker output
+  on it existed; never used in the design.
+- Labels: v1, every 2nd frame (1/30 s), 391 frames: VISIBLE 366, HIDDEN 13, OUT 12. Frozen and pushed (23ef2c1)
+  BEFORE the detector / tracker was run on the clip.
+- Code and settings unchanged since the freeze (3ab9829; `git diff 3ab9829 -- spana tools config` empty).
+- Pipeline: `detect --backend local --ball-out` (stride 1), `track`, `ball --tracks`, `ball-path`.
+- Scored ONCE with `tools.ball_score --clip LABELS PATH BALL`. Numbers pasted from the terminal.
+
+| clip | frames scored | wrong SEEN (95 % bound) | coverage (SEEN hits / VISIBLE) |
+|---|---|---|---|
+| FRESH_03 | 391 | **4 / 314** (0.029) | 0.847 (310 / 366) |
+
+Pass bar (0 wrong SEEN): **FAIL**. The result stands; the settings are not changed after it (DESIGN, pass bar).
+
+- On footage the design was not shaped on, the path gave 4 wrong SEEN answers in 314 (1.3 %). The 0 / 318 on the four
+  design clips overstated its reliability.
+- What the 4 frames are (a false object, a near rejoin, near misses just outside the scoring radius) is NOT yet
+  diagnosed.
+- Ball path v1 is therefore NOT adopted as meeting the bar. Whether it is merged as an improvement over the tracker's
+  own answer (first run: 32 wrong OBSERVED of 310 on the four clips) is Nathan's decision, to be recorded as that.
