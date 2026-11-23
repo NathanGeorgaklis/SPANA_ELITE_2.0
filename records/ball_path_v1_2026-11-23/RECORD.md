@@ -140,3 +140,31 @@ Path on FRESH_03: SEEN 629 frames, HOLE 132, GAP 20, CONFLICT 0; 3 confident str
 - Coverage: of the 55 MISS frames (51 HOLE, 4 GAP), pass 1 had a sighting within the scoring radius of the label on
   0. All coverage lost on this clip is the detector not firing; none is the path's rules discarding a correct
   sighting.
+
+### Re-score on corrected labels (FRESH_03 labels v2, 2026-11-23): weaker evidence than the v1 score
+- Labels v2 (Nathan; frozen and pushed; reason recorded in the label file: "ball still in the picture near the left
+  edge on frames 374-396; OUT was marked too early").
+- Only the 12 frames that were OUT changed: 378-390 (7 frames) -> VISIBLE; 374, 376, 392, 394, 396 -> HIDDEN.
+- v2 states: VISIBLE 373, HIDDEN 18, OUT 0.
+- Same path / ball output, nothing rerun; `~/spana-ball-run/unseen/ball_score_unseen_labels_v2.json`.
+
+| FRESH_03, same output | labels v1 (the one-time test) | labels v2 (after the correction) |
+|---|---|---|
+| wrong SEEN (95 % bound) | 4 / 314 (0.029) | 1 / 314 (0.015) |
+| coverage (SEEN hits / VISIBLE) | 0.847 (310 / 366) | 0.839 (313 / 373) |
+
+- Pass bar (0 wrong SEEN): FAIL on both.
+- On v2, the one remaining wrong frame is 780, the clip's last frame: a near rejoin 23.9 px from the ball, landing
+  mostly on the player next to it.
+- The v2 number is not an independent result. The correction was prompted by inspecting the frames where the path
+  disagreed with v1, which can only raise the score. The untouched v1 score (4 / 314) is the result of the unseen
+  test.
+
+## Where ball path v1 stands
+- Four design clips: 0 / 318 wrong SEEN.
+- One unseen clip: 4 / 314 as measured; 1 / 314 after a label correction.
+- Coverage 0.28-0.95 by clip. Every miss examined on the unseen clip is the detector not firing.
+- "0 wrong SEEN" is not met on unseen footage. Nathan and the assistant agreed on 2026-11-23 that 0 is not a
+  realistic guarantee for any single clip. A replacement bar (a per-frame error budget measured on unseen clips,
+  with the strict bar at event level) is Nathan's decision and is NOT set yet.
+- Not merged. Detector recall (tiling for the football detector) is the identified next lever for coverage.
