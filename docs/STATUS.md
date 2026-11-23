@@ -3,13 +3,63 @@
 As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passed, 13 skipped.
 
 ## Next tasks (2026-11-22)
-1. **Ball: scoring tool next (labels FROZEN 2026-11-22).**
+1. **Ball: scoring tool BUILT (branch `evaluation/ball-score-v1`, not merged); next: score DEV on the Mac.**
    - DEV ball labels v1 frozen in `data/ball_labels/<clip>/v1` (Nathan, 0.1 s, 131 frames each):
      FRESH_02 129 seen / 2 hidden; FRESH_05 130 / 1; FRESH_07 124 / 7; FRESH_08 54 seen / 3 hidden / 74 out.
      No UNSURE, no other balls.
    - Score by CENTRE distance, not box IoU: FRESH_05 boxes are drawn ~1.5x the ball (centres within 1-4 px of the
      ball view on a spot check), so label box size is not truth for diameter.
-   - Next: ball scoring tool (DEV only), then fit the `ball` priors on DEV.
+   - Scorer built 2026-11-22: `tools/ball_score.py` + `config/ball_score.yaml` (hit radius 0.01 x frame height,
+     set before any scoring; `records/ball_score_v1_2026-11-22`). Report only: coverage, wrong answers with the 95 %
+     bound (OBSERVED / PREDICTED / all), hit distances, wrong frames. Tested on synthetic outputs and on a perfect
+     tracker over the real frozen labels (coverage 1, 0 wrong on all 4 clips). NO real ball output scored yet.
+   - Next (Mac): `detect --backend local --ball-out` + `spana.cli ball` on each DEV clip, covering every labelled
+     frame (stride 1, or a stride dividing the label step), then
+     `python -m tools.ball_score --clip data/ball_labels/<clip>/v1 <clip>.ball.json ... --out ball_score_dev.json`.
+     Then set a pass bar and fit the `ball` priors on DEV (separate task).
+   - FIRST DEV SCORE 2026-11-23 (`records/ball_score_dev_2026-11-23`): pooled coverage seen 0.64, wrong OBSERVED
+     32 / 310 (bound 0.136); FRESH_05 / 07 good (0 / 2 wrong OBSERVED), FRESH_02 / 08 bad. Cause: sporadically
+     detected false objects (heads / boots / spots) get confirmed and kept alive; they are seen on 25-37 % of their
+     answered frames vs 63-94 % for the real ball. Ball output NOT fit for touches until fixed.
+   - Fix built 2026-11-23 on `ball/seen-share-v1` (Nathan chose the seen-share rule; pass bar recorded first in
+     DECISIONS 2026-11-23: 0 wrong OBSERVED pooled, FRESH_05 / 07 seen coverage down <= 0.05). Config 2.19.0
+     (`ball.min_seen_share` 0.5 over `seen_share_window_s` 1.0), `spana.ball` 1.1.0. MEASURED 2026-11-23: FAILS the
+     bar (5 wrong OBSERVED pooled, was 32; all wrong answers 122 -> 23; coverage F05 0.938 / F07 0.758 pass; F02
+     0.27 -> 0.16). Not adopted. Next: diagnose the 5 remaining wrong frames (`records/ball_seen_share_2026-11-23`).
+   - Player-aware step 1 built 2026-11-23 on `ball/player-aware-v1` (Nathan approved the ball layer reading player
+     tracks; pass bar in DECISIONS 2026-11-23, recorded first): `spana.cli ball --tracks`, config 2.20.0
+     (`ball.feet_zone_h` 0.20, `ball.reacquire_max_d` 3.0), `spana.ball` 1.2.0. MEASURED 2026-11-23: FAILS the bar
+     (wrong OBSERVED pooled 5 -> 2, both FRESH_02; FRESH_07 coverage 0.734 < 0.740; F07 / F08 now 0 wrong OBSERVED).
+     Not adopted (`records/ball_player_aware_2026-11-23`). Step 2 ("with player X" memory) not built yet.
+   - Step 1 NARROWED 2026-11-23 (DECISIONS; last tracker-tuning round on these clips): block only on-body AND far
+     rejoins, and starts on a body. MEASURED 2026-11-23: FAILS the bar on FRESH_02 only (3 wrong OBSERVED, all
+     FRESH_02; FRESH_05 / 07 / 08: 0 wrong of 234, coverage 0.938 / 0.758 / 0.333). Pooled wrong OBSERVED 32 -> 3,
+     all wrong answers 122 -> 19, seen coverage 0.636 -> 0.586. FRESH_08 coverage drop (0.463 -> 0.333) not
+     diagnosed. Tracker tuning on these clips STOPPED. FRESH_02 = detector limit (a false object at a player's feet
+     scoring like its small ball): detector data, not tracker rules. Nothing merged; merge decision with Nathan.
+   - BALL PATH v1 built 2026-11-23 on `ball/path-v1` (Nathan's design decision: decide afterwards from both ends,
+     never guess; DESIGN + pass bar committed before code, `records/ball_path_v1_2026-11-23`). Two passes:
+     `spana.cli ball` (now `spana.ball` 1.3.0 with every sighting) then `spana.cli ball-path` (`spana.ball_path`
+     1.0.0, config 2.21.0 `ball_path`): only stretches >= 0.5 s seen on >= 50 % of their frames are the ball, split at
+     holes > 0.4 s and at far rejoins (amendment 1); overlapping stretches = CONFLICT; gaps recorded from both ends;
+     no predicted positions. Replaces the seen-share rule (off) and the "with player X" memory (not built).
+     MEASURED 2026-11-23 on the 4 clips: PASSES (0 wrong SEEN on each: 0/36, 0/123, 0/99, 0/60 on FRESH_08's
+     every-frame labels; pooled 0/318, bound 0.94 %; coverage 0.279 / 0.946 / 0.798 / 0.370, at or above every earlier
+     version). Reviewed twice, all findings fixed (code frozen at 3ab9829). UNSEEN CLIP (FRESH_03, labelled every
+     1/30 s after the freeze, scored once, 2026-11-23): FAILS the bar, 4 wrong SEEN of 314 (1.3 %, bound 2.9 %),
+     coverage 0.847. The four design clips overstated reliability. Settings not changed. Diagnosed: 3 of the 4 are the ball
+     (label OUT marked too early; labels v2 frozen with the reason), 1 is a real near-rejoin error on the last frame.
+     Re-score on v2: 1 / 314 (bound 1.5 %), coverage 0.839; weaker evidence than the v1 score (correction prompted by
+     the disagreements). All 55 misses on the clip are detector misses. "0 wrong" is not met on unseen footage; a
+     replacement bar (error budget on unseen clips; strict bar at event level) is NOT set yet (Nathan). MERGED to
+     main 2026-11-23 as an improvement, not as meeting its bar (DECISIONS).
+     Next lever for coverage: tiling for the football detector. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
+     its `possession` section becomes config 2.22.0 on merge.
+   - CORRECTION 2026-11-23: FRESH_08 re-scored on Nathan's every-frame labels (ball labels v2, 391 frames; on his
+     Mac, not yet pushed): 2 wrong OBSERVED of 59 (frames 361-362, ball out of the picture), not 0; coverage 0.352;
+     77 of 162 visible frames have no answer. The every-3rd-frame labels missed the 2 errors, so FRESH_05 / 07's
+     "0 wrong" may hide the same.
+     If touches v1 merges after this, its `possession` section becomes config 2.21.0.
 2. **Possession / touches v1: review and merge decision.**
    - The work is on `origin/possession/touches-v1` (160e1b0, not merged; another session). It has QA on scripted
      scenes only; no DEV touch labels exist.

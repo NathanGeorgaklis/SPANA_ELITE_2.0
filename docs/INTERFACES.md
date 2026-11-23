@@ -153,6 +153,48 @@ What the tracking layer receives from any detector, the football detector includ
   it from the same detector pass as the person view (one request per frame; the detector is asked down to
   min(detection.score_low, ball.score_min)). It is a `spana.detections` 1.4.0 document with `model.ball_view` and
   `detection_config` = the `ball` config section. `track` refuses it; `ball` refuses anything else.
+- **Ball path, `spana.ball_path` 1.0.0** (2026-11-23; `spana/ball/path.py`, `validate_ball_path`): the ball decided
+  OFFLINE over one whole `spana.ball` 1.3.0 document. `spana.cli ball-path --ball B --config C --out P`.
+  - Consumers of ball positions (possession / touches, events) should read the path's SEEN frames, not the
+    tracker's per-frame state.
+  - Top level: `schema, schema_version, provenance, video, ball_sha256, ball_path_config, frames, stretches, gaps`.
+  - Frame: `{frame, t, state, reason, stretch, center, diameter, score}`.
+    - SEEN / CONFIDENT_STRETCH: exactly one confident stretch covers the frame and sighted the ball on it. It
+      carries the position.
+    - UNKNOWN / HOLE (inside the one covering stretch, not sighted), CONFLICT (two or more confident stretches),
+      GAP (between path segments), NO_BALL (before the first or after the last): never a position.
+  - Stretch: `{stretch, hypothesis, first_frame, last_frame, sightings, frames, duration_s, density, confident}`.
+    - It is the sightings of one hypothesis, split at holes > `ball_path.max_hole_s`, at CUT / UNKNOWN camera frames,
+      and before a sighting with `rejoin_d` > the ball document's `ball_config.reacquire_max_d`.
+    - Confident = `duration_s >= ball_path.min_stretch_s` and `density >= ball_path.min_density`.
+    - Every stretch is listed, confident or not.
+  - Gap: `{from, to, frames, duration_s, kind, distance_d, allowed_d}`. `from` / `to` =
+    `{frame, t, center, diameter, stretch}` of the last SEEN frame before and the first SEEN frame after.
+    - `kind`: CAMERA_BREAK, CONFLICT, IMPLAUSIBLE (beyond `gate_base_d + max_speed_d_per_s x duration` diameters
+      after carrying `from` through the camera transforms; rare at the default bound), OPEN.
+    - Only OPEN supports "left here, arrived there".
+  - Names no player (possession does that). No PREDICTED answers.
+  - Validation with the ball document recomputes everything.
+  - `tools/ball_score.py` scores a path document: SEEN = OBSERVED.
+- `spana.ball` 1.3.0 (2026-11-23; 1.0.0 - 1.2.0 still validate): + per-frame `sightings` and `camera_affine`.
+  - `sightings`: `[{hypothesis, center, diameter, score, rejoin_d}]`, every hypothesis observed on the frame,
+    confirmed or not, selected or not.
+    - `rejoin_d`: null when observed on the previous processed frame or starting; else diameters from its predicted
+      position.
+  - `camera_affine`: previous frame -> this frame; identity unless the camera is OK.
+  - The tracker's own `state` (incl. PREDICTED) stays for review; `ball.min_seen_share` is 0 (off).
+- `spana.ball` 1.2.0 (2026-11-23; 1.0.0 / 1.1.0 still validate): + top-level `tracks_sha256` (or null).
+  `spana.cli ball ... [--tracks T.json]` (same video; must cover every ball detection frame) gives the tracker the
+  boxes of the player tracks OBSERVED on each frame. A candidate inside a player's box above the feet zone
+  (`ball.feet_zone_h`) is on the body: it cannot start a hypothesis (decision `blocked` / ON_BODY), and a hypothesis
+  NOT observed on the previous processed frame rejoins it only within `ball.reacquire_max_d` diameters of the
+  predicted position (narrowed 2026-11-23: candidates off the body rejoin as before).
+  Without `--tracks` the ball pass knows no players, as before.
+- `spana.ball` 1.1.0 (2026-11-23; 1.0.0 documents still validate): + LOST reason SPARSE_OBSERVATIONS. A confirmed
+  hypothesis is the answer (OBSERVED / PREDICTED) only while observed on >= `ball.min_seen_share` of its processed
+  frames over the last `ball.seen_share_window_s`; a sparse one still counts as a rival (AMBIGUOUS) but is never
+  answered. `spana.cli ball` reuses ball detections made under the same ball VIEW keys (`score_min`, `nms_iou`;
+  `spana.detection.ball_view.VIEW_KEYS`): tracker settings can change without re-detecting.
 - `spana.ball` 1.0.0 (`spana.cli ball --video --config --detections --out`, + `*.decisions.jsonl`): top level
   `schema, schema_version, provenance, video, detections_sha256, ball_config, frames, hypotheses`; frame
   `{frame, t, camera_status, state, reason, hypothesis, center[x,y], diameter, confidence, contested, candidates,
@@ -369,6 +411,11 @@ Follow the user's chosen player through a clip, and say so when unsure.
     analysis only).
 
 ## Evaluation (supporting) — `spana/evaluation.py`, `spana/labels.py`, `tools/benchmark.py`
+- Ball scorer (2026-11-22): `tools/ball_score.py --clip LABEL_DIR BALL_JSON [--clip ...] --out R.json
+  [--config config/ball_score.yaml]`. `spana.ball` vs frozen DEV `spana.ball_labels` by centre distance (radius =
+  `hit_radius_frac_height` x frame height); outcome table in the tool's docstring (VISIBLE hit / wrong position /
+  wrong spare ball / miss; HIDDEN: OBSERVED wrong, PREDICTED fine; OUT: any answer wrong; UNSURE not scored). Refuses
+  another video / frame size, uncovered labelled frames, the same video twice, non-DEV labels. Report only.
 - In: tracks + detections artifacts, frozen MOT labels (`data/labels/<clip>/v1`). Out: `Report` metrics JSON.
 - Match rules: IoU 0.5, NESTED_V1, NESTED_V2 (default).
 - Transfers (rule of 2026-11-20): flagged only if IDENTITY_UNCERTAIN within

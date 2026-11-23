@@ -228,12 +228,24 @@ def cmd_ball(a: argparse.Namespace) -> int:
         raise ArtifactError("not a ball-view detections artifact (spana.cli detect --ball-out)")
     if ddoc["video"]["sha256"] != video.meta.sha256:
         raise ArtifactError("detections artifact was produced from a different video")
-    if ddoc["detection_config"] != dataclasses.asdict(cfg.ball):
-        raise ArtifactError("ball detections were produced under a different ball config")
+    from .detection.ball_view import VIEW_KEYS
+    if not isinstance(ddoc["detection_config"], dict) or \
+            any(ddoc["detection_config"].get(k) != getattr(cfg.ball, k) for k in VIEW_KEYS):
+        raise ArtifactError(f"ball detections were produced under a different ball view ({', '.join(VIEW_KEYS)})")
     det_frames = {fr["frame"]: fr for fr in ddoc["frames"]}
     first, last, stride = min(det_frames), max(det_frames), ddoc["frame_stride"]
     if sorted(det_frames) != list(range(first, last + 1, stride)):
         raise ArtifactError("detections artifact frames are not a contiguous run at its frame_stride")
+    tdoc, player_boxes = None, None
+    if a.tracks:                       # player-aware re-acquisition (ball.feet_zone_h, ball.reacquire_max_d)
+        tdoc = read_json(a.tracks)
+        validate_tracks(tdoc)
+        if tdoc["video"]["sha256"] != video.meta.sha256:
+            raise ArtifactError("tracks artifact was produced from a different video")
+        player_boxes = {fr["frame"]: [t["box"] for t in fr["tracks"] if t["source"] == "OBSERVED"]
+                        for fr in tdoc["frames"]}
+        if any(f not in player_boxes for f in det_frames):
+            raise ArtifactError("tracks artifact does not cover every ball detection frame")
     cam = CameraMotionEstimator(cfg.camera, video.meta.width, video.meta.height, video.meta.fps)
     trk = BallTracker(cfg.ball, video.meta.width, video.meta.height)
     frames, log = [], []
@@ -241,7 +253,8 @@ def cmd_ball(a: argparse.Namespace) -> int:
         if (i - first) % stride:
             continue
         dets = detections_from_frame(det_frames[i])
-        bf = trk.update(i, t, dets, cam.observe(img, [d.box for d in dets]))
+        bf = trk.update(i, t, dets, cam.observe(img, [d.box for d in dets]),
+                        None if player_boxes is None else player_boxes[i])
         frames.append(ball_frame(bf, cfg.output))
         log.extend({"frame": i, **d} for d in bf.decisions)
     if not frames or frames[-1]["frame"] != last:
@@ -249,8 +262,10 @@ def cmd_ball(a: argparse.Namespace) -> int:
     doc = {
         "schema": BALL_SCHEMA[0], "schema_version": BALL_SCHEMA[1],
         "provenance": build_provenance(config_sha256=cfg.sha256(), argv=sys.argv,
-                                       inputs={"video": video.meta.sha256, "detections": sha256_doc(ddoc)}),
+                                       inputs={"video": video.meta.sha256, "detections": sha256_doc(ddoc),
+                                               **({"tracks": sha256_doc(tdoc)} if tdoc else {})}),
         "video": video.meta.to_dict(), "detections_sha256": sha256_doc(ddoc),
+        "tracks_sha256": sha256_doc(tdoc) if tdoc else None,
         "ball_config": dataclasses.asdict(cfg.ball), "frames": frames,
         "hypotheses": ball_hypothesis_rows(trk.summaries()),
     }
@@ -411,6 +426,27 @@ def cmd_teams(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ball_path(a: argparse.Namespace) -> int:
+    """Offline ball path (spana.ball_path) from one spana.ball 1.3.0 document: the ball decided over the whole clip."""
+    from .artifacts import validate_ball, validate_ball_path
+    from .ball.path import ball_path_document, summary
+    cfg = load_config(a.config)
+    refuse_existing(a.out)
+    bdoc = read_json(a.ball)
+    validate_ball(bdoc)
+    sha = sha256_doc(bdoc)
+    prov = build_provenance(config_sha256=cfg.sha256(), argv=sys.argv,
+                            inputs={"video": bdoc["video"]["sha256"], "ball": sha})
+    try:
+        doc = ball_path_document(bdoc, cfg.ball_path, prov, sha)
+    except ValueError as e:
+        raise ArtifactError(str(e)) from e
+    validate_ball_path(doc, bdoc)
+    print(write_json_atomic(a.out, doc))
+    print(summary(doc))
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     p = argparse.ArgumentParser(prog="spana")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -439,6 +475,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                         "detector pass, for `spana.cli ball`")
     sub.choices["track"].add_argument("--detections", required=True)
     sub.choices["ball"].add_argument("--detections", required=True, help="ball-view detections (detect --ball-out)")
+    sub.choices["ball"].add_argument("--tracks", default=None,
+                                     help="player tracks of the same video: no ball is started or brought back on a "
+                                          "player's body, or far from its predicted position")
     g = sub.add_parser("target", help="follow one user-selected track (spana.target)")
     g.add_argument("--tracks", required=True)
     g.add_argument("--config", required=True)
@@ -482,8 +521,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     k.add_argument("--config", required=True)
     k.add_argument("--linking-config", required=True, help="e.g. config/tracking/linking.yaml")
     k.add_argument("--out", required=True)
+    bp = sub.add_parser("ball-path", help="the ball decided offline over the whole clip (spana.ball_path)")
+    bp.add_argument("--ball", required=True, help="spana.ball 1.3.0 document (spana.cli ball)")
+    bp.add_argument("--config", required=True)
+    bp.add_argument("--out", required=True)
     a = p.parse_args(argv)
-    return {"detect": cmd_detect, "track": cmd_track, "ball": cmd_ball, "target": cmd_target, "embed": cmd_embed,
+    return {"ball-path": cmd_ball_path, "detect": cmd_detect, "track": cmd_track, "ball": cmd_ball, "target": cmd_target, "embed": cmd_embed,
             "link": cmd_link, "crops": cmd_crops, "teams": cmd_teams}[a.cmd](a)
 
 

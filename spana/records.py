@@ -97,7 +97,7 @@ class TeamReason(str, Enum):
 
 
 class BallState(str, Enum):
-    """Per-frame answer of the ball layer (spana.ball 1.0.0)."""
+    """Per-frame answer of the ball layer (spana.ball 1.1.0)."""
     OBSERVED = "OBSERVED"    # one confirmed ball hypothesis is observed on this frame
     PREDICTED = "PREDICTED"  # the selected ball is unobserved for <= ball.predict_max_s: extrapolated position
     LOST = "LOST"            # no ball answer: none seen, gap too long, or camera continuity broken
@@ -114,6 +114,8 @@ class BallReason(str, Enum):
     CAMERA_DISCONTINUITY = "CAMERA_DISCONTINUITY"  # LOST: CUT / UNKNOWN camera: every hypothesis was dropped
     RIVAL_CANDIDATES = "RIVAL_CANDIDATES"        # AMBIGUOUS: >= 2 confirmed observed, none the selected ball
     SELECTED_HIDDEN_RIVAL = "SELECTED_HIDDEN_RIVAL"  # AMBIGUOUS: selected ball briefly hidden, another one observed
+    SPARSE_OBSERVATIONS = "SPARSE_OBSERVATIONS"  # LOST (spana.ball 1.1.0): the only candidate ball is observed on
+    #   fewer than ball.min_seen_share of its recent frames (a flickering false object, or a ball barely seen)
 
 
 class BallEndReason(str, Enum):
@@ -224,7 +226,7 @@ class FrameTracks:
 
 @dataclass(frozen=True)
 class BallFrame:
-    """The ball layer's answer on one frame (spana.ball 1.0.0)."""
+    """The ball layer's answer on one frame (spana.ball 1.1.0)."""
     frame_index: int
     time_s: float
     camera_status: CameraStatus
@@ -238,6 +240,13 @@ class BallFrame:
     candidates: int                              # ball candidates the view gave on this frame
     confirmed_live: int                          # confirmed hypotheses alive after this frame
     decisions: List[dict] = field(default_factory=list)
+    # spana.ball 1.3.0: every hypothesis observed on this frame (confirmed or not, selected or not), for the offline
+    # ball path: (hypothesis id, centre x, centre y, detection diameter, detection score, rejoin_d), sorted by id.
+    # rejoin_d: None when the hypothesis was observed on the previous processed frame or starts here; else the
+    # distance, in diameters, from its constant-velocity prediction (how far away it was found again)
+    sightings: Tuple[Tuple[str, float, float, float, float, Optional[float]], ...] = ()
+    # the ball pass's inter-frame camera transform (previous frame -> this frame); identity unless the camera is OK
+    camera_affine: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0))
 
 
 @dataclass(frozen=True)

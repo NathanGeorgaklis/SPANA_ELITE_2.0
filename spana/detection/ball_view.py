@@ -15,6 +15,9 @@ from ..records import Detection
 from .postprocess import nms
 
 
+VIEW_KEYS = ("score_min", "nms_iou")   # the ball config keys the view uses: a ball run must share them
+
+
 class BallViewError(ValueError):
     pass
 
