@@ -60,3 +60,21 @@ What changed:
   0.16).
 - The 5 remaining wrong OBSERVED frames (F02 2, F07 2, F08 1) are not yet diagnosed. F07's 2 match the 2 OBSERVED
   answers on HIDDEN labels of the first run.
+
+## The 5 remaining wrong OBSERVED frames (diagnosed 2026-11-23; frames viewed by Nathan on the Mac)
+| clip, frame | label | tracker answer | hypothesis | score | what the answer is on (Nathan) |
+|---|---|---|---|---|---|
+| F02 30 | VISIBLE | 220 px from the label | B000001 (27 hits) | 0.32 | lower back of a player's jersey; real ball at another player's feet |
+| F02 33 | VISIBLE | 225 px from the label | B000001 (27 hits) | 0.34 | the same jersey |
+| F07 81 | HIDDEN | OBSERVED | B000001 (109 hits) | 0.42 | a player's white boot; ball not visible |
+| F07 309 | HIDDEN | OBSERVED | B000001 (109 hits) | 0.60 | a player's white shorts; ball not visible (it is at the feet of a player in the centre circle) |
+| F08 333 | OUT | OBSERVED | B000008 (0 hits) | 0.50 | the goalkeeper's glove; ball out of the picture |
+
+- The labels stand: no ball is visible on the HIDDEN frames.
+- Common cause: the detector's ball class fires on parts of players, and the tracker accepts them:
+  - F02: the real-ball hypothesis jumps 220 px to a weak detection while the real ball goes undetected. The gate
+    (`gate_base_d` + `max_speed_d_per_s` x gap) allows it.
+  - F07: the real-ball hypothesis takes a nearby body part while the ball is hidden.
+  - F08: a steadily detected false object passes the seen share.
+- Nathan's observation: a person knows where a hidden ball is from the frames before (last seen at a player's feet,
+  not seen leaving). The tracker forgets after `predict_max_s`, and by design knows no players (DECISIONS 2026-11-19).
