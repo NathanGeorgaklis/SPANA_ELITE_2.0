@@ -34,9 +34,29 @@ float rounding.
 Full suite: 723 passed, 15 skipped, 2 failed (`test_botsort_compare.py`: the bench-only `supervision` package is
 not installed in the cloud container).
 
-## DEV measurement: PENDING (Nathan's Mac)
-Re-run `spana.cli ball` on the existing `~/spana-ball-run/*.balldet.json`, then `tools.ball_score`. Pass bar
-(DECISIONS 2026-11-23):
-- 0 wrong OBSERVED pooled;
-- FRESH_05 OBSERVED coverage >= 0.888;
-- FRESH_07 OBSERVED coverage >= 0.740.
+## DEV measurement (Nathan's Mac, 2026-11-23): FAILS the pass bar
+`spana.cli ball` re-run on the same `*.balldet.json`, then `tools.ball_score`; files in `~/spana-ball-run/v2/`, not
+committed. Numbers transcribed from the terminal.
+
+| clip | coverage seen (before -> after) | coverage seen + predicted | wrong OBSERVED (95 % bound) | wrong all answers |
+|---|---|---|---|---|
+| FRESH_02 | 0.271 -> 0.163 | 0.395 -> 0.209 | 13 / 48 -> 2 / 23 (0.249) | 45 / 98 -> 7 / 36 |
+| FRESH_05 | 0.938 -> 0.938 | 0.977 -> 0.977 | 0 / 122 -> 0 / 122 (0.024) | 2 / 130 -> 2 / 130 |
+| FRESH_07 | 0.790 -> 0.758 | 0.919 -> 0.879 | 2 / 100 -> 2 / 96 (0.064) | 7 / 124 -> 6 / 118 |
+| FRESH_08 | 0.426 -> 0.463 | 0.463 -> 0.519 | 17 / 40 -> 1 / 26 (0.170) | 68 / 95 -> 8 / 38 |
+| pooled | 0.636 -> 0.600 | 0.725 -> 0.666 | 32 / 310 -> 5 / 267 (0.039) | 122 / 447 -> 23 / 322 |
+
+Pass bar (DECISIONS 2026-11-23):
+- 0 wrong OBSERVED pooled: 5, **FAIL**;
+- FRESH_05 coverage >= 0.888: 0.938, pass;
+- FRESH_07 coverage >= 0.740: 0.758, pass.
+
+Not adopted, and the bar is not changed after the fact.
+
+What changed:
+- Wrong answers fall 122 -> 23.
+- FRESH_08 phantoms are nearly gone, and FRESH_08 coverage rises: false objects no longer block the real ball.
+- Cost: FRESH_02, whose small real ball is seen on ~63 % of its frames, drops below 0.5 often (coverage 0.27 ->
+  0.16).
+- The 5 remaining wrong OBSERVED frames (F02 2, F07 2, F08 1) are not yet diagnosed. F07's 2 match the 2 OBSERVED
+  answers on HIDDEN labels of the first run.
