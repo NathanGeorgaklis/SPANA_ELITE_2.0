@@ -228,8 +228,10 @@ def cmd_ball(a: argparse.Namespace) -> int:
         raise ArtifactError("not a ball-view detections artifact (spana.cli detect --ball-out)")
     if ddoc["video"]["sha256"] != video.meta.sha256:
         raise ArtifactError("detections artifact was produced from a different video")
-    if ddoc["detection_config"] != dataclasses.asdict(cfg.ball):
-        raise ArtifactError("ball detections were produced under a different ball config")
+    from .detection.ball_view import VIEW_KEYS
+    if not isinstance(ddoc["detection_config"], dict) or \
+            any(ddoc["detection_config"].get(k) != getattr(cfg.ball, k) for k in VIEW_KEYS):
+        raise ArtifactError(f"ball detections were produced under a different ball view ({', '.join(VIEW_KEYS)})")
     det_frames = {fr["frame"]: fr for fr in ddoc["frames"]}
     first, last, stride = min(det_frames), max(det_frames), ddoc["frame_stride"]
     if sorted(det_frames) != list(range(first, last + 1, stride)):

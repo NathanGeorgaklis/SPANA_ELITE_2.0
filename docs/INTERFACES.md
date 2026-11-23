@@ -153,6 +153,11 @@ What the tracking layer receives from any detector, the football detector includ
   it from the same detector pass as the person view (one request per frame; the detector is asked down to
   min(detection.score_low, ball.score_min)). It is a `spana.detections` 1.4.0 document with `model.ball_view` and
   `detection_config` = the `ball` config section. `track` refuses it; `ball` refuses anything else.
+- `spana.ball` 1.1.0 (2026-11-23; 1.0.0 documents still validate): + LOST reason SPARSE_OBSERVATIONS. A confirmed
+  hypothesis is the answer (OBSERVED / PREDICTED) only while observed on >= `ball.min_seen_share` of its processed
+  frames over the last `ball.seen_share_window_s`; a sparse one still counts as a rival (AMBIGUOUS) but is never
+  answered. `spana.cli ball` reuses ball detections made under the same ball VIEW keys (`score_min`, `nms_iou`;
+  `spana.detection.ball_view.VIEW_KEYS`): tracker settings can change without re-detecting.
 - `spana.ball` 1.0.0 (`spana.cli ball --video --config --detections --out`, + `*.decisions.jsonl`): top level
   `schema, schema_version, provenance, video, detections_sha256, ball_config, frames, hypotheses`; frame
   `{frame, t, camera_status, state, reason, hypothesis, center[x,y], diameter, confidence, contested, candidates,

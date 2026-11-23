@@ -14,6 +14,9 @@ Several hypotheses live at once, because a ball view also fires on heads, boots,
      - OBSERVED only for the selected ball observed again, or for the single confirmed hypothesis observed while
        no selected ball is still within predict_max_s (no silent switch to another ball);
      - PREDICTED for the selected ball unobserved <= predict_max_s with its extrapolation inside the picture;
+     - a hypothesis observed on fewer than min_seen_share of its frames over the last seen_share_window_s is never
+       the answer (LOST SPARSE_OBSERVATIONS): a false object detected now and then is kept alive by each sporadic
+       re-detection, while the ball being followed is detected on most frames. It still counts as a rival;
      - AMBIGUOUS when several confirmed hypotheses could be the ball and continuity does not decide;
      - LOST otherwise.
 Every association, start, confirmation, end and selection change is returned as a decision for the log.
@@ -46,6 +49,7 @@ class _Hypothesis:
     obs_times: Deque[float]
     observed: int = 1
     has_velocity: bool = False
+    history: Deque[Tuple[float, bool]] = None    # (t, observed) per processed frame, last seen_share_window_s
     confirmed_frame: Optional[int] = None
 
     @property
@@ -96,6 +100,7 @@ class BallTracker:
         for i, d in enumerate(candidates):
             if i not in matched:
                 self._spawn(frame, t, d, i, log)
+        self._record_seen(t, set(matched.values()))
         self._expire(frame, t, log)
         return self._answer(frame, t, camera.status, discontinuous, matched, candidates, log)
 
@@ -106,6 +111,21 @@ class BallTracker:
         return [out[k] for k in sorted(out)]
 
     # ------------------------------------------------------------------ steps
+    def _record_seen(self, t: float, observed: set) -> None:
+        for hid, h in self._hyps.items():
+            if h.history is None:
+                h.history = deque()
+            h.history.append((t, hid in observed))
+            while h.history and t - h.history[0][0] > self.cfg.seen_share_window_s + 1e-9:
+                h.history.popleft()
+
+    def seen_share(self, h: _Hypothesis) -> float:
+        n = len(h.history) if h.history else 0
+        return 1.0 if n == 0 else sum(1 for _, o in h.history if o) / n
+
+    def _eligible(self, h: _Hypothesis) -> bool:
+        return self.seen_share(h) >= self.cfg.min_seen_share - 1e-9
+
     def _carry(self, a: np.ndarray) -> None:
         lin, off = a[:, :2], a[:, 2]
         scale = float(np.sqrt(abs(np.linalg.det(lin))))
@@ -216,7 +236,12 @@ class BallTracker:
 
         if discontinuous and not seen:
             return out(BallState.LOST, BallReason.CAMERA_DISCONTINUITY)
+        sparse = lambda h: (log.append({"kind": "sparse", "hypothesis": h.hid,   # noqa: E731
+                                        "seen_share": round(self.seen_share(h), 3)}),
+                            out(BallState.LOST, BallReason.SPARSE_OBSERVATIONS))[1]
         if sel is not None and sel.hid in seen:
+            if not self._eligible(sel):
+                return sparse(sel)
             reason = BallReason.CONTINUING if len(seen) > 1 else BallReason.SINGLE_CONFIRMED
             return out(BallState.OBSERVED, reason, sel, cands[seen[sel.hid]].score, sel.pos, len(seen) > 1)
         if seen and sel_hidden:
@@ -226,14 +251,18 @@ class BallTracker:
             return out(BallState.AMBIGUOUS, BallReason.RIVAL_CANDIDATES)
         if len(seen) == 1:
             hid, i = next(iter(seen.items()))
-            self._select(hid, log)
             h = self._hyps[hid]
+            if not self._eligible(h):
+                return sparse(h)
+            self._select(hid, log)
             return out(BallState.OBSERVED, BallReason.SINGLE_CONFIRMED, h, cands[i].score, h.pos)
         if sel is None:
             return out(BallState.LOST, BallReason.NO_CONFIRMED_BALL)
         gap = t - sel.last_obs_t
         if gap > c.predict_max_s:
             return out(BallState.LOST, BallReason.GAP_TOO_LONG)
+        if not self._eligible(sel):
+            return sparse(sel)
         p = sel.pos + sel.vel * gap
         if not (0.0 <= p[0] < self.w and 0.0 <= p[1] < self.h):
             return out(BallState.LOST, BallReason.PREDICTED_OUTSIDE)

@@ -55,6 +55,9 @@ Change log:
         meaning. A track_embeddings document validates with validate_track_embeddings.
   2.3.0 target: + target_config.resume_after_doubt_resolved (a no-rival doubt episode does not taint the followed
         track). Answers keep the 2.2.0 rules. 2.2.0 documents keep their meaning.
+  1.1.0 ball: + LOST reason SPARSE_OBSERVATIONS (the only candidate ball is observed on fewer than
+        ball.min_seen_share of its recent frames); ball_config gains min_seen_share / seen_share_window_s. 1.0.0
+        documents keep their meaning.
   1.0.0 ball: per-frame ball answer (OBSERVED / PREDICTED / LOST / AMBIGUOUS + reason, selected hypothesis, centre,
         diameter, confidence, contested, candidate counts) + hypotheses summary; consumes a ball-view detections
         artifact (model.ball_view, detection_config = the ball config section).
@@ -1100,13 +1103,15 @@ def validate_track_embeddings(doc: Any, tracks: Optional[dict] = None) -> None:
 
 
 # ----------------------------------------------------------------------------- ball
-BALL_SCHEMA = ("spana.ball", "1.0.0")
+BALL_SCHEMA = ("spana.ball", "1.1.0")
+BALL_ACCEPTED = ("1.0.0", "1.1.0")       # 1.0.0 documents still validate, without LOST SPARSE_OBSERVATIONS
 _BALL_FRAME_KEYS = ("frame", "t", "camera_status", "state", "reason", "hypothesis", "center", "diameter",
                     "confidence", "contested", "candidates", "confirmed_live")
 _BALL_HYP_KEYS = ("hypothesis", "first_frame", "last_observed_frame", "observed_frames", "confirmed_frame",
                   "end_frame", "end_reason")
 _BALL_REASONS = {"OBSERVED": {"SINGLE_CONFIRMED", "CONTINUING"}, "PREDICTED": {"SHORT_GAP"},
-                 "LOST": {"NO_CONFIRMED_BALL", "GAP_TOO_LONG", "PREDICTED_OUTSIDE", "CAMERA_DISCONTINUITY"},
+                 "LOST": {"NO_CONFIRMED_BALL", "GAP_TOO_LONG", "PREDICTED_OUTSIDE", "CAMERA_DISCONTINUITY",
+                          "SPARSE_OBSERVATIONS"},
                  "AMBIGUOUS": {"RIVAL_CANDIDATES", "SELECTED_HIDDEN_RIVAL"}}
 _BALL_ENDS = (None, "UNCONFIRMED_EXPIRED", "LOST_EXPIRED", "CAMERA_DISCONTINUITY")
 
@@ -1129,8 +1134,10 @@ def ball_hypothesis_rows(summaries) -> List[dict]:
 
 
 def validate_ball(doc: Any, detections: Optional[dict] = None) -> None:
-    """spana.ball 1.0.0. With the source detections: same hash, same frames, candidate counts match."""
-    _header(doc, BALL_SCHEMA, ("schema", "schema_version", "provenance", "video", "detections_sha256",
+    """spana.ball 1.1.0 (1.0.0 still accepted). With the source detections: same hash, same frames, candidate counts
+    match."""
+    version = doc.get("schema_version") if isinstance(doc, dict) else None
+    _header(doc, (BALL_SCHEMA[0], version if version in BALL_ACCEPTED else BALL_SCHEMA[1]), ("schema", "schema_version", "provenance", "video", "detections_sha256",
                                "ball_config", "frames", "hypotheses"))
     if not doc["frames"]:
         raise ArtifactError("ball artifact has no frames")
@@ -1154,7 +1161,8 @@ def validate_ball(doc: Any, detections: Optional[dict] = None) -> None:
             raise ArtifactError(f"frame {fr['frame']}: time not increasing")
         prev_t = fr["t"]
         st, why = fr["state"], fr["reason"]
-        if fr["camera_status"] not in cams or st not in _BALL_REASONS or why not in _BALL_REASONS[st]:
+        if fr["camera_status"] not in cams or st not in _BALL_REASONS or why not in _BALL_REASONS[st] or \
+                (version == "1.0.0" and why == "SPARSE_OBSERVATIONS"):
             raise ArtifactError(f"frame {fr['frame']}: bad camera / state / reason {fr['camera_status']!r} {st!r} "
                                 f"{why!r}")
         answered = st in ("OBSERVED", "PREDICTED")

@@ -20,8 +20,11 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
    - FIRST DEV SCORE 2026-11-23 (`records/ball_score_dev_2026-11-23`): pooled coverage seen 0.64, wrong OBSERVED
      32 / 310 (bound 0.136); FRESH_05 / 07 good (0 / 2 wrong OBSERVED), FRESH_02 / 08 bad. Cause: sporadically
      detected false objects (heads / boots / spots) get confirmed and kept alive; they are seen on 25-37 % of their
-     answered frames vs 63-94 % for the real ball. Ball output NOT fit for touches until fixed. Fix options with
-     Nathan.
+     answered frames vs 63-94 % for the real ball. Ball output NOT fit for touches until fixed.
+   - Fix built 2026-11-23 on `ball/seen-share-v1` (Nathan chose the seen-share rule; pass bar recorded first in
+     DECISIONS 2026-11-23: 0 wrong OBSERVED pooled, FRESH_05 / 07 seen coverage down <= 0.05). Config 2.19.0
+     (`ball.min_seen_share` 0.5 over `seen_share_window_s` 1.0), `spana.ball` 1.1.0. NOT YET MEASURED on DEV.
+     If touches v1 merges after this, its `possession` section becomes config 2.20.0.
 2. **Possession / touches v1: review and merge decision.**
    - The work is on `origin/possession/touches-v1` (160e1b0, not merged; another session). It has QA on scripted
      scenes only; no DEV touch labels exist.

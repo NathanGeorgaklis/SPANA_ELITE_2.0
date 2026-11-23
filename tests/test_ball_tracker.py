@@ -65,15 +65,49 @@ class BallTrackerTests(unittest.TestCase):
         self.assertEqual(trk.summaries()[0].end_reason, "UNCONFIRMED_EXPIRED")
 
     def test_short_gap_predicted_then_lost(self):
-        seen = [[ball(100 + 8 * i, 300)] for i in range(6)]
+        n_seen = int(B.seen_share_window_s * FPS) + 1              # followed for longer than the seen-share window
+        # (the tracker compares gap > predict_max_s without a tolerance: n_seen keeps the original float rounding)
+        seen = [[ball(100 + 8 * i, 300)] for i in range(n_seen)]
         out, _ = run(seen + [[] for _ in range(20)])
         n_pred = int(B.predict_max_s * FPS + 1e-9)
-        gap = out[6:]
+        gap = out[n_seen:]
         self.assertTrue(all(f.state is BallState.PREDICTED for f in gap[:n_pred]))
-        self.assertAlmostEqual(gap[0].center[0], 100 + 8 * 6, delta=1.0)        # extrapolated with its velocity
+        self.assertAlmostEqual(gap[0].center[0], 100 + 8 * n_seen, delta=1.0)   # extrapolated with its velocity
         self.assertTrue(gap[0].confidence > gap[n_pred - 1].confidence)
         self.assertEqual(gap[n_pred].state, BallState.LOST)
         self.assertEqual(gap[n_pred].reason, BallReason.GAP_TOO_LONG)
+
+    def test_flickering_false_object_is_never_the_answer(self):
+        # seen 3 frames in a row (confirmed), then only every 4th frame: kept alive, but sparse -> never answered
+        cands = [[ball(600, 400)] if i < 3 or i % 4 == 0 else [] for i in range(60)]
+        out, trk = run(cands)
+        late = out[int(B.seen_share_window_s * FPS):]
+        self.assertTrue(all(f.state is BallState.LOST for f in late))
+        self.assertIn(BallReason.SPARSE_OBSERVATIONS, {f.reason for f in late})
+        self.assertNotIn(BallState.OBSERVED, {f.state for f in late})
+
+    def test_flickering_object_does_not_take_the_answer_from_nothing_but_ball_still_wins(self):
+        # the real ball moves and is seen every frame; a sparse false object never takes over and never answers
+        cands = [[ball(100 + 6 * i, 300)] + ([ball(900, 500)] if i < 3 or i % 4 == 0 else []) for i in range(60)]
+        out, _ = run(cands)
+        ans = [f for f in out if f.state in (BallState.OBSERVED, BallState.PREDICTED)]
+        self.assertTrue(ans)
+        self.assertTrue(all(abs(f.center[1] - 300) < 1 for f in ans))        # only ever the real ball
+
+    def test_young_ball_hidden_goes_sparse_before_predict_max(self):
+        seen = [[ball(100 + 8 * i, 300)] for i in range(6)]          # followed 0.24 s, then hidden
+        out, _ = run(seen + [[] for _ in range(20)])
+        gap = out[6:]
+        self.assertEqual(gap[0].state, BallState.PREDICTED)
+        first_lost = next(f for f in gap if f.state is BallState.LOST)
+        self.assertEqual(first_lost.reason, BallReason.SPARSE_OBSERVATIONS)
+        self.assertLess(first_lost.frame_index - 6, int(B.predict_max_s * FPS))
+
+    def test_seen_share_comes_from_config(self):
+        cands = [[ball(600, 400)] if i < 3 or i % 4 == 0 else [] for i in range(60)]
+        loose = dataclasses.replace(B, min_seen_share=0.2)
+        out, _ = run(cands, cfg=loose)
+        self.assertIn(BallState.OBSERVED, {f.state for f in out[30:]})
 
     def test_hidden_ball_reacquired_on_same_hypothesis(self):
         seen = [[ball(100 + 8 * i, 300)] for i in range(6)]
@@ -230,6 +264,33 @@ class BallCli(unittest.TestCase):
         bad["frames"][0] = {**doc["frames"][0], "reason": "SHORT_GAP"}
         with self.assertRaises(ArtifactError):                                  # reason not allowed with LOST
             validate_ball(bad)
+
+        self.assertEqual(doc["schema_version"], "1.1.0")
+        sparse = {**doc, "frames": [dict(f) for f in doc["frames"]]}
+        sparse["frames"][0] = {**sparse["frames"][0], "state": "LOST", "reason": "SPARSE_OBSERVATIONS"}
+        validate_ball({**sparse, "frames": sparse["frames"]})                   # 1.1.0: allowed
+        with self.assertRaises(ArtifactError):                                  # 1.0.0 had no such reason
+            validate_ball({**sparse, "schema_version": "1.0.0"})
+        self.assertNotIn("SPARSE_OBSERVATIONS", {f["reason"] for f in doc["frames"]})   # a still ball, always seen
+        validate_ball({**doc, "schema_version": "1.0.0"})                       # 1.0.0 documents still validate
+
+    def test_ball_reuses_detections_unless_the_view_changed(self):
+        bd = self.td / "bd.json"
+        self.detect("--ball-out", str(bd))
+        raw = yaml.safe_load(Path(CONFIG_PATH).read_text())
+        for key, value, ok in (("min_seen_share", 0.3, True), ("predict_max_s", 0.3, True),
+                               ("score_min", 0.45, False), ("nms_iou", 0.5, False)):
+            with self.subTest(key=key):
+                r = {**raw, "ball": {**raw["ball"], key: value}}
+                cfgp = self.td / f"c_{key}.yaml"
+                cfgp.write_text(yaml.safe_dump(r))
+                argv = ["ball", "--video", str(self.video), "--config", str(cfgp), "--detections", str(bd),
+                        "--out", str(self.td / f"b_{key}.json")]
+                if ok:                                                          # tracker settings: same detections
+                    self.assertEqual(cli.main(argv), 0)
+                else:                                                           # the view changed: refused
+                    with self.assertRaisesRegex(ArtifactError, "different ball view"):
+                        cli.main(argv)
 
 
 if __name__ == "__main__":

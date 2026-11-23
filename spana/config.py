@@ -20,7 +20,7 @@ from typing import Any, Mapping, Type, TypeVar, get_args, get_origin, get_type_h
 
 import yaml
 
-CONFIG_SCHEMA_VERSION = "2.18.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
+CONFIG_SCHEMA_VERSION = "2.19.0"   # 2.1.0: + target section; 2.2.0: + target relink keys; 2.3.0: + tracking.exit_hold_s;
 #   2.4.0: + tracking appearance doubt link (+ self-consistent resolution), extent-change link, low-score recovery,
 #   target.tap_vouches_doubt / resume_after_doubt_resolved / review_min_gap_s; 2.5.0: + reid section, target re-entry
 #   offer keys; 2.6.0: + target.reentry_position_gate / reentry_mutual; 2.7.0: + target.reentry_position_* score;
@@ -36,6 +36,7 @@ CONFIG_SCHEMA_VERSION = "2.18.0"   # 2.1.0: + target section; 2.2.0: + target re
 #   32 / 32 / 2; same values)
 #   2.18.0: + team section (team classification v1; roles_enabled, min_separation_radius_ratio; spana.teams 1.1.0).
 #   The team branches numbered it 2.17.0 / 2.18.0 before main took 2.17.0; only 2.18.0 reached main.
+#   2.19.0: + ball.min_seen_share / seen_share_window_s (a sparsely observed hypothesis is never the answer)
 
 
 class ConfigError(ValueError):
@@ -359,11 +360,15 @@ class BallConfig:
     lost_max_s: float              # a confirmed hypothesis ends after this long unobserved
     diameter_window: int           # the hypothesis diameter is the median of its last N observed diameters
     velocity_smoothing: float      # weight of the newest velocity estimate in the running velocity (1 = newest only)
+    min_seen_share: float          # a confirmed hypothesis may be the answer only while observed on at least this
+    seen_share_window_s: float     #   share of its processed frames over this window (sparse = not the ball)
 
     def validate(self) -> None:
         _unit("ball.score_min", self.score_min)
         _unit("ball.nms_iou", self.nms_iou)
         _unit("ball.velocity_smoothing", self.velocity_smoothing)
+        _unit("ball.min_seen_share", self.min_seen_share)
+        _pos("ball.seen_share_window_s", self.seen_share_window_s)
         for n in ("min_diameter_px", "gate_base_d", "max_speed_d_per_s", "confirm_window_s", "predict_max_s",
                   "lost_max_s"):
             _pos(f"ball.{n}", getattr(self, n))
