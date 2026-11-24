@@ -73,6 +73,7 @@ class Windows(unittest.TestCase):
         self.assertEqual(dm.window_ranges(30 * 300, 30.0, CFG)[:3], [(0, 180), (3600, 3780), (7200, 7380)])
         self.assertEqual(dm.window_ranges(100, 30.0, CFG), [])                       # shorter than one window
         self.assertEqual(len(dm.window_ranges(30 * 60 * 90, 30.0, CFG)), 45)          # a 90-minute match
+        self.assertEqual([dm.stride_of(f, CFG) for f in (60.0, 30.0, 25.0, 15.0, 10.0)], [4, 2, 2, 1, 1])
 
 
 class Candidates(unittest.TestCase):
@@ -136,7 +137,7 @@ class MineCommand(unittest.TestCase):
             mcfg.write_text((ROOT / "config" / "detector_mine.yaml").read_text()
                             .replace("window_s: 6.0", "window_s: 2.4").replace("window_every_s: 120.0",
                                                                                "window_every_s: 2.4")
-                            .replace("stride: 2 ", "stride: 1 "))
+                            .replace("analysis_fps: 15.0", "analysis_fps: 25.0"))
             argv = ["mine", "--video", str(video), "--match-id", "TRAIN_M002_EASTERN_SUBURBS", "--config",
                     TILING_CONFIG, "--dataset-config", "config/roboflow.yaml", "--model-record", "unused",
                     "--runtime", "torch", "--device", "cpu", "--out", str(tmp / "out"), "--mine-config", str(mcfg)]

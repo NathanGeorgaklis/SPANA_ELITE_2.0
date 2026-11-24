@@ -53,7 +53,8 @@ more than one ball box.
 - TRAIN only: `mine` refuses any match not on the allow-list with split `train`, before the video is read. DEV and
   EVAL matches are refused. Local detector; frames stay on the machine.
 - One pass over the match video (the reader decodes from frame 0, so windows are processed as they pass). Windows of
-  6 s every 120 s, every 2nd frame: 45 windows and about 4,050 analysed frames for a 90-minute match at 30 fps.
+  6 s every 120 s, analysed at 15 frames per second whatever the video's rate: 45 windows and about 4,050 analysed
+  frames for a 90-minute match. (TRAIN_M001 and M002 are 60 fps, M003 30 fps: `records/roboflow_uploads`.)
 - Per frame the detector runs on the full frame and on each ball tile. Two ball paths per window come from the same
   passes: UNTILED (as the product runs) and TILED.
 - Candidate objects:

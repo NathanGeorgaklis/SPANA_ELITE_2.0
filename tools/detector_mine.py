@@ -20,7 +20,7 @@ Nothing here labels, uploads or trains. It proposes frames for a person to revie
 TRAIN only: `mine` refuses a match that is not on the licence allow-list with split `train` (DEV and EVAL matches are
 refused before the video is read). Frames stay on this machine (local detector).
 
-Mining (`mine`). Windows of `window_s` every `window_every_s`, every `stride`-th frame. On each frame the detector
+Mining (`mine`). Windows of `window_s` every `window_every_s`, analysed at `analysis_fps`. On each frame the detector
 runs once on the full frame and once per ball tile (the tiling config). Two ball paths are built per window from the
 same passes: UNTILED (full-frame ball boxes only, as the product runs today) and TILED (full frame + tiles).
 Candidate objects for review:
@@ -70,7 +70,7 @@ class MineConfig:
     schema_version: str
     window_s: float
     window_every_s: float
-    stride: int
+    analysis_fps: float
     max_gap_s: float
     frames_per_gap: int
     frames_per_object: int
@@ -84,8 +84,8 @@ def load_config(path=DEFAULT_CONFIG) -> MineConfig:
     cfg = typed_from_dict(MineConfig, yaml.safe_load(Path(path).read_text()), "detector_mine")
     if cfg.schema_version != CONFIG_VERSION:
         raise ConfigError(f"detector_mine schema_version {cfg.schema_version!r} != {CONFIG_VERSION!r}")
-    if not (0 < cfg.window_s <= cfg.window_every_s and cfg.max_gap_s > 0 and min(
-            cfg.stride, cfg.frames_per_gap, cfg.frames_per_object, cfg.min_per_category) >= 1
+    if not (0 < cfg.window_s <= cfg.window_every_s and cfg.max_gap_s > 0 and cfg.analysis_fps > 0 and min(
+            cfg.frames_per_gap, cfg.frames_per_object, cfg.min_per_category) >= 1
             and cfg.audit_choices and cfg.ball_choices):
         raise ConfigError("detector_mine: need 0 < window_s <= window_every_s, positive counts and choices")
     return cfg
@@ -130,6 +130,10 @@ def audit_candidates(labels: dict, flags: dict, cfg: MineConfig) -> List[dict]:
 def window_ranges(n_frames: int, fps: float, cfg: MineConfig) -> List[Tuple[int, int]]:
     length, every = max(1, int(round(cfg.window_s * fps))), max(1, int(round(cfg.window_every_s * fps)))
     return [(s, s + length) for s in range(0, max(0, n_frames - length + 1), every)]
+
+
+def stride_of(fps: float, cfg: MineConfig) -> int:
+    return max(1, int(round(fps / cfg.analysis_fps)))
 
 
 def _ball_doc(rows: list, trk: BallTracker, video: dict, ball_cfg) -> dict:
@@ -250,7 +254,8 @@ def cmd_mine(a: argparse.Namespace) -> int:
     if a.max_windows:
         ranges = ranges[:a.max_windows]
     todo = [r for r in ranges if not (out / f"w_{r[0]:07d}.json").is_file()]
-    per = sum(1 for _ in range(0, ranges[0][1] - ranges[0][0], cfg.stride)) if ranges else 0
+    stride = stride_of(video.meta.fps, cfg)
+    per = sum(1 for _ in range(0, ranges[0][1] - ranges[0][0], stride)) if ranges else 0
     tiles = len(fp.tile_grid(meta["width"], meta["height"], spana_cfg.ball))
     print(f"{a.match_id}: {len(ranges)} windows of {per} analysed frames ({len(todo)} still to do), "
           f"{1 + tiles} detector passes per frame = {len(todo) * per * (1 + tiles)} detector runs", flush=True)
@@ -264,7 +269,7 @@ def cmd_mine(a: argparse.Namespace) -> int:
             if cur is None or i < cur[0]:
                 continue
             if i < cur[1]:
-                if (i - cur[0]) % cfg.stride == 0:
+                if (i - cur[0]) % stride == 0:
                     buf.append((i, t, img))
                 if i < cur[1] - 1:
                     continue
