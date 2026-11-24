@@ -80,8 +80,13 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      v2b; checks on valid, DEV bench, the 5 DEV ball clips (untiled and tiled), the diagnosed objects, and an unseen
      clip against the 2 % ball bar. APPROVED 2026-11-24 with one change: ONLY THE MATCH BALL is boxed (spare balls
      get no box; `has-spare-ball` tag; version 2 audited for boxed spare balls first). Adoption rule recorded in
-     DECISIONS before any work. Budget ~520 frames; a further TRAIN match is available if needed. NEXT: task 1
-     (dataset tooling: TRAIN-only miners, spare-ball audit, scale check). Nothing built yet.
+     DECISIONS before any work. Budget ~520 frames; a further TRAIN match is available if needed.
+   - RETRAINING TASK 1 DONE 2026-11-24 (`records/detector_retrain_task1_2026-11-24`): `tools/detector_mine.py`
+     (TRAIN-only miner: missed balls and tiled-only objects from video windows; spare-ball audit; scale report).
+     Scale check: training is 1280 x 720 at 1.0x, ball 9 / 13 / 23 px; FRESH_02's ball reaches the detector at ~8 px
+     (below the trained range), FRESH_08's at ~11.5 px (inside it: size does not explain FRESH_08). Spare-ball audit:
+     31 ball boxes in 30 frames of version 2 to review. NEXT: task 2 on Nathan's Mac (audit sheets, mining run on the
+     three TRAIN videos, yield report). Nothing labelled or trained.
      Next lever for coverage: tiling for the football detector. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
      its `possession` section becomes config 2.22.0 on merge.
    - CORRECTION 2026-11-23: FRESH_08 re-scored on Nathan's every-frame labels (ball labels v2, 391 frames; on his

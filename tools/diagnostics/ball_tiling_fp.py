@@ -287,36 +287,53 @@ def sample(rows: List[dict], n: int) -> List[dict]:
     return [rows[round(i * (len(rows) - 1) / (n - 1))] for i in range(n)] if n > 1 else [rows[len(rows) // 2]]
 
 
-def contact_sheets(report: dict, images: Dict[int, "object"], cfg: DiagConfig, out_dir: Path) -> List[str]:
+def make_cell(label: str, r: dict, img, cfg: DiagConfig):
+    """One contact-sheet cell: a crop around r["center"] with a thin ring around (not on) the detection, and a
+    caption. r = {frame, center, w_px, h_px, score}."""
     import cv2
     import numpy as np
-    cells = []
-    for obj in objects_of(report):
-        for r in sample([x for x in obj["rows"] if x["frame"] in images], cfg.crops_per_object):
-            img = images[r["frame"]]
-            d = max(r["w_px"] or 0, r["h_px"] or 0, 1.0)
-            half = int(round(max(cfg.crop_pad_d * d + d / 2, cfg.min_crop_px / 2)))
-            cx, cy = (int(round(v)) for v in r["center"])
-            pad = cv2.copyMakeBorder(img, half, half, half, half, cv2.BORDER_CONSTANT, value=(40, 40, 40))
-            crop = cv2.resize(pad[cy:cy + 2 * half, cx:cx + 2 * half], (cfg.cell_px, cfg.cell_px),
-                              interpolation=cv2.INTER_CUBIC)
-            k = cfg.cell_px / (2 * half)
-            r_px = int(round(max(d / 2 + 3, 6) * k))                    # a ring around the detection, not on it
-            cv2.circle(crop, (cfg.cell_px // 2, cfg.cell_px // 2), r_px, (0, 255, 255), 1, cv2.LINE_AA)
-            cap = np.full((22, cfg.cell_px, 3), 25, np.uint8)
-            cv2.putText(cap, f"#{obj['object']} f{r['frame']} s{r['score']:.2f}", (4, 16), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.45, (255, 255, 255), 1, cv2.LINE_AA)
-            cells.append(np.vstack([crop, cap]))
+    d = max(r.get("w_px") or 0, r.get("h_px") or 0, 1.0)
+    half = int(round(max(cfg.crop_pad_d * d + d / 2, cfg.min_crop_px / 2)))
+    cx, cy = (int(round(v)) for v in r["center"])
+    pad = cv2.copyMakeBorder(img, half, half, half, half, cv2.BORDER_CONSTANT, value=(40, 40, 40))
+    crop = cv2.resize(pad[cy:cy + 2 * half, cx:cx + 2 * half], (cfg.cell_px, cfg.cell_px),
+                      interpolation=cv2.INTER_CUBIC)
+    k = cfg.cell_px / (2 * half)
+    cv2.circle(crop, (cfg.cell_px // 2, cfg.cell_px // 2), int(round(max(d / 2 + 3, 6) * k)), (0, 255, 255), 1,
+               cv2.LINE_AA)
+    cap = np.full((22, cfg.cell_px, 3), 25, np.uint8)
+    score = "" if r.get("score") is None else f" s{r['score']:.2f}"
+    cv2.putText(cap, f"{label} f{r['frame']}{score}", (4, 16), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1,
+                cv2.LINE_AA)
+    return np.vstack([crop, cap])
+
+
+def pack_sheets(cells: list, cfg: DiagConfig, out_dir: Path, name: str) -> List[str]:
+    import cv2
+    import numpy as np
     per = cfg.sheet_cols * cfg.sheet_rows
     paths = []
     for n in range(0, len(cells), per):
-        chunk = cells[n:n + per]
+        chunk = list(cells[n:n + per])
         chunk += [np.zeros_like(cells[0])] * (-len(chunk) % cfg.sheet_cols)
         rows = [np.hstack(chunk[i:i + cfg.sheet_cols]) for i in range(0, len(chunk), cfg.sheet_cols)]
-        p = out_dir / f"{report['clip']}_fp_sheet_{n // per + 1:02d}.jpg"
+        p = out_dir / f"{name}_sheet_{n // per + 1:02d}.jpg"
         cv2.imwrite(str(p), np.vstack(rows))
         paths.append(str(p))
     return paths
+
+
+def render_sheets(cells_spec: Sequence[Tuple[str, dict]], images: Dict[int, "object"], cfg: DiagConfig, out_dir: Path,
+                  name: str) -> List[str]:
+    """Contact sheets of (caption label, row) pairs whose frame is in `images`."""
+    return pack_sheets([make_cell(label, r, images[r["frame"]], cfg) for label, r in cells_spec
+                        if r["frame"] in images], cfg, out_dir, name)
+
+
+def contact_sheets(report: dict, images: Dict[int, "object"], cfg: DiagConfig, out_dir: Path) -> List[str]:
+    spec = [(f"#{obj['object']}", r) for obj in objects_of(report)
+            for r in sample([x for x in obj["rows"] if x["frame"] in images], cfg.crops_per_object)]
+    return render_sheets(spec, images, cfg, out_dir, f"{report['clip']}_fp")
 
 
 def write_categories_template(report: dict, path: Path) -> None:

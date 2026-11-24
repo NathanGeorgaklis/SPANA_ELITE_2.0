@@ -1,0 +1,18 @@
+# tools/detector_mine.py: mining candidates for detector retraining from TRAIN footage only
+# (docs/DETECTOR_BALL_RETRAINING_PLAN.md). Read by the mining tool only; nothing here is read by the product.
+# What "the same ball" means comes from config/ball_score.yaml; the ball tracker, path and tile settings come from
+# the spana config given to the run (the tiling measurement config).
+schema_version: "1.0.0"
+window_s: 6.0            # a mined window is this long ...
+window_every_s: 120.0    # ... and one starts this often (a 90-minute match: 45 windows)
+stride: 2                # every 2nd frame is analysed inside a window (the tracker is time-based)
+max_gap_s: 1.0           # missed-ball candidates come from holes and OPEN gaps of the untiled path up to this long
+frames_per_gap: 2        # frames proposed per hole / gap, spread evenly
+frames_per_object: 6     # frames proposed per tiled-only object, spread evenly
+min_per_category: 40     # yield report: a look-alike category with fewer mined frames than this is flagged as thin
+# Spare-ball audit of the existing labels: frames carrying one of these review flags and a ball box are candidates,
+# as is every frame with more than one ball box.
+audit_flags: [ball_static, ball_offpitch]
+audit_choices: [match ball, spare ball, not a ball, unsure]
+# Review choices for mined objects, besides the look-alike categories of config/ball_fp_diag.yaml.
+ball_choices: [match ball, spare ball, nothing there]
