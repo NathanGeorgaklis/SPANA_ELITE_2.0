@@ -65,8 +65,11 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
    - TILING FALSE-POSITIVE DIAGNOSIS (CODE TASK 2026-11-23, branch `ball/tiling-fp-diagnostic`, analysis only):
      `tools/diagnostics/ball_tiling_fp.py` + `config/ball_fp_diag.yaml` built and tested (what the tiled detector
      mistook for the ball on FRESH_02 / FRESH_08: source pass, tile overlap, new vs untiled, persistence, contact
-     sheets, generic categories). RESULTS PENDING: it runs on Nathan's Mac; findings go to
-     `docs/BALL_TILING_FP_FINDINGS.md`.
+     sheets, generic categories). RUN 2026-11-24 (`docs/BALL_TILING_FP_FINDINGS.md`): NOT a tiling / merge bug (146
+     accepted false detections, all from one tile pass, none merged, none in the overlap, none at a seam, all
+     reproduced); all 146 are NEW with tiling; 5 false objects on FRESH_02 and 1 on FRESH_08 lasting 0.6-2.8 s at
+     density 0.63-0.97, not separable from the real ball by duration, density, size or score. The path's "brief
+     false alarm" assumption fails for them. Object categories PENDING (Nathan, from the contact sheets).
      Next lever for coverage: tiling for the football detector. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
      its `possession` section becomes config 2.22.0 on merge.
    - CORRECTION 2026-11-23: FRESH_08 re-scored on Nathan's every-frame labels (ball labels v2, 391 frames; on his
