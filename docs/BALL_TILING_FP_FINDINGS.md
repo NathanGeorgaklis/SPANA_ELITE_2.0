@@ -63,12 +63,12 @@ Contact sheets (local, on the Mac):
 ### Each accepted false object
 | clip | # | frames | accepted (SEEN) frames | seconds | longest run of consecutive frames | density | category |
 |---|---|---|---|---|---|---|---|
-| FRESH_02 | 1 | 25-85 | 28 | 2.80 | 19 | 0.72 | PENDING |
-| FRESH_02 | 2 | 157-163 | 7 | 0.97 | 16 | 0.63 | PENDING |
-| FRESH_02 | 3 | 258-268 | 10 | 2.17 | 15 | 0.77 | PENDING |
-| FRESH_02 | 4 | 284-319 | 35 | 1.17 | 25 | 0.97 | PENDING |
-| FRESH_02 | 5 | 335-385 | 49 | 1.67 | 40 | 0.96 | PENDING |
-| FRESH_08 | 1 | 313-331 | 17 | 0.60 | 16 | 0.89 | PENDING |
+| FRESH_02 | 1 | 25-85 | 28 | 2.80 | 19 | 0.72 | equipment/cone |
+| FRESH_02 | 2 | 157-163 | 7 | 0.97 | 16 | 0.63 | equipment/cone |
+| FRESH_02 | 3 | 258-268 | 10 | 2.17 | 15 | 0.77 | equipment/cone |
+| FRESH_02 | 4 | 284-319 | 35 | 1.17 | 25 | 0.97 | equipment/cone |
+| FRESH_02 | 5 | 335-385 | 49 | 1.67 | 40 | 0.96 | equipment/cone |
+| FRESH_08 | 1 | 313-331 | 17 | 0.60 | 16 | 0.89 | crowd/background |
 
 FRESH_02 has 6 confident FALSE stretches but 5 objects: one accepted false stretch has no SEEN frame. Objects 1-3
 have far fewer SEEN frames than their stretch length. Both are consistent with frames being CONFLICT (a false and
@@ -115,6 +115,30 @@ another confident stretch at once), which would also explain the fall of the rea
   ball. Excluding the longest (2.8 s) would need a minimum above the real ball's median stretch.
 - The false objects the path rejected were brief (median 1-2 frames). That is where the assumption holds.
 
-### Categories
-PENDING: Nathan's labels of the 6 objects from the contact sheets. The category list is in
-`config/ball_fp_diag.yaml`.
+### Categories (labelled by Nathan from the contact sheets, 2026-11-24; generic categories only)
+| clip | category | false objects | accepted false frames | scored wrong SEEN |
+|---|---|---|---|---|
+| FRESH_02 | equipment/cone | 5 | 129 | 42 |
+| FRESH_08 | crowd/background | 1 | 17 | 17 |
+| both | equipment/cone | 5 | 129 | 42 |
+| both | crowd/background | 1 | 17 | 17 |
+| both | boot/foot, head, glove/hand, shin/sock, pitch marking, other ball, unclear | 0 | 0 | 0 |
+
+- The labels were given in the session, per object number on the sheets. The `category` column of the
+  `.categories.csv` files on the Mac was not filled, so `summarise` was not run; the counts above combine these
+  labels with the per-object table.
+- Whether the five FRESH_02 objects are one cone seen at five different times or several cones was not established.
+- Only the false objects the path ACCEPTED were cropped and labelled. The 53 rejected false stretches (16 + 37) were
+  not categorised.
+
+### Ranked hard-negative categories from this diagnosis (to mine from TRAIN footage only)
+1. **equipment/cone**: 5 of 6 objects, 129 of 146 accepted false frames. Small (about 10.5 px), ball-sized, and
+   detected steadily for up to 2.8 s.
+2. **crowd/background**: 1 of 6 objects, 17 of 146 frames. About 20 px, 0.6 s.
+
+Separate evidence, from the UNTILED detector (`records/ball_seen_share_2026-11-23`,
+`records/ball_player_aware_2026-11-23`): jersey / shorts (body), boot/foot and glove/hand were mistaken for the ball
+on FRESH_02 / 07 / 08. Those were single frames or short runs. They are hard negatives too, but they are a different
+failure from the steady objects above.
+
+DEV frames from this diagnosis must not be added to any training set.
