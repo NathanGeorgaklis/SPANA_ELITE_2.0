@@ -120,21 +120,28 @@ another confident stretch at once), which would also explain the fall of the rea
 |---|---|---|---|---|
 | FRESH_02 | equipment/cone | 5 | 129 | 42 |
 | FRESH_08 | crowd/background | 1 | 17 | 17 |
-| both | equipment/cone | 5 | 129 | 42 |
+| both | equipment/cone | 5 stretches = 1 physical object | 129 | 42 |
 | both | crowd/background | 1 | 17 | 17 |
 | both | boot/foot, head, glove/hand, shin/sock, pitch marking, other ball, unclear | 0 | 0 | 0 |
 
 - The labels were given in the session, per object number on the sheets. The `category` column of the
   `.categories.csv` files on the Mac was not filled, so `summarise` was not run; the counts above combine these
   labels with the per-object table.
-- Whether the five FRESH_02 objects are one cone seen at five different times or several cones was not established.
+- The five FRESH_02 "objects" are ONE physical object (Nathan, 2026-11-24): the same piece of equipment, picked
+  up in five separate stretches between frames 25 and 385 of the 391-frame clip. It is in the picture, and
+  mistaken for the ball, for almost the whole clip. This is the DESIGN's "persistent false object" risk
+  (`records/ball_path_v1_2026-11-23/DESIGN.md`, risks added after the review, item 4).
+- So this diagnosis rests on TWO physical objects: one piece of equipment and one background object.
 - Only the false objects the path ACCEPTED were cropped and labelled. The 53 rejected false stretches (16 + 37) were
   not categorised.
 
 ### Ranked hard-negative categories from this diagnosis (to mine from TRAIN footage only)
-1. **equipment/cone**: 5 of 6 objects, 129 of 146 accepted false frames. Small (about 10.5 px), ball-sized, and
-   detected steadily for up to 2.8 s.
-2. **crowd/background**: 1 of 6 objects, 17 of 146 frames. About 20 px, 0.6 s.
+1. **equipment/cone**: one physical object, accepted in 5 stretches, 129 of 146 accepted false frames. Small
+   (about 10.5 px), ball-sized, and detected steadily for up to 2.8 s at a time across nearly the whole clip.
+2. **crowd/background**: one object, 17 of 146 frames. About 20 px, 0.6 s.
+
+The ranking rests on two physical objects in two clips. It says these categories matter; it does not say how often
+each occurs in general.
 
 Separate evidence, from the UNTILED detector (`records/ball_seen_share_2026-11-23`,
 `records/ball_player_aware_2026-11-23`): jersey / shorts (body), boot/foot and glove/hand were mistaken for the ball

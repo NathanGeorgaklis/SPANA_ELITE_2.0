@@ -69,8 +69,9 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      accepted false detections, all from one tile pass, none merged, none in the overlap, none at a seam, all
      reproduced); all 146 are NEW with tiling; 5 false objects on FRESH_02 and 1 on FRESH_08 lasting 0.6-2.8 s at
      density 0.63-0.97, not separable from the real ball by duration, density, size or score. The path's "brief
-     false alarm" assumption fails for them. Categories (Nathan, from the contact sheets): equipment/cone 5 objects
-     / 129 frames (all FRESH_02), crowd/background 1 object / 17 frames (FRESH_08). Hard negatives to mine from TRAIN
+     false alarm" assumption fails for them. Categories (Nathan, from the contact sheets): equipment/cone, ONE physical
+     object in 5 stretches / 129 frames across nearly all of FRESH_02 (a persistent false object), and
+     crowd/background, 1 object / 17 frames (FRESH_08). Hard negatives to mine from TRAIN
      footage only: cones first, then crowd/background. No pipeline change; tiling stays off; not merged.
      Next lever for coverage: tiling for the football detector. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
      its `possession` section becomes config 2.22.0 on merge.
