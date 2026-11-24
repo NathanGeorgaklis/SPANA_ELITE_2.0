@@ -1,7 +1,8 @@
 # Detector retraining plan: ball recall and ball look-alikes (PROPOSAL, 2026-11-24)
 
-Owner layer: player detection (the football detector's ball class). Status: a plan for Nathan's approval. Nothing
-here has been built, labelled, trained or decided. Branch `detection/ball-retraining-plan`.
+Owner layer: player detection (the football detector's ball class). Status: APPROVED by Nathan 2026-11-24 with one
+change (decision 2: only the match ball is boxed); see section 9 and DECISIONS 2026-11-24. Nothing has been built,
+labelled or trained yet. Branch `detection/ball-retraining-plan`.
 
 ## 1. Why
 What the ball work measured (`records/ball_score_dev_2026-11-23`, `ball_path_v1_2026-11-23`,
@@ -102,13 +103,31 @@ Valid grows in step with train, so the new failure cases can be measured on a ma
 
 ## 4. Labelling protocol
 Same flow as detector v1 (pre-label, human review, freeze, preflight), with these rules:
-1. Every real football in the frame is boxed as `ball`, including a spare ball at the touchline. To the detector a
-   spare ball IS a ball; choosing the match ball is the ball tracker's job. (Decision 2 below.)
+1. ONLY THE MATCH BALL is boxed as `ball` (Nathan, decision 2). A spare ball (at the touchline, by the goal, in
+   someone's hands off the pitch, a warm-up ball) gets NO box: there is one real ball, and a detector that reports
+   others throws off everything after it.
+   - Every frame with a visible spare ball is tagged `has-spare-ball`, so the effect of these frames can be measured
+     and they can be taken out again without relabelling.
+   - Not sure which ball is the match ball: the frame is excluded.
 2. A look-alike never gets a box and never a class of its own.
 3. Not sure whether it is a ball: the frame is tagged excluded.
 4. Each reviewed frame carries a tag for why it was mined (`mined:small-ball`, `mined:negative:<category>`), so
    results can be reported per category.
 5. Labels are frozen and the preflight passes before any training run.
+
+### 4a. The existing labels must follow the same rule (added with decision 2)
+The detector-v1 pre-labels boxed spare balls: `records/roboflow_2026-11-12/RECORD.md` notes "about ten boxes on spare
+balls" in TRAIN_M002 and a spare ball at a goalpost, some flagged `review:ball-static`. Whether the human review
+removed them from dataset version 2 is not recorded. If any remain, version 3 would hold both "spare ball = ball" and
+"spare ball = background". Task 1 therefore includes an audit of the existing ball boxes for spare balls (starting
+from the `review:ball-static` frames), for Nathan to review. No label is changed without that review.
+
+### 4b. Known cost of decision 2
+A spare ball and the match ball look the same in a single frame; only where they are differs. Teaching "this ball is
+background" can make the detector more timid on real balls that look like it, such as a match ball at rest before a
+free kick or a ball near the touchline. Checks A and F measure that. If recall falls, the `has-spare-ball` frames can
+be excluded from training instead of used as background, which removes the conflicting examples while still never
+teaching the detector to report a spare ball.
 
 ## 5. Training
 - Dataset version 3 = version 2 + the frames above. Same recipe as v1 (`rfdetr-medium`, COCO checkpoint, input 1280,
@@ -161,9 +180,11 @@ Proposed. The numbers in the last column are Nathan's to set.
 5. **Evaluation:** checks A-H for v1, v2a and v2b, side by side.
 6. **Unseen clip(s)** and the adoption decision (check I).
 
-## 9. Decisions needed from Nathan before task 1
-1. Approve the plan's scope: retrain the existing detector on more TRAIN data. No new class, no new model family.
-2. Spare balls: box every real football as `ball` (recommended), or leave non-match balls unboxed.
-3. The adoption rule of section 6: accept the proposed rules, or set other numbers.
-4. Labelling budget: about 520 frames to review (section 3d), or another size.
-5. More TRAIN footage: is another licensed TRAIN match available if task 2 shows too few look-alikes?
+## 9. Decisions (Nathan, 2026-11-24)
+| # | question | decision |
+|---|---|---|
+| 1 | Scope: retrain the existing detector on more TRAIN data; no new class, no new model family | YES |
+| 2 | Box every real football as `ball`, including spare balls | NO: only the match ball is boxed. There is one real ball; a detector that picks up several, or the wrong one, throws everything off. Spare balls get no box (section 4, rule 1) |
+| 3 | The adoption rule of section 6 | YES, as proposed (recorded in DECISIONS before any training) |
+| 4 | Labelling budget of about 520 frames to review | YES |
+| 5 | Another licensed TRAIN match if task 2 shows too few look-alikes | YES, available. It needs its permission recorded and its entry on the allow-list (`config/roboflow.yaml`) before any frame is used |

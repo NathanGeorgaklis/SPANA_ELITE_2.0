@@ -78,7 +78,10 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      examples (mined from the path's holes / gaps), hard negatives (the tiled detector's own false ball detections on
      TRAIN footage; look-alikes left unboxed), and training at the scales used at inference; same recipe, runs v2a /
      v2b; checks on valid, DEV bench, the 5 DEV ball clips (untiled and tiled), the diagnosed objects, and an unseen
-     clip against the 2 % ball bar. Waiting on 5 decisions from Nathan (plan section 9).
+     clip against the 2 % ball bar. APPROVED 2026-11-24 with one change: ONLY THE MATCH BALL is boxed (spare balls
+     get no box; `has-spare-ball` tag; version 2 audited for boxed spare balls first). Adoption rule recorded in
+     DECISIONS before any work. Budget ~520 frames; a further TRAIN match is available if needed. NEXT: task 1
+     (dataset tooling: TRAIN-only miners, spare-ball audit, scale check). Nothing built yet.
      Next lever for coverage: tiling for the football detector. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
      its `possession` section becomes config 2.22.0 on merge.
    - CORRECTION 2026-11-23: FRESH_08 re-scored on Nathan's every-frame labels (ball labels v2, 391 frames; on his
