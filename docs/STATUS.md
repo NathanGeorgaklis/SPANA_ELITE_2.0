@@ -73,6 +73,12 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      object in 5 stretches / 129 frames across nearly all of FRESH_02 (a persistent false object), and
      crowd/background, 1 object / 17 frames (FRESH_08). Hard negatives to mine from TRAIN
      footage only: cones first, then crowd/background. No pipeline change; tiling stays off; not merged.
+   - DETECTOR RETRAINING PLAN written 2026-11-24 (`docs/DETECTOR_BALL_RETRAINING_PLAN.md`, branch
+     `detection/ball-retraining-plan`): a PROPOSAL, nothing built or decided. TRAIN footage only: more small-ball
+     examples (mined from the path's holes / gaps), hard negatives (the tiled detector's own false ball detections on
+     TRAIN footage; look-alikes left unboxed), and training at the scales used at inference; same recipe, runs v2a /
+     v2b; checks on valid, DEV bench, the 5 DEV ball clips (untiled and tiled), the diagnosed objects, and an unseen
+     clip against the 2 % ball bar. Waiting on 5 decisions from Nathan (plan section 9).
      Next lever for coverage: tiling for the football detector. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
      its `possession` section becomes config 2.22.0 on merge.
    - CORRECTION 2026-11-23: FRESH_08 re-scored on Nathan's every-frame labels (ball labels v2, 391 frames; on his
