@@ -455,6 +455,34 @@ Follow the user's chosen player through a clip, and say so when unsure.
   clip index, frame index, time, image sha256, blur, pHash, upload id, status, pre-label class counts, error.
   Benchmark frames live in `dev_bench.project` only and carry `match:<id>`, `split:dev`, `dev_bench.bench_tag`.
 
+## Detector review file and staged dataset (supporting) — `spana/dataset/detector_review.py`, `tools/dataset_v3.py` (2026-11-25)
+- Review file **`spana.detector_review` 1.0.0** (TRAIN only; input of `tools.dataset_v3`): `review_version`,
+  `reviewer`, `reviewed_utc`, `base_labels_sha256` (the frozen labels it was made against), `candidates`,
+  `existing_labels`.
+  - Candidate: `id` (unique), `match_id`, `split` (must be `TRAIN`), `kind` (free text: why it was mined), `verdict`,
+    `category` (NOT_BALL only: a look-alike category of `config/ball_fp_diag.yaml`, not `other ball` / `unclear`),
+    `frames`.
+  - Verdict enum: MATCH_BALL, NOT_BALL, SPARE_BALL, UNSURE, SKIP. UNSURE and SKIP are never used; a frame they share
+    with a used candidate is left out too.
+  - Frame: `name` (file in `frames_dir`, starts with the match id), `sha256` of the file, `object_box` (the candidate
+    object; required for NOT_BALL / SPARE_BALL), `match_ball_box` (required for MATCH_BALL), `match_ball_absent`
+    (true = no match ball visible on the frame). Boxes are [x1, y1, x2, y2] in frame pixels.
+  - `existing_labels`: verdict on a ball box of the base labels, addressed by project `image_id` + exact `box`:
+    MATCH_BALL (stays) or SPARE_BALL (removed, frame tagged `has-spare-ball`).
+  - From the mining review CSV (`tools.detector_mine`): `match ball` -> MATCH_BALL, `spare ball` / `other ball` ->
+    SPARE_BALL, a look-alike category -> NOT_BALL, `unclear` -> UNSURE, `nothing there` / empty -> SKIP. (Mapping
+    defined here; the converter is not built.)
+- Frozen at `data/detector_review/v<review_version>/{review_frozen.json, FROZEN.json}` (sha256, reviewer, counts);
+  never overwritten; `load_frozen` refuses bytes that changed.
+- Staged dataset **`spana.dataset_stage` 1.0.0**: `<stage_dir>/v<dataset_version>_review<N>/stage.json` + `images/<split>/`.
+  `uploaded` (false), `review`, `base_labels`, `config_sha256`, `counts`, `project_changes` (`remove_box` /
+  `add_tag` by image id), `frames_left_out`, `frames` (mined: file, sha256, split, tags, boxes, verdicts, categories,
+  candidates) and `scale_copies` (kind shrink / tile, source image id + sha256). Same inputs: byte-identical output.
+- Preflight refusal codes: NOT_ALLOW_LISTED, DEV_OR_EVAL, MISSING_FRAME, MISSING_HASH, HASH_MISMATCH,
+  BOXED_SPARE_BALL, BOXED_LOOKALIKE, TWO_BALL_BOXES, MATCH_BALL_NO_BOX, BALL_UNACCOUNTED, BALL_UNCLEAR,
+  CATEGORY, CATEGORY_SHORTFALL, EXISTING_LABEL, BASE_LABELS, FRAME_NAME, BOX, DEV_GUARD, EMPTY; also SCHEMA,
+  FROZEN_EXISTS, FROZEN_CHANGED, STAGE_EXISTS.
+
 ## Not yet defined
 | layer | inputs / outputs | state enum |
 |---|---|---|

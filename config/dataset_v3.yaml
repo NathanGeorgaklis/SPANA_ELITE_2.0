@@ -1,0 +1,57 @@
+# tools/dataset_v3.py: from the frozen review of the mined candidates to a staged detector dataset version
+# (docs/DETECTOR_BALL_RETRAINING_PLAN.md, task 3). Read by the dataset builder only; nothing here is read by the
+# product. The licence allow-list, the split of matches, the ball class and the image cache come from
+# config/roboflow.yaml; min_per_category from config/detector_mine.yaml; the look-alike categories from
+# config/ball_fp_diag.yaml. Nothing here uploads or trains.
+schema_version: "1.0.0"
+dataset_version: 3
+
+# The frozen labels the new version is built on (dataset version 2). The file is read-only and its sha256 is checked
+# against this value and against the one named in the review file.
+base_labels: records/roboflow_version/labels_20261114T082808Z.json
+base_labels_sha256: 7c3846b44d95b5e21b6e552b5571c83e2cd3e42159def4196197f9d0735d6bae
+
+# Frozen DEV label sets. A review frame with a name or an image sha256 found in one of them is refused.
+dev_labels:
+  - data/labels/dev_bench/bench_v1/labels.json
+
+review_dir: data/detector_review     # frozen reviews: v<N>/{review_frozen.json, FROZEN.json} (committed; no pixels)
+frames_dir: runs/detector_mine_frames   # the reviewed frames as full-size JPEGs, named as in the review (gitignored)
+stage_dir: runs/dataset_v3           # the staged upload: images + stage.json (gitignored; has pixels)
+
+# Two ball boxes given for one frame by different candidates are the same ball when they overlap at least this much
+# (IoU). Less than that is two balls on one frame: refused. Untuned prior.
+same_ball_iou: 0.5
+# A ball box is "on" a spare ball / look-alike when its centre is inside that object's box or they overlap at least
+# this much (IoU): refused. Untuned prior.
+object_overlap_iou: 0.1
+# Categories of config/ball_fp_diag.yaml that are not look-alikes: another real ball is SPARE_BALL, "cannot tell" is
+# UNSURE. A NOT_BALL verdict naming one of these is refused.
+not_lookalike_categories: [other ball, unclear]
+
+tags:
+  spare_ball: "has-spare-ball"         # DECISIONS 2026-11-24: every frame with a visible spare ball
+  small_ball: "mined:small-ball"       # plan section 4, rule 4
+  negative_prefix: "mined:negative:"   # + the look-alike category
+  persons_pending: "needs:person-labels"   # mined frames are staged with their ball label only; the other classes
+                                       # are labelled and reviewed in the project before a version is generated.
+                                       # Staged frames never carry the review tag (review.reviewed_tag)
+  version: "dataset:v3-new"            # every frame staged by this tool
+  scale_copy_prefix: "scale-copy:"     # + shrink / tile
+  source_prefix: "source:"             # + the project image id of the frame a copy was made from
+
+# Copies of ALREADY LABELLED frames (dataset version 2) at the scales the detector meets at inference (plan 3c;
+# generated before upload: records/detector_retrain_task1_2026-11-24, section 4). A copy stays in its source's split.
+# Factors are the measured ones of the task-1 scale check: a 1920 px frame reaches the detector at 0.667x, a
+# frame-height tile at 1.185x. Not tuned.
+scale_copies:
+  enabled: true
+  require_ball: true           # only frames (and tiles) that hold a ball box: the copies are about ball size
+  shrink_factors: [0.667]      # the frame resized by this, centred on a frame-size canvas
+  pad_value: 0                 # canvas colour (black, as the version's "Fit (black edges)")
+  tile_frac_height: 1.0        # tile side as a fraction of the frame height
+  tile_overlap_frac: 0.25      # least overlap of neighbouring tiles across the frame width
+  tile_enlarge: [1.185]        # each tile enlarged by this
+  min_box_visible_frac: 0.5    # a non-ball box cut by a tile is kept (clipped) if at least this much of it is inside.
+                               # A tile that cuts a ball box is not generated. Untuned prior
+  jpeg_quality: 95             # as sampling.jpeg_quality in config/roboflow.yaml

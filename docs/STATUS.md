@@ -88,6 +88,25 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      31 ball boxes in 30 frames of version 2 reviewed by Nathan 2026-11-25: 30 match ball, 1 spare ball (TRAIN_M001
      f0020508, valid, second box; to be removed in task 3; the match ball in that frame is already boxed). NEXT: task 2 on Nathan's Mac (audit sheets, mining run on the
      three TRAIN videos, yield report). Nothing labelled or trained.
+   - RETRAINING TASK 2 RUN 2026-11-25 (`records/detector_retrain_task2_2026-11-25`): 232 candidate objects from the
+     three TRAIN clips (160 missed-ball, 15 tiled-only, 57 tiled-extends), AWAITING NATHAN'S REVIEW.
+   - RETRAINING TASK 3 TOOLING READY 2026-11-25 (branch `detection/dataset-v3-builder`, not merged;
+     `records/detector_retrain_task3_tooling_2026-11-25`), WAITING ON NATHAN'S REVIEW. `tools/dataset_v3.py` +
+     `config/dataset_v3.yaml`: `build --review REVIEW.json` freezes the review (`spana.detector_review` 1.0.0, under
+     `data/detector_review/v<N>`), preflights it and stages dataset version 3 under `runs/dataset_v3` (never
+     uploads); `check` is the same preflight, read-only. Tested on synthetic review files only (20 tests); no real
+     review, footage, upload or training. OPEN before it can run on the real review (Nathan to decide):
+     1. Nathan's review is a CSV with one choice per object; the builder reads the JSON review file. The step in
+        between (export the reviewed frames as full-size JPEGs with sha256, write the review file) is NOT built: it
+        needs the TRAIN clips.
+     2. A MATCH_BALL frame needs a ball box. The 160 missed-ball objects have only a hint ring, so someone must
+        draw those boxes; a look-alike / spare-ball frame must also box the match ball or state it is not visible.
+     3. Mined frames are staged with their ball label only, tagged `needs:person-labels` and never `reviewed`:
+        player / goalkeeper / referee boxes still go through pre-label + review in the project before version 3.
+     4. A look-alike category under 40 frames is refused, not padded. With 15 tiled-only objects this will likely
+        refuse on the real review: that is the plan's STOP point (more TRAIN footage).
+     5. Scale copies are made from version-2 frames that hold a ball (shrink 0.667x, frame-height tiles 1.185x); they
+        need the image cache on the Mac. Untuned priors in config.
      Next lever for coverage: tiling for the football detector. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
      its `possession` section becomes config 2.22.0 on merge.
    - CORRECTION 2026-11-23: FRESH_08 re-scored on Nathan's every-frame labels (ball labels v2, 391 frames; on his
