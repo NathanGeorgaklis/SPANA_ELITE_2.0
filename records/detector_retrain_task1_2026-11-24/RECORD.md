@@ -96,15 +96,18 @@ The spare-ball audit sheets and the mining run on the three TRAIN match videos, 
 ## Spare-ball audit: Nathan's review (2026-11-25, from the contact sheets on his Mac)
 | result | boxes | which |
 |---|---|---|
-| match ball (box stays) | 29 | #1, #3, #4, #6-#31 |
+| match ball (box stays) | 30 | #1, #3-#31 (#5 confirmed separately: the first list had "#4" twice) |
 | spare ball (box to be removed) | 1 | #2: TRAIN_M001_MORETON_CITY f0020508 (valid), box [1158, 695, 1215, 720], the second ball box of the one two-ball frame; its other box (#1) is the match ball |
 | not a ball | 0 | |
 | unsure | 0 | |
-| not answered | 1 | #5: TRAIN_M002_EASTERN_SUBURBS f0005880 (train), box [229, 352, 241, 363]. The answer list has "#4" twice and no "#5"; to be confirmed with Nathan, not assumed |
+| not answered | 0 | |
 
 - The existing labels already follow "only the match ball is boxed" except for one box, in the valid split.
-- The `ball_static` and `ball_offpitch` flags did not find spare balls here: all 28 of those answered are the match
-  ball.
+- The `ball_static` and `ball_offpitch` flags did not find spare balls here: all 29 flagged boxes are the match ball
+  (Nathan: every ball marked match ball was in play).
+- OPEN on the two-ball frame (TRAIN_M001 f0020508): Nathan noted "another ball that was in play that wasn't picked
+  up" for the spare-ball picture. Not yet clear whether that is box #1 (shown in its own picture) or a third,
+  unboxed ball. If it is a third ball, the frame also needs the match ball boxed in task 3. To be confirmed.
 - Not done: the box of #2 is still in the Roboflow project. It is removed in task 3, when dataset version 3 is
   prepared. The frozen labels of version 2 are not edited.
 - Limit of this audit: it looked at flagged frames and the two-ball frame only. A spare ball boxed as the only ball
