@@ -70,9 +70,12 @@ class FrozenLabels(unittest.TestCase):
 
 class Windows(unittest.TestCase):
     def test_window_ranges(self):
-        self.assertEqual(dm.window_ranges(30 * 300, 30.0, CFG)[:3], [(0, 180), (3600, 3780), (7200, 7380)])
-        self.assertEqual(dm.window_ranges(100, 30.0, CFG), [])                       # shorter than one window
-        self.assertEqual(len(dm.window_ranges(30 * 60 * 90, 30.0, CFG)), 45)          # a 90-minute match
+        c = dataclasses.replace(CFG, window_s=6.0, window_every_s=120.0)            # the spacing is config
+        self.assertEqual(dm.window_ranges(30 * 300, 30.0, c)[:3], [(0, 180), (3600, 3780), (7200, 7380)])
+        self.assertEqual(dm.window_ranges(100, 30.0, c), [])                         # shorter than one window
+        self.assertEqual(len(dm.window_ranges(30 * 60 * 90, 30.0, c)), 45)           # a 90-minute match
+        dense = dataclasses.replace(c, window_every_s=30.0)                          # old starts are kept
+        self.assertLessEqual(set(dm.window_ranges(30 * 600, 30.0, c)), set(dm.window_ranges(30 * 600, 30.0, dense)))
         self.assertEqual([dm.stride_of(f, CFG) for f in (60.0, 30.0, 25.0, 15.0, 10.0)], [4, 2, 2, 1, 1])
 
 
