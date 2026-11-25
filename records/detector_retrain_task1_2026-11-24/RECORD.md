@@ -105,9 +105,9 @@ The spare-ball audit sheets and the mining run on the three TRAIN match videos, 
 - The existing labels already follow "only the match ball is boxed" except for one box, in the valid split.
 - The `ball_static` and `ball_offpitch` flags did not find spare balls here: all 29 flagged boxes are the match ball
   (Nathan: every ball marked match ball was in play).
-- OPEN on the two-ball frame (TRAIN_M001 f0020508): Nathan noted "another ball that was in play that wasn't picked
-  up" for the spare-ball picture. Not yet clear whether that is box #1 (shown in its own picture) or a third,
-  unboxed ball. If it is a third ball, the frame also needs the match ball boxed in task 3. To be confirmed.
+- The two-ball frame (TRAIN_M001 f0020508), settled with Nathan 2026-11-25: the ball in play is the one in box #1,
+  which is boxed. The match ball he saw unringed in picture #2 is that same ball: each picture rings one box only.
+  There is no third ball. The only change needed is removing box #2 (the spare ball).
 - Not done: the box of #2 is still in the Roboflow project. It is removed in task 3, when dataset version 3 is
   prepared. The frozen labels of version 2 are not edited.
 - Limit of this audit: it looked at flagged frames and the two-ball frame only. A spare ball boxed as the only ball

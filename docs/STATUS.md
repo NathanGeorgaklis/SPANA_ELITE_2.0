@@ -86,8 +86,7 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      Scale check: training is 1280 x 720 at 1.0x, ball 9 / 13 / 23 px; FRESH_02's ball reaches the detector at ~8 px
      (below the trained range), FRESH_08's at ~11.5 px (inside it: size does not explain FRESH_08). Spare-ball audit:
      31 ball boxes in 30 frames of version 2 reviewed by Nathan 2026-11-25: 30 match ball, 1 spare ball (TRAIN_M001
-     f0020508, valid, second box; to be removed in task 3). Open: whether that frame also holds an unboxed match
-     ball. NEXT: task 2 on Nathan's Mac (audit sheets, mining run on the
+     f0020508, valid, second box; to be removed in task 3; the match ball in that frame is already boxed). NEXT: task 2 on Nathan's Mac (audit sheets, mining run on the
      three TRAIN videos, yield report). Nothing labelled or trained.
      Next lever for coverage: tiling for the football detector. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
      its `possession` section becomes config 2.22.0 on merge.
