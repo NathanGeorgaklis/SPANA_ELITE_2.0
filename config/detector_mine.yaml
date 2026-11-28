@@ -4,8 +4,9 @@
 # the spana config given to the run (the tiling measurement config).
 schema_version: "1.1.0"
 window_s: 6.0            # a mined window is this long ...
-window_every_s: 30.0     # ... and one starts this often (a 10-minute TRAIN clip: 20 windows). Was 120.0 until the
-                         # first task-2 run (2026-11-25) gave only 61 candidate objects from the three clips
+window_every_s: 60.0     # ... and one starts this often. 120.0 gave 61 candidate objects from the three 10-minute TRAIN
+                         # clips, 30.0 gave 232 (2026-11-25). 60.0 from 2026-11-28 for the full broadcasts (about 115
+                         # windows a match, about 3.5 h of detector time each on the M3); the clip runs keep their output
 analysis_fps: 15.0       # frames analysed per second inside a window, whatever the video's frame rate (the tracker is
                          # time-based): every 2nd frame at 30 fps, every 4th at 60 fps
 max_gap_s: 1.0           # missed-ball candidates come from holes and OPEN gaps of the untiled path up to this long

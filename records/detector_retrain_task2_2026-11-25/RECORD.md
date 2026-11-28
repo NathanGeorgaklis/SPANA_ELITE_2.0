@@ -72,3 +72,27 @@ Reading:
 ball". `review_M001_v2.txt` is the raw file with those two answers added; the raw file is kept as typed. Use v2.
 
 Corrected totals: 493 pictures, 232 objects; match ball 348 (tiled_extends 149). Every other count is unchanged.
+
+## Split of the clip yield (train = M002 + M003, valid = M001)
+
+Mined frames stay in their match's split. Of the 90 look-alike pictures, 68 are from M001 (valid) and only 22 from
+M002 + M003 (train): shin/sock 7, boot/foot 6, equipment/cone 4, crowd/background 3, head 1, unclear 1. So the
+training side has almost no hard negatives from the clips; crowd/background reaches 40 only on the valid side.
+
+## Full broadcasts (re-downloaded by Nathan, 2026-11-28)
+
+The original downloads (1280 x 720) are gone; these are new downloads of the same matches as named by Nathan, at
+1920 x 1080 and with different lengths, so they are different files from the ones the clips were cut from.
+
+| Match | File (`Downloads/SPANA_reid/TRAIN_M00x/`) | Codec | Size | fps | Length | sha256 |
+|---|---|---|---|---|---|---|
+| TRAIN_M001_MORETON_CITY | `TRAIN_M001_MORETON_CITY_full.mp4` | av1 | 1920 x 1080 | 60 | 7054 s | `f4de17daf8a322ace13770bae28746bfdec19d1589a944bea239f7fa9bfd3023` |
+| TRAIN_M002_EASTERN_SUBURBS | `TRAIN_M002_EASTERN_SUBURBS_full.mp4` | av1 | 1920 x 1080 | 60 | 6798 s (the first download: 188 min) | `0f6dbf0dd6435258ead32ca0b63fea56b90b5d4a1b7969529245685b7e5178ae` |
+| TRAIN_M003_SYDNEY_OLYMPIC | `TRAIN_M003_SYDNEY_OLYMPIC_full.mp4` | h264 | 1920 x 1080 | 30 | 6941 s (the first download: 142 min) | `038b24491d04de01d38a27909a1a4c0c67f288717db98fa9d130b6290ca0aa74` |
+
+Plan for them:
+- Transcode to 1280 x 720 H.264 (the recipe of the clips plus `scale=1280:720`), so mined frames have the frame size
+  and ball scale of dataset version 2 (all 1280 x 720) and OpenCV can read them.
+- Mine at `window_every_s: 60.0`. Windows that overlap the already-labelled 3000-3600 s clip cannot be located by
+  time (different files); near-duplicates of labelled frames are left to the dataset audit's pHash check in task 3.
+- Nathan confirms on the first contact sheets that each file is the named match.
