@@ -77,6 +77,11 @@ licensed_matches:
     split: dev
     permission: "written permission dated 2026-10-31 (records/dev_permissions/DEV_PERMISSIONS_2026-11-14.md)"
     third_party_processing_confirmed: true
+  # Added 2026-11-28 (Nathan): a new DEV match, DEV-only by its permission. Never TRAIN, never EVAL.
+  - match_id: DEV_G4_MACARTHUR_RAMS_WESTERN_RANGERS
+    split: dev
+    permission: "written permission dated 2026-11-22 (records/dev_permissions/DEV_PERMISSIONS_2026-11-28.md)"
+    third_party_processing_confirmed: true
 
 # --- dataset preparation for detector v1 (tools/roboflow_audit.py, roboflow_split.py, roboflow_prelabel.py,
 #     roboflow_progress.py, roboflow_version.py). Every tool applies the licensed_matches allow-list to every frame.
