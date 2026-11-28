@@ -95,9 +95,10 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      unclear 1. Only crowd/background reaches `min_per_category` 40; equipment/cone (the FRESH_02 failure) is THIN.
      AT THE PLAN'S STOP POINT: Nathan decides about more TRAIN footage. The answers were checked
      against the mined pictures (`detector_mine review-apply`; M001 uses `review_M001_v2.txt`). Nathan
-     re-downloaded the three full TRAIN broadcasts (next: mine them) and offered two more matches, both DEV-only by
-     their permissions (`records/dev_permissions/DEV_PERMISSIONS_2026-11-28.md`): Game 2 again, and a NEW DEV match,
-     DEV_G4_MACARTHUR_RAMS_WESTERN_RANGERS (allow-listed as dev; unused, so a source of unseen clips for task 6). Nothing labelled or trained.
+     re-downloaded the three full TRAIN broadcasts (next: mine them) and offered two more matches, both with
+     permission for TRAIN or DEV (`records/dev_permissions/DEV_PERMISSIONS_2026-11-28.md`): Game 2 again, which
+     stays DEV, and a NEW match, DEV_G4_MACARTHUR_RAMS_WESTERN_RANGERS (allow-listed as dev, nothing run on it;
+     Nathan assigns it to TRAIN or keeps it as unseen DEV after the full-broadcast yield is known). Nothing labelled or trained.
      Next lever for coverage: tiling for the football detector. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
      its `possession` section becomes config 2.22.0 on merge.
    - CORRECTION 2026-11-23: FRESH_08 re-scored on Nathan's every-frame labels (ball labels v2, 391 frames; on his

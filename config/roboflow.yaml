@@ -77,7 +77,8 @@ licensed_matches:
     split: dev
     permission: "written permission dated 2026-10-31 (records/dev_permissions/DEV_PERMISSIONS_2026-11-14.md)"
     third_party_processing_confirmed: true
-  # Added 2026-11-28 (Nathan): a new DEV match, DEV-only by its permission. Never TRAIN, never EVAL.
+  # Added 2026-11-28 (Nathan): a new match. Its permission allows TRAIN or DEV; held as dev, with nothing run on
+  # it, until Nathan assigns it (records/dev_permissions/DEV_PERMISSIONS_2026-11-28.md). Never EVAL.
   - match_id: DEV_G4_MACARTHUR_RAMS_WESTERN_RANGERS
     split: dev
     permission: "written permission dated 2026-11-22 (records/dev_permissions/DEV_PERMISSIONS_2026-11-28.md)"
