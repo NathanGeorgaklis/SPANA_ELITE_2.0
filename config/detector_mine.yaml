@@ -2,7 +2,7 @@
 # (docs/DETECTOR_BALL_RETRAINING_PLAN.md). Read by the mining tool only; nothing here is read by the product.
 # What "the same ball" means comes from config/ball_score.yaml; the ball tracker, path and tile settings come from
 # the spana config given to the run (the tiling measurement config).
-schema_version: "1.0.0"
+schema_version: "1.1.0"
 window_s: 6.0            # a mined window is this long ...
 window_every_s: 30.0     # ... and one starts this often (a 10-minute TRAIN clip: 20 windows). Was 120.0 until the
                          # first task-2 run (2026-11-25) gave only 61 candidate objects from the three clips
@@ -18,3 +18,15 @@ audit_flags: [ball_static, ball_offpitch]
 audit_choices: [match ball, spare ball, not a ball, unsure]
 # Review choices for mined objects, besides the look-alike categories of config/ball_fp_diag.yaml.
 ball_choices: [match ball, spare ball, nothing there]
+# Short forms accepted in a per-picture review (`review-apply`), mapped to the choices above or to a look-alike category.
+review_aliases:            # "short form = choice"
+  - nothing = nothing there
+  - second ball = spare ball
+  - unsure = unclear
+  - boot = boot/foot
+  - sock = shin/sock
+  - legs = shin/sock
+  - crowd = crowd/background
+  - background = crowd/background
+  - background/crowd = crowd/background
+  - equipment = equipment/cone

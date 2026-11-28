@@ -40,6 +40,7 @@ import csv
 import dataclasses
 import json
 import math
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -61,7 +62,7 @@ from tools.diagnostics import ball_tiling_fp as fp
 
 REPO = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = REPO / "config" / "detector_mine.yaml"
-CONFIG_VERSION = "1.0.0"
+CONFIG_VERSION = "1.1.0"
 KINDS = ("missed_ball", "tiled_only", "tiled_extends")
 
 
@@ -78,6 +79,7 @@ class MineConfig:
     audit_flags: Tuple[str, ...]
     audit_choices: Tuple[str, ...]
     ball_choices: Tuple[str, ...]
+    review_aliases: Tuple[str, ...]
 
 
 def load_config(path=DEFAULT_CONFIG) -> MineConfig:
@@ -365,6 +367,79 @@ def yield_report(out: Path, cfg: MineConfig, diag) -> str:
     return "\n".join(lines)
 
 
+# ------------------------------------------------------------------------------------------ per-picture review
+def parse_review(text: str, cfg: MineConfig, diag) -> Dict[int, dict]:
+    """A review as typed by the reviewer: one line per contact sheet, `<kind>_sheet_NN: #7 match ball, #7 sock, ...`,
+    one answer per picture in sheet order. Returns {object: {"kind", "choices": [per picture]}}."""
+    allowed = choices(cfg, diag)
+    alias = {k.strip(): v.strip() for k, _, v in (x.partition("=") for x in cfg.review_aliases)}
+    out: Dict[int, dict] = {}
+    for line in filter(str.strip, text.splitlines()):
+        head, _, rest = line.partition(":")
+        kind = re.sub(r"_sheet_?\d*$", "", head.strip())
+        if kind not in KINDS:
+            raise SystemExit(f"review line starts with {head.strip()!r}; expected one of {list(KINDS)}_sheet_NN")
+        for item in filter(None, (x.strip().rstrip(".").strip() for x in rest.split(","))):
+            m = re.fullmatch(r"#(\d+)\s+(.+)", item)
+            if not m:
+                raise SystemExit(f"cannot read {item!r} on the {head.strip()} line")
+            c = alias.get(m[2].lower(), m[2].lower())
+            if c not in allowed:
+                raise SystemExit(f"#{m[1]}: {m[2]!r} is not a choice; use one of {allowed} or {sorted(alias)}")
+            o = out.setdefault(int(m[1]), {"kind": kind, "choices": []})
+            if o["kind"] != kind:
+                raise SystemExit(f"#{m[1]} is answered under both {o['kind']} and {kind}")
+            o["choices"].append(c)
+    return out
+
+
+def apply_review(report: dict, review: Dict[int, dict]) -> List[dict]:
+    """One row per mined picture with the reviewer's answer. Fails unless the review answers every picture of every
+    object exactly once, under the object's own kind: a miscount would attach answers to the wrong frames."""
+    problems, rows = [], []
+    for o in report["objects"]:
+        r = review.get(o["object"])
+        if r is None:
+            problems.append(f"#{o['object']} ({o['kind']}) has no answer")
+        elif r["kind"] != o["kind"]:
+            problems.append(f"#{o['object']} is {o['kind']}, answered under {r['kind']}")
+        elif len(r["choices"]) != len(o["frames"]):
+            problems.append(f"#{o['object']} ({o['kind']}) has {len(o['frames'])} pictures, {len(r['choices'])} answers")
+        else:
+            rows += [{"match_id": report["match_id"], "object": o["object"], "kind": o["kind"], "frame": f["frame"],
+                      "choice": c} for f, c in zip(o["frames"], r["choices"])]
+    extra = sorted(set(review) - {o["object"] for o in report["objects"]})
+    if extra:
+        problems.append(f"answers for objects that do not exist: {extra}")
+    if problems:
+        raise SystemExit("review does not match the mined pictures:\n  " + "\n  ".join(problems))
+    return rows
+
+
+def picture_table(rows: List[dict], cfg: MineConfig, diag) -> str:
+    lines = ["| choice | " + " | ".join(KINDS) + " | pictures | note |", "|---" * (len(KINDS) + 3) + "|"]
+    for c in choices(cfg, diag):
+        n = [sum(r["choice"] == c and r["kind"] == k for r in rows) for k in KINDS]
+        thin = c in diag.categories and c != "unclear" and sum(n) < cfg.min_per_category
+        lines.append(f"| {c} | " + " | ".join(map(str, n)) + f" | {sum(n)} | "
+                     f"{'THIN: under ' + str(cfg.min_per_category) if thin else ''} |")
+    return "\n".join(lines + [f"\n{len(rows)} pictures, {len({(r['match_id'], r['object']) for r in rows})} objects."])
+
+
+def cmd_review_apply(a: argparse.Namespace) -> int:
+    cfg, diag = load_config(a.mine_config), fp.load_config(a.diag_config)
+    report = json.loads((Path(a.out) / f"{a.match_id}.mine.json").read_text())
+    rows = apply_review(report, parse_review(Path(a.review).read_text(), cfg, diag))
+    dest = Path(a.out) / f"{a.match_id}.pictures.csv"
+    with dest.open("w", newline="") as fh:
+        w = csv.DictWriter(fh, ["match_id", "object", "kind", "frame", "choice"])
+        w.writeheader()
+        w.writerows(rows)
+    print(f"{a.match_id}: review matches all {len(rows)} mined pictures; written to {dest}")
+    print(picture_table(rows, cfg, diag))
+    return 0
+
+
 # ---------------------------------------------------------------------------------------------------- CLI
 def cmd_scale(a: argparse.Namespace) -> int:
     print(json.dumps(scale_report(json.loads(Path(a.labels).read_text())), indent=1))
@@ -422,11 +497,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     mi.add_argument("--score-config", default=str(SCORE_CONFIG))
     yi = sub.add_parser("yield")
     yi.add_argument("--out", required=True)
-    for q in (au, mi, yi):
+    ra = sub.add_parser("review-apply")
+    for k in ("review", "match-id", "out"):
+        ra.add_argument(f"--{k}", required=True)
+    for q in (au, mi, yi, ra):
         q.add_argument("--mine-config", default=str(DEFAULT_CONFIG))
         q.add_argument("--diag-config", default=str(fp.DEFAULT_CONFIG))
     a = p.parse_args(argv)
-    return {"scale": cmd_scale, "spare-audit": cmd_spare_audit, "mine": cmd_mine, "yield": cmd_yield}[a.cmd](a)
+    return {"scale": cmd_scale, "spare-audit": cmd_spare_audit, "mine": cmd_mine, "yield": cmd_yield,
+            "review-apply": cmd_review_apply}[a.cmd](a)
 
 
 if __name__ == "__main__":

@@ -88,6 +88,13 @@ As of 2026-11-22: main 94b1451. Full suite on Nathan's Mac at 94b1451: 708 passe
      31 ball boxes in 30 frames of version 2 reviewed by Nathan 2026-11-25: 30 match ball, 1 spare ball (TRAIN_M001
      f0020508, valid, second box; to be removed in task 3; the match ball in that frame is already boxed). NEXT: task 2 on Nathan's Mac (audit sheets, mining run on the
      three TRAIN videos, yield report). Nothing labelled or trained.
+   - RETRAINING TASK 2 MINED AND REVIEWED 2026-11-28 (`records/detector_retrain_task2_2026-11-25`): the three TRAIN
+     videos are 10-minute clips (3000-3600 s); the full broadcasts are no longer on Nathan's Mac. Mined every 30 s
+     (`config/detector_mine.yaml`): 232 objects, 491 pictures, all reviewed by Nathan per picture. Match ball 346,
+     nothing there 49, crowd/background 43, shin/sock 19, equipment/cone 14, boot/foot 11, spare ball 6, head 2,
+     unclear 1. Only crowd/background reaches `min_per_category` 40; equipment/cone (the FRESH_02 failure) is THIN.
+     AT THE PLAN'S STOP POINT: Nathan decides about more TRAIN footage. Counts are from the answers as typed; the
+     check against the mined pictures (`detector_mine review-apply`) runs on Nathan's Mac. Nothing labelled or trained.
      Next lever for coverage: tiling for the football detector. Touches v1 (unmerged) reads `spana.ball` OBSERVED: it must be switched to the path's SEEN frames, and
      its `possession` section becomes config 2.22.0 on merge.
    - CORRECTION 2026-11-23: FRESH_08 re-scored on Nathan's every-frame labels (ball labels v2, 391 frames; on his

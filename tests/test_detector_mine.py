@@ -178,5 +178,40 @@ class MineCommand(unittest.TestCase):
                 dm.main(argv[:6] + ["config/default.yaml"] + argv[7:-3] + [str(tmp / "out2"), "--mine-config", str(mcfg)])
 
 
+class PictureReview(unittest.TestCase):
+    """A reviewer answers per picture, in sheet order; the answers must match the mined pictures exactly."""
+    REPORT = {"match_id": "TRAIN_X", "objects": [
+        {"object": 1, "kind": "missed_ball", "frames": [{"frame": 10}, {"frame": 14}]},
+        {"object": 2, "kind": "tiled_only", "frames": [{"frame": 20}, {"frame": 24}, {"frame": 28}]}]}
+    DIAG = fp.load_config()
+
+    def rows(self, text):
+        return dm.apply_review(self.REPORT, dm.parse_review(text, CFG, self.DIAG))
+
+    def test_answers_attach_to_frames_in_order_and_short_forms_are_mapped(self):
+        rows = self.rows("missed_ball_sheet_01: #1 match ball, #1 nothing.\n"
+                         "tiled_only_sheet_01: #2 sock, #2 Crowd,#2 equipment/cone")
+        self.assertEqual([(r["object"], r["frame"], r["choice"]) for r in rows],
+                         [(1, 10, "match ball"), (1, 14, "nothing there"), (2, 20, "shin/sock"),
+                          (2, 24, "crowd/background"), (2, 28, "equipment/cone")])
+        self.assertIn("| shin/sock | 0 | 1 | 0 | 1 | THIN", dm.picture_table(rows, CFG, self.DIAG))
+
+    def test_a_review_that_does_not_match_the_pictures_is_refused(self):
+        for bad, why in (("missed_ball_sheet_01: #1 match ball, #1 nothing", "#2 .* no answer"),
+                         ("missed_ball_sheet_01: #1 match ball\ntiled_only_sheet_01: #2 sock, #2 sock, #2 sock",
+                          "#1 .* 2 pictures, 1 answers"),
+                         ("tiled_only_sheet_01: #1 match ball, #1 nothing, #2 sock, #2 sock, #2 sock", "#1 is missed_ball"),
+                         ("missed_ball_sheet_01: #1 match ball, #1 nothing, #3 sock\n"
+                          "tiled_only_sheet_01: #2 sock, #2 sock, #2 sock", "do not exist"),
+                         ("missed_ball_sheet_01: #1 a football", "not a choice"),
+                         ("other_sheet_01: #1 match ball", "expected one of")):
+            with self.subTest(why), self.assertRaisesRegex(SystemExit, why):
+                self.rows(bad)
+
+    def test_recorded_reviews_parse(self):
+        for f in sorted((ROOT / "records").glob("detector_retrain_task2_*/review_*_raw.txt")):
+            self.assertTrue(dm.parse_review(f.read_text(), CFG, self.DIAG), f.name)
+
+
 if __name__ == "__main__":
     unittest.main()

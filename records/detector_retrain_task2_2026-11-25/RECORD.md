@@ -33,3 +33,34 @@ Decided before any candidate was reviewed. The plan's STOP point (more TRAIN foo
 
 232 candidate objects, awaiting Nathan's review. Missed balls: up to 320 frames (`frames_per_gap` 2). Possible
 look-alikes: 15 tiled-only objects plus whatever part of the 57 tiled-extends objects is not the match ball.
+
+## Review (Nathan, 2026-11-26 to 2026-11-28)
+
+Nathan answered per picture, in sheet order: `review_M001_raw.txt`, `review_M002_raw.txt`, `review_M003_raw.txt`, as
+typed (short forms are mapped by `review_aliases` in `config/detector_mine.yaml`; "legs" is read as shin/sock,
+"second ball" as spare ball, "unsure" as unclear). Every object of every match is answered, under its own kind, with no
+more answers than the per-object picture limits. The exact per-picture count check needs each match's `.mine.json`
+(on the Mac): `python -m tools.detector_mine review-apply --review FILE --match-id ID --out DIR`.
+
+| choice | missed_ball | tiled_only | tiled_extends | pictures | note |
+|---|---|---|---|---|---|
+| match ball | 158 | 41 | 147 | 346 |  |
+| spare ball | 0 | 6 | 0 | 6 |  |
+| nothing there | 49 | 0 | 0 | 49 |  |
+| boot/foot | 10 | 0 | 1 | 11 | THIN: under 40 |
+| head | 2 | 0 | 0 | 2 | THIN: under 40 |
+| glove/hand | 0 | 0 | 0 | 0 | THIN: under 40 |
+| shin/sock | 9 | 6 | 4 | 19 | THIN: under 40 |
+| pitch marking | 0 | 0 | 0 | 0 | THIN: under 40 |
+| crowd/background | 8 | 29 | 6 | 43 |  |
+| other ball | 0 | 0 | 0 | 0 | THIN: under 40 |
+| equipment/cone | 7 | 7 | 0 | 14 | THIN: under 40 |
+| unclear | 1 | 0 | 0 | 1 | excluded |
+
+491 pictures, 232 objects. Per match, look-alike pictures: M001 68, M002 14, M003 8.
+
+Reading:
+- Small-ball positives: 346 pictures where the match ball was missed or only found with tiling. Enough for the plan.
+- Hard negatives: 90 look-alike pictures in all, 43 of them crowd/background (the FRESH_08 failure type) and nearly
+  all from M001. Equipment/cone (the FRESH_02 failure type) has 14. Every category but crowd/background is THIN.
+- The plan's STOP point applies: more TRAIN footage is needed for the look-alike side before labelling.
