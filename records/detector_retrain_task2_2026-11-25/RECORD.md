@@ -64,3 +64,11 @@ Reading:
 - Hard negatives: 90 look-alike pictures in all, 43 of them crowd/background (the FRESH_08 failure type) and nearly
   all from M001. Equipment/cone (the FRESH_02 failure type) has 14. Every category but crowd/background is THIN.
 - The plan's STOP point applies: more TRAIN footage is needed for the look-alike side before labelling.
+
+## Check against the mined pictures (Nathan's Mac, 2026-11-28)
+
+`review-apply`: M002 matches all 153 mined pictures, M003 all 149. M001 was one answer short on two objects, #28 and
+#29 (tiled_extends, 6 pictures each, 5 answers each, all match ball). Nathan looked again: "#28 and #29 all match
+ball". `review_M001_v2.txt` is the raw file with those two answers added; the raw file is kept as typed. Use v2.
+
+Corrected totals: 493 pictures, 232 objects; match ball 348 (tiled_extends 149). Every other count is unchanged.
