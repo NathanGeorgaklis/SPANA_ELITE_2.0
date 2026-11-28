@@ -95,4 +95,5 @@ Plan for them:
   and ball scale of dataset version 2 (all 1280 x 720) and OpenCV can read them.
 - Mine at `window_every_s: 60.0`. Windows that overlap the already-labelled 3000-3600 s clip cannot be located by
   time (different files); near-duplicates of labelled frames are left to the dataset audit's pHash check in task 3.
-- Nathan confirms on the first contact sheets that each file is the named match.
+- Nathan confirmed 2026-11-28: the same three matches at a larger size; he cut unused minutes from the start of each,
+  which is why they are shorter than the first downloads.
